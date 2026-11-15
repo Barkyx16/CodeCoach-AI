@@ -8,7 +8,9 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 
+import { freshnessBadge } from "./freshness";
 import { queueHref, useItemKind } from "./labels";
+import { SavedFreshness } from "./SavedFreshness";
 
 /**
  * A collection practiced in order. Position and "done" marks belong to this queue only; mastery
@@ -20,6 +22,7 @@ export function QueuePage() {
   const go = useCollectionMutation((position: number) => api.setQueuePosition(id, position));
   const mark = useCollectionMutation(({ itemId, done }: { itemId: string; done: boolean }) => api.markQueueDone(id, itemId, done));
   const remove = useCollectionMutation((itemId: string) => api.removeFromCollection(id, itemId));
+  const reviewItem = useCollectionMutation(({ itemId, version }: { itemId: string; version: number }) => api.reviewCollectionItem(id, itemId, version));
   const itemKind = useItemKind();
 
   if (collection.isPending) return <LoadingState label="Loading practice queue…" />;
@@ -73,6 +76,8 @@ export function QueuePage() {
           {current.queue_done && <Badge tone="success">Done in queue</Badge>}
           {current.practiced_since_added && <Badge tone="info">Practiced since added</Badge>}
         </span>
+        <SavedFreshness key={current.id} title={current.title} freshness={current.freshness}
+          review={(version) => reviewItem.mutateAsync({ itemId: current.id, version })} />
         {!current.available && (
           <div className="banner banner--warning stack-sm">
             <p>{current.unavailable_reason} Nothing was swapped in for it.</p>
@@ -106,7 +111,7 @@ export function QueuePage() {
             <li key={item.id} aria-current={i === position ? "step" : undefined}>
               <button type="button" className="queue-list__item" onClick={() => go.mutate(i)} disabled={i === position}>
                 <span>{i + 1}. {item.title}</span>
-                <span className="subtle">{item.queue_done ? "Done" : item.available ? "To do" : "Unavailable"}</span>
+                <span className="subtle">{item.queue_done ? "Done" : item.available ? "To do" : "Unavailable"}{freshnessBadge(item.freshness) ? ` · ${freshnessBadge(item.freshness)}` : ""}</span>
               </button>
             </li>
           ))}

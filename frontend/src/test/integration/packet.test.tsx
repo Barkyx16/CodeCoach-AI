@@ -16,7 +16,7 @@ import { API, server } from "../server";
 
 const now = () => new Date().toISOString();
 const NASTY = "<img src=x onerror=alert(1)> <script>alert(2)</script>";
-const mark: Bookmark = { item_type: "question", track: "registered-nurse", ref_id: "e-good-0", title: "What good patient assessment looks like", href: "/careers/registered-nurse/questions/e-good-0", available: true, unavailable_reason: null, content_version: 1, created_at: now() };
+const mark: Bookmark = { id: "b-1", item_type: "question", track: "registered-nurse", ref_id: "e-good-0", title: "What good patient assessment looks like", href: "/careers/registered-nurse/questions/e-good-0", available: true, unavailable_reason: null, content_version: 1, created_at: now() };
 const story = (id: string, title: string): StorySummary => ({ id, title, track: "registered-nurse", context: "work", competencies: [], tags: [], missing: [], target: null, revision: 1, archived: false, practice_count: 0, preview: "", updated_at: now() });
 
 function packetFor(body: { title: string; items: { type: string; id: string; parts: string[] }[] }): Packet {

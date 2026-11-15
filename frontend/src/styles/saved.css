@@ -81,3 +81,10 @@
 .bulk-outcomes__list { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; overflow-wrap: anywhere; }
 .bulk-outcomes__attention { color: var(--color-text); font-weight: var(--weight-semibold); }
 @media (pointer: coarse) { .bulk-select { min-width: 44px; min-height: 44px; } }
+
+/* Whether a saved item's source changed since it was saved (docs/STORY_FRESHNESS.md). */
+.saved-freshness { justify-items: start; }
+.saved-freshness__details > summary { cursor: pointer; color: var(--color-text-muted); font-size: var(--text-sm); }
+.saved-freshness__details[open] > summary { margin-bottom: var(--space-2); }
+.saved-freshness__details blockquote { overflow-wrap: anywhere; }
+.saved-page__filter { justify-self: start; }

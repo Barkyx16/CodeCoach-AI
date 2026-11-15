@@ -56,11 +56,40 @@ from app.schemas.explore import (
     Facet,
     ItemStatus,
     MyExploreResult,
+    SavedReviewIn,
 )
+from app.schemas.notes import NoteFreshness
 from app.services import search
+from app.services.note_freshness import Holder, SourceFreshness, SourceRef, forget, problem_versions
 
 MAX_COLLECTIONS = 50
 MAX_ITEMS = 200
+
+# Saved items and collections hold a versioned source the same way a note does: one rule
+# (app/services/note_freshness.py), their own words and their own reviews.
+SAVED = Holder(
+    kind="bookmark",
+    noun="item",
+    made="saved",
+    keeps="it stays saved until you remove it",
+    fits="whether it's still what you saved it for",
+)
+IN_COLLECTION = Holder(
+    kind="collection_item",
+    noun="item",
+    made="added",
+    keeps="it stays in this collection until you remove it",
+    fits="whether it still belongs in this collection",
+)
+
+
+def saved_ref(item_type: str, track: str, ref_id: str, version: int | None) -> SourceRef | None:
+    """A saved question or coding problem as a versioned source; None for a drill (no versions)."""
+    if item_type not in ("question", "problem"):
+        return None
+    return SourceRef(kind=item_type, id=ref_id, track=track or None, captured=version)
+
+
 KIND_LABELS = {
     "knowledge": "Knowledge",
     "behavioral": "Behavioral",
@@ -338,15 +367,67 @@ class Explorer:
             raise NotFoundError("That item isn't in the library")
         return body.item_type, track, body.ref_id
 
+    def _version_now(self, item_type: str, track: str, ref_id: str) -> int | None:
+        """The source's version now: what an item saved or added now is taken at."""
+        if item_type == "question":
+            q = get_question(track, ref_id) if track in CATALOG else None
+            return q.version if q else None
+        if item_type == "problem":
+            return problem_versions(self.db, {ref_id}).get(ref_id)
+        return None
+
+    def _freshness(
+        self, holder: Holder, user: User, rows: list[tuple[str, SourceRef | None]], *, detail: bool = True
+    ) -> dict[str, NoteFreshness]:
+        """Each holder's freshness by the notes' rule, its reviews and the problems' versions read in
+        one query each."""
+        fresh = SourceFreshness(self.db, user.id, holder)
+        refs = [ref for _, ref in rows if ref is not None]
+        problems = fresh.problems_for_refs(refs)
+        reviews = fresh.reviews([hid for hid, ref in rows if ref is not None])
+        return {
+            hid: fresh.assess_ref(ref, reviews.get(hid, []), problems, detail=detail)
+            for hid, ref in rows
+            if ref is not None
+        }
+
+    def _seen_when_saved(
+        self, user: User, item_type: str, track: str, ref_id: str
+    ) -> tuple[bool, int | None]:
+        """(saved, the version the saved item was last seen at: saved or reviewed). A collection
+        takes this when the item is added, so the badge means the same in both places."""
+        b = self.db.scalar(
+            select(Bookmark).where(
+                Bookmark.user_id == user.id,
+                Bookmark.item_type == item_type,
+                Bookmark.track == track,
+                Bookmark.ref_id == ref_id,
+            )
+        )
+        if b is None:
+            return False, None
+        rows = SourceFreshness(self.db, user.id, SAVED).reviews([b.id]).get(b.id, [])
+        seen = [v for v in (b.content_version, rows[0].to_revision if rows else None) if v is not None]
+        return True, max(seen) if seen else None
+
+    def _added_version(self, user: User, item_type: str, track: str, ref_id: str) -> int | None:
+        saved, seen = self._seen_when_saved(user, item_type, track, ref_id)
+        return seen if saved else self._version_now(item_type, track, ref_id)
+
     def bookmarks(self, user: User) -> list[BookmarkOut]:
         rows = self.db.scalars(
             select(Bookmark).where(Bookmark.user_id == user.id).order_by(Bookmark.created_at.desc())
         ).all()
+        fresh = self._freshness(
+            SAVED, user, [(b.id, saved_ref(b.item_type, b.track, b.ref_id, b.content_version)) for b in rows]
+        )
         out = []
         for b in rows:
             title, href, ok, why = self._describe(b.item_type, b.track, b.ref_id)
             out.append(
                 BookmarkOut(
+                    id=b.id,
+                    freshness=fresh.get(b.id),
                     item_type=b.item_type,
                     track=b.track,
                     ref_id=b.ref_id,
@@ -372,17 +453,18 @@ class Explorer:
         )
         if on and existing is None:
             self._validate(body)
-            q = get_question(track, body.ref_id) if body.item_type == "question" else None
             self.db.add(
                 Bookmark(
                     user_id=user.id,
                     item_type=body.item_type,
                     track=track,
                     ref_id=body.ref_id,
-                    content_version=q.version if q else None,  # to show later what changed since
+                    # to show later what changed since (docs/STORY_FRESHNESS.md)
+                    content_version=self._version_now(body.item_type, track, body.ref_id),
                 )
             )
         elif not on and existing is not None:
+            forget(self.db, user.id, SAVED.kind, [existing.id])  # its reviews go with it
             self.db.delete(existing)  # removing works even for retired items
         try:
             self.db.commit()
@@ -390,6 +472,37 @@ class Explorer:
             # A concurrent request saved the same bookmark first: the outcome is what was asked.
             self.db.rollback()
         return self.bookmarks(user)
+
+    def review_bookmark(self, user: User, body: SavedReviewIn) -> BookmarkOut:
+        """ "Mark reviewed" for a saved item, at the version it was shown (once, also from two tabs).
+        The saved item itself isn't changed, moved or unsaved."""
+        track = body.track if body.item_type == "question" else ""
+        b = self.db.scalar(
+            select(Bookmark).where(
+                Bookmark.user_id == user.id,
+                Bookmark.item_type == body.item_type,
+                Bookmark.track == track,
+                Bookmark.ref_id == body.ref_id,
+            )
+        )
+        if b is None:
+            raise NotFoundError("That item isn't saved")
+        ref = saved_ref(b.item_type, b.track, b.ref_id, b.content_version)
+        if ref is None:
+            raise AppError("A drill has no versions to review.", code="not_versioned")
+        SourceFreshness(self.db, user.id, SAVED).review_ref(b.id, ref, body.reviewed_version)
+        return next(x for x in self.bookmarks(user) if x.id == b.id)
+
+    def review_item(self, user: User, cid: str, item_id: str, reviewed_version: int) -> CollectionOut:
+        c = self._collection(user, cid)
+        item = next((i for i in c.items if i.id == item_id), None)
+        if item is None:
+            raise NotFoundError("Item not found")
+        ref = saved_ref(item.item_type, item.track, item.ref_id, item.content_version)
+        if ref is None:
+            raise AppError("A drill has no versions to review.", code="not_versioned")
+        SourceFreshness(self.db, user.id, IN_COLLECTION).review_ref(item.id, ref, reviewed_version)
+        return self.get(user, cid)
 
     # --- collections -----------------------------------------------------------------------
 
@@ -457,7 +570,9 @@ class Explorer:
         return self.get(user, cid)
 
     def delete(self, user: User, cid: str) -> None:
-        self.db.delete(self._collection(user, cid))
+        c = self._collection(user, cid)
+        forget(self.db, user.id, IN_COLLECTION.kind, [i.id for i in c.items])
+        self.db.delete(c)
         self.db.commit()
 
     def add_item(self, user: User, cid: str, body: CollectionItemIn) -> CollectionOut:
@@ -468,7 +583,15 @@ class Explorer:
         if len(c.items) >= MAX_ITEMS:
             raise AppError(f"A collection holds up to {MAX_ITEMS} items.", code="collection_full")
         name = c.name
-        c.items.append(CollectionItem(item_type=item_type, track=track, ref_id=ref, position=len(c.items)))
+        c.items.append(
+            CollectionItem(
+                item_type=item_type,
+                track=track,
+                ref_id=ref,
+                position=len(c.items),
+                content_version=self._added_version(user, item_type, track, ref),
+            )
+        )
         c.updated_at = datetime.now(UTC)
         try:
             self.db.commit()
@@ -484,6 +607,7 @@ class Explorer:
         if item is None:
             raise NotFoundError("Item not found")
         idx = c.items.index(item)
+        forget(self.db, user.id, IN_COLLECTION.kind, [item.id])  # its reviews go with it
         c.items.remove(item)
         for pos, i in enumerate(c.items):
             i.position = pos
@@ -548,6 +672,7 @@ class Explorer:
                     track=track,
                     ref_id=item.ref_id,
                     position=len(c.items),
+                    content_version=self._added_version(user, item.item_type, track, item.ref_id),
                 )
                 try:
                     with self.db.begin_nested():  # another tab adding the same item keeps one copy
@@ -576,6 +701,7 @@ class Explorer:
                     )
                     continue
                 idx = c.items.index(found)
+                forget(self.db, user.id, IN_COLLECTION.kind, [found.id])
                 c.items.remove(found)
                 if c.queue_position > idx:
                     c.queue_position -= 1
@@ -624,6 +750,11 @@ class Explorer:
     def get(self, user: User, cid: str) -> CollectionOut:
         c = self._collection(user, cid)
         items = sorted(c.items, key=lambda i: i.position)
+        fresh = self._freshness(
+            IN_COLLECTION,
+            user,
+            [(i.id, saved_ref(i.item_type, i.track, i.ref_id, i.content_version)) for i in items],
+        )
         out = []
         for i in items:
             title, href, ok, why = self._describe(i.item_type, i.track, i.ref_id)
@@ -679,6 +810,8 @@ class Explorer:
                     unavailable_reason=why,
                     queue_done=i.queue_done_at is not None,
                     practiced_since_added=practiced,
+                    content_version=i.content_version,
+                    freshness=fresh.get(i.id),
                 )
             )
         return CollectionOut(

@@ -60,6 +60,15 @@ from app.schemas.notes import NoteIn, SourceIn
 from app.schemas.restore import RestoreBatch, RestoreCategory, RestorePreview, RestoreSkip, RestoreUnsupported
 from app.schemas.stories import StoryCreate
 from app.services.applications import MAX_APPLICATIONS
+from app.services.explore import SAVED
+from app.services.note_freshness import (
+    NOTE,
+    SourceFreshness,
+    SourceRef,
+    forget,
+    known_version,
+    problem_versions,
+)
 from app.services.notes import MAX_NOTES, Notebook, clean_tags
 from app.services.stories import MAX_STORIES, record_revision
 from app.services.timeutil import local_to_utc
@@ -107,11 +116,13 @@ NOT_RESTORED: dict[str, str] = {
     "offer_comparisons": "Offer comparisons aren't restored from a file: they hold pay you entered privately; re-enter them.",
     "kit_templates": "Kit templates aren't restored yet: save them again from a kit.",
     "source_reviews": "Decisions about changed stories aren't restored: they belong to kits and links that aren't restored yet.",
-    # A note's "Mark reviewed" travels inside the note (notes[].source_reviews); a restored note
-    # keeps the version it was captured from, so it asks again if its source changed since.
+    # A note's and a saved item's "Mark reviewed" travel inside them (notes[].source_reviews,
+    # bookmarks[].source_reviews): a restore keeps the version each was captured or saved at (never
+    # the current one: a version the file doesn't give, or one the source never had, is "not known")
+    # and brings back its reviews (Volume 14, prompt 7; docs/STORY_FRESHNESS.md).
     "answer_reviews": _RESULTS,
     "targets": "Job targets aren't restored yet; their requirements link to postings by id.",
-    "collections": "Collections aren't restored yet. Bookmarks are.",
+    "collections": "Collections aren't restored yet. Bookmarks are, with the version each was saved at and what you reviewed.",
     "shares": _EXPOSE,
     "shared_feedback": _EXPOSE,
     "sessions": _EXPOSE,
@@ -375,6 +386,7 @@ class Restore:
             "archived",
             "created_at",
             "updated_at",
+            "source_reviews",
         }
         plan.ignored_fields += len(set(row) - known)
         try:
@@ -400,12 +412,21 @@ class Restore:
                 resolved = Notebook(self.db)._resolve(
                     self.user, SourceIn(type=src["type"], id=src["id"], track=src.get("career"))
                 )
+                # The version it was captured at, from the file: never the version now, which would
+                # hide a change since. One the source never had, or none, reads "not known".
+                raw = src.get("version")
+                ref = SourceRef(kind=src["type"], id=resolved[0], track=resolved[1], captured=None)
+                problems = problem_versions(self.db, {ref.id} if ref.kind == "problem" else set())
+                captured = known_version(
+                    ref, int(raw) if isinstance(raw, str) and raw.isdigit() else raw, problems
+                )
                 source = {
                     "type": src["type"],
                     "id": resolved[0],
                     "track": resolved[1],
-                    "version": resolved[2],
+                    "version": None if captured is None else str(captured),
                     "title": resolved[3],
+                    "reviews": row.get("source_reviews"),
                 }
             except (NotFoundError, ValidationError, AppError):
                 link_note = "Linked content isn't in the library: kept without the link"
@@ -468,7 +489,9 @@ class Restore:
         }
 
     def _check_bookmarks(self, row: dict, plan: _Plan) -> dict | str:
-        plan.ignored_fields += len(set(row) - {"type", "career", "item", "created_at"})
+        plan.ignored_fields += len(
+            set(row) - {"type", "career", "item", "created_at", "version", "source_reviews"}
+        )
         kind, track, ref = row.get("type"), row.get("career") or "", row.get("item")
         if (
             kind not in ("question", "problem", "drill")
@@ -480,24 +503,32 @@ class Restore:
             q = get_question(track, ref) if track in CATALOG else None
             if q is None:
                 return "The question isn't in the library (it's never swapped for a similar one)"
+            src = SourceRef(kind="question", id=ref, track=track, captured=None)
             return {
                 "identity": bookmark_identity(kind, track, ref),
                 "kind": kind,
                 "track": track,
                 "ref": ref,
-                "version": q.version,
+                # The version it was saved at, from the file (docs/STORY_FRESHNESS.md); never now.
+                "version": known_version(src, row.get("version"), {}),
+                "reviews": row.get("source_reviews"),
             }
         if kind == "problem":
             if self.db.scalar(select(Problem.id).where(Problem.slug == ref)) is None:
                 return "The problem isn't in the library"
         elif ref not in DRILLS:
             return "The drill isn't offered any more"
+        version = None
+        if kind == "problem":
+            src = SourceRef(kind="problem", id=ref, track=None, captured=None)
+            version = known_version(src, row.get("version"), problem_versions(self.db, {ref}))
         return {
             "identity": bookmark_identity(kind, "", ref),
             "kind": kind,
             "track": "",
             "ref": ref,
-            "version": None,
+            "version": version,
+            "reviews": row.get("source_reviews") if kind == "problem" else None,
         }
 
     def _check_applications(self, row: dict, plan: _Plan) -> dict | str:
@@ -867,6 +898,15 @@ class Restore:
         )
         self.db.add(n)
         self.db.flush()
+        if src.get("type") in ("question", "problem", "lesson") and src.get("reviews"):
+            ref = SourceRef(
+                kind=src["type"],
+                id=src["id"],
+                track=src.get("track"),
+                captured=int(src["version"]) if src.get("version") else None,
+            )
+            fresh = SourceFreshness(self.db, self.user.id, NOTE)
+            fresh.restore_reviews(n.id, ref, src["reviews"], fresh.problems_for_refs([ref]))
         return "note", n.id, note_full(n)
 
     def _add_stories(self, item: dict) -> tuple[str, str, str]:
@@ -892,6 +932,12 @@ class Restore:
         )
         self.db.add(b)
         self.db.flush()
+        if item.get("reviews") and item["kind"] in ("question", "problem"):
+            ref = SourceRef(
+                kind=item["kind"], id=item["ref"], track=item["track"] or None, captured=item["version"]
+            )
+            fresh = SourceFreshness(self.db, self.user.id, SAVED)
+            fresh.restore_reviews(b.id, ref, item["reviews"], fresh.problems_for_refs([ref]))
         return "bookmark", b.id, item["identity"]
 
     def _add_applications(self, item: dict) -> tuple[str, str, str]:
@@ -997,6 +1043,9 @@ class Restore:
             else:
                 if r.kind == "note":
                     row.deleted_at = datetime.now(UTC)  # the notebook's own soft delete
+                elif r.kind == "bookmark":
+                    forget(self.db, self.user.id, SAVED.kind, [row.id])  # its restored reviews too
+                    self.db.delete(row)
                 elif r.kind == "accepted_action":
                     for e in self._occurrences(row.id):
                         self.db.delete(e)

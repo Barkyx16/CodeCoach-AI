@@ -119,7 +119,7 @@ export const exploreHandlers = [
     const title = titleOf(ref);
     if (!title) return err(404, "not_found", "That item isn't in the library");
     if (!store.bookmarks.some((b) => b.item_type === ref.item_type && b.ref_id === ref.ref_id)) {
-      store.bookmarks.unshift({ item_type: ref.item_type, track: ref.track ?? "", ref_id: ref.ref_id, title, href: hrefOf(ref), available: true, created_at: new Date().toISOString() });
+      store.bookmarks.unshift({ id: `b-${ref.ref_id}`, item_type: ref.item_type, track: ref.track ?? "", ref_id: ref.ref_id, title, href: hrefOf(ref), available: true, created_at: new Date().toISOString() });
     }
     return HttpResponse.json(store.bookmarks);
   }),

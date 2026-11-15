@@ -124,7 +124,49 @@ never changed, and its snapshot (the excerpt) is never refreshed.
   keeps them) and with the account; only the learner's own are read. The export carries each
   note's captured version and its reviews (`notes[].source_reviews`); the top-level
   `source_reviews` stays decisions about stories. A backup restore keeps a note's captured version
-  but not its reviews, so a restored note asks again if its source changed since.
+  and its reviews (Volume 14, prompt 7). Until then this page said a restore kept the captured
+  version; the code in fact recorded the version the source had at restore time, so a restored note
+  could read "up to date" past a change it never saw, and its reviews were dropped. Now the
+  version comes from the file, only if the source has had it (otherwise "not known"), and each
+  review of a version the source has had comes back, once.
+
+## Saved items and collections
+
+A saved question or coding problem, on the saved list (Saved → Bookmarks) and in each collection
+and its practice queue, follows the notes' rule above: the same code
+(`backend/app/services/note_freshness.py`, `SourceFreshness`) judges any holder of a versioned
+source, with its own words and its own reviews. There is no second rule.
+
+- **The version, when saved.** A bookmark records the source's version when it's saved
+  (`bookmarks.content_version`; questions already did, coding problems now do too, as their test
+  version). A collection item records the version it was added at (`collection_items.content_version`,
+  migration `a9d2c4e6f813`): if the item is saved, the version the saved item was last seen at
+  (saved or reviewed), so the badge means the same thing in both places; otherwise the version
+  now. Items saved or added before versions were recorded read "not known", never "up to date",
+  until marked reviewed.
+- **The badge.** "Source updated" (a change that matters), "Version not known", or "Source retired",
+  with what changed under "What changed": the server's text, a question's title and wording side
+  by side as saved and now, and each version's change note. A source that left the library is
+  said by the row's own banner, and the row stays. Drills have no versions: no badge.
+- **Mark reviewed** records the version shown (`source_reviews`, holder_kind `bookmark` or
+  `collection_item`), once, also from two tabs at once (the unique row), and clears the badge until
+  a further change. A review on the saved list doesn't clear the collection's badge, or the other
+  way round: each place is reviewed where it's shown. It isn't a bulk action yet; bulk add and
+  remove keep working, and a bulk add takes the same versions as a single one.
+- **Never changed.** A saved item isn't changed, moved, reordered or unsaved by any of this.
+  Removing a saved item or a collection item takes its reviews with it; saving it again starts
+  from the version then.
+- **Filter.** The saved list's "Source updated (n)" checkbox, kept in the URL as `updated=1`, shows
+  only the items whose source changed in a way that matters; one reviewed while filtered stays in
+  view, with what it said, until the filter changes.
+- **Data.** The export carries each saved item's and collection item's `version` and
+  `source_reviews`. Restoring a backup brings saved items back with the version they were saved at
+  (from the file, only if the source has had it; otherwise "not known") and their reviews.
+  Collections aren't restored from a file yet, so their items' versions come back only with a
+  collection that's still there; there's no way to share or copy a collection.
+- **Limits.** Typo fixes in lessons and coding problems still ask, until content can mark them as
+  minor (questions already can). A coding problem's earlier statement isn't kept, so its change
+  can't be shown side by side.
 
 ## API and data
 
@@ -140,3 +182,7 @@ never changed, and its snapshot (the excerpt) is never refreshed.
   decision (`source_reviews`). They aren't restored from a backup file (kits and targets aren't yet).
 - Notes: `POST /api/v1/me/notes/{id}/source-review {reviewed_version}` → the note's `freshness`
   (docs/API.md, "Notebook"); `GET /me/notes?source_updated=true`.
+- Saved items: each bookmark has `id`, `content_version` and `freshness` (the notes' shape);
+  `POST /api/v1/me/bookmarks/review {item_type, track, ref_id, reviewed_version}` → that bookmark.
+  Each collection item has `content_version` and `freshness`; `POST
+  /api/v1/me/collections/{id}/items/{item}/review {reviewed_version}` → the collection.

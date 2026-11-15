@@ -14,6 +14,7 @@ import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/
 import { BulkOutcomes, NoReply, SelectBox } from "./bulk";
 import { isDone, useSelection } from "./bulkSelection";
 import { useItemKind } from "./labels";
+import { SavedFreshness } from "./SavedFreshness";
 
 /** One collection: rename, reorder (buttons, keyboard-friendly), remove items, start the practice queue. */
 export function CollectionPage() {
@@ -23,6 +24,7 @@ export function CollectionPage() {
   const rename = useCollectionMutation((name: string) => api.renameCollection(id, name));
   const reorder = useCollectionMutation((ids: string[]) => api.reorderCollection(id, ids));
   const remove = useCollectionMutation((itemId: string) => api.removeFromCollection(id, itemId));
+  const reviewItem = useCollectionMutation(({ itemId, version }: { itemId: string; version: number }) => api.reviewCollectionItem(id, itemId, version));
   const start = useCollectionMutation((position: number) => api.setQueuePosition(id, position));
   const destroy = useDeleteCollection();
   const itemKind = useItemKind();
@@ -215,6 +217,8 @@ export function CollectionPage() {
                   {item.practiced_since_added && <Badge tone="info">Practiced since added</Badge>}
                 </span>
                 {!item.available && <p className="banner banner--warning">{item.unavailable_reason}{item.href ? " You can still open it; it isn't used for practice." : ""} Nothing was swapped in for it.</p>}
+                <SavedFreshness title={item.title} freshness={item.freshness}
+                  review={(version) => reviewItem.mutateAsync({ itemId: item.id, version })} />
               </div>
               <div className="collection-item__actions">
                 <button type="button" className="btn btn--ghost btn--sm" aria-label={`Move “${item.title}” up`}

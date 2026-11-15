@@ -3926,6 +3926,72 @@
         }
       }
     },
+    "/api/v1/me/bookmarks/review": {
+      "post": {
+        "tags": [
+          "explore"
+        ],
+        "summary": "Mark a saved item reviewed at the version you were shown (its source changed; it isn't touched)",
+        "operationId": "review_bookmark_api_v1_me_bookmarks_review_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedReviewIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookmarkOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/me/collections": {
       "get": {
         "tags": [
@@ -4755,6 +4821,92 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/DoneIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/collections/{collection_id}/items/{item_id}/review": {
+      "post": {
+        "tags": [
+          "explore"
+        ],
+        "summary": "Mark an item reviewed at the version you were shown (its source changed; it stays where it is)",
+        "operationId": "review_collection_item_api_v1_me_collections__collection_id__items__item_id__review_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Collection Id"
+            }
+          },
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NoteSourceReviewIn"
               }
             }
           }
@@ -27429,6 +27581,10 @@
       },
       "BookmarkOut": {
         "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
           "item_type": {
             "type": "string",
             "enum": [
@@ -27487,7 +27643,18 @@
               }
             ],
             "title": "Content Version",
-            "description": "Questions: the version when it was saved"
+            "description": "The question's or problem's version when it was saved; null: saved before versions were recorded (not known), or a drill (no versions)"
+          },
+          "freshness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NoteFreshness"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether the source changed in a way that matters since it was saved, by the same rule as notes (docs/STORY_FRESHNESS.md); null for a drill"
           },
           "created_at": {
             "type": "string",
@@ -27497,6 +27664,7 @@
         },
         "type": "object",
         "required": [
+          "id",
           "item_type",
           "track",
           "ref_id",
@@ -28539,6 +28707,29 @@
             "type": "boolean",
             "title": "Practiced Since Added",
             "description": "An answer or submission exists since it was added"
+          },
+          "content_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content Version",
+            "description": "The source's version when it was added; null: not known, or a drill"
+          },
+          "freshness": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/NoteFreshness"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Whether its source changed since it was added (the notes' rule); null for a drill"
           }
         },
         "type": "object",
@@ -45095,6 +45286,44 @@
         ],
         "title": "SaveReplay",
         "description": "Set when this save had already been accepted under its key (its first reply was lost)."
+      },
+      "SavedReviewIn": {
+        "properties": {
+          "item_type": {
+            "type": "string",
+            "enum": [
+              "question",
+              "problem",
+              "drill"
+            ],
+            "title": "Item Type"
+          },
+          "track": {
+            "type": "string",
+            "maxLength": 64,
+            "title": "Track",
+            "default": ""
+          },
+          "ref_id": {
+            "type": "string",
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Ref Id"
+          },
+          "reviewed_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Reviewed Version",
+            "description": "The source's version you were shown. A newer one since isn't reviewed silently: the badge stays for it."
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_type",
+          "ref_id",
+          "reviewed_version"
+        ],
+        "title": "SavedReviewIn"
       },
       "ScenarioAttemptOut": {
         "properties": {

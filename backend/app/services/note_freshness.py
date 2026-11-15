@@ -13,6 +13,12 @@ not significant and never asks); any new version of a lesson or a coding problem
 typo fixes). What can be shown: a question keeps every version's wording, so its title and prompt
 are shown side by side; a lesson keeps only its own notes on what changed; a coding problem keeps
 neither (its statement is corrected in its seed files). Interview notes have no versions.
+
+The same rule serves saved items and collections (Volume 14, prompt 7; docs/STORY_FRESHNESS.md,
+"Saved items and collections"): `SourceFreshness` judges any holder of a versioned source (a
+`SourceRef`: which source, and the version it was taken at) and records its reviews under its own
+holder kind; only the words differ ("captured" for a note, "saved" for a saved item). There is no
+second rule.
 """
 
 from __future__ import annotations
@@ -40,18 +46,57 @@ VERSIONED = ("question", "lesson", "problem")
 NOUN = {"question": "question", "lesson": "lesson", "problem": "coding problem"}
 
 
+@dataclass(frozen=True)
+class SourceRef:
+    """A versioned source as something holds it: which one, and the version it was taken at
+    (None: taken before versions were recorded)."""
+
+    kind: str  # question | lesson | problem
+    id: str
+    track: str | None
+    captured: int | None
+
+
+@dataclass(frozen=True)
+class Holder:
+    """What holds the source, in the words its notices use."""
+
+    kind: str  # source_reviews.holder_kind
+    noun: str
+    made: str  # how it got its version: "captured", "saved", "added"
+    keeps: str  # what stays, whatever the source does (lower case: it ends a sentence)
+    fits: str  # what the learner reviews
+
+
+NOTE = Holder(
+    kind=HOLDER,
+    noun="note",
+    made="captured",
+    keeps="your note keeps what you captured",
+    fits="whether your note still fits",
+)
+
+
 def captured_version(n: Note) -> int | None:
     v = (n.source_version or "").strip()
     return int(v) if v.isdigit() else None
 
 
-def source_key(n: Note) -> str | None:
-    """How a review names the note's source: its library key."""
+def note_ref(n: Note) -> SourceRef | None:
     if n.source_type not in VERSIONED or not n.source_id:
         return None
-    if n.source_type == "question":
-        return content_key(n.source_track or "", n.source_id)
-    return n.source_id
+    return SourceRef(kind=n.source_type, id=n.source_id, track=n.source_track, captured=captured_version(n))
+
+
+def ref_key(ref: SourceRef) -> str:
+    """How a review names a source: its library key."""
+    return content_key(ref.track or "", ref.id) if ref.kind == "question" else ref.id
+
+
+def source_key(n: Note) -> str | None:
+    """How a review names the note's source: its library key."""
+    ref = note_ref(n)
+    return ref_key(ref) if ref is not None else None
 
 
 @dataclass
@@ -79,10 +124,10 @@ def problem_versions(db: Session, slugs: set[str]) -> dict[str, int]:
     return {slug: int(v or 1) for slug, v in rows}
 
 
-def source_now(n: Note, problems: dict[str, int]) -> SourceNow:
+def source_now(ref: SourceRef, problems: dict[str, int]) -> SourceNow:
     snap = content_state.current()
-    if n.source_type == "question":
-        track, qid = n.source_track or "", n.source_id or ""
+    if ref.kind == "question":
+        track, qid = ref.track or "", ref.id
         q = get_question(track, qid) if track in CATALOG else None
         if q is None:
             return SourceNow(exists=False)
@@ -96,8 +141,8 @@ def source_now(n: Note, problems: dict[str, int]) -> SourceNow:
             },
             comparable=True,
         )
-    if n.source_type == "lesson":
-        u = get_unit(n.source_id or "")
+    if ref.kind == "lesson":
+        u = get_unit(ref.id)
         if u is None:
             return SourceNow(exists=False)
         return SourceNow(
@@ -105,7 +150,7 @@ def source_now(n: Note, problems: dict[str, int]) -> SourceNow:
             version=u.version,
             history={i + 1: (note, True) for i, note in enumerate(u.changes) if i > 0},
         )
-    slug = n.source_id or ""
+    slug = ref.id
     if slug not in problems:
         return SourceNow(exists=False)
     version = problems[slug]
@@ -117,18 +162,27 @@ def source_now(n: Note, problems: dict[str, int]) -> SourceNow:
     )
 
 
-def _wording(n: Note, version: int) -> dict[str, str] | None:
-    """A question as it read at `version` (title and prompt): what the note was captured from."""
-    q = get_question(n.source_track or "", n.source_id or "", version)
+def _wording(ref: SourceRef, version: int) -> dict[str, str] | None:
+    """A question as it read at `version` (title and prompt): what it was taken from."""
+    q = get_question(ref.track or "", ref.id, version)
     return {"Title": q.title, "Question": q.prompt} if q is not None else None
 
 
-def digest_at(n: Note, version: int) -> str:
+def digest_at(ref: SourceRef, version: int) -> str:
     """What the learner reviewed: the question's wording then; for a lesson or a problem, which one
     and which version (their earlier wording isn't kept)."""
-    words = _wording(n, version) if n.source_type == "question" else None
-    raw = repr(sorted(words.items())) if words else f"{n.source_type}:{source_key(n)}:{version}"
+    words = _wording(ref, version) if ref.kind == "question" else None
+    raw = repr(sorted(words.items())) if words else f"{ref.kind}:{ref_key(ref)}:{version}"
     return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def known_version(ref: SourceRef, version: object, problems: dict[str, int]) -> int | None:
+    """A version read from a file, if it's one this source has had (1 to now); otherwise None, so
+    it reads "not known" rather than up to date (a restore never takes the current version)."""
+    now = source_now(ref, problems)
+    if not isinstance(version, int) or isinstance(version, bool) or now.version is None:
+        return None
+    return version if 1 <= version <= now.version else None
 
 
 def _review_text(r: SourceReview) -> str:
@@ -136,15 +190,19 @@ def _review_text(r: SourceReview) -> str:
     return f"Marked reviewed {start}at version {r.to_revision} on {day(r.created_at)}, by you."
 
 
-class NoteFreshnessService:
-    def __init__(self, db: Session, user_id: str):
+class SourceFreshness:
+    """The one rule, for any holder (docs/STORY_FRESHNESS.md): a note, a saved item, an item in a
+    collection. Reviews are this account's, under the holder's kind."""
+
+    def __init__(self, db: Session, user_id: str, holder: Holder = NOTE):
         self.db = db
         self.user_id = user_id
+        self.holder = holder
 
     # --- reading ---------------------------------------------------------------------------
 
     def reviews(self, note_ids: list[str]) -> dict[str, list[SourceReview]]:
-        """This account's reviews of these notes, newest first."""
+        """This account's reviews of these holders, newest first."""
         if not note_ids:
             return {}
         out: dict[str, list[SourceReview]] = {}
@@ -152,7 +210,7 @@ class NoteFreshnessService:
             select(SourceReview)
             .where(
                 SourceReview.user_id == self.user_id,
-                SourceReview.holder_kind == HOLDER,
+                SourceReview.holder_kind == self.holder.kind,
                 SourceReview.holder_id.in_(note_ids),
             )
             .order_by(SourceReview.to_revision.desc(), SourceReview.created_at.desc())
@@ -160,20 +218,16 @@ class NoteFreshnessService:
             out.setdefault(r.holder_id, []).append(r)
         return out
 
-    def problems_for(self, notes: list[Note]) -> dict[str, int]:
-        return problem_versions(
-            self.db, {n.source_id for n in notes if n.source_type == "problem" and n.source_id}
-        )
+    def problems_for_refs(self, refs: list[SourceRef]) -> dict[str, int]:
+        return problem_versions(self.db, {r.id for r in refs if r.kind == "problem"})
 
-    def assess(
-        self, n: Note, rows: list[SourceReview], problems: dict[str, int], *, detail: bool = True
-    ) -> NoteFreshness | None:
-        """None for a note without a versioned source (no source, or an interview)."""
-        if n.source_type not in VERSIONED or not n.source_id:
-            return None
-        kind = n.source_type
+    def assess_ref(
+        self, ref: SourceRef, rows: list[SourceReview], problems: dict[str, int], *, detail: bool = True
+    ) -> NoteFreshness:
+        h = self.holder
+        kind = ref.kind
         noun = NOUN[kind]
-        captured = captured_version(n)
+        captured = ref.captured
         reviewed = rows[0].to_revision if rows else None
         reviews = [
             NoteReview(
@@ -181,7 +235,7 @@ class NoteFreshnessService:
             )
             for r in rows[:5]
         ]
-        now = source_now(n, problems)
+        now = source_now(ref, problems)
         base = dict(
             kind=kind,
             captured_version=captured,
@@ -192,14 +246,14 @@ class NoteFreshnessService:
         if not now.exists:
             return NoteFreshness(
                 state="unavailable",
-                text=f"This {noun} is no longer in the library. Your note keeps what you captured.",
+                text=f"This {noun} is no longer in the library. {h.keeps[0].upper()}{h.keeps[1:]}.",
                 **base,
             )
         assert now.version is not None
         if now.retired is not None:
             return NoteFreshness(
                 state="retired",
-                text=f"This {noun} was retired: {now.retired} It still opens, and your note keeps what you captured.",
+                text=f"This {noun} was retired: {now.retired} It still opens, and {h.keeps}.",
                 **base,
             )
         seen = max(v for v in (captured, reviewed) if v is not None) if (captured or reviewed) else None
@@ -207,12 +261,12 @@ class NoteFreshnessService:
             return NoteFreshness(
                 state="unknown",
                 text=(
-                    f"Whether the {noun} changed since isn't known: this note was captured before versions "
+                    f"Whether the {noun} changed since isn't known: this {h.noun} was {h.made} before versions "
                     f"were recorded. It's version {now.version} now; mark it reviewed to be told about later changes."
                 ),
                 **base,
             )
-        newer = {v: h for v, h in now.history.items() if seen < v <= now.version}
+        newer = {v: hist for v, hist in now.history.items() if seen < v <= now.version}
         asks = [v for v, (_, significant) in newer.items() if significant]
         if not asks and seen >= now.version:
             text = (
@@ -233,16 +287,16 @@ class NoteFreshnessService:
         if reviewed is not None and reviewed >= (captured or 0):
             text = (
                 f"The {noun} changed again since you marked it reviewed at version {reviewed} (now version "
-                f"{now.version}). Review whether your note still fits."
+                f"{now.version}). Review {h.fits}."
             )
         else:
             text = (
-                f"The {noun} changed since you captured this note (version {seen}, now {now.version}). Review "
-                "whether your note still fits."
+                f"The {noun} changed since you {h.made} this {h.noun} (version {seen}, now {now.version}). "
+                f"Review {h.fits}."
             )
         changes: list[FieldChange] = []
         if detail and now.comparable:
-            before, after = _wording(n, seen), _wording(n, now.version)
+            before, after = _wording(ref, seen), _wording(ref, now.version)
             if before is not None and after is not None:
                 changes = [
                     FieldChange(field=f, before=before[f], after=after[f])
@@ -265,38 +319,34 @@ class NoteFreshnessService:
 
     # --- deciding --------------------------------------------------------------------------
 
-    def mark_reviewed(self, n: Note, reviewed_version: int) -> NoteFreshness:
+    def review_ref(self, holder_id: str, ref: SourceRef, reviewed_version: int) -> NoteFreshness:
         """Record "Mark reviewed" for the version the learner was shown. A newer version since is
-        said (the notice stays for it), never reviewed silently; a repeat records nothing more. The
-        note isn't touched."""
-        problems = self.problems_for([n])
-        now = source_now(n, problems)
-        key = source_key(n)
-        if key is None:
-            raise AppError("This note's source has no versions to review.", code="not_versioned")
+        said (the notice stays for it), never reviewed silently; a repeat records nothing more. What
+        holds the source isn't touched."""
+        problems = self.problems_for_refs([ref])
+        now = source_now(ref, problems)
         if not now.exists or now.version is None:
-            raise NotFoundError(f"This {NOUN[n.source_type or 'question']} is no longer in the library")
+            raise NotFoundError(f"This {NOUN[ref.kind]} is no longer in the library")
         if reviewed_version > now.version:
             raise AppError(
                 f"Version {reviewed_version} doesn't exist yet (it's version {now.version} now).",
                 code="invalid_version",
             )
-        rows = self.reviews([n.id]).get(n.id, [])
-        captured = captured_version(n)
+        rows = self.reviews([holder_id]).get(holder_id, [])
         seen = max(
-            [v for v in (captured, rows[0].to_revision if rows else None) if v is not None], default=None
+            [v for v in (ref.captured, rows[0].to_revision if rows else None) if v is not None], default=None
         )
         if seen is None or reviewed_version > seen:
             self.db.add(
                 SourceReview(
                     user_id=self.user_id,
-                    holder_kind=HOLDER,
-                    holder_id=n.id,
-                    source_kind=n.source_type or "",
-                    source_id=key,
+                    holder_kind=self.holder.kind,
+                    holder_id=holder_id,
+                    source_kind=ref.kind,
+                    source_id=ref_key(ref),
                     from_revision=seen,
                     to_revision=reviewed_version,
-                    to_digest=digest_at(n, reviewed_version),
+                    to_digest=digest_at(ref, reviewed_version),
                     decision="reviewed",
                     created_at=datetime.now(UTC),
                 )
@@ -305,10 +355,8 @@ class NoteFreshnessService:
                 self.db.commit()
             except IntegrityError:
                 self.db.rollback()  # the same review from another tab got there first: one row
-            rows = self.reviews([n.id]).get(n.id, [])
-        out = self.assess(n, rows, problems)
-        assert out is not None
-        return out
+            rows = self.reviews([holder_id]).get(holder_id, [])
+        return self.assess_ref(ref, rows, problems)
 
     def export(self, note_ids: list[str]) -> dict[str, list[dict]]:
         return {
@@ -324,14 +372,79 @@ class NoteFreshnessService:
             for nid, rows in self.reviews(note_ids).items()
         }
 
+    def restore_reviews(self, holder_id: str, ref: SourceRef, rows: object, problems: dict[str, int]) -> int:
+        """Bring back a holder's "Mark reviewed" from a backup file, under its new id: only reviews
+        of versions this source has had, at most 20, each once. Returns how many."""
+        if not isinstance(rows, list):
+            return 0
+        added: set[int] = set()
+        for r in rows[:20]:
+            if not isinstance(r, dict) or r.get("decision") != "reviewed":
+                continue
+            to = known_version(ref, r.get("to_version"), problems)
+            if to is None or to in added:
+                continue
+            frm = known_version(ref, r.get("from_version"), problems)
+            at = r.get("at")
+            try:
+                when = datetime.fromisoformat(at) if isinstance(at, str) else datetime.now(UTC)
+            except ValueError:
+                when = datetime.now(UTC)
+            if when.tzinfo is None:
+                when = when.replace(tzinfo=UTC)
+            self.db.add(
+                SourceReview(
+                    user_id=self.user_id,
+                    holder_kind=self.holder.kind,
+                    holder_id=holder_id,
+                    source_kind=ref.kind,
+                    source_id=ref_key(ref),
+                    from_revision=frm,
+                    to_revision=to,
+                    to_digest=digest_at(ref, to),
+                    decision="reviewed",
+                    created_at=min(when, datetime.now(UTC)),
+                )
+            )
+            added.add(to)
+        return len(added)
 
-def forget_notes(db: Session, user_id: str, note_ids: list[str]) -> None:
-    """A note's reviews go with it."""
-    if note_ids:
+
+class NoteFreshnessService(SourceFreshness):
+    """Notes (Volume 13, prompt 6): the rule above, held by a note."""
+
+    def __init__(self, db: Session, user_id: str):
+        super().__init__(db, user_id, NOTE)
+
+    def problems_for(self, notes: list[Note]) -> dict[str, int]:
+        return self.problems_for_refs([r for r in (note_ref(n) for n in notes) if r is not None])
+
+    def assess(
+        self, n: Note, rows: list[SourceReview], problems: dict[str, int], *, detail: bool = True
+    ) -> NoteFreshness | None:
+        """None for a note without a versioned source (no source, or an interview)."""
+        ref = note_ref(n)
+        return self.assess_ref(ref, rows, problems, detail=detail) if ref is not None else None
+
+    def mark_reviewed(self, n: Note, reviewed_version: int) -> NoteFreshness:
+        ref = note_ref(n)
+        if ref is None:
+            raise AppError("This note's source has no versions to review.", code="not_versioned")
+        return self.review_ref(n.id, ref, reviewed_version)
+
+
+def forget(db: Session, user_id: str, holder_kind: str, holder_ids: list[str]) -> None:
+    """A holder's reviews go with it."""
+    if holder_ids:
         db.execute(
             delete(SourceReview).where(
                 SourceReview.user_id == user_id,
-                SourceReview.holder_kind == HOLDER,
-                SourceReview.holder_id.in_(note_ids),
+                SourceReview.holder_kind == holder_kind,
+                SourceReview.holder_id.in_(holder_ids),
             )
         )
+
+
+def forget_notes(db: Session, user_id: str, note_ids: list[str]) -> None:
+    """A note's reviews go with it."""
+    forget(db, user_id, HOLDER, note_ids)

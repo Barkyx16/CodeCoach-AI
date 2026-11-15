@@ -352,7 +352,15 @@ def test_export_includes_bookmarks_and_collections_and_deleting_the_account_remo
     client.put("/api/v1/me/bookmarks", headers=h, json=q(qid))
     data = client.get("/api/v1/me/export", headers=h).json()
     assert data["bookmarks"] == [
-        {"type": "question", "career": NURSE, "item": qid, "created_at": data["bookmarks"][0]["created_at"]}
+        {
+            "type": "question",
+            "career": NURSE,
+            "item": qid,
+            "created_at": data["bookmarks"][0]["created_at"],
+            # The version it was saved at and "Mark reviewed" since (docs/STORY_FRESHNESS.md).
+            "version": 1,
+            "source_reviews": [],
+        }
     ]
     assert data["collections"][0]["name"] == "Night shift prep"
     assert data["collections"][0]["items"][0]["item"] == qid

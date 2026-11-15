@@ -41,9 +41,10 @@ from app.services.code_reviews import CodeReviews
 from app.services.comparisons import Comparisons
 from app.services.conditions import Conditions
 from app.services.drills import Drills
+from app.services.explore import IN_COLLECTION, SAVED
 from app.services.kit_templates import KitTemplates
 from app.services.kits import Kits
-from app.services.note_freshness import NoteFreshnessService
+from app.services.note_freshness import NoteFreshnessService, SourceFreshness
 from app.services.offer_comparisons import OfferComparisons
 from app.services.offers import Offers
 from app.services.onboarding import Onboarding
@@ -129,6 +130,10 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         .where(PracticeCollection.user_id == user.id)
         .order_by(PracticeCollection.created_at)
     ).all()
+    saved_reviews = SourceFreshness(db, user.id, SAVED).export([b.id for b in bookmarks])
+    item_reviews = SourceFreshness(db, user.id, IN_COLLECTION).export(
+        [i.id for c in collections for i in c.items]
+    )
     events = db.scalars(
         select(ProgressEvent).where(ProgressEvent.user_id == user.id).order_by(ProgressEvent.created_at)
     ).all()
@@ -391,6 +396,9 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 "career": b.track or None,
                 "item": b.ref_id,
                 "created_at": iso(b.created_at),
+                # The source's version when saved, and "Mark reviewed" since (docs/STORY_FRESHNESS.md).
+                "version": b.content_version,
+                "source_reviews": saved_reviews.get(b.id, []),
             }
             for b in bookmarks
         ],
@@ -408,6 +416,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                         "position": i.position,
                         "added_at": iso(i.added_at),
                         "queue_done_at": iso(i.queue_done_at),
+                        "version": i.content_version,
+                        "source_reviews": item_reviews.get(i.id, []),
                     }
                     for i in c.items
                 ],

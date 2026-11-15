@@ -812,7 +812,12 @@ All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a
   doesn't support one.
 - `GET /api/v1/me/bookmarks`, `PUT /api/v1/me/bookmarks {item_type: question|problem, track,
   ref_id}` (idempotent, 404 for items not in the library), `DELETE
-  /api/v1/me/bookmarks?item_type=&track=&ref_id=` (idempotent; works for retired items) 🔒.
+  /api/v1/me/bookmarks?item_type=&track=&ref_id=` (idempotent; works for retired items) 🔒. Each
+  bookmark has `id`, `content_version` (the source's version when saved; null: not known, or a
+  drill) and `freshness` (the notes' shape and rule; docs/STORY_FRESHNESS.md, "Saved items and
+  collections"). `POST /api/v1/me/bookmarks/review {item_type, track, ref_id, reviewed_version}` →
+  that bookmark: "Mark reviewed" at the version shown (404 if it isn't saved; `400 not_versioned`
+  for a drill; the bookmark itself isn't changed).
 - Collections 🔒, private to the owner (another user's id is a 404): `GET|POST
   /api/v1/me/collections` (`GET` with `item_type, track, ref_id` adds `contains` to each),
   `GET|PATCH|DELETE /me/collections/{id}`, `POST /me/collections/{id}/items` (`409
@@ -822,7 +827,8 @@ All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a
   …/items/{item_id}/done {done}`. Items keep stable ids; an item that leaves the library comes
   back `available: false` with an `unavailable_reason` and is never swapped for another.
   `queue_done` is queue progress only; `practiced_since_added` comes from real answers or judged
-  submissions. Limits: 50 collections, 200 items each. Bookmarks and collections are in the data
+  submissions. Each item has `content_version` (when added) and `freshness`; `POST
+  …/items/{item_id}/review {reviewed_version}` → the collection, the item where it was. Limits: 50 collections, 200 items each. Bookmarks and collections are in the data
   export and deleted with the account.
 
 ### Learn mode

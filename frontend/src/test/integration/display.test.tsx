@@ -139,8 +139,8 @@ describe("focus mode", () => {
 describe("focus after removals", () => {
   it("removing a bookmark moves focus to the list heading and announces it; a failure is shown, not lost", async () => {
     explore.bookmarks = [
-      { item_type: "question", track: "registered-nurse", ref_id: "m-pressure-0", title: "Patient assessment under pressure", href: "/careers/registered-nurse/questions/m-pressure-0", available: true, created_at: new Date().toISOString() },
-      { item_type: "question", track: "registered-nurse", ref_id: "e-good-0", title: "What makes a good nurse", href: "/careers/registered-nurse/questions/e-good-0", available: true, created_at: new Date().toISOString() },
+      { id: "b-1", item_type: "question", track: "registered-nurse", ref_id: "m-pressure-0", title: "Patient assessment under pressure", href: "/careers/registered-nurse/questions/m-pressure-0", available: true, created_at: new Date().toISOString() },
+      { id: "b-2", item_type: "question", track: "registered-nurse", ref_id: "e-good-0", title: "What makes a good nurse", href: "/careers/registered-nurse/questions/e-good-0", available: true, created_at: new Date().toISOString() },
     ];
     const { user } = renderApp("/saved", { signedIn: true });
     await user.click(await screen.findByRole("button", { name: "Remove bookmark: Patient assessment under pressure" }));

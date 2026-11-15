@@ -534,6 +534,11 @@ export const api = {
   addBookmark: (body: SavedItemRef) => apiRequest<Bookmark[]>("/api/v1/me/bookmarks", { method: "PUT", body }),
   removeBookmark: (ref: SavedItemRef) =>
     apiRequest<Bookmark[]>("/api/v1/me/bookmarks", { method: "DELETE", query: { item_type: ref.item_type, track: ref.track ?? "", ref_id: ref.ref_id } }),
+  // "Mark reviewed" for a saved item whose source changed (docs/STORY_FRESHNESS.md): it isn't touched.
+  reviewBookmark: (ref: SavedItemRef, reviewedVersion: number) =>
+    apiRequest<Bookmark>("/api/v1/me/bookmarks/review", { method: "POST", body: { item_type: ref.item_type, track: ref.track ?? "", ref_id: ref.ref_id, reviewed_version: reviewedVersion } }),
+  reviewCollectionItem: (id: string, itemId: string, reviewedVersion: number) =>
+    apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}/items/${encodeURIComponent(itemId)}/review`, { method: "POST", body: { reviewed_version: reviewedVersion } }),
   collections: (ref?: SavedItemRef) =>
     apiRequest<CollectionSummary[]>("/api/v1/me/collections", { query: ref ? { item_type: ref.item_type, track: ref.track ?? "", ref_id: ref.ref_id } : {} }),
   collection: (id: string) => apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}`),

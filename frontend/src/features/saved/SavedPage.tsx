@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
@@ -15,6 +15,8 @@ import { timeAgo } from "@/lib/format";
 import { BulkOutcomes, NoReply, SelectBox } from "./bulk";
 import { BATCH_LIMIT, isDone, useSelection } from "./bulkSelection";
 import { useItemKind } from "./labels";
+import { sourceUpdated } from "./freshness";
+import { SavedFreshness } from "./SavedFreshness";
 
 const markKey = (b: { item_type: string; track: string; ref_id: string }) => `${b.item_type}:${b.item_type === "question" ? b.track : ""}:${b.ref_id}`;
 
@@ -28,6 +30,16 @@ export function SavedPage() {
   const marksHeading = useRef<HTMLHeadingElement>(null);
   const [marksNote, setMarksNote] = useState("");
   const { user } = useAuth();
+  // "Source updated": only the saved items whose source has a newer version that matters, by the
+  // server's rule (docs/STORY_FRESHNESS.md). In the address, so a reload keeps it.
+  const [params, setParams] = useSearchParams();
+  const onlyUpdated = params.get("updated") === "1";
+  // One reviewed while filtered stays in view (with what it says) until the filter changes.
+  const [justReviewed, setJustReviewed] = useState<Set<string>>(new Set());
+  const updatedCount = (bookmarks.data ?? []).filter((b) => sourceUpdated(b.freshness)).length;
+  const shownMarks = onlyUpdated
+    ? (bookmarks.data ?? []).filter((b) => sourceUpdated(b.freshness) || justReviewed.has(b.id))
+    : (bookmarks.data ?? []);
 
   function removeBookmark(mark: Bookmark) {
     setMarksNote("");
@@ -96,8 +108,20 @@ export function SavedPage() {
               Use the bookmark button on a question in the list, or “Bookmark” on its page.
             </EmptyState>
           ) : (
-            // A bookmark's key is the same in every account, so the selection belongs to whoever is signed in.
-            <BulkBookmarks key={user?.id ?? ""} marks={bookmarks.data} collections={collections.data ?? []} onRemove={removeBookmark} />
+            <>
+              <label className="checkbox saved-page__filter">
+                <input type="checkbox" checked={onlyUpdated}
+                  onChange={(e) => { setJustReviewed(new Set()); setParams((p) => { const next = new URLSearchParams(p); if (e.target.checked) next.set("updated", "1"); else next.delete("updated"); return next; }, { replace: true }); }} />
+                <span>Source updated ({updatedCount})</span>
+              </label>
+              {onlyUpdated && shownMarks.length === 0 ? (
+                <p className="subtle" role="status">None of your saved items has a source update to review.</p>
+              ) : (
+                // A bookmark's key is the same in every account, so the selection belongs to whoever is signed in.
+                <BulkBookmarks key={user?.id ?? ""} marks={shownMarks} collections={collections.data ?? []} onRemove={removeBookmark}
+                  onReviewed={(id) => setJustReviewed((prev) => new Set(prev).add(id))} />
+              )}
+            </>
           )}
         <p className="visually-hidden" role="status">{marksNote}</p>
         {/* Shown here, not in the row: a removal is optimistic, so the row is gone if it fails and comes back. */}
@@ -107,15 +131,24 @@ export function SavedPage() {
   );
 }
 
-function BookmarkRow({ mark, onRemove, selected, onSelect }: { mark: Bookmark; onRemove: () => void; selected: boolean; onSelect: (on: boolean) => void }) {
+function BookmarkRow({ mark, onRemove, onReviewed, selected, onSelect }: {
+  mark: Bookmark; onRemove: () => void; onReviewed: (id: string) => void; selected: boolean; onSelect: (on: boolean) => void;
+}) {
   const itemKind = useItemKind();
+  const qc = useQueryClient();
+  const review = async (version: number) => {
+    const next = await api.reviewBookmark(mark, version);
+    onReviewed(next.id);
+    qc.setQueryData<Bookmark[]>(["me", "bookmarks"], (old) => old?.map((b) => (b.id === next.id ? next : b)));
+  };
   return (
     <li className="card saved-list__item saved-list__item--selectable">
       <SelectBox label={`Select: ${mark.title}`} checked={selected} onChange={onSelect} />
       {mark.href /* retired items stay readable */
         ? <Link to={mark.href} state={{ from: "/saved", fromLabel: "Back to Saved" }} className="saved-list__title">{mark.title}</Link>
         : <span className="saved-list__title">{mark.title}</span>}
-      <span className="subtle">{itemKind(mark.item_type, mark.track)} · saved {timeAgo(mark.created_at)}</span>
+      <span className="subtle">{itemKind(mark.item_type, mark.track)} · saved {timeAgo(mark.created_at)}{mark.content_version ? ` at version ${mark.content_version}` : ""}</span>
+      <SavedFreshness title={mark.title} freshness={mark.freshness} review={review} />
       {!mark.available && (
         <p className="banner banner--warning">
           {mark.unavailable_reason ?? "This item left the library."}{mark.href ? " You can still open it; it isn't used for practice." : ""} Nothing replaced it; remove the bookmark when you're ready.
@@ -132,10 +165,11 @@ function BookmarkRow({ mark, onRemove, selected, onSelect }: { mark: Bookmark; o
  * Bookmarks with a selection, and "Add to a collection" for the selected ones (docs/BULK_ACTIONS.md).
  * Adding only puts them in the collection: the bookmarks stay, and nothing about your answers changes.
  */
-function BulkBookmarks({ marks, collections, onRemove }: {
+function BulkBookmarks({ marks, collections, onRemove, onReviewed }: {
   marks: Bookmark[];
   collections: { id: string; name: string; items: number }[];
   onRemove: (mark: Bookmark) => void;
+  onReviewed: (id: string) => void;
 }) {
   const qc = useQueryClient();
   const keys = useMemo(() => marks.map(markKey), [marks]);
@@ -210,7 +244,7 @@ function BulkBookmarks({ marks, collections, onRemove }: {
       {results && <BulkOutcomes ref={outcomesRef} results={results.rows} verb={results.verb} titleOf={(k) => results.titles.get(k) ?? k} />}
       <ul className="saved-list">
         {marks.map((b) => (
-          <BookmarkRow key={markKey(b)} mark={b} onRemove={() => onRemove(b)}
+          <BookmarkRow key={markKey(b)} mark={b} onRemove={() => onRemove(b)} onReviewed={onReviewed}
             selected={selection.isSelected(markKey(b))} onSelect={(on) => selection.toggle(markKey(b), on)} />
         ))}
       </ul>

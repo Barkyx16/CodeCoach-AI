@@ -471,7 +471,7 @@ export function useToggleBookmark() {
       }
       if (marks) {
         qc.setQueryData<Bookmark[]>(["me", "bookmarks"], on
-          ? [{ item_type: ref.item_type, track: ref.track ?? "", ref_id: ref.ref_id, title: "", href: null, available: true, created_at: new Date().toISOString() }, ...marks]
+          ? [{ id: `pending:${ref.item_type}:${ref.ref_id}`, item_type: ref.item_type, track: ref.track ?? "", ref_id: ref.ref_id, title: "", href: null, available: true, created_at: new Date().toISOString() }, ...marks]
           : marks.filter((b) => !sameRef(ref, b)));
       }
       return { explore, marks, session };

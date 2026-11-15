@@ -16,7 +16,7 @@ import { API, server } from "../server";
 
 const now = () => new Date().toISOString();
 const mark = (ref_id: string, title: string): Bookmark => ({
-  item_type: "question", track: "registered-nurse", ref_id, title, href: `/careers/registered-nurse/questions/${ref_id}`,
+  id: `b-${ref_id}`, item_type: "question", track: "registered-nurse", ref_id, title, href: `/careers/registered-nurse/questions/${ref_id}`,
   available: true, unavailable_reason: null, content_version: 1, created_at: now(),
 });
 const collection = (id: string, name: string, refs: { id: string; ref_id: string; title: string }[] = []): Collection => ({

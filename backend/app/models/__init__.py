@@ -835,7 +835,9 @@ class SourceReview(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
-    holder_kind: Mapped[str] = mapped_column(String(20))  # kit | requirement_link | note
+    holder_kind: Mapped[str] = mapped_column(
+        String(20)
+    )  # kit | requirement_link | note | bookmark | collection_item
     holder_id: Mapped[str] = mapped_column(String(64))
     source_kind: Mapped[str] = mapped_column(String(16))  # story | question | lesson | problem
     source_id: Mapped[str] = mapped_column(String(160))
@@ -917,7 +919,8 @@ class Bookmark(Base):
     track: Mapped[str] = mapped_column(String(64), default="")  # "" for coding problems
     ref_id: Mapped[str] = mapped_column(String(80))
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
-    # Career questions: the content version when saved, so a significant change can be shown later.
+    # The question's or coding problem's version when saved, so a change that matters can be shown
+    # later (docs/STORY_FRESHNESS.md); null: saved before versions were recorded ("not known").
     content_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
 
@@ -956,6 +959,9 @@ class CollectionItem(Base):
     position: Mapped[int] = mapped_column(Integer)
     added_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     queue_done_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    # The question's or problem's version when it was added (docs/STORY_FRESHNESS.md, "Saved items
+    # and collections"); null: added before versions were recorded ("not known").
+    content_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     collection: Mapped[PracticeCollection] = relationship(back_populates="items")
 

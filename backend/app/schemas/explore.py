@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import Field, model_validator
 
 from app.schemas.common import APIModel
+from app.schemas.notes import NoteFreshness
 
 ItemType = Literal["question", "problem", "drill"]
 ExploreSort = Literal["relevance", "library", "last_practiced", "lowest_score"]
@@ -73,6 +74,7 @@ class MyExploreResult(ExploreResult):
 
 
 class BookmarkOut(APIModel):
+    id: str
     item_type: ItemType
     track: str
     ref_id: str
@@ -80,8 +82,28 @@ class BookmarkOut(APIModel):
     href: str | None
     available: bool
     unavailable_reason: str | None = Field(default=None, description="e.g. 'Retired: …' (still readable)")
-    content_version: int | None = Field(default=None, description="Questions: the version when it was saved")
+    content_version: int | None = Field(
+        default=None,
+        description="The question's or problem's version when it was saved; null: saved before versions "
+        "were recorded (not known), or a drill (no versions)",
+    )
+    freshness: NoteFreshness | None = Field(
+        default=None,
+        description="Whether the source changed in a way that matters since it was saved, by the same rule "
+        "as notes (docs/STORY_FRESHNESS.md); null for a drill",
+    )
     created_at: datetime
+
+
+class SavedReviewIn(APIModel):
+    item_type: ItemType
+    track: str = Field(default="", max_length=64)
+    ref_id: str = Field(min_length=1, max_length=80)
+    reviewed_version: int = Field(
+        ge=1,
+        description="The source's version you were shown. A newer one since isn't reviewed silently: the "
+        "badge stays for it.",
+    )
 
 
 class CollectionIn(APIModel):
@@ -153,6 +175,13 @@ class CollectionItemOut(APIModel):
     unavailable_reason: str | None
     queue_done: bool = Field(description="Marked done in this collection's queue (not mastery)")
     practiced_since_added: bool = Field(description="An answer or submission exists since it was added")
+    content_version: int | None = Field(
+        default=None, description="The source's version when it was added; null: not known, or a drill"
+    )
+    freshness: NoteFreshness | None = Field(
+        default=None,
+        description="Whether its source changed since it was added (the notes' rule); null for a drill",
+    )
 
 
 class CollectionSummary(APIModel):

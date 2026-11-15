@@ -874,6 +874,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/bookmarks/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark a saved item reviewed at the version you were shown (its source changed; it isn't touched) */
+        post: operations["review_bookmark_api_v1_me_bookmarks_review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/collections": {
         parameters: {
             query?: never;
@@ -1007,6 +1024,23 @@ export interface paths {
         /** Mark an item done in this queue (queue progress only; mastery comes from your answers) */
         put: operations["mark_item_done_api_v1_me_collections__collection_id__items__item_id__done_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}/items/{item_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark an item reviewed at the version you were shown (its source changed; it stays where it is) */
+        post: operations["review_collection_item_api_v1_me_collections__collection_id__items__item_id__review_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5764,6 +5798,8 @@ export interface components {
         };
         /** BookmarkOut */
         BookmarkOut: {
+            /** Id */
+            id: string;
             /**
              * Item Type
              * @enum {string}
@@ -5786,9 +5822,11 @@ export interface components {
             unavailable_reason?: string | null;
             /**
              * Content Version
-             * @description Questions: the version when it was saved
+             * @description The question's or problem's version when it was saved; null: saved before versions were recorded (not known), or a drill (no versions)
              */
             content_version?: number | null;
+            /** @description Whether the source changed in a way that matters since it was saved, by the same rule as notes (docs/STORY_FRESHNESS.md); null for a drill */
+            freshness?: components["schemas"]["NoteFreshness"] | null;
             /**
              * Created At
              * Format: date-time
@@ -6297,6 +6335,13 @@ export interface components {
              * @description An answer or submission exists since it was added
              */
             practiced_since_added: boolean;
+            /**
+             * Content Version
+             * @description The source's version when it was added; null: not known, or a drill
+             */
+            content_version?: number | null;
+            /** @description Whether its source changed since it was added (the notes' rule); null for a drill */
+            freshness?: components["schemas"]["NoteFreshness"] | null;
         };
         /** CollectionOut */
         CollectionOut: {
@@ -13082,6 +13127,26 @@ export interface components {
              */
             current_revision: number;
         };
+        /** SavedReviewIn */
+        SavedReviewIn: {
+            /**
+             * Item Type
+             * @enum {string}
+             */
+            item_type: "question" | "problem" | "drill";
+            /**
+             * Track
+             * @default
+             */
+            track: string;
+            /** Ref Id */
+            ref_id: string;
+            /**
+             * Reviewed Version
+             * @description The source's version you were shown. A newer one since isn't reviewed silently: the badge stays for it.
+             */
+            reviewed_version: number;
+        };
         /** ScenarioAttemptOut */
         ScenarioAttemptOut: {
             /** Id */
@@ -18490,6 +18555,57 @@ export interface operations {
             };
         };
     };
+    review_bookmark_api_v1_me_bookmarks_review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedReviewIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BookmarkOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     list_collections_api_v1_me_collections_get: {
         parameters: {
             query?: {
@@ -19044,6 +19160,60 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["DoneIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    review_collection_item_api_v1_me_collections__collection_id__items__item_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NoteSourceReviewIn"];
             };
         };
         responses: {

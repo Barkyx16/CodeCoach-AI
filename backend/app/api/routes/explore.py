@@ -28,7 +28,9 @@ from app.schemas.explore import (
     MyExploreResult,
     OrderIn,
     QueueIn,
+    SavedReviewIn,
 )
+from app.schemas.notes import NoteSourceReviewIn
 from app.services.explore import Explorer
 
 router = APIRouter(prefix="/api/v1", tags=["explore"])
@@ -147,6 +149,18 @@ def remove_bookmark(
 ) -> list[BookmarkOut]:
     body = CollectionItemIn(item_type=item_type, track=track, ref_id=ref_id)
     return Explorer(db).set_bookmark(user, body, False)
+
+
+@router.post(
+    "/me/bookmarks/review",
+    response_model=BookmarkOut,
+    responses=error_responses(401, 404, 422),
+    summary="Mark a saved item reviewed at the version you were shown (its source changed; it isn't touched)",
+)
+def review_bookmark(
+    body: SavedReviewIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> BookmarkOut:
+    return Explorer(db).review_bookmark(user, body)
 
 
 # --- collections -------------------------------------------------------------------------------
@@ -304,3 +318,19 @@ def mark_item_done(
     db: Session = Depends(get_db),
 ) -> CollectionOut:
     return Explorer(db).mark_done(user, collection_id, item_id, body.done)
+
+
+@router.post(
+    "/me/collections/{collection_id}/items/{item_id}/review",
+    response_model=CollectionOut,
+    responses=error_responses(401, 404, 422),
+    summary="Mark an item reviewed at the version you were shown (its source changed; it stays where it is)",
+)
+def review_collection_item(
+    collection_id: str,
+    item_id: str,
+    body: NoteSourceReviewIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CollectionOut:
+    return Explorer(db).review_item(user, collection_id, item_id, body.reviewed_version)
