@@ -33904,6 +33904,111 @@
         ],
         "title": "FeedbackPoint"
       },
+      "FeedbackRead": {
+        "properties": {
+          "recorded": {
+            "type": "boolean",
+            "title": "Recorded",
+            "description": "False for an interview scored before this was recorded"
+          },
+          "ending": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "finished",
+                  "abandoned",
+                  "time_expired"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ending"
+          },
+          "checked": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked",
+            "description": "Whether you checked it before it was scored (null: nothing to check)"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackReadItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "fingerprint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fingerprint"
+          },
+          "read_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read By"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "What it says, in plain words"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recorded",
+          "text"
+        ],
+        "title": "FeedbackRead",
+        "description": "What an interview's feedback read, recorded when it was scored (Volume 15, prompt 7;\ndocs/COACH_CONTEXT.md, \"What the feedback read\"): labels and sizes, never a second copy."
+      },
+      "FeedbackReadItem": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "chars": {
+            "type": "integer",
+            "title": "Chars",
+            "description": "How long it was, in characters, as read (not a copy of the text)"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Notes",
+            "description": "What was replaced in it, said"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "chars"
+        ],
+        "title": "FeedbackReadItem"
+      },
       "FeedbackReceipt": {
         "properties": {
           "feedback": {
@@ -35737,6 +35842,29 @@
                 "type": "null"
               }
             ]
+          },
+          "feedback_read": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FeedbackRead"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "What the feedback read, once the interview is over (null while it's on)"
+          },
+          "feedback_check_margin_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Feedback Check Margin Seconds",
+            "description": "How long before time runs out the page offers to check what the feedback will read (a coding interview in progress; null otherwise)"
           }
         },
         "type": "object",

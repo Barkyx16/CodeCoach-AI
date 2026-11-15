@@ -129,8 +129,35 @@ the 60-a-minute limit with the others, call nothing, spend nothing and store not
 fingerprint travels. A preview of an interview whose time is up says so and doesn't close it (the
 next read does, with its feedback). An interview that runs out of time is scored without a preview:
 there's no request to check, and it reads exactly what the feedback preview lists, with "How it
-ended: time_expired." Without `approved_context` (an older page, or the API used directly) a message or a finish
+ended: time_expired." The review then says what it read and that it wasn't checked ("What the feedback
+read", below). Without `approved_context` (an older page, or the API used directly) a message or a finish
 works as before.
+
+## What the feedback read (Volume 15, prompt 8)
+
+Every interview's feedback records what it read, when it's scored, and the review shows it under
+**What the feedback read**:
+
+- each part by its label and size ("The conversation so far · 1,234 characters"), with what was
+  replaced in it (secret-looking strings, names you listed), and who read it. Never a second copy of
+  the text: the transcript and your code are already in the review, as you wrote them;
+- the fingerprint of exactly that material, how it ended (finished, ended early or time ran out) and
+  whether you checked it: "You checked this before it was scored.", "You didn't check this before
+  it was scored.", or **"You didn't check this before it was scored: time ran out."**;
+- for a career interview, its own material ("Your answer to question 1 · 412 characters"), read by
+  CodeCoach's own fixed rules on its server: nothing left CodeCoach, so there was nothing to check;
+- for an interview scored before this was recorded: "What it read wasn't recorded then.", never a
+  reconstruction.
+
+**Shortly before time is up** (2 minutes: `FEEDBACK_CHECK_MARGIN_SECONDS`, sent with the interview
+as `feedback_check_margin_seconds` while a coding interview is running), the page offers **Check
+what the feedback will read**. It's said once, as it appears (its words don't change with the clock,
+so a screen reader doesn't repeat it), and checking doesn't stop the clock. Finishing from the check
+carries its fingerprint as before; if what's read changed since, the finish is refused as before
+(`409 context_changed`) and the page says why. If time runs out instead, the interview is scored and
+recorded as not checked, also after a check that went stale: a preview stores nothing, so only a
+finish that carried a matching fingerprint counts as checked. Nothing extends an interview's time
+or changes its scoring. The data export carries each interview's record (`interviews[].feedback_read`).
 
 ## Checked by tests
 

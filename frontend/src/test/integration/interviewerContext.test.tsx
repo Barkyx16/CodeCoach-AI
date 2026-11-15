@@ -50,8 +50,8 @@ const preview = (over: { message?: string; code?: string; fingerprint?: string; 
   names_note: null,
 });
 
-function interviewServer(opts: { refuse?: CoachPreview } = {}) {
-  let iv = base();
+function interviewServer(opts: { refuse?: CoachPreview; over?: Partial<Interview> } = {}) {
+  let iv = { ...base(), ...opts.over };
   const previews: Record<string, unknown>[] = [];
   const posted: Record<string, unknown>[] = [];
   const finished: Record<string, unknown>[] = [];
@@ -206,5 +206,28 @@ describe("What the coding interviewer reads", () => {
     expect(finished[0]).toMatchObject({ approved_context: "v1:finished" });
     expect(previews[0]).toMatchObject({ ending: "finished" });
     expect(finished[0]!.code).toBe(previews[0]!.code);
+  });
+
+  it("offers to check what the feedback will read shortly before time is up, announced once (Volume 15, prompt 8)", async () => {
+    const soon = new Date(Date.now() + 100_000).toISOString();
+    const { previews } = interviewServer({ over: { deadline_at: soon, seconds_remaining: 100, feedback_check_margin_seconds: 120 } });
+    const { user } = renderApp("/interviews/iv-1", { signedIn: true });
+    const offer = await screen.findByRole("button", { name: "Check what the feedback will read" });
+    const note = offer.closest("[role=status]") as HTMLElement;
+    expect(note).toHaveTextContent("Time is nearly up. When it runs out, the feedback is scored from what you've sent so far; checking it doesn't stop the clock.");
+    const before = note.textContent;
+    await new Promise((r) => setTimeout(r, 1100)); // a tick of the clock: the announcement doesn't change
+    expect(note.textContent).toBe(before);
+    expect(screen.getAllByText(/Time is nearly up/)).toHaveLength(1);
+    await user.click(offer);
+    expect(await screen.findByRole("region", { name: "What the interviewer reads" })).toBeInTheDocument();
+    expect(previews.at(-1)).toMatchObject({ ending: "finished" });
+  });
+
+  it("doesn't offer it while there's time, or without a margin from the server", async () => {
+    interviewServer({ over: { feedback_check_margin_seconds: 120 } }); // 30 minutes left
+    renderApp("/interviews/iv-1", { signedIn: true });
+    await screen.findByLabelText("Your answer");
+    expect(screen.queryByRole("button", { name: "Check what the feedback will read" })).toBeNull();
   });
 });

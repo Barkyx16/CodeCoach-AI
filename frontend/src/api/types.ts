@@ -458,3 +458,4 @@ export type RelatedPractice = S["RelatedPractice"];
 export type RelatedAttempt = S["RelatedAttempt"];
 export type ListedNames = S["ListedNamesOut"];
 export type ListedName = S["ListedNameOut"];
+export type FeedbackRead = S["FeedbackRead"];

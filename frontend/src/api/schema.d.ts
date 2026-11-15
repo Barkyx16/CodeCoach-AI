@@ -8378,6 +8378,51 @@ export interface components {
             scope_note?: string | null;
         };
         /**
+         * FeedbackRead
+         * @description What an interview's feedback read, recorded when it was scored (Volume 15, prompt 7;
+         *     docs/COACH_CONTEXT.md, "What the feedback read"): labels and sizes, never a second copy.
+         */
+        FeedbackRead: {
+            /**
+             * Recorded
+             * @description False for an interview scored before this was recorded
+             */
+            recorded: boolean;
+            /** Ending */
+            ending?: ("finished" | "abandoned" | "time_expired") | null;
+            /**
+             * Checked
+             * @description Whether you checked it before it was scored (null: nothing to check)
+             */
+            checked?: boolean | null;
+            /** Items */
+            items?: components["schemas"]["FeedbackReadItem"][];
+            /** Fingerprint */
+            fingerprint?: string | null;
+            /** Read By */
+            read_by?: string | null;
+            /**
+             * Text
+             * @description What it says, in plain words
+             */
+            text: string;
+        };
+        /** FeedbackReadItem */
+        FeedbackReadItem: {
+            /** Label */
+            label: string;
+            /**
+             * Chars
+             * @description How long it was, in characters, as read (not a copy of the text)
+             */
+            chars: number;
+            /**
+             * Notes
+             * @description What was replaced in it, said
+             */
+            notes?: string[];
+        };
+        /**
          * FeedbackReceipt
          * @description What the reviewer sent, echoed back so they can see it was received.
          */
@@ -9196,6 +9241,13 @@ export interface components {
             /** Final Code */
             final_code: string | null;
             evaluation: components["schemas"]["InterviewEvaluation"] | null;
+            /** @description What the feedback read, once the interview is over (null while it's on) */
+            feedback_read?: components["schemas"]["FeedbackRead"] | null;
+            /**
+             * Feedback Check Margin Seconds
+             * @description How long before time runs out the page offers to check what the feedback will read (a coding interview in progress; null otherwise)
+             */
+            feedback_check_margin_seconds?: number | null;
         };
         /**
          * InterviewPhase

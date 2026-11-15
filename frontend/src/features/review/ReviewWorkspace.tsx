@@ -25,6 +25,7 @@ import { EngagementNote } from "@/features/voice/EngagementMeter";
 import { NoteCapture } from "@/features/notes/NoteCapture";
 import { AcceptImprovement } from "@/features/actions/AcceptImprovement";
 import { DisputedNote } from "@/features/plan/DisputedNote";
+import { FeedbackReadSection } from "./FeedbackRead";
 
 const STATUS_TEXT: Record<ReviewEntry["status"], string> = {
   answered: "Answered", skipped: "Skipped", not_reached: "Not reached", said: "",
@@ -114,6 +115,8 @@ function Review({ iv, r }: { iv: Interview; r: InterviewReview }) {
           <ul className="mini-list review__notices">{r.notices.map((n) => <li key={n}>{n}</li>)}</ul>
         </div>
       )}
+
+      {iv.feedback_read && <FeedbackReadSection read={iv.feedback_read} />}
 
       <div className="review__layout">
         <div className="stack">

@@ -293,6 +293,27 @@ class InterviewProblem(APIModel):
     difficulty: Difficulty
 
 
+class FeedbackReadItem(APIModel):
+    label: str
+    chars: int = Field(description="How long it was, in characters, as read (not a copy of the text)")
+    notes: list[str] = Field(default_factory=list, description="What was replaced in it, said")
+
+
+class FeedbackRead(APIModel):
+    """What an interview's feedback read, recorded when it was scored (Volume 15, prompt 7;
+    docs/COACH_CONTEXT.md, "What the feedback read"): labels and sizes, never a second copy."""
+
+    recorded: bool = Field(description="False for an interview scored before this was recorded")
+    ending: Literal["finished", "abandoned", "time_expired"] | None = None
+    checked: bool | None = Field(
+        default=None, description="Whether you checked it before it was scored (null: nothing to check)"
+    )
+    items: list[FeedbackReadItem] = Field(default_factory=list)
+    fingerprint: str | None = None
+    read_by: str | None = None
+    text: str = Field(description="What it says, in plain words")
+
+
 class InterviewOut(APIModel):
     id: str
     kind: InterviewKind
@@ -316,6 +337,14 @@ class InterviewOut(APIModel):
     turns: list[TurnOut]
     final_code: str | None
     evaluation: InterviewEvaluation | None
+    feedback_read: FeedbackRead | None = Field(
+        default=None, description="What the feedback read, once the interview is over (null while it's on)"
+    )
+    feedback_check_margin_seconds: int | None = Field(
+        default=None,
+        description="How long before time runs out the page offers to check what the feedback will read "
+        "(a coding interview in progress; null otherwise)",
+    )
 
 
 class InterviewSummary(APIModel):

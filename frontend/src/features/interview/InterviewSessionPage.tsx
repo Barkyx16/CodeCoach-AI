@@ -99,6 +99,10 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
   const seconds = useCountdown(iv.deadline_at, true);
   const ready = iv.phase === null; // interviewer wrapped up
   const busy = send.isPending || finish.isPending || abandon.isPending;
+  // Shortly before time is up (the server's margin: docs/COACH_CONTEXT.md, "What the feedback read"),
+  // offer to check what the feedback will read. Once shown it stays until the interview ends.
+  const margin = iv.feedback_check_margin_seconds;
+  const nearlyUp = margin != null && seconds > 0 && seconds <= margin;
   const canSend = !ready && seconds > 0 && iv.candidate_turns_remaining > 0 && !!problem.data && !busy;
 
   // When the clock runs out, ask the server: it closes the interview and returns feedback.
@@ -305,6 +309,13 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
             ) : undefined}
           />
           <InlineError id="iv-error" error={send.error ?? finish.error ?? abandon.error} />
+          {nearlyUp && (
+            // Static text, so it's announced once when it appears, never on the clock's ticks.
+            <div className="banner banner--warning row interview__nearly-up" role="status">
+              <span>Time is nearly up. When it runs out, the feedback is scored from what you&apos;ve sent so far; checking it doesn&apos;t stop the clock.</span>
+              <Button size="sm" variant="secondary" disabled={busy || checking} onClick={() => void checkFeedback("finished")}>Check what the feedback will read</Button>
+            </div>
+          )}
           <div className="row interview__check">
             <Button size="sm" variant="ghost" loading={checking && checked === null} disabled={!message.trim() || !canSend || checking}
               onClick={() => void checkMessage()}>What the interviewer reads</Button>

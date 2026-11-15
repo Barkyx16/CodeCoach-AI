@@ -66,6 +66,8 @@ from app.schemas.common import Page
 from app.schemas.interview import (
     PHASE_GUIDE,
     Engagement,
+    FeedbackRead,
+    FeedbackReadItem,
     FollowupAnswer,
     FormatOption,
     FormatSlot,
@@ -96,6 +98,9 @@ from app.services.progress import ProgressService
 from app.services.question_rounds import ROUND, QuestionRounds
 
 MAX_CANDIDATE_TURNS = 30
+# How long before time runs out the page offers to check what the feedback will read (Volume 15,
+# prompt 8; docs/COACH_CONTEXT.md, "What the feedback read"). Checking doesn't stop the clock.
+FEEDBACK_CHECK_MARGIN_SECONDS = 120
 PHASES = list(InterviewPhase)
 INTERVIEW_MODES = (PracticeMode.INTERVIEW, PracticeMode.QUESTIONS)
 
@@ -436,7 +441,8 @@ class InterviewService:
             )
         if code is not None:
             session.final_code = code
-        self._close(user, session, InterviewStatus.COMPLETED, "finished")
+        checked = bool(body and body.approved_context is not None)
+        self._close(user, session, InterviewStatus.COMPLETED, "finished", checked=checked)
         self.db.commit()
         return self._to_out(session)
 
@@ -450,7 +456,10 @@ class InterviewService:
                     self._feedback_material(user, session, text, "abandoned", from_editor)[1],
                     body.approved_context,
                 )
-            self._close(user, session, InterviewStatus.ABANDONED, "abandoned")
+            checked = bool(
+                body and body.approved_context is not None and session.mode == PracticeMode.INTERVIEW
+            )
+            self._close(user, session, InterviewStatus.ABANDONED, "abandoned", checked=checked)
             self.db.commit()
         return self._to_out(session)
 
@@ -507,6 +516,40 @@ class InterviewService:
             self._close(user, session, InterviewStatus.EXPIRED, "time_expired")
             self.db.commit()
 
+    @staticmethod
+    def _remember_read(session: PracticeSession, record: dict[str, Any]) -> None:
+        session.plan = {**(session.plan or {}), "feedback_read": {"v": 1, **record, "at": _now().isoformat()}}
+
+    @staticmethod
+    def feedback_read(session: PracticeSession) -> FeedbackRead | None:
+        """What the feedback read, as recorded when it was scored; for one scored before this was
+        recorded, said so rather than rebuilt."""
+        if session.status == InterviewStatus.IN_PROGRESS:
+            return None
+        rec = (session.plan or {}).get("feedback_read")
+        if not isinstance(rec, dict):
+            return FeedbackRead(recorded=False, text="What it read wasn't recorded then.")
+        ending, checked = rec.get("ending"), rec.get("checked")
+        if checked is None:
+            text = "Scored by CodeCoach's own rules from these; nothing left CodeCoach, so there was nothing to check."
+            if ending == "time_expired":
+                text = "Time ran out, so it was scored from what you'd answered. " + text
+        elif checked:
+            text = "You checked this before it was scored."
+        elif ending == "time_expired":
+            text = "You didn't check this before it was scored: time ran out."
+        else:
+            text = "You didn't check this before it was scored."
+        return FeedbackRead(
+            recorded=True,
+            ending=ending if ending in ("finished", "abandoned", "time_expired") else None,
+            checked=checked,
+            items=[FeedbackReadItem(**i) for i in rec.get("items") or []],
+            fingerprint=rec.get("fingerprint"),
+            read_by=rec.get("read_by"),
+            text=text,
+        )
+
     def _claim_close(self, session: PracticeSession, status: InterviewStatus) -> bool:
         """Move this interview out of in_progress, atomically. False: another request (a second
         tab, a retry, the deadline seen twice) closed it first; `session` then holds its result."""
@@ -521,15 +564,38 @@ class InterviewService:
             return False
         return True
 
-    def _close(self, user: User, session: PracticeSession, status: InterviewStatus, reason: str) -> None:
+    def _close(
+        self,
+        user: User,
+        session: PracticeSession,
+        status: InterviewStatus,
+        reason: str,
+        checked: bool = False,
+    ) -> None:
         if not self._claim_close(session, status):
             return
         if session.mode == PracticeMode.QUESTIONS:
-            # Each answer was graded as it came in; there's no AI evaluation to run.
+            # Each answer was graded as it came in; there's no AI evaluation to run. What the round's
+            # summary read is recorded all the same (labels and sizes; the answers stay where they are).
+            self._remember_read(
+                session,
+                {
+                    "ending": reason,
+                    "checked": None,  # nothing left CodeCoach, so there was nothing to check first
+                    "read_by": "CodeCoach's own fixed rules, on its server: nothing left it",
+                    "items": [
+                        {"label": f"Your answer to question {n}", "chars": len(t.content), "notes": []}
+                        for n, t in enumerate(
+                            (t for t in session.turns if t.role == TurnRole.CANDIDATE and t.content), 1
+                        )
+                    ],
+                },
+            )
             session.status = status
             session.ended_at = _now()
             return
-        ctx = self._feedback_material(user, session, session.final_code or "", reason, False)[0]
+        ctx, preview = self._feedback_material(user, session, session.final_code or "", reason, False)
+        read_by = preview.recipient
         try:
             self.coach.check_budget(user)
             result = self.coach.call_with_fallback(lambda p: p.evaluate_interview(ctx))
@@ -537,6 +603,21 @@ class InterviewService:
         except RateLimitedError:
             # Never withhold feedback for a finished session: score it offline, free of charge.
             result = OfflineCoach().evaluate_interview(ctx)
+            read_by = "The built-in interviewer, on CodeCoach's own server (no coaching requests were left that day)"
+        # What it read, recorded with the feedback (docs/COACH_CONTEXT.md, "What the feedback read"):
+        # labels, sizes and what was replaced, never a second copy of the text.
+        self._remember_read(
+            session,
+            {
+                "ending": reason,
+                "checked": checked,
+                "fingerprint": preview.context_fingerprint,
+                "read_by": read_by,
+                "items": [
+                    {"label": i.label, "chars": len(i.text), "notes": list(i.notes)} for i in preview.items
+                ],
+            },
+        )
         session.evaluation = result.content.model_dump(mode="json")
         session.status = status
         session.ended_at = _now()
@@ -870,6 +951,12 @@ class InterviewService:
             turns=[self._turn_out(t) for t in session.turns],
             final_code=session.final_code,
             evaluation=InterviewEvaluation.model_validate(session.evaluation) if session.evaluation else None,
+            feedback_read=self.feedback_read(session),
+            feedback_check_margin_seconds=(
+                FEEDBACK_CHECK_MARGIN_SECONDS
+                if session.status == InterviewStatus.IN_PROGRESS and session.mode == PracticeMode.INTERVIEW
+                else None
+            ),
         )
 
     def _to_summary(self, session: PracticeSession) -> InterviewSummary:

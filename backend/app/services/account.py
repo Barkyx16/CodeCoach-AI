@@ -249,6 +249,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 "ended_at": iso(s.ended_at),
                 "final_code": s.final_code,
                 "evaluation": s.evaluation,
+                # What the feedback read (labels and sizes), checked or not (docs/COACH_CONTEXT.md).
+                "feedback_read": (s.plan or {}).get("feedback_read"),
                 # The summary's points left out because of feedback you disputed (docs/DISPUTES.md).
                 "points_left_out_disputed": disputed_point_keys(db, user.id, s),
                 "transcript": [

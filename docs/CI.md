@@ -167,8 +167,11 @@ suites), and the "before" runs' wall times also include the plugin's own collect
 9 GB heap, which weren't yet counted apart. So the time comparison is CI's timed steps, on the
 same runner type: before, run 329 (`b3f34bf`): **SQLite tests 33 min 0 s, PostgreSQL tests 70 min
 56 s** (they were 18 min 31 s and 35 min 53 s in run 274, before the suite and its memory grew).
-After: the first CI run with these changes, recorded in the next code commit's message
-("Recording CI evidence without churn", below).
+After: run 331 (`daa009c`), the first CI run with these changes: **SQLite tests 18 min 40 s**
+(from 33 min 0 s), **PostgreSQL tests 73 min 5 s** (from 70 min 56 s; that job also failed one
+query-budget assertion, fixed in `8959a18`, which doesn't change its time). Memory fell on both;
+time fell on SQLite only: on PostgreSQL the time is the databases' set-up (each test makes and
+drops its own), which these changes didn't touch (Volume 15, prompt 1, is about that).
 
 Locally the slowest file is `test_judge_sandbox.py` (388 judged runs, 14 to 19 minutes) because
 this machine has gVisor; in CI's backend jobs those tests skip and run in the sandbox job.
@@ -244,13 +247,15 @@ pytest's `-q` summary line, fixed before the PostgreSQL pair ran.
 
 ### What's left
 
-- **PostgreSQL's remaining 22.5 s after the summary isn't explained yet.** With no app alive and no
-  connection left open by a test, what's left is the interpreter's own teardown, or something it
-  waits for. The plugin now lists the threads still running at the end (a non-daemon one is waited
-  for) and, through `suite_table.py`, writes every thread's stack every few seconds while the
-  process exits, so the next measured run says what it is.
+- **The exit after the summary, explained.** Measured again with the threads' stacks written
+  every 3 s while the process exits (`SUITE_MEASURE_EXIT_STACKS`): 11.5 s on SQLite and 24.7 s on
+  PostgreSQL, and in both the main thread is in pytest's own `unraisableexception` clean-up
+  (`gc_collect_harder` in `_ensure_unconfigure`), which runs several full garbage collections at the
+  end of the session to surface any exception raised in a finaliser. Its time follows what's still
+  in memory (917 MB and 1,509 MB at the peak), so it isn't a hang or a thread being waited for: the
+  only thread left is the fake SMTP server's accept loop (`tests/smtp_fake.py`), a daemon, which
+  exit doesn't wait for. Turning the plugin off would save the time and lose the check, so it stays.
 - CLI commands run inside tests still leave their one connection each, listed by the measurement.
-- Wall time after these changes: the first CI run with them, recorded in the next code commit.
 
 ## Recording CI evidence without churn
 
