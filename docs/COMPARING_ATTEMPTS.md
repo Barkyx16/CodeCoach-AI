@@ -90,7 +90,36 @@ format. The same choice everywhere (`previous_of`).
 Change `CONTRACT_VERSION` with the rules and add a row here. The explanation names the version that
 decided it, so a page and an earlier export can be told apart.
 
+## Coding submissions (Volume 14, prompt 1)
+
+A finished submission is compared with the **previous judged submission of the same problem in the
+same mode**, by the same `classify()` with code's own facts (`AttemptComparisons.submission_facts`):
+
+| Fact | For a submission |
+|---|---|
+| question | the problem (another problem: not comparable, "they're attempts at different problems") |
+| version | the version of the problem's tests the submission was judged on (`submissions.content_version`); not recorded on a problem whose tests changed since: can't tell |
+| evaluator, scale, rubric | the code judge, tests passed, the problem's tests: the same for every submission |
+| scoring | judged (any verdict on the code: passed, failed, didn't compile, crashed, ran too long, used too much memory) or not judged (the judge's own failure): not judged is not comparable, "this one wasn't judged, so there's no verdict to set beside the other" |
+| format | a submission (every test) or a run (the public tests only): never compared with each other |
+| help | the attempt's conditions (docs/ATTEMPT_CONDITIONS.md), as for written answers |
+
+- **Which one before**: the latest earlier submission of the same problem and mode that the judge gave
+  a verdict on. A submission the judge failed on is never the one before; one still being judged (or
+  only saved) isn't compared yet.
+- **Wording**: "Comparable: the same problem and tests, judged the same way, with the same in-app help";
+  a test version in between reads "the problem's tests changed in between (version 1, now 2): compare
+  the code, not the counts" (the counts aren't set side by side then); when only the help differs, "The
+  counts are from the same tests, so both are shown".
+- **Where**: the submission's page and the workspace's result ("Compared with your previous
+  submission": each verdict with its own counts, and the explanation), History's row ("Partly
+  comparable with the one before"), and the export (`submissions[].comparison`).
+- **Never**: a verdict or count changed, the time in the method compared (it varies with the
+  machine), "improved", "better" or an average.
+- **Rules version**: still v1. No written answer's classification changed; code's rules are new
+  facts for the same rules.
+
 ## Not covered yet
 
-Coding submissions, drills, whiteboards, work samples and the other formats keep their own rules for
-now (docs/DRILLS.md and others) and adopt this contract later. Help outside the app isn't known.
+Drills, whiteboards, work samples and the other formats keep their own rules for now
+(docs/DRILLS.md and others) and adopt this contract later. Help outside the app isn't known.

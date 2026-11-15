@@ -27707,6 +27707,74 @@
         ],
         "title": "CollectionSummary"
       },
+      "ComparedSubmission": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubmissionStatus"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "passed_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passed Count"
+          },
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count"
+          },
+          "hidden_passed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hidden Passed"
+          },
+          "hidden_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hidden Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "created_at"
+        ],
+        "title": "ComparedSubmission",
+        "description": "The earlier submission a submission is compared with, as it was judged."
+      },
       "Comparison": {
         "properties": {
           "question_title": {
@@ -47055,6 +47123,23 @@
         ],
         "title": "StrategyOut"
       },
+      "SubmissionComparison": {
+        "properties": {
+          "previous": {
+            "$ref": "#/components/schemas/ComparedSubmission"
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/AttemptComparison"
+          }
+        },
+        "type": "object",
+        "required": [
+          "previous",
+          "comparison"
+        ],
+        "title": "SubmissionComparison",
+        "description": "A finished submission beside the previous judged one of the same problem and mode, by the one\ncomparison contract (docs/COMPARING_ATTEMPTS.md, \"Coding submissions\"). Both verdicts are given\nas judged; nothing says one improved on the other."
+      },
       "SubmissionCreate": {
         "properties": {
           "problem_slug": {
@@ -47203,6 +47288,17 @@
             ],
             "title": "Lab Version",
             "description": "The debugging exercise's version for this attempt"
+          },
+          "compared": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubmissionComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Once judged: the previous judged submission of the same problem and mode, and how the two compare. None when there's no earlier one, or while this one is being judged"
           }
         },
         "type": "object",

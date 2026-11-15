@@ -19,10 +19,13 @@ from app.models import (
 from app.schemas.common import Page, error_responses
 from app.schemas.conditions import AttemptConditions
 from app.schemas.submission import (
+    ComparedSubmission,
+    SubmissionComparison,
     SubmissionCreate,
     SubmissionDetail,
     SubmissionListItem,
 )
+from app.services.attempt_comparisons import AttemptComparisons, comparison_out
 from app.services.conditions import Conditions, problem_version
 from app.services.content import is_problem_retired
 from app.services.judge.backends import ExecutionDisabledError, JudgeUnavailableError
@@ -33,8 +36,27 @@ router = APIRouter(prefix="/api/v1", tags=["submissions"])
 _ERRORS = error_responses(400, 401, 404, 422, 429, 503)
 
 
+def compared_view(previous: Submission, classification) -> SubmissionComparison:
+    r = public_result_view(previous)
+    return SubmissionComparison(
+        previous=ComparedSubmission(
+            id=previous.id,
+            status=previous.status,
+            created_at=previous.created_at,
+            passed_count=r.passed_count if r else None,
+            total_count=r.total_count if r else None,
+            hidden_passed=r.hidden_passed if r else None,
+            hidden_total=r.hidden_total if r else None,
+        ),
+        comparison=comparison_out(previous.id, classification),
+    )
+
+
 def to_detail(
-    sub: Submission, execution_enabled: bool, conditions: AttemptConditions | None = None
+    sub: Submission,
+    execution_enabled: bool,
+    conditions: AttemptConditions | None = None,
+    compared: SubmissionComparison | None = None,
 ) -> SubmissionDetail:
     result = public_result_view(sub)
     return SubmissionDetail(
@@ -54,6 +76,7 @@ def to_detail(
         starting_code=sub.starting_code,
         lab_version=sub.lab_version,
         conditions=conditions,
+        compared=compared,
     )
 
 
@@ -176,8 +199,12 @@ def get_submission(
     # 404 (not 403) for other users' submissions: don't confirm that the id exists.
     if sub is None or sub.user_id != user.id:
         raise NotFoundError("Submission not found")
+    pair = AttemptComparisons(db, user).submissions_with_previous([sub]).get(sub.id)
     return to_detail(
-        sub, request.app.state.execution_backend.enabled, Conditions(db, user).for_submission(sub)
+        sub,
+        request.app.state.execution_backend.enabled,
+        Conditions(db, user).for_submission(sub),
+        compared_view(*pair) if pair else None,
     )
 
 

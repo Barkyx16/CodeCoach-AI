@@ -89,6 +89,14 @@ TYPE_LABELS: dict[str, str] = {
     "written_answer": "Written answer",
     "interview": "Mock interview",
 }
+# A code submission's row: how it compares with the previous judged one of the same problem.
+COMPARED_SHORT: dict[str, str] = {
+    "comparable": "Comparable with the one before",
+    "partially_comparable": "Partly comparable with the one before",
+    "incompatible": "Not comparable with the one before",
+    "unknown": "Can't tell whether it compares with the one before",
+}
+
 STATUS_LABELS: dict[str, str] = {
     "opened": "Opened (not an attempt)",
     "saved_not_judged": "Saved, not judged",
@@ -293,6 +301,11 @@ class ActivityService:
         if ids is not None:
             stmt = stmt.where(Submission.problem_id.in_(ids))
         count, rows = self._page(stmt, Submission.created_at, limit)
+        # Each one beside the previous judged submission of the same problem (Volume 14, prompt 1):
+        # the outcome in the row, the reasons on the submission's page.
+        pairs = (
+            AttemptComparisons(self.db, user).submissions_with_previous([s for s, _ in rows]) if rows else {}
+        )
         out = []
         for s, p in rows:
             status = self._submission_status(s.status)
@@ -309,7 +322,7 @@ class ActivityService:
                     career=CODING,
                     career_title=CODING_TITLE,
                     title=p.title,
-                    detail=None,
+                    detail=COMPARED_SHORT[pairs[s.id][1].outcome] if s.id in pairs else None,
                     skills=list(p.topics),
                     status=status,
                     status_label=label,

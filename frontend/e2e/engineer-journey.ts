@@ -66,6 +66,7 @@ interface Result {
 export interface Sub {
   id: string; mode: string; status: string; status_detail: string | null; is_terminal: boolean;
   created_at: string; updated_at: string; result: Result | null; conditions: { labels: string[] } | null;
+  compared?: { previous: { id: string; status: string }; comparison: { outcome: string; explanation: string } } | null;
 }
 interface Preview { context_fingerprint: string; items: { key: string; label: string; text: string }[]; recipient_kind: string }
 interface Action { id: string; title: string; source: Record<string, unknown>; occurrences: { id: string }[] }
@@ -331,17 +332,26 @@ async function run(rec: Recorder, page: Page, context: BrowserContext, browser: 
     expect(sub.conditions?.labels).toEqual(["No in-app help recorded"]);
     check(`its help is its own: "No in-app help recorded" (the hint belonged to the attempt after it)`);
 
-    // Not compared: coding submissions have no comparison verdict (docs/COMPARING_ATTEMPTS.md), so
-    // each is listed with its own verdict and help, and nothing claims the second improved on the first.
+    // Compared with the baseline by the one comparison rule (docs/COMPARING_ATTEMPTS.md, "Coding
+    // submissions"): the hint came before the baseline only, so the help differed. Both verdicts
+    // stay as judged; nothing says the second improved on the first.
+    const c = sub.compared!;
+    expect(c.previous.id).toBe(baselineId);
+    const box = page.getByRole("region", { name: "Compared with your previous submission" });
+    await expect(box).toContainText(c.comparison.explanation);
+    await expect(box).not.toContainText(/improv|better/i);
+    rec.facts.comparison_outcome = c.comparison.outcome;
+    rec.facts.comparison = c.comparison.explanation;
+    check(`compared with the baseline under the result: "${c.comparison.explanation}"`);
     await page.goto("/history?type=code_submission");
     const rows = page.getByRole("listitem").filter({ hasText: PROBLEM_TITLE });
     await expect(rows).toHaveCount(2);
     await expect(rows.filter({ hasText: "In-app help: Hint shown" })).toHaveCount(1);
     await expect(rows.filter({ hasText: "In-app help: No in-app help recorded" })).toHaveCount(1);
+    await expect(rows.filter({ hasText: "with the one before" })).toHaveCount(1);
     await page.goto("/plan");
     await expect(page.getByRole("region", { name: "Improvements you accepted (1)" }).getByText(NOT_LINKED)).toBeVisible();
-    rec.facts.comparison = "none: coding submissions have no comparison verdict; each keeps its own verdict and help";
-    check(`not compared (coding submissions aren't): History lists both with their own help, and the improvement says "${NOT_LINKED}"`);
+    check(`History lists both with their own help and the comparison on the later one; the improvement says "${NOT_LINKED}"`);
     const t = await api<{ requirement_list: { text: string; coverage: { label: string } }[] }>(request, acct.auth, "get", `/api/v1/targets/${targetId}`);
     const coverage = t.requirement_list.find((x) => x.text === REQ_DSA)!.coverage.label;
     rec.facts.requirement_coverage = coverage;

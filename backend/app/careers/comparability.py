@@ -12,6 +12,11 @@ Given two attempts, the contract answers:
 - ``unknown``: something it needs wasn't recorded; the missing fields are named. Nothing missing is
   filled in by guessing.
 
+Coding submissions use the same rules (Volume 14, prompt 1), with their own facts: the problem for the
+question, its test version for the question's version, the judge as the evaluator, a run or a
+submission for the format (never compared with each other: a run checks the public tests only), and
+whether the judge gave a verdict. No written answer's classification changes, so the version stays.
+
 The rules are versioned (``CONTRACT_VERSION``); every result says which version decided it, so an
 export keeps the classification it was made with. Pure: the facts are gathered elsewhere
 (app/services/comparisons_of_attempts.py), the decision is made only here.
@@ -26,16 +31,24 @@ from typing import Literal
 CONTRACT_VERSION = 1
 
 Outcome = Literal["comparable", "partially_comparable", "incompatible", "unknown"]
-Format = Literal["single", "interview", "retry"]
-Source = Literal["rules", "ai", "person"]
+Format = Literal["single", "interview", "retry", "submit", "run"]
+Source = Literal["rules", "ai", "person", "judge"]
+Kind = Literal["written", "code"]
 
 # Who graded it, by the recorded coach name: only names that are known. Anything else is unknown.
 SOURCES: dict[str, Source] = {"built-in (offline)": "rules"}
-SOURCE_LABEL: dict[str, str] = {"rules": "fixed rules", "ai": "an AI coach", "person": "a person"}
+SOURCE_LABEL: dict[str, str] = {
+    "rules": "fixed rules",
+    "ai": "an AI coach",
+    "person": "a person",
+    "judge": "the code judge",
+}
 FORMAT_LABEL: dict[str, str] = {
     "single": "on its own",
     "interview": "in a timed mock interview",
     "retry": "as a retry after a mock interview",
+    "submit": "as a submission (every test)",
+    "run": "as a run (the public tests only)",
 }
 HELP_NONE = "No in-app help recorded"
 
@@ -47,11 +60,13 @@ class AttemptFacts:
     id: str
     track: str
     question_id: str
-    question_version: int
+    question_version: int | None  # a written answer's is always known; a submission's test version may not be
     scale: str | None  # e.g. "0-100"
     rubric: str | None  # e.g. "v10"
     source: Source | None
-    scoring: Literal["scored", "too_short", "unknown"]
+    # A submission is "scored" when the judge gave a verdict on the learner's code, "not_judged" when it
+    # didn't (the judge failed, or the attempt was only saved).
+    scoring: Literal["scored", "too_short", "unknown", "not_judged"]
     format: Format | None
     help: tuple[str, ...] | None  # labels of in-app help shown before it, or (HELP_NONE,)
     help_recorded_from: date | None = None
@@ -59,6 +74,7 @@ class AttemptFacts:
     # changes no verdict.
     timed_minutes: int | None = None
     follow_up: str | None = None  # "answered" | "skipped": the interviewer's follow-up, part of the format
+    kind: Kind = "written"
 
 
 @dataclass(frozen=True)
@@ -110,9 +126,18 @@ def _help_text(labels: tuple[str, ...]) -> str:
 def classify(a: AttemptFacts, b: AttemptFacts) -> Classification:
     """``a`` is the earlier attempt, ``b`` the later one."""
     reasons: list[Reason] = []
+    code = a.kind == "code" or b.kind == "code"
 
-    if (a.track, a.question_id) != (b.track, b.question_id):
-        reasons.append(Reason("question", "incompatible", "they answer different questions"))
+    if a.kind != b.kind:
+        reasons.append(Reason("question", "incompatible", "one is a written answer and the other is code"))
+    elif (a.track, a.question_id) != (b.track, b.question_id):
+        reasons.append(
+            Reason(
+                "question",
+                "incompatible",
+                "they're attempts at different problems" if code else "they answer different questions",
+            )
+        )
     if a.scale is None or b.scale is None:
         reasons.append(Reason("scale", "unknown", "the score scale wasn't recorded"))
     elif a.scale != b.scale:
@@ -144,16 +169,38 @@ def classify(a: AttemptFacts, b: AttemptFacts) -> Classification:
                 f"scored under different rubrics ({a.rubric} and {b.rubric}): compare what you wrote, not the numbers",
             )
         )
-    if a.question_version != b.question_version:
+    if a.question_version is None or b.question_version is None:
+        reasons.append(
+            Reason(
+                "question_version",
+                "unknown",
+                "which version of the problem's tests judged one of them wasn't recorded",
+            )
+        )
+    elif a.question_version != b.question_version:
         reasons.append(
             Reason(
                 "question_version",
                 "partial_text",
-                f"the question was changed in between (version {a.question_version}, now {b.question_version}): "
+                f"the problem's tests changed in between (version {a.question_version}, now {b.question_version}): "
+                "compare the code, not the counts"
+                if code
+                else f"the question was changed in between (version {a.question_version}, now {b.question_version}): "
                 "compare what you wrote, not the numbers",
             )
         )
-    if "unknown" in (a.scoring, b.scoring):
+    if "not_judged" in (a.scoring, b.scoring):
+        which = (
+            "neither was judged"
+            if a.scoring == b.scoring
+            else "the earlier one wasn't judged"
+            if a.scoring == "not_judged"
+            else "this one wasn't judged"
+        )
+        reasons.append(
+            Reason("scoring", "incompatible", f"{which}, so there's no verdict to set beside the other")
+        )
+    elif "unknown" in (a.scoring, b.scoring):
         reasons.append(
             Reason("scoring", "unknown", "whether one of them was long enough to score wasn't recorded")
         )
@@ -168,6 +215,14 @@ def classify(a: AttemptFacts, b: AttemptFacts) -> Classification:
         )
     if a.format is None or b.format is None:
         reasons.append(Reason("format", "unknown", "how one of them was given wasn't recorded"))
+    elif code and a.format != b.format:
+        reasons.append(
+            Reason(
+                "format",
+                "incompatible",
+                "a run checks the public tests only and a submission checks every test",
+            )
+        )
     elif a.format != b.format:
         reasons.append(Reason("format", "partial_conditions", _format_text(a, b)))
     if a.help is None or b.help is None:
@@ -187,14 +242,14 @@ def classify(a: AttemptFacts, b: AttemptFacts) -> Classification:
     kinds = {r.kind for r in reasons}
     if "incompatible" in kinds:
         decisive = tuple(r for r in reasons if r.kind == "incompatible")
-        return _result("incompatible", False, False, decisive)
+        return _result("incompatible", False, False, decisive, code)
     if "unknown" in kinds:
         missing = tuple(r for r in reasons if r.kind == "unknown")
-        return _result("unknown", False, False, missing)
+        return _result("unknown", False, False, missing, code)
     if reasons:
         scores = "partial_text" not in kinds
-        return _result("partially_comparable", scores, True, tuple(reasons))
-    return _result("comparable", True, True, ())
+        return _result("partially_comparable", scores, True, tuple(reasons), code)
+    return _result("comparable", True, True, (), code)
 
 
 _LEAD: dict[str, str] = {
@@ -203,13 +258,21 @@ _LEAD: dict[str, str] = {
     "incompatible": "Not comparable",
     "unknown": "Can't tell whether these compare",
 }
+_CODE_COMPARABLE = "Comparable: the same problem and tests, judged the same way, with the same in-app help"
 
 
-def _result(outcome: Outcome, scores: bool, points: bool, reasons: tuple[Reason, ...]) -> Classification:
+def _result(
+    outcome: Outcome, scores: bool, points: bool, reasons: tuple[Reason, ...], code: bool = False
+) -> Classification:
     body = "; ".join(r.text for r in reasons)
-    text = f"{_LEAD[outcome]}: {body}" if body else _LEAD[outcome]
+    lead = _CODE_COMPARABLE if code and outcome == "comparable" else _LEAD[outcome]
+    text = f"{lead}: {body}" if body else lead
     if outcome == "partially_comparable" and scores:
-        text += ". The scores are on the same rubric, so both are shown"
+        text += (
+            ". The counts are from the same tests, so both are shown"
+            if code
+            else ". The scores are on the same rubric, so both are shown"
+        )
     return Classification(
         outcome=outcome,
         scores_comparable=scores,

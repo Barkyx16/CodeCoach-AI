@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import Field, field_validator
 
 from app.models import SubmissionMode, SubmissionStatus
+from app.schemas.careers import AttemptComparison
 from app.schemas.common import APIModel, OptionalKey
 from app.schemas.conditions import AttemptConditions
 
@@ -79,6 +80,27 @@ class SubmissionOut(APIModel):
     )
 
 
+class ComparedSubmission(APIModel):
+    """The earlier submission a submission is compared with, as it was judged."""
+
+    id: str
+    status: SubmissionStatus
+    created_at: datetime
+    passed_count: int | None = None
+    total_count: int | None = None
+    hidden_passed: int | None = None
+    hidden_total: int | None = None
+
+
+class SubmissionComparison(APIModel):
+    """A finished submission beside the previous judged one of the same problem and mode, by the one
+    comparison contract (docs/COMPARING_ATTEMPTS.md, "Coding submissions"). Both verdicts are given
+    as judged; nothing says one improved on the other."""
+
+    previous: ComparedSubmission
+    comparison: AttemptComparison
+
+
 class SubmissionDetail(SubmissionOut):
     source_code: str
     starting_code: str | None = Field(
@@ -86,6 +108,11 @@ class SubmissionDetail(SubmissionOut):
     )
     lab_version: int | None = Field(
         default=None, description="The debugging exercise's version for this attempt"
+    )
+    compared: SubmissionComparison | None = Field(
+        default=None,
+        description="Once judged: the previous judged submission of the same problem and mode, and how "
+        "the two compare. None when there's no earlier one, or while this one is being judged",
     )
 
 

@@ -6139,6 +6139,28 @@ export interface components {
              */
             contains?: boolean | null;
         };
+        /**
+         * ComparedSubmission
+         * @description The earlier submission a submission is compared with, as it was judged.
+         */
+        ComparedSubmission: {
+            /** Id */
+            id: string;
+            status: components["schemas"]["SubmissionStatus"];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Passed Count */
+            passed_count?: number | null;
+            /** Total Count */
+            total_count?: number | null;
+            /** Hidden Passed */
+            hidden_passed?: number | null;
+            /** Hidden Total */
+            hidden_total?: number | null;
+        };
         /** Comparison */
         Comparison: {
             /** Question Title */
@@ -13996,6 +14018,16 @@ export interface components {
             /** Explanation */
             explanation: string;
         };
+        /**
+         * SubmissionComparison
+         * @description A finished submission beside the previous judged one of the same problem and mode, by the one
+         *     comparison contract (docs/COMPARING_ATTEMPTS.md, "Coding submissions"). Both verdicts are given
+         *     as judged; nothing says one improved on the other.
+         */
+        SubmissionComparison: {
+            previous: components["schemas"]["ComparedSubmission"];
+            comparison: components["schemas"]["AttemptComparison"];
+        };
         /** SubmissionCreate */
         SubmissionCreate: {
             /** Problem Slug */
@@ -14061,6 +14093,8 @@ export interface components {
              * @description The debugging exercise's version for this attempt
              */
             lab_version?: number | null;
+            /** @description Once judged: the previous judged submission of the same problem and mode, and how the two compare. None when there's no earlier one, or while this one is being judged */
+            compared?: components["schemas"]["SubmissionComparison"] | null;
         };
         /** SubmissionListItem */
         SubmissionListItem: {

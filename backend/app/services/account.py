@@ -164,6 +164,12 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         k: comparison_out(*v).model_dump(mode="json")
         for k, v in AttemptComparisons(db, user).with_previous(answers).items()
     }
+    # Each finished submission beside the previous judged one of the same problem and mode, by the
+    # same contract (Volume 14, prompt 1).
+    sub_comparisons = {
+        k: comparison_out(prev.id, cl).model_dump(mode="json")
+        for k, (prev, cl) in AttemptComparisons(db, user).submissions_with_previous(subs).items()
+    }
 
     return {
         "export_version": EXPORT_VERSION,
@@ -197,6 +203,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                     "compiler_output": s.result.stderr_excerpt,
                 },
                 "conditions": sub_conditions.get(s.id),
+                "comparison": sub_comparisons.get(s.id),
             }
             for s in subs
         ],

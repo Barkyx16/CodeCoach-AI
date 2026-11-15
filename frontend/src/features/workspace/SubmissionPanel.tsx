@@ -15,6 +15,7 @@ import { formatArgs, formatValue, timeAgo } from "@/lib/format";
 import { Icon } from "@/components/Icon";
 
 import { FailureExplanationView } from "./FailureExplanation";
+import { SubmissionCompared } from "./SubmissionCompared";
 import { FeedbackKind } from "@/components/FeedbackKind";
 
 const STATUS_COPY: Partial<Record<Submission["status"], string>> = {
@@ -130,6 +131,7 @@ export function SubmissionPanel({ submission, error, onHighlightLine, editorCode
               <span className="subtle">{Math.round(result.memory_kb / 1024)} MB</span>
             )}
           </div>
+          {submission.is_terminal && submission.compared && <SubmissionCompared current={submission} compared={submission.compared} />}
           {submission.status === "COMPILE_ERROR" && result.stderr_excerpt && (
             <div className="stack">
               <span className="section-title">Compiler output</span>

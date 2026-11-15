@@ -94,7 +94,7 @@ test("another account's submission isn't found, by its page or by the coach", as
 test.describe("with the real judge", () => {
   test.skip(process.env.E2E_JUDGE !== "1", `This branch ${JUDGE_NEEDED}.`);
 
-  test("a judged resubmission keeps its own verdict and help; nothing compares it with the first", async ({ page, request }) => {
+  test("a judged resubmission keeps its own verdict and help, compared with the first by the one rule", async ({ page, request }) => {
     test.setTimeout(240_000);
     const acct = await newAccount(request, "engineer-resubmit", SE_TRACK);
     // A level 1 hint, then the baseline and a resubmission, judged in the sandbox.
@@ -119,6 +119,9 @@ test.describe("with the real judge", () => {
     await page.goto(`/history/submissions/${second.id}`);
     await expect(page.locator(".attempt-conditions")).toContainText("In-app help before this attempt: No in-app help recorded");
     await expect(page.getByRole("heading", { name: "Result" }).locator("..")).toContainText(`${second.result!.passed_count} of ${second.result!.total_count} tests passed`);
+    // Compared with the first: the help differed (the hint was before the first only), so partly.
+    const compared = page.getByRole("region", { name: "Compared with your previous submission" });
+    await expect(compared).toContainText(/^Compared with your previous submission.*Failed.*Passed.*Partly comparable: the in-app help differed: before the earlier one, hint shown; before the later one, none recorded/);
     // The improvement doesn't claim the resubmission as its evidence: no practice is linked to it.
     await page.goto("/plan");
     const accepted = page.getByRole("region", { name: "Improvements you accepted (1)" });

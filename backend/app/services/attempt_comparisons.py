@@ -2,7 +2,8 @@
 comparison with the attempt before it (app/careers/comparability.py; docs/COMPARING_ATTEMPTS.md).
 
 Every surface that compares written answers (the question page's tries, an interview retry, the
-progress chart's list) gets its classifications here, so the same pair always reads the same.
+progress chart's list) gets its classifications here, so the same pair always reads the same. Coding
+submissions too (Volume 14, prompt 1): the submission page, the workspace's result and History.
 """
 
 from __future__ import annotations
@@ -22,14 +23,37 @@ from app.careers.comparability import (
     previous_of,
 )
 from app.careers.eligibility import feedback_eligibility
-from app.models import InterviewRetry, InterviewTurn, PracticeAnswer, PracticeSession, User
+from app.models import (
+    InterviewRetry,
+    InterviewTurn,
+    PracticeAnswer,
+    PracticeSession,
+    Submission,
+    SubmissionMode,
+    SubmissionStatus,
+    User,
+)
 from app.schemas.careers import AttemptComparison, ComparisonReason
 from app.schemas.conditions import AttemptConditions
-from app.services.conditions import RECORDED_FROM, Conditions
+from app.services.conditions import RECORDED_FROM, Conditions, problem_versions
 
 # Written answers are graded 0-100 by the coach (app/careers/grading.py): the scale belongs to the
 # kind of attempt, not a guess about one.
 WRITTEN_SCALE = "0-100"
+# A submission's result is tests passed of the problem's tests, judged by the code judge.
+CODE_SCALE = "tests passed"
+CODE_RUBRIC = "the problem's tests"
+# Verdicts on the learner's code. INTERNAL_ERROR is the judge's own failure: no verdict.
+VERDICTS = frozenset(
+    {
+        SubmissionStatus.PASSED,
+        SubmissionStatus.FAILED,
+        SubmissionStatus.COMPILE_ERROR,
+        SubmissionStatus.RUNTIME_ERROR,
+        SubmissionStatus.TIME_LIMIT,
+        SubmissionStatus.MEMORY_LIMIT,
+    }
+)
 
 
 def recorded_rubric(feedback: dict) -> str | None:
@@ -141,3 +165,77 @@ class AttemptComparisons:
             )
         ).all()
         return [r for r in rows if (r.track, r.question_id) in keys]
+
+    # --- coding submissions ------------------------------------------------------------------------
+
+    def submission_facts(self, subs: Iterable[Submission]) -> dict[str, AttemptFacts]:
+        subs = [x for x in subs if x.user_id == self.user.id]
+        if not subs:
+            return {}
+        current = problem_versions(self.db, {x.problem_id for x in subs})
+        help = Conditions(self.db, self.user).for_submissions(subs)
+        self.conditions.update(help)
+        out: dict[str, AttemptFacts] = {}
+        for x in subs:
+            labels = tuple(help[x.id].labels) if x.id in help else None
+            # Not recorded: known only if the problem never had another version of its tests.
+            version = (
+                x.content_version
+                if x.content_version is not None
+                else (1 if current[x.problem_id] == 1 else None)
+            )
+            out[x.id] = AttemptFacts(
+                id=x.id,
+                track="code",
+                question_id=str(x.problem_id),
+                question_version=version,
+                scale=CODE_SCALE,
+                rubric=CODE_RUBRIC,
+                source="judge",
+                scoring="scored" if x.status in VERDICTS else "not_judged",
+                format="run" if x.mode == SubmissionMode.RUN else "submit",
+                help=None if labels is None or labels == ("Not recorded",) else labels,
+                help_recorded_from=help[x.id].recorded_from if x.id in help else RECORDED_FROM.date(),
+                kind="code",
+            )
+        return out
+
+    def submissions_with_previous(
+        self, subs: Iterable[Submission]
+    ) -> dict[str, tuple[Submission, Classification]]:
+        """For each finished submission among ``subs``: the previous judged submission of the same
+        problem in the same mode, and the classification. A run is compared only with runs, a
+        submission only with submissions; one still being judged (or only saved) isn't compared yet."""
+        targets = [x for x in subs if x.user_id == self.user.id and x.status.is_terminal]
+        if not targets:
+            return {}
+        rows = list(
+            self.db.scalars(
+                select(Submission)
+                .where(
+                    Submission.user_id == self.user.id,
+                    Submission.problem_id.in_({x.problem_id for x in targets}),
+                )
+                .order_by(Submission.created_at, Submission.id)
+            ).all()
+        )
+        previous: dict[str, Submission] = {}
+        for t in targets:
+            earlier = [
+                r
+                for r in rows
+                if r.problem_id == t.problem_id
+                and r.mode == t.mode
+                and r.status in VERDICTS
+                and (r.created_at, r.id) < (t.created_at, t.id)
+            ]
+            if earlier:
+                previous[t.id] = earlier[-1]
+        if not previous:
+            return {}
+        facts = self.submission_facts({*targets, *previous.values()})
+        return {
+            t.id: (previous[t.id], classify(facts[previous[t.id].id], facts[t.id]))
+            for t in targets
+            if t.id in previous
+        }
