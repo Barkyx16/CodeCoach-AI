@@ -119,7 +119,58 @@ same mode**, by the same `classify()` with code's own facts (`AttemptComparisons
 - **Rules version**: still v1. No written answer's classification changed; code's rules are new
   facts for the same rules.
 
+## Drills, whiteboards and work samples (Volume 15, prompt 4)
+
+Each **assessed** attempt is compared with the **previous assessed attempt at the same item** (a
+drill, a whiteboard prompt, a work-sample brief): the one it revises when it says so (a work sample's
+revision), else the one just before it (`previous_of`). The same `classify()`, the same outcome names
+and contract version, with each format's own facts (`AttemptComparisons.checklist_facts`):
+
+| Fact | Drill | Whiteboard design | Work sample |
+|---|---|---|---|
+| question | the drill, and the career its prompt was worded for (`drill_attempts.track`) | the prompt | the brief |
+| version | the drill's rubric version: its points are its rubric | the prompt's version (its points) | the brief's version (its points) |
+| rules (rubric) | the drill's points, versioned with it | the whiteboard rules' version (`rubric_version`) | the brief's rules version (`feedback.rules_version`) |
+| evaluator | fixed rules | fixed rules | fixed rules |
+| scale | the item's number of points | the prompt's number of points | the brief's number of points |
+| assessed | a result is stored (its points, each there or not) | a result is stored (each point addressed or not found) | a result is stored (points covered of total) |
+| help | the attempt's conditions (docs/ATTEMPT_CONDITIONS.md) | the same | the same |
+
+The result is a checklist of the item's points, so these rules differ from a written answer's in one
+place: **a changed checklist isn't comparable at all**. A written answer's text still compares under
+another rubric; a checklist's ticks against other points don't. So:
+
+| What differs | Outcome | Wording |
+|---|---|---|
+| nothing | comparable | "Comparable: the same drill (prompt, brief) and version, checked by the same fixed rules, with the same in-app help" |
+| the help shown before it | partly comparable | "…the in-app help differed: …. The results are from the same checks by the same fixed rules, so both are shown" |
+| the item's points (a new version) | not comparable | "the drill's (prompt's, brief's) points changed in between (version 1, now 2); each keeps its own result" |
+| the rules that check them | not comparable | "they were checked by different versions of the rules (v1 and v2); each keeps its own result" |
+| a drill asked for another career | not comparable | "the drill's prompt was worded for a different career each time" |
+| help from before recording began (15 Nov 2026) | can't tell | "in-app help before one of them wasn't recorded (it's recorded from 15 Nov 2026)": never assumed the same |
+| a work sample's rules version not stored | can't tell | "which rubric graded one of them wasn't recorded" |
+
+- **Self-assessed?** None of the three is. A whiteboard design is checked by built-in rules against
+  the prompt's points (docs/WHITEBOARD.md), not by the learner, so every one of these comparisons says
+  "fixed rules". A self-assessed format would need its own kind of evaluator, named in the wording.
+- **Not assessed**: an attempt with no stored result is never compared, and isn't the one before: the
+  next assessed attempt is set beside the last assessed one.
+- **Where**: each attempt's page ("Compared with your previous attempt": the earlier result and this
+  one, each as it was given, such as "2 of 3 points there", and the explanation word for word), its row
+  in the format's own attempts list ("Partly comparable with the one before"), the API (`compared` on
+  each attempt and each row: `previous`, `result`, `comparison`) and the export
+  (`drill_attempts[].comparison`, `whiteboard.attempts[].comparison`, `work_samples.attempts[].comparison`,
+  by id). A drill's point-by-point changes ("Now there: …") are shown only when the points compare.
+- **History**: the History feed doesn't list drills, whiteboard designs or work samples (it never
+  has; its five sources are in docs/API.md, `GET /me/activity`), so there's no History row to carry the outcome. Each
+  format's own attempts list carries it in one line instead. No chart or replay reads these attempts.
+- **Never**: a result changed, "improved", "better", an average or a trend, within a format or across
+  formats.
+- **Rules version**: still v1. No written answer's or submission's classification changed; these are
+  new facts, with the rules for a checklist, under the same version.
+
 ## Not covered yet
 
-Drills, whiteboards, work samples and the other formats keep their own rules for now
-(docs/DRILLS.md and others) and adopt this contract later. Help outside the app isn't known.
+Scenario runs, code-review exercises, sample-answer comparisons and the other formats keep their own
+rules for now (docs/SCENARIOS.md, docs/CODE_REVIEWS.md, docs/COMPARE_ANSWERS.md and others) and adopt
+this contract later. Help outside the app isn't known.

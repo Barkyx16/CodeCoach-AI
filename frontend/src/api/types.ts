@@ -98,6 +98,7 @@ export type CareerAnalytics = S["CareerAnalytics"];
 export type ChartAttempts = S["ChartAttempts"];
 export type ChartAttempt = S["ChartAttempt"];
 export type AttemptComparison = S["AttemptComparison"];
+export type PracticeComparison = S["PracticeComparison"];
 export type ResumeOut = S["ResumeOut"];
 export type Goals = S["GoalsOut"];
 export type GoalsInput = S["GoalsIn"];

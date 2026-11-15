@@ -12,9 +12,11 @@ from app.drills import BY_ID, DRILLS, RUBRIC_VERSION, Drill, prompt_for
 from app.drills.feedback import compare, evaluate, words
 from app.errors import AppError, NotFoundError, RateLimitedError
 from app.models import DrillAttempt, User
+from app.schemas.careers import PracticeComparison
 from app.schemas.conditions import AttemptConditions
 from app.schemas.drills import DrillAttemptIn, DrillAttemptOut, DrillOut
 from app.services import request_keys
+from app.services.attempt_comparisons import AttemptComparisons
 from app.services.conditions import Conditions, help_changed
 
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -61,7 +63,11 @@ class Drills:
         return self._out(self._drill(drill_id))
 
     def _attempt_out(
-        self, a: DrillAttempt, previous: DrillAttempt | None, found: dict[str, AttemptConditions]
+        self,
+        a: DrillAttempt,
+        previous: DrillAttempt | None,
+        found: dict[str, AttemptConditions],
+        compared_by: dict[str, PracticeComparison],
     ) -> DrillAttemptOut:
         compared = compare(previous.feedback, a.feedback) if previous else None
         # The comparison reads the attempts' recorded help (docs/ATTEMPT_CONDITIONS.md).
@@ -82,6 +88,7 @@ class Drills:
             rubric_version=a.rubric_version,
             feedback=a.feedback,
             compared_with_previous=compared,
+            compared=compared_by.get(a.id),
             created_at=a.created_at,
         )
 
@@ -93,7 +100,10 @@ class Drills:
             .order_by(DrillAttempt.created_at)
         ).all()
         found = Conditions(self.db, self.user).for_drills(rows)
-        out = [self._attempt_out(a, rows[i - 1] if i else None, found) for i, a in enumerate(rows)]
+        compared_by = AttemptComparisons(self.db, self.user).checklist_compared("drill", rows)
+        out = [
+            self._attempt_out(a, rows[i - 1] if i else None, found, compared_by) for i, a in enumerate(rows)
+        ]
         return list(reversed(out))
 
     def submit(self, drill_id: str, body: DrillAttemptIn, limiter) -> tuple[DrillAttemptOut, bool]:
@@ -176,11 +186,14 @@ class Drills:
             .limit(1)
         )
         found = Conditions(self.db, self.user).for_drills([a, prev] if prev is not None else [a])
-        return self._attempt_out(a, prev, found)
+        comparisons = AttemptComparisons(self.db, self.user)
+        compared_by = comparisons.checklist_compared("drill", comparisons.all_attempts("drill", {a.drill_id}))
+        return self._attempt_out(a, prev, found, compared_by)
 
     def export(self) -> list[dict]:
         rows = self.db.scalars(select(DrillAttempt).where(DrillAttempt.user_id == self.user.id)).all()
         found = Conditions(self.db, self.user).for_drills(rows)
+        compared_by = AttemptComparisons(self.db, self.user).checklist_compared("drill", rows)
         return [
             {
                 "id": a.id,
@@ -193,6 +206,9 @@ class Drills:
                 "feedback": a.feedback,
                 "created_at": a.created_at.isoformat(),
                 "conditions": found[a.id].model_dump(mode="json"),
+                "comparison": compared_by[a.id].comparison.model_dump(mode="json")
+                if a.id in compared_by
+                else None,
             }
             for a in rows
         ]

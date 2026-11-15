@@ -24,6 +24,7 @@ from app.schemas.whiteboard import (
     WhiteboardPromptRequirement,
 )
 from app.services import update_receipts
+from app.services.attempt_comparisons import AttemptComparisons
 from app.services.conditions import Conditions
 from app.whiteboard import BY_ID, PROMPTS, RUBRIC_VERSION, Prompt, prompts_for
 from app.whiteboard.diagram import Diagram, digest, evaluate
@@ -188,9 +189,14 @@ class Whiteboard:
         self.db.commit()
         return self._out(a)
 
+    def _compared(self, rows) -> dict:
+        return AttemptComparisons(self.db, self.user).checklist_compared("whiteboard", rows)
+
     def _out(self, a: WhiteboardAttempt) -> WhiteboardAttemptOut:
+        mine = AttemptComparisons(self.db, self.user).all_attempts("whiteboard", {a.prompt_id})
         return WhiteboardAttemptOut(
             conditions=Conditions(self.db, self.user).for_whiteboards([a]).get(a.id),
+            compared=self._compared(mine).get(a.id),
             id=a.id,
             prompt_id=a.prompt_id,
             prompt_version=a.prompt_version,
@@ -210,9 +216,11 @@ class Whiteboard:
             .order_by(WhiteboardAttempt.created_at.desc())
         ).all()
         found = Conditions(self.db, self.user).for_whiteboards(rows)
+        compared = self._compared(rows)
         return [
             WhiteboardAttemptSummary(
                 conditions=found.get(a.id),
+                compared=compared.get(a.id),
                 id=a.id,
                 prompt_version=a.prompt_version,
                 rubric_version=a.rubric_version,
@@ -235,6 +243,7 @@ class Whiteboard:
             select(WhiteboardAttempt).where(WhiteboardAttempt.user_id == self.user.id)
         ).all()
         found = Conditions(self.db, self.user).for_whiteboards(rows)
+        compared = self._compared(rows)
         return {
             "drafts": [
                 {
@@ -258,6 +267,9 @@ class Whiteboard:
                     "feedback": a.feedback,
                     "created_at": a.created_at.isoformat(),
                     "conditions": found[a.id].model_dump(mode="json"),
+                    "comparison": compared[a.id].comparison.model_dump(mode="json")
+                    if a.id in compared
+                    else None,
                 }
                 for a in rows
             ],

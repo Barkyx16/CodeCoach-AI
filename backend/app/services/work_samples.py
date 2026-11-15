@@ -30,6 +30,7 @@ from app.schemas.work_samples import (
     WorkSampleSummary,
 )
 from app.services import update_receipts
+from app.services.attempt_comparisons import AttemptComparisons
 from app.services.conditions import Conditions
 from app.worksamples import BRIEFS, BY_ID, Brief
 from app.worksamples.feedback import evaluate, words
@@ -204,9 +205,13 @@ class WorkSamples:
         self.db.commit()
         return self._out(a)
 
+    def _compared(self, rows) -> dict:
+        return AttemptComparisons(self.db, self._me).checklist_compared("work_sample", rows)
+
     def _out(self, a: WorkSampleAttempt) -> WorkSampleAttemptOut:
         current = BY_ID.get(a.brief_id)
         found = Conditions(self.db, self._me).for_work_samples([a])
+        mine = AttemptComparisons(self.db, self._me).all_attempts("work_sample", {a.brief_id})
         snap: dict[str, Any] = a.snapshot
         labels = {s["id"]: s["label"] for s in snap.get("sections", [])} or {"message": "Message"}
         return WorkSampleAttemptOut(
@@ -223,6 +228,7 @@ class WorkSamples:
             revision_of=a.revision_of,
             created_at=a.created_at,
             conditions=found[a.id],
+            compared=self._compared(mine).get(a.id),
         )
 
     def attempts(self, brief_id: str) -> list[WorkSampleAttemptSummary]:
@@ -233,6 +239,7 @@ class WorkSamples:
             .order_by(WorkSampleAttempt.created_at.desc())
         ).all()
         found = Conditions(self.db, self._me).for_work_samples(rows)
+        compared = self._compared(rows)
         return [
             WorkSampleAttemptSummary(
                 id=a.id,
@@ -242,6 +249,7 @@ class WorkSamples:
                 revision_of=a.revision_of,
                 created_at=a.created_at,
                 conditions=found[a.id],
+                compared=compared.get(a.id),
             )
             for a in rows
         ]
@@ -256,6 +264,7 @@ class WorkSamples:
         me = self._me.id
         rows = self.db.scalars(select(WorkSampleAttempt).where(WorkSampleAttempt.user_id == me)).all()
         found = Conditions(self.db, self._me).for_work_samples(rows)
+        compared = self._compared(rows)
         return {
             "drafts": [
                 {"brief": d.brief_id, "sections": d.sections, "revision": d.revision}
@@ -265,6 +274,9 @@ class WorkSamples:
                 {
                     "id": a.id,
                     "conditions": found[a.id].model_dump(mode="json"),
+                    "comparison": compared[a.id].comparison.model_dump(mode="json")
+                    if a.id in compared
+                    else None,
                     "brief": a.brief_id,
                     "brief_version": a.brief_version,
                     "sections": a.sections,

@@ -6464,6 +6464,24 @@ export interface components {
             contains?: boolean | null;
         };
         /**
+         * ComparedAttempt
+         * @description The earlier attempt a drill, whiteboard design or work sample is compared with.
+         */
+        ComparedAttempt: {
+            /** Id */
+            id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Result
+             * @description Its own result as it was given (for example "2 of 3 points there")
+             */
+            result: string;
+        };
+        /**
          * ComparedSubmission
          * @description The earlier submission a submission is compared with, as it was judged.
          */
@@ -7398,6 +7416,8 @@ export interface components {
             created_at: string;
             /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
             conditions?: components["schemas"]["AttemptConditions"] | null;
+            /** @description Beside the previous assessed attempt at the same drill, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none */
+            compared?: components["schemas"]["PracticeComparison"] | null;
         };
         /** DrillOut */
         DrillOut: {
@@ -11268,6 +11288,21 @@ export interface components {
              * @description Retry this question of the interview
              */
             retry_index?: number | null;
+        };
+        /**
+         * PracticeComparison
+         * @description A drill, whiteboard design or work sample beside the previous assessed attempt at the same item,
+         *     by the one comparison contract (Volume 15, prompt 4; docs/COMPARING_ATTEMPTS.md). Both results are
+         *     as they were given; nothing says one improved on the other.
+         */
+        PracticeComparison: {
+            previous: components["schemas"]["ComparedAttempt"];
+            /**
+             * Result
+             * @description This attempt's own result as it was given
+             */
+            result: string;
+            comparison: components["schemas"]["AttemptComparison"];
         };
         /** PracticeLink */
         PracticeLink: {
@@ -15909,6 +15944,8 @@ export interface components {
             created_at: string;
             /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
             conditions?: components["schemas"]["AttemptConditions"] | null;
+            /** @description Beside the previous assessed attempt at the same prompt, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none */
+            compared?: components["schemas"]["PracticeComparison"] | null;
         };
         /** WhiteboardAttemptSummary */
         WhiteboardAttemptSummary: {
@@ -15931,6 +15968,8 @@ export interface components {
             created_at: string;
             /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
             conditions?: components["schemas"]["AttemptConditions"] | null;
+            /** @description Beside the previous assessed attempt at the same prompt, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none */
+            compared?: components["schemas"]["PracticeComparison"] | null;
         };
         /** WhiteboardDiagram */
         WhiteboardDiagram: {
@@ -16148,6 +16187,8 @@ export interface components {
             created_at: string;
             /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
             conditions?: components["schemas"]["AttemptConditions"] | null;
+            /** @description Beside the previous assessed attempt at the same brief, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none */
+            compared?: components["schemas"]["PracticeComparison"] | null;
         };
         /** WorkSampleAttemptSummary */
         WorkSampleAttemptSummary: {
@@ -16168,6 +16209,8 @@ export interface components {
             created_at: string;
             /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
             conditions?: components["schemas"]["AttemptConditions"] | null;
+            /** @description Beside the previous assessed attempt at the same brief, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none */
+            compared?: components["schemas"]["PracticeComparison"] | null;
         };
         /**
          * WorkSampleBrief

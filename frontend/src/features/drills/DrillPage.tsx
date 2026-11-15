@@ -11,7 +11,8 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
-import { conditionsSummary } from "@/features/conditions/summary";
+import { COMPARED_SHORT, conditionsSummary } from "@/features/conditions/summary";
+import { PracticeCompared } from "@/features/conditions/PracticeCompared";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { SaveControls } from "@/features/saved/SaveControls";
 import { ScheduleLink } from "@/features/schedule/ScheduleLink";
@@ -153,7 +154,7 @@ export function DrillPage() {
                 {attempts.data!.map((a) => (
                   <li key={a.id}>
                     <button type="button" className="link-button" aria-current={result?.id === a.id ? "true" : undefined} onClick={() => show(a)}>{formatDateTime(a.created_at)}</button>
-                    <span className="subtle"> · {a.source === "voice" ? "spoken" : "typed"} · {pointsThere(a)} of {(a.feedback.observations as unknown[]).length} points{a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}</span>
+                    <span className="subtle"> · {a.source === "voice" ? "spoken" : "typed"} · {pointsThere(a)} of {(a.feedback.observations as unknown[]).length} points{a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}{a.compared ? ` · ${COMPARED_SHORT[a.compared.comparison.outcome]}` : ""}</span>
                   </li>
                 ))}
               </ol>
@@ -163,6 +164,15 @@ export function DrillPage() {
       </div>
     </div>
   );
+}
+
+/** What changed point by point, only where the contract says the points compare; the help is in its
+ *  explanation already. */
+function pointByPoint(a: DrillAttempt): string[] {
+  if (!a.compared_with_previous) return [];
+  if (!a.compared) return a.compared_with_previous;
+  if (!a.compared.comparison.points_comparable) return [];
+  return a.compared_with_previous.filter((c) => !c.startsWith("The in-app help"));
 }
 
 function pointsThere(a: DrillAttempt): number {
@@ -200,10 +210,11 @@ function Feedback({ a, delivery }: { a: DrillAttempt; delivery: boolean }) {
         <li>About {fb.measured.reading_estimate_seconds} seconds to say aloud at an average pace (an estimate, not a measurement)</li>
       </ul>
       {fb.notes.filter((n) => delivery || !n.startsWith("The aim is about")).map((n) => <p key={n} className="subtle">{n}</p>)}
-      {a.compared_with_previous && (
+      {a.compared && <PracticeCompared compared={a.compared} />}
+      {pointByPoint(a).length > 0 && (
         <>
-          <h3 className="section-title">Compared with your previous attempt</h3>
-          <ul className="mini-list">{a.compared_with_previous.map((c) => <li key={c}>{c}</li>)}</ul>
+          <h3 className="section-title">{a.compared ? "Point by point" : "Compared with your previous attempt"}</h3>
+          <ul className="mini-list">{pointByPoint(a).map((c) => <li key={c}>{c}</li>)}</ul>
         </>
       )}
       <p className="subtle">{fb.limitations}</p>

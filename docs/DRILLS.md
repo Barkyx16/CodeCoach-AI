@@ -64,7 +64,10 @@ Every attempt is kept as sent. Each one after the first is compared with the pre
 the same drill, **only if both were checked with the same rubric version**: "Now there: gives
 one specific situation", "Not there this time: …", or "The same points are there as last time".
 Attempts under different rubric versions say they aren't compared. Shorter isn't treated as
-better. Any attempt can be opened from the history beside the drill; its address
+better. Each attempt also says how it compares with the one before by the one comparison contract
+(docs/COMPARING_ATTEMPTS.md, "Drills, whiteboards and work samples"): both results ("2 of 3 points
+there") and the contract's explanation; the point-by-point list is shown only when the points
+compare, and the attempts list says the outcome in one line. Any attempt can be opened from the history beside the drill; its address
 (`/drills/<id>?attempt=<attempt id>`) works after a reload and with Back.
 
 ## Saving and scheduling

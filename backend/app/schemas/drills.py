@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import Field
 
+from app.schemas.careers import PracticeComparison
 from app.schemas.common import APIModel, OptionalKey
 from app.schemas.conditions import AttemptConditions
 
@@ -46,4 +47,9 @@ class DrillAttemptOut(APIModel):
     conditions: AttemptConditions | None = Field(
         default=None,
         description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)",
+    )
+    compared: PracticeComparison | None = Field(
+        default=None,
+        description="Beside the previous assessed attempt at the same drill, by the one comparison contract "
+        "(docs/COMPARING_ATTEMPTS.md); null when there's none",
     )

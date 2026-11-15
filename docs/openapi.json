@@ -29202,6 +29202,32 @@
         ],
         "title": "CollectionSummary"
       },
+      "ComparedAttempt": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "result": {
+            "type": "string",
+            "title": "Result",
+            "description": "Its own result as it was given (for example \"2 of 3 points there\")"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "created_at",
+          "result"
+        ],
+        "title": "ComparedAttempt",
+        "description": "The earlier attempt a drill, whiteboard design or work sample is compared with."
+      },
       "ComparedSubmission": {
         "properties": {
           "id": {
@@ -31450,6 +31476,17 @@
               }
             ],
             "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+          },
+          "compared": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PracticeComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Beside the previous assessed attempt at the same drill, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none"
           }
         },
         "type": "object",
@@ -40648,6 +40685,29 @@
           "label"
         ],
         "title": "PracticeAction"
+      },
+      "PracticeComparison": {
+        "properties": {
+          "previous": {
+            "$ref": "#/components/schemas/ComparedAttempt"
+          },
+          "result": {
+            "type": "string",
+            "title": "Result",
+            "description": "This attempt's own result as it was given"
+          },
+          "comparison": {
+            "$ref": "#/components/schemas/AttemptComparison"
+          }
+        },
+        "type": "object",
+        "required": [
+          "previous",
+          "result",
+          "comparison"
+        ],
+        "title": "PracticeComparison",
+        "description": "A drill, whiteboard design or work sample beside the previous assessed attempt at the same item,\nby the one comparison contract (Volume 15, prompt 4; docs/COMPARING_ATTEMPTS.md). Both results are\nas they were given; nothing says one improved on the other."
       },
       "PracticeLink": {
         "properties": {
@@ -52457,6 +52517,17 @@
               }
             ],
             "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+          },
+          "compared": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PracticeComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Beside the previous assessed attempt at the same prompt, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none"
           }
         },
         "type": "object",
@@ -52514,6 +52585,17 @@
               }
             ],
             "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+          },
+          "compared": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PracticeComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Beside the previous assessed attempt at the same prompt, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none"
           }
         },
         "type": "object",
@@ -53008,6 +53090,17 @@
               }
             ],
             "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+          },
+          "compared": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PracticeComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Beside the previous assessed attempt at the same brief, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none"
           }
         },
         "type": "object",
@@ -53071,6 +53164,17 @@
               }
             ],
             "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+          },
+          "compared": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PracticeComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Beside the previous assessed attempt at the same brief, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none"
           }
         },
         "type": "object",

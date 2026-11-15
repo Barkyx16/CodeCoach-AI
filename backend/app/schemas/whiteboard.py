@@ -4,6 +4,7 @@ from datetime import datetime
 
 from pydantic import Field
 
+from app.schemas.careers import PracticeComparison
 from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
 from app.schemas.conditions import AttemptConditions
 from app.whiteboard.diagram import Diagram
@@ -68,6 +69,11 @@ class WhiteboardAttemptOut(APIModel):
         default=None,
         description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)",
     )
+    compared: PracticeComparison | None = Field(
+        default=None,
+        description="Beside the previous assessed attempt at the same prompt, by the one comparison contract "
+        "(docs/COMPARING_ATTEMPTS.md); null when there's none",
+    )
 
 
 class WhiteboardAttemptSummary(APIModel):
@@ -81,4 +87,9 @@ class WhiteboardAttemptSummary(APIModel):
     conditions: AttemptConditions | None = Field(
         default=None,
         description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)",
+    )
+    compared: PracticeComparison | None = Field(
+        default=None,
+        description="Beside the previous assessed attempt at the same prompt, by the one comparison contract "
+        "(docs/COMPARING_ATTEMPTS.md); null when there's none",
     )

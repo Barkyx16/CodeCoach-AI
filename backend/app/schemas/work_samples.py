@@ -5,6 +5,7 @@ from typing import Any
 
 from pydantic import Field
 
+from app.schemas.careers import PracticeComparison
 from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
 from app.schemas.conditions import AttemptConditions
 
@@ -82,6 +83,11 @@ class WorkSampleAttemptOut(APIModel):
     conditions: AttemptConditions | None = Field(
         default=None, description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
     )
+    compared: PracticeComparison | None = Field(
+        default=None,
+        description="Beside the previous assessed attempt at the same brief, by the one comparison contract "
+        "(docs/COMPARING_ATTEMPTS.md); null when there's none",
+    )
 
 
 class WorkSampleAttemptSummary(APIModel):
@@ -93,4 +99,9 @@ class WorkSampleAttemptSummary(APIModel):
     created_at: datetime
     conditions: AttemptConditions | None = Field(
         default=None, description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+    )
+    compared: PracticeComparison | None = Field(
+        default=None,
+        description="Beside the previous assessed attempt at the same brief, by the one comparison contract "
+        "(docs/COMPARING_ATTEMPTS.md); null when there's none",
     )

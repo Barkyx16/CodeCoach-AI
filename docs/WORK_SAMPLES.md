@@ -92,6 +92,11 @@ structures and styles pass when they cover the points with the facts.
 - In the data export as `work_samples`; deleted with the account; not restored from backups.
 - Interview answers and coding verdicts are separate: nothing here changes a score, progress or a plan.
 
+Each attempt is set beside the one it revises, else the one before it, by the one comparison
+contract (docs/COMPARING_ATTEMPTS.md, "Drills, whiteboards and work samples"): both results ("4 of 6
+points covered") and why they compare or don't. A new brief version or rules version isn't
+comparable; the export carries each comparison by id.
+
 ## Limits
 
 - The checks can't judge tone beyond the brief's word lists, or whether a sentence is true in a way the

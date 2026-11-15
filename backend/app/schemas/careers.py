@@ -148,6 +148,24 @@ class AttemptComparison(APIModel):
     contract_version: int = Field(description="The version of the comparison rules that decided it")
 
 
+class ComparedAttempt(APIModel):
+    """The earlier attempt a drill, whiteboard design or work sample is compared with."""
+
+    id: str
+    created_at: datetime
+    result: str = Field(description='Its own result as it was given (for example "2 of 3 points there")')
+
+
+class PracticeComparison(APIModel):
+    """A drill, whiteboard design or work sample beside the previous assessed attempt at the same item,
+    by the one comparison contract (Volume 15, prompt 4; docs/COMPARING_ATTEMPTS.md). Both results are
+    as they were given; nothing says one improved on the other."""
+
+    previous: ComparedAttempt
+    result: str = Field(description="This attempt's own result as it was given")
+    comparison: AttemptComparison
+
+
 class AnswerOut(APIModel):
     id: str
     question_id: str

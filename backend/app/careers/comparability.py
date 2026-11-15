@@ -17,6 +17,14 @@ question, its test version for the question's version, the judge as the evaluato
 submission for the format (never compared with each other: a run checks the public tests only), and
 whether the judge gave a verdict. No written answer's classification changes, so the version stays.
 
+Drills, whiteboard designs and work samples too (Volume 15, prompt 4): the drill, prompt or brief for
+the question, the version its points were checked against for the question's version, the built-in
+rules as the evaluator, and whether a result was stored. Their result is a checklist of the item's
+points, so a changed checklist or a changed version of the rules that check it isn't comparable at
+all (a written answer's text still compares under another rubric; a checklist's ticks don't). Different
+help is partly comparable, as it is everywhere. No earlier classification changes, so the version
+stays.
+
 The rules are versioned (``CONTRACT_VERSION``); every result says which version decided it, so an
 export keeps the classification it was made with. Pure: the facts are gathered elsewhere
 (app/services/comparisons_of_attempts.py), the decision is made only here.
@@ -33,7 +41,7 @@ CONTRACT_VERSION = 1
 Outcome = Literal["comparable", "partially_comparable", "incompatible", "unknown"]
 Format = Literal["single", "interview", "retry", "submit", "run"]
 Source = Literal["rules", "ai", "person", "judge"]
-Kind = Literal["written", "code"]
+Kind = Literal["written", "code", "drill", "whiteboard", "work_sample"]
 
 # Who graded it, by the recorded coach name: only names that are known. Anything else is unknown.
 SOURCES: dict[str, Source] = {"built-in (offline)": "rules"}
@@ -51,6 +59,16 @@ FORMAT_LABEL: dict[str, str] = {
     "run": "as a run (the public tests only)",
 }
 HELP_NONE = "No in-app help recorded"
+# Formats whose result is a checklist of the item's points, checked by built-in rules.
+CHECKLISTS: frozenset[str] = frozenset({"drill", "whiteboard", "work_sample"})
+KIND_NOUN: dict[str, str] = {
+    "written": "a written answer",
+    "code": "code",
+    "drill": "a drill",
+    "whiteboard": "a whiteboard design",
+    "work_sample": "a work sample",
+}
+ITEM: dict[str, str] = {"drill": "drill", "whiteboard": "prompt", "work_sample": "brief"}
 
 
 @dataclass(frozen=True)
@@ -127,17 +145,25 @@ def classify(a: AttemptFacts, b: AttemptFacts) -> Classification:
     """``a`` is the earlier attempt, ``b`` the later one."""
     reasons: list[Reason] = []
     code = a.kind == "code" or b.kind == "code"
+    checklist = a.kind == b.kind and a.kind in CHECKLISTS
+    item = ITEM.get(a.kind, "")
 
     if a.kind != b.kind:
-        reasons.append(Reason("question", "incompatible", "one is a written answer and the other is code"))
-    elif (a.track, a.question_id) != (b.track, b.question_id):
-        reasons.append(
-            Reason(
-                "question",
-                "incompatible",
-                "they're attempts at different problems" if code else "they answer different questions",
-            )
+        text = (
+            "one is a written answer and the other is code"
+            if {a.kind, b.kind} == {"written", "code"}
+            else f"one is {KIND_NOUN[a.kind]} and the other is {KIND_NOUN[b.kind]}"
         )
+        reasons.append(Reason("question", "incompatible", text))
+    elif (a.track, a.question_id) != (b.track, b.question_id):
+        if checklist and a.question_id == b.question_id:
+            # A drill's prompt is worded for the career it was asked for.
+            text = "the drill's prompt was worded for a different career each time"
+        elif checklist:
+            text = f"they're attempts at different {item}s"
+        else:
+            text = "they're attempts at different problems" if code else "they answer different questions"
+        reasons.append(Reason("question", "incompatible", text))
     if a.scale is None or b.scale is None:
         reasons.append(Reason("scale", "unknown", "the score scale wasn't recorded"))
     elif a.scale != b.scale:
@@ -161,6 +187,15 @@ def classify(a: AttemptFacts, b: AttemptFacts) -> Classification:
         )
     if a.rubric is None or b.rubric is None:
         reasons.append(Reason("rubric", "unknown", "which rubric graded one of them wasn't recorded"))
+    elif a.rubric != b.rubric and checklist:
+        reasons.append(
+            Reason(
+                "rubric",
+                "incompatible",
+                f"they were checked by different versions of the rules ({a.rubric} and {b.rubric}); "
+                "each keeps its own result",
+            )
+        )
     elif a.rubric != b.rubric:
         reasons.append(
             Reason(
@@ -174,7 +209,18 @@ def classify(a: AttemptFacts, b: AttemptFacts) -> Classification:
             Reason(
                 "question_version",
                 "unknown",
-                "which version of the problem's tests judged one of them wasn't recorded",
+                f"which version of the {item} one of them was checked against wasn't recorded"
+                if checklist
+                else "which version of the problem's tests judged one of them wasn't recorded",
+            )
+        )
+    elif a.question_version != b.question_version and checklist:
+        reasons.append(
+            Reason(
+                "question_version",
+                "incompatible",
+                f"the {item}'s points changed in between (version {a.question_version}, now "
+                f"{b.question_version}); each keeps its own result",
             )
         )
     elif a.question_version != b.question_version:
@@ -190,15 +236,17 @@ def classify(a: AttemptFacts, b: AttemptFacts) -> Classification:
             )
         )
     if "not_judged" in (a.scoring, b.scoring):
+        done = "assessed" if checklist else "judged"
         which = (
-            "neither was judged"
+            f"neither was {done}"
             if a.scoring == b.scoring
-            else "the earlier one wasn't judged"
+            else f"the earlier one wasn't {done}"
             if a.scoring == "not_judged"
-            else "this one wasn't judged"
+            else f"this one wasn't {done}"
         )
+        result = "result" if checklist else "verdict"
         reasons.append(
-            Reason("scoring", "incompatible", f"{which}, so there's no verdict to set beside the other")
+            Reason("scoring", "incompatible", f"{which}, so there's no {result} to set beside the other")
         )
     elif "unknown" in (a.scoring, b.scoring):
         reasons.append(
@@ -239,17 +287,18 @@ def classify(a: AttemptFacts, b: AttemptFacts) -> Classification:
             )
         )
 
+    kind: Kind = "code" if code else a.kind if checklist else "written"
     kinds = {r.kind for r in reasons}
     if "incompatible" in kinds:
         decisive = tuple(r for r in reasons if r.kind == "incompatible")
-        return _result("incompatible", False, False, decisive, code)
+        return _result("incompatible", False, False, decisive, kind)
     if "unknown" in kinds:
         missing = tuple(r for r in reasons if r.kind == "unknown")
-        return _result("unknown", False, False, missing, code)
+        return _result("unknown", False, False, missing, kind)
     if reasons:
         scores = "partial_text" not in kinds
-        return _result("partially_comparable", scores, True, tuple(reasons), code)
-    return _result("comparable", True, True, (), code)
+        return _result("partially_comparable", scores, True, tuple(reasons), kind)
+    return _result("comparable", True, True, (), kind)
 
 
 _LEAD: dict[str, str] = {
@@ -259,20 +308,30 @@ _LEAD: dict[str, str] = {
     "unknown": "Can't tell whether these compare",
 }
 _CODE_COMPARABLE = "Comparable: the same problem and tests, judged the same way, with the same in-app help"
+# Both checked by the same fixed rules; never self-assessed (none of these formats is).
+_CHECKLIST_COMPARABLE = (
+    "Comparable: the same {item} and version, checked by the same fixed rules, with the same in-app help"
+)
+_SAME_SCORES = {
+    "written": ". The scores are on the same rubric, so both are shown",
+    "code": ". The counts are from the same tests, so both are shown",
+}
+_SAME_CHECKS = ". The results are from the same checks by the same fixed rules, so both are shown"
 
 
 def _result(
-    outcome: Outcome, scores: bool, points: bool, reasons: tuple[Reason, ...], code: bool = False
+    outcome: Outcome, scores: bool, points: bool, reasons: tuple[Reason, ...], kind: Kind = "written"
 ) -> Classification:
     body = "; ".join(r.text for r in reasons)
-    lead = _CODE_COMPARABLE if code and outcome == "comparable" else _LEAD[outcome]
+    if outcome == "comparable" and kind == "code":
+        lead = _CODE_COMPARABLE
+    elif outcome == "comparable" and kind in CHECKLISTS:
+        lead = _CHECKLIST_COMPARABLE.format(item=ITEM[kind])
+    else:
+        lead = _LEAD[outcome]
     text = f"{lead}: {body}" if body else lead
     if outcome == "partially_comparable" and scores:
-        text += (
-            ". The counts are from the same tests, so both are shown"
-            if code
-            else ". The scores are on the same rubric, so both are shown"
-        )
+        text += _SAME_SCORES.get(kind, _SAME_CHECKS)
     return Classification(
         outcome=outcome,
         scores_comparable=scores,
