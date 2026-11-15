@@ -8,6 +8,7 @@ import { AcceptedActions } from "@/features/actions/AcceptedActions";
 
 import { ActivityCard } from "./ActivityCard";
 import { PlanChanges } from "./PlanChanges";
+import { PlanNews } from "./PlanNews";
 
 /** The whole plan: open activities, what's done (and what completed it), what was set aside, and the baseline. */
 export function PlanPage() {
@@ -24,7 +25,7 @@ export function PlanPage() {
         <div>
           <p className="eyebrow">YOUR PRACTICE PLAN · {p.career_title.toUpperCase()}</p>
           <h1 className="page__title">Your plan</h1>
-          <p className="page__subtitle">Version {p.version}. It updates when you complete work or change your goals, and says why.</p>
+          <p className="page__subtitle">Version {p.version}. It updates when you complete work or change your goals, and says why. Other practice shows here and changes it only when you ask.</p>
         </div>
         <div className="row">
           <Link to="/reviews" className="btn btn--ghost btn--md">Review queue</Link>
@@ -32,6 +33,7 @@ export function PlanPage() {
           <Link to="/dashboard" className="btn btn--primary btn--md">Today</Link>
         </div>
       </div>
+      <PlanNews plan={p} minutes={15} />
       <PlanChanges plan={p} always />
       <div className="plan-page__layout">
         <div className="stack">

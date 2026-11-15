@@ -20625,6 +20625,98 @@
         }
       }
     },
+    "/api/v1/me/plan/update": {
+      "post": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Update your plan from practice it doesn't use yet (docs/PLAN_UPDATES.md); bound to the version you saw",
+        "operationId": "update_plan_api_v1_me_plan_update_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "minutes",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 240,
+              "minimum": 5,
+              "description": "Time available today",
+              "default": 15,
+              "title": "Minutes"
+            },
+            "description": "Time available today"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanUpdateIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/plan/items/{item_id}/skip": {
       "post": {
         "tags": [
@@ -34127,6 +34219,48 @@
         "title": "MyReport",
         "description": "A reporter's view: their own words and the public outcome, never internal notes."
       },
+      "NewEvidence": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "answer",
+              "retry",
+              "round"
+            ],
+            "title": "Kind",
+            "description": "A written answer, an answer revising an earlier one, or a finished question round"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score",
+            "description": "An answer's score; none for a round"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "title",
+          "score",
+          "href"
+        ],
+        "title": "NewEvidence"
+      },
       "NextAction": {
         "properties": {
           "kind": {
@@ -36686,6 +36820,62 @@
         ],
         "title": "PlanItemOut"
       },
+      "PlanNews": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "One line, e.g. '2 answers since this plan, one below 70.'"
+          },
+          "answers": {
+            "type": "integer",
+            "title": "Answers",
+            "description": "Scored answers since this version that no activity used"
+          },
+          "retries": {
+            "type": "integer",
+            "title": "Retries",
+            "description": "How many of those revise an earlier answer"
+          },
+          "below": {
+            "type": "integer",
+            "title": "Below",
+            "description": "How many of those scored below 70"
+          },
+          "rounds": {
+            "type": "integer",
+            "title": "Rounds",
+            "description": "Question rounds finished since this version that no activity used"
+          },
+          "entries": {
+            "items": {
+              "$ref": "#/components/schemas/NewEvidence"
+            },
+            "type": "array",
+            "title": "Entries",
+            "description": "Them, oldest first (at most 10)"
+          },
+          "not_counted": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Not Counted",
+            "description": "Answers since this version the plan doesn't use: too short to score, or disputed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "text",
+          "answers",
+          "retries",
+          "below",
+          "rounds",
+          "entries"
+        ],
+        "title": "PlanNews",
+        "description": "Practice since this version that would change what the plan suggests (docs/PLAN_UPDATES.md).\nShown only then; the plan stays as it is until the learner asks for the update."
+      },
       "PlanOut": {
         "properties": {
           "track": {
@@ -36763,6 +36953,17 @@
               }
             ],
             "title": "Days To Interview"
+          },
+          "news": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanNews"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "New practice this version doesn't use that would change it; the plan updates only when asked"
           }
         },
         "type": "object",
@@ -36816,6 +37017,34 @@
           "open_in_plan"
         ],
         "title": "PlanProgress"
+      },
+      "PlanUpdateIn": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Version",
+            "description": "The plan version you saw: the update is refused if it's no longer the latest"
+          },
+          "track": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track",
+            "description": "Default: your current career"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "PlanUpdateIn"
       },
       "PlannedTask": {
         "properties": {

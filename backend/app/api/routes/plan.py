@@ -5,7 +5,7 @@ from app.api.deps import get_current_user, get_db
 from app.models import User
 from app.schemas.common import error_responses
 from app.schemas.review import ReviewAdd, ReviewQueue, SnoozeIn
-from app.schemas.roadmap import GoalsIn, GoalsOut, PlanItemOut, PlanOut
+from app.schemas.roadmap import GoalsIn, GoalsOut, PlanItemOut, PlanOut, PlanUpdateIn
 from app.services.review_queue import ReviewQueueService
 from app.services.roadmap import Roadmap
 
@@ -54,6 +54,22 @@ def get_plan(
     minutes: int = Query(default=15, ge=5, le=240, description="Time available today"),
 ) -> PlanOut:
     return _roadmap(request, db).plan(user, track, minutes)
+
+
+@router.post(
+    "/plan/update",
+    response_model=PlanOut,
+    responses=error_responses(401, 404, 409, 422),
+    summary="Update your plan from practice it doesn't use yet (docs/PLAN_UPDATES.md); bound to the version you saw",
+)
+def update_plan(
+    body: PlanUpdateIn,
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    minutes: int = Query(default=15, ge=5, le=240, description="Time available today"),
+) -> PlanOut:
+    return _roadmap(request, db).update(user, body.track, body.version, minutes)
 
 
 @router.post(

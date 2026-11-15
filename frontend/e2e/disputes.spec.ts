@@ -34,14 +34,11 @@ test("a disputed point stops shaping the plan, what came from it is labelled, an
   await chooseJob(page, "registered-nurse");
   await page.locator("#main").getByRole("button", { name: "Create account" }).click();
   await page.getByRole("link", { name: "Do this later" }).click();
-  // The plan's first version must come from the weak answer. A plan is rebuilt when something in it
-  // is done or the goals change, not when an answer elsewhere is added, so if the dashboard's own
-  // plan request reached the server first (CI run 315, on a slow runner), the plan never had the
-  // retry. Hold that request until the answer is saved.
-  const planRequest = (url: URL) => url.pathname === "/api/v1/me/plan";
-  await page.route(planRequest, (route) => route.abort());
   await page.getByRole("button", { name: "Not now, take me to my dashboard" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
+  // The dashboard has made the plan's first version, before the answer (on a slow runner too: CI
+  // run 315 met the race this used to have). The weak answer is new practice it doesn't use yet.
+  await expect(page.getByRole("region", { name: "Today's practice" }).getByRole("article", { name: "Baseline check: 3 short questions" })).toBeVisible();
 
   await page.goto(QUESTION);
   await page.getByRole("textbox", { name: "Your answer" }).fill(WEAK);
@@ -50,10 +47,11 @@ test("a disputed point stops shaping the plan, what came from it is labelled, an
   const score = feedback.getByLabel(/^Score \d+ out of 100/);
   await expect(score).toBeVisible();
   const scoreLabel = await score.getAttribute("aria-label");
-  await page.unroute(planRequest);
 
-  // The plan before: the retry names both missed points.
+  // The plan says so, and the learner asks for the update: the retry names both missed points.
   await page.goto("/plan");
+  await page.getByRole("region", { name: /^1 answer since this plan, below 70\./ }).getByRole("button", { name: "Update my plan" }).click();
+  await expect(page.getByText("Your plan is now version 2. What changed is listed with it.")).toBeVisible();
   const retry = page.getByRole("article", { name: RETRY }).first();
   await expect(retry).toContainText(`it missed ${EXAMPLE.toLowerCase()}, ${STEPS.toLowerCase()}.`);
   await expect(retry).not.toContainText("disputed");

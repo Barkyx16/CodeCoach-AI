@@ -24,7 +24,9 @@ JOURNEYS = [
     ("career analytics", "GET", f"/api/v1/me/careers/{TRACK}/analytics", 5),
     ("history", "GET", "/api/v1/me/activity?page=1&page_size=20", 10),
     ("history facets", "GET", "/api/v1/me/activity/facets", 8),
-    ("plan", "GET", "/api/v1/me/plan", 24),
+    # +2 (Volume 13, prompt 1): the plan looks for practice since its version (answers, rounds);
+    # docs/PLAN_UPDATES.md. 25 on PostgreSQL today.
+    ("plan", "GET", "/api/v1/me/plan", 26),
     ("reviews", "GET", "/api/v1/me/reviews", 4),
     ("resume", "GET", "/api/v1/me/resume", 6),
 ]

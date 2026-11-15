@@ -3891,6 +3891,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/plan/update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Update your plan from practice it doesn't use yet (docs/PLAN_UPDATES.md); bound to the version you saw */
+        post: operations["update_plan_api_v1_me_plan_update_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/plan/items/{item_id}/skip": {
         parameters: {
             query?: never;
@@ -8997,6 +9014,24 @@ export interface components {
              */
             updated_at: string;
         };
+        /** NewEvidence */
+        NewEvidence: {
+            /**
+             * Kind
+             * @description A written answer, an answer revising an earlier one, or a finished question round
+             * @enum {string}
+             */
+            kind: "answer" | "retry" | "round";
+            /** Title */
+            title: string;
+            /**
+             * Score
+             * @description An answer's score; none for a round
+             */
+            score: number | null;
+            /** Href */
+            href: string;
+        };
         /** NextAction */
         NextAction: {
             /**
@@ -10026,6 +10061,48 @@ export interface components {
             /** @description Derived from feedback you've disputed since (it stays; you decide) */
             disputed?: components["schemas"]["DisputeNote"] | null;
         };
+        /**
+         * PlanNews
+         * @description Practice since this version that would change what the plan suggests (docs/PLAN_UPDATES.md).
+         *     Shown only then; the plan stays as it is until the learner asks for the update.
+         */
+        PlanNews: {
+            /**
+             * Text
+             * @description One line, e.g. '2 answers since this plan, one below 70.'
+             */
+            text: string;
+            /**
+             * Answers
+             * @description Scored answers since this version that no activity used
+             */
+            answers: number;
+            /**
+             * Retries
+             * @description How many of those revise an earlier answer
+             */
+            retries: number;
+            /**
+             * Below
+             * @description How many of those scored below 70
+             */
+            below: number;
+            /**
+             * Rounds
+             * @description Question rounds finished since this version that no activity used
+             */
+            rounds: number;
+            /**
+             * Entries
+             * @description Them, oldest first (at most 10)
+             */
+            entries: components["schemas"]["NewEvidence"][];
+            /**
+             * Not Counted
+             * @description Answers since this version the plan doesn't use: too short to score, or disputed
+             */
+            not_counted?: string[];
+        };
         /** PlanOut */
         PlanOut: {
             /** Track */
@@ -10060,6 +10137,8 @@ export interface components {
             target_date: string | null;
             /** Days To Interview */
             days_to_interview: number | null;
+            /** @description New practice this version doesn't use that would change it; the plan updates only when asked */
+            news?: components["schemas"]["PlanNews"] | null;
         };
         /** PlanProgress */
         PlanProgress: {
@@ -10079,6 +10158,19 @@ export interface components {
             done_in_plan: number;
             /** Open In Plan */
             open_in_plan: number;
+        };
+        /** PlanUpdateIn */
+        PlanUpdateIn: {
+            /**
+             * Version
+             * @description The plan version you saw: the update is refused if it's no longer the latest
+             */
+            version: number;
+            /**
+             * Track
+             * @description Default: your current career
+             */
+            track?: string | null;
         };
         /** PlannedTask */
         PlannedTask: {
@@ -29132,6 +29224,69 @@ export interface operations {
             };
             /** @description Not found (also returned for resources owned by another user) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    update_plan_api_v1_me_plan_update_post: {
+        parameters: {
+            query?: {
+                /** @description Time available today */
+                minutes?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanUpdateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

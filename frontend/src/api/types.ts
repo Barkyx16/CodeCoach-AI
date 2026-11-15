@@ -96,6 +96,7 @@ export type Goals = S["GoalsOut"];
 export type GoalsInput = S["GoalsIn"];
 export type Plan = S["PlanOut"];
 export type PlanItem = S["PlanItemOut"];
+export type PlanNews = S["PlanNews"];
 export type RoundStart = S["RoundStart"];
 export type TargetSummary = S["TargetSummary"];
 export type Target = S["TargetOut"];

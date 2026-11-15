@@ -22,14 +22,17 @@ Completion is read from evidence created after the activity was planned (an answ
 question, a spoken answer, a finished round, a submitted attempt), never assumed. The one
 exception, "review feedback", is marked by the learner and labelled as self-reported. Skipping
 or replacing never marks anything done. When work is completed (or goals change) a new plan
-version is made, and its `changes` list explains what moved and why. AI is not used.
+version is made, and its `changes` list explains what moved and why. Practice the version doesn't
+use (an answer elsewhere, a finished round) never makes one by itself: the plan names it (`news`)
+when it would change what's chosen, and the learner's "Update my plan" makes the next version
+(docs/PLAN_UPDATES.md). AI is not used.
 """
 
 from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -66,7 +69,9 @@ from app.schemas.roadmap import (
     EvaluatedSkill,
     GoalsIn,
     GoalsOut,
+    NewEvidence,
     PlanItemOut,
+    PlanNews,
     PlanOut,
     PlanProgress,
     RoundStart,
@@ -126,6 +131,36 @@ def _withheld(what: str, d: Dispute, why: str) -> dict[str, str]:
 
 def _aware(dt: datetime) -> datetime:
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+
+
+def _plural(n: int, one: str, many: str) -> str:
+    return f"{n} {one if n == 1 else many}"
+
+
+def news_text(answers: int, retries: int, below: int, rounds: int, since: str) -> str:
+    """One line for what's new: "2 answers since this plan, one below 70." Counts only: it says
+    what was done and how it scored, never that anything improved."""
+    parts: list[str] = []
+    if answers:
+        if retries == answers:
+            parts.append(_plural(answers, "retry", "retries"))
+        elif retries:
+            parts.append(
+                f"{_plural(answers, 'answer', 'answers')} ({retries} of them {'a retry' if retries == 1 else 'retries'})"
+            )
+        else:
+            parts.append(_plural(answers, "answer", "answers"))
+    if rounds:
+        parts.append(_plural(rounds, "finished round", "finished rounds"))
+    text = " and ".join(parts) + f" since {since}"
+    if below:
+        if answers == 1:
+            text += ", below 70"
+        elif below == answers:
+            text += ", both below 70" if answers == 2 else ", all below 70"
+        else:
+            text += f", {'one' if below == 1 else below} below 70"
+    return text + "."
 
 
 @dataclass
@@ -248,8 +283,14 @@ class Roadmap:
     # --- evidence ---------------------------------------------------------------------------
 
     def _evidence(
-        self, user: User, track: str, disputes: dict[tuple[str, str], Dispute] | None = None
+        self,
+        user: User,
+        track: str,
+        disputes: dict[tuple[str, str], Dispute] | None = None,
+        leave_out: _Used | None = None,
     ) -> Evidence:
+        """`leave_out`: answers and rounds to read as if they didn't exist (the plan's evidence
+        without what's new since a version, to see whether that changes anything: `_news`)."""
         # Ids and scores only: the plan needs one answer's feedback (at most two, for weak
         # questions), loaded by id below. Loading every whole row decoded all their feedback JSON
         # (docs/PERFORMANCE.md, "Real journeys").
@@ -260,6 +301,8 @@ class Roadmap:
             .where(PracticeAnswer.user_id == user.id, PracticeAnswer.track == track)
             .order_by(PracticeAnswer.created_at)
         ).all()
+        if leave_out is not None:
+            rows = [r for r in rows if r[0] not in leave_out.answers]
         disputes = disputes or {}
         best: dict[str, int] = {}
         best_answer: dict[str, str] = {}
@@ -289,6 +332,8 @@ class Roadmap:
                 PracticeSession.track == track,
             )
         ).all()
+        if leave_out is not None:
+            sessions = [s for s in sessions if s.id not in leave_out.sessions]
         completed = [s for s in sessions if s.status == InterviewStatus.COMPLETED]
         mocks = [
             _aware(s.started_at)
@@ -297,7 +342,12 @@ class Roadmap:
             and len((s.plan or {}).get("question_ids", [])) >= 5
         ]
         voice_turns = self.db.execute(
-            select(InterviewTurn.created_at, InterviewTurn.meta)
+            select(
+                InterviewTurn.created_at,
+                InterviewTurn.meta,
+                InterviewTurn.session_id,
+                InterviewTurn.answer_id,
+            )
             .join(PracticeSession, PracticeSession.id == InterviewTurn.session_id)
             .where(
                 PracticeSession.user_id == user.id,
@@ -305,7 +355,12 @@ class Roadmap:
                 InterviewTurn.role == TurnRole.CANDIDATE,
             )
         ).all()
-        spoken = [_aware(at) for at, meta in voice_turns if (meta or {}).get("source") in ("voice", "mixed")]
+        spoken = [
+            _aware(at)
+            for at, meta, sid, aid in voice_turns
+            if (meta or {}).get("source") in ("voice", "mixed")
+            and (leave_out is None or (sid not in leave_out.sessions and aid not in leave_out.answers))
+        ]
         return Evidence(
             best=best,
             latest=latest,
@@ -683,8 +738,23 @@ class Roadmap:
                 if i.status == "pending"
             }
             new_keys = {s.key for s in specs}
+            # Rounds the learner has open: dropping the activity one belongs to is said, not silent.
+            open_rounds = [
+                _aware(at)
+                for at in self.db.scalars(
+                    select(PracticeSession.started_at).where(
+                        PracticeSession.user_id == user.id,
+                        PracticeSession.mode == PracticeMode.QUESTIONS,
+                        PracticeSession.track == track,
+                        PracticeSession.status == InterviewStatus.IN_PROGRESS,
+                    )
+                ).all()
+            ]
             for key, item in old.items():
                 if key not in new_keys:
+                    started = item.kind in _ROUND_ORDER and any(
+                        at >= _aware(item.created_at) for at in open_rounds
+                    )
                     qid = item.target.get("question_id")
                     if item.kind == "retry" and qid in ev.best and ev.best[qid] >= WEAK:
                         changes.append(f"Dropped “{item.title}”: your best score is now {ev.best[qid]}/100.")
@@ -694,6 +764,10 @@ class Roadmap:
                         )
                     else:
                         changes.append(f"Moved “{item.title}” out to make room for newer priorities.")
+                    if started:
+                        changes[-1] += (
+                            " You'd started it: that round stays open, and what you answer in it is saved."
+                        )
             for s in specs:
                 if s.key not in old:
                     changes.append(f"Added “{s.title}”: {s.reason}")
@@ -881,6 +955,163 @@ class Roadmap:
                 label = "submitted; saved, not judged here"
             return {"submission_id": sub.id, "label": label}
         return None  # review: only the learner can mark it
+
+    # --- new evidence ------------------------------------------------------------------------
+
+    def _news(
+        self,
+        user: User,
+        track: str,
+        plan: PracticePlan,
+        disputes: dict[tuple[str, str], Dispute],
+        ev: Evidence,
+    ) -> PlanNews | None:
+        """What's new since this version that would change it (docs/PLAN_UPDATES.md), or None.
+
+        New: scored answers and finished question rounds recorded since the version was made that
+        no activity in it used. Not counted: answers too short to score and answers whose feedback
+        as a whole is disputed (the planner doesn't use either). Whether it would change anything
+        is the planner's own answer: it plans twice, from the evidence with and without what's
+        new, and the update is offered only when what's chosen differs. Reading never saves.
+        """
+        since = _aware(plan.created_at)
+        used = self._used_evidence(plan)
+        rows = self.db.execute(
+            select(
+                PracticeAnswer.id,
+                PracticeAnswer.question_id,
+                PracticeAnswer.score,
+                PracticeAnswer.revises_answer_id,
+                *eligibility_columns(),
+            )
+            .where(
+                PracticeAnswer.user_id == user.id,
+                PracticeAnswer.track == track,
+                PracticeAnswer.created_at >= since,
+            )
+            .order_by(PracticeAnswer.created_at)
+        ).all()
+        fresh: list[tuple[str, str, int, bool]] = []
+        too_short = disputed = 0
+        for answer_id, qid, score, revises, level, words in rows:
+            if answer_id in used.answers:
+                continue
+            if (answer_id, OVERALL) in disputes:
+                disputed += 1
+            elif (kind := eligibility(level, words)) == "too_short":
+                too_short += 1
+            elif kind == "scored":
+                fresh.append((answer_id, qid, score, revises is not None))
+        rounds = [
+            r
+            for r in self.db.scalars(
+                select(PracticeSession)
+                .where(
+                    PracticeSession.user_id == user.id,
+                    PracticeSession.mode == PracticeMode.QUESTIONS,
+                    PracticeSession.track == track,
+                    PracticeSession.status == InterviewStatus.COMPLETED,
+                    PracticeSession.ended_at >= since,
+                )
+                .order_by(PracticeSession.ended_at)
+            ).all()
+            if r.id not in used.sessions
+        ]
+        if not fresh and not rounds:
+            return None
+        goal = self._goal(user, track)
+        avoid = self._avoid(user, track)
+        leave_out = _Used({a[0] for a in fresh}, {r.id for r in rounds})
+        with_new = self._generate(user, track, goal, replace(ev, withheld=[]), avoid)
+        without = self._generate(user, track, goal, self._evidence(user, track, disputes, leave_out), avoid)
+        if {s.key for s in with_new} == {s.key for s in without}:
+            return None  # nothing the planner chooses would change: the plan stays, unoffered
+        entries: list[NewEvidence] = []
+        for answer_id, qid, score, retry in fresh:
+            q = get_question(track, qid)
+            entries.append(
+                NewEvidence(
+                    kind="retry" if retry else "answer",
+                    title=q.title if q else "A question no longer in the bank",
+                    score=score,
+                    href=f"/careers/{track}/questions/{qid}?answer={answer_id}",
+                )
+            )
+        for r in rounds:
+            n = len((r.plan or {}).get("question_ids", []))
+            entries.append(
+                NewEvidence(
+                    kind="round",
+                    title="Baseline check"
+                    if (r.plan or {}).get("purpose") == "baseline"
+                    else f"Practice round ({_plural(n, 'question', 'questions')})",
+                    score=None,
+                    href=f"/interviews/{r.id}",
+                )
+            )
+        retries = sum(a[3] for a in fresh)
+        below = sum(a[2] < WEAK for a in fresh)
+        not_counted = []
+        if too_short:
+            not_counted.append(
+                f"{_plural(too_short, 'answer', 'answers')} too short to score {'isn’t' if too_short == 1 else 'aren’t'} counted."
+            )
+        if disputed:
+            not_counted.append(
+                f"{_plural(disputed, 'answer', 'answers')} whose feedback you disputed {'isn’t' if disputed == 1 else 'aren’t'} counted."
+            )
+        return PlanNews(
+            text=news_text(len(fresh), retries, below, len(rounds), "this plan"),
+            answers=len(fresh),
+            retries=retries,
+            below=below,
+            rounds=len(rounds),
+            entries=entries[:10],
+            not_counted=not_counted,
+        )
+
+    def update(self, user: User, track: str | None, seen: int, minutes: int) -> PlanOut:
+        """The next version, from all the evidence, because the learner asked: bound to the version
+        they saw. If another tab or device made a newer one first, nothing is made here and the
+        reply says which version is current."""
+        t = self._track(user, track)
+        plan = self._latest(user, t)
+        if plan is None or plan.version != seen:
+            raise self._moved_on(plan)
+        done = self._sync(user, plan)
+        disputes = Disputes(self.db, user.id).active(t)
+        news = self._news(user, t, plan, disputes, self._evidence(user, t, disputes))
+        if news is None and not done:
+            # Nothing new changes it (anymore): the same version, unchanged.
+            self.db.commit()
+            return self._out(user, t, plan, minutes)
+        why = list(done)
+        if news is not None:
+            n = news
+            why.insert(
+                0,
+                "Updated when you asked: "
+                + news_text(n.answers, n.retries, n.below, n.rounds, f"version {plan.version}"),
+            )
+        self.db.flush()
+        try:
+            new = self._new_version(user, t, plan, why)
+            self.db.commit()
+        except IntegrityError:
+            # Another request saved this version number first.
+            self.db.rollback()
+            raise self._moved_on(self._latest(user, t)) from None
+        return self._out(user, t, new, minutes)
+
+    def _moved_on(self, current: PracticePlan | None) -> ConflictError:
+        version = current.version if current else None
+        return ConflictError(
+            f"Your plan was already updated, in another tab or on another device: it's now version {version}."
+            if version
+            else "There's no plan to update yet. Open your plan first.",
+            code="plan_changed",
+            details={"version": version},
+        )
 
     def plan(self, user: User, track: str | None, minutes: int) -> PlanOut:
         t = self._track(user, track)
@@ -1165,6 +1396,7 @@ class Roadmap:
             )
         ).all()
         ev = self._evidence(user, track, disputes)
+        news = self._news(user, track, plan, disputes, ev)
         days = (goal.target_date - _now().date()).days if goal and goal.target_date else None
         return PlanOut(
             track=track,
@@ -1195,6 +1427,7 @@ class Roadmap:
             goals_saved=goal is not None,
             target_date=goal.target_date if goal else None,
             days_to_interview=days if days is not None and days >= 0 else None,
+            news=news,
         )
 
     def item_out(self, item: PlanItem) -> PlanItemOut:

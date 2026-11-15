@@ -9,6 +9,7 @@ import { ErrorState, LoadingState } from "@/components/States";
 
 import { ActivityCard } from "./ActivityCard";
 import { PlanChanges } from "./PlanChanges";
+import { PlanNews } from "./PlanNews";
 import { addedFor, saveAdded } from "./todayAdded";
 import { saveMinutes, savedMinutes, TODAY_OPTIONS as OPTIONS } from "./todayMinutes";
 
@@ -85,6 +86,7 @@ export function TodayCard() {
         <div className="today__grid">
           <div className="today__main">
             <PlanChanges plan={plan.data} />
+            <PlanNews plan={plan.data} minutes={minutes} compact />
             {today!.note && <p className="subtle today__note">{today!.note}</p>}
             {today!.primary ? (
               <div className="today__card">

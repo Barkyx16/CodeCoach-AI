@@ -357,6 +357,16 @@ export function usePlan(track: string | undefined, minutes: number, enabled = tr
   });
 }
 
+/** "Update my plan": the server's next version goes straight into the cache for this budget. */
+export function useUpdatePlan(minutes: number) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ version, track }: { version: number; track?: string }) => api.updatePlan(version, minutes, track),
+    onSuccess: (p) => qc.setQueryData(["me", "plan", "", minutes], p),
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["me", "plan"] }),
+  });
+}
+
 export function usePlanItemAction() {
   const qc = useQueryClient();
   return useMutation({

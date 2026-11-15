@@ -77,8 +77,10 @@ after a reload and on another device.
   as they stand. The plan keeps no other summary of feedback.
 - **Counting it again** is a button, never automatic. It records when (`answer_flags.reinstated_at`);
   the flag and its note stay ("You disagreed", "Counted in your plan again since 5 November").
-  Labels go at once; the point can shape suggestions again from the plan's next update (after
-  practice, a goal change or when the plan runs out), and a "Not suggested" line says so.
+  Labels go at once; the point can shape suggestions again from the plan's next version (when work
+  in it is done, the goals change, the plan runs out, or the learner updates it for new practice:
+  docs/PLAN_UPDATES.md), and a "Not suggested" line says so. A dispute or a reinstatement on its own
+  isn't new practice and offers no update.
 
 ## Data
 

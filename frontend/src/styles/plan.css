@@ -16,6 +16,11 @@
 .plan-changes .btn { justify-self: start; }
 .plan-page__layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 20px; align-items: start; margin-top: 16px; }
 .plan-page .plan-changes { margin-top: 4px; }
+.plan-news { display: grid; gap: 8px; padding: 12px 14px; border-radius: 10px; border: 1px solid var(--color-border); font-size: 0.875rem; }
+.plan-news .btn { justify-self: start; }
+.plan-news__line { margin: 0; }
+.plan-news__details summary { cursor: pointer; }
+.plan-news__notice { margin: 0; font-size: 0.875rem; }
 .assessment__h { margin: 4px 0 6px; font-size: 0.875rem; }
 .goals-page form { max-width: 860px; }
 .goals-page__row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

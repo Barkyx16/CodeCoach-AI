@@ -457,6 +457,9 @@ export const api = {
   goals: (track?: string) => apiRequest<Goals>("/api/v1/me/goals", { query: { track } }),
   saveGoals: (body: GoalsInput) => apiRequest<Goals>("/api/v1/me/goals", { method: "PUT", body }),
   plan: (track: string | undefined, minutes: number) => apiRequest<Plan>("/api/v1/me/plan", { query: { track, minutes } }),
+  /** The next version from practice this one doesn't use, bound to the version the learner saw. */
+  updatePlan: (version: number, minutes: number, track?: string) =>
+    apiRequest<Plan>("/api/v1/me/plan/update", { method: "POST", query: { minutes }, body: { version, track } }),
   planItemAction: (id: string, action: "skip" | "replace" | "reviewed") =>
     apiRequest<PlanItem>(`/api/v1/me/plan/items/${encodeURIComponent(id)}/${action}`, { method: "POST" }),
   // unified progress

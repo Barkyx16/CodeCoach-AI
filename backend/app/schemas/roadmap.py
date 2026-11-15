@@ -122,6 +122,38 @@ class PlanProgress(APIModel):
     open_in_plan: int
 
 
+class NewEvidence(APIModel):
+    kind: Literal["answer", "retry", "round"] = Field(
+        description="A written answer, an answer revising an earlier one, or a finished question round"
+    )
+    title: str
+    score: int | None = Field(description="An answer's score; none for a round")
+    href: str
+
+
+class PlanNews(APIModel):
+    """Practice since this version that would change what the plan suggests (docs/PLAN_UPDATES.md).
+    Shown only then; the plan stays as it is until the learner asks for the update."""
+
+    text: str = Field(description="One line, e.g. '2 answers since this plan, one below 70.'")
+    answers: int = Field(description="Scored answers since this version that no activity used")
+    retries: int = Field(description="How many of those revise an earlier answer")
+    below: int = Field(description="How many of those scored below 70")
+    rounds: int = Field(description="Question rounds finished since this version that no activity used")
+    entries: list[NewEvidence] = Field(description="Them, oldest first (at most 10)")
+    not_counted: list[str] = Field(
+        default_factory=list,
+        description="Answers since this version the plan doesn't use: too short to score, or disputed",
+    )
+
+
+class PlanUpdateIn(APIModel):
+    version: int = Field(
+        ge=1, description="The plan version you saw: the update is refused if it's no longer the latest"
+    )
+    track: str | None = Field(default=None, max_length=64, description="Default: your current career")
+
+
 class PlanOut(APIModel):
     track: str
     career_title: str
@@ -138,3 +170,7 @@ class PlanOut(APIModel):
     goals_saved: bool
     target_date: date | None
     days_to_interview: int | None
+    news: PlanNews | None = Field(
+        default=None,
+        description="New practice this version doesn't use that would change it; the plan updates only when asked",
+    )
