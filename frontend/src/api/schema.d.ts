@@ -5339,6 +5339,8 @@ export interface components {
              * @description One line on what isn't observed
              */
             note: string;
+            /** @description For an answer given in an interview round: its format, recorded with the round */
+            round?: components["schemas"]["RoundConditions"] | null;
         };
         /** AttemptOut */
         AttemptOut: {
@@ -11910,6 +11912,11 @@ export interface components {
             /** @description Panel interviews: the simulated role who asked */
             speaker?: components["schemas"]["SpeakerOut"] | null;
             followup?: components["schemas"]["FollowupOut"] | null;
+            /**
+             * Conditions Note
+             * @description A question the round never reached because it ended early: nothing recorded
+             */
+            conditions_note?: string | null;
         };
         /** ReviewOut */
         ReviewOut: {
@@ -12128,6 +12135,38 @@ export interface components {
              */
             source: "typed" | "voice" | "mixed";
         };
+        /**
+         * RoundConditions
+         * @description An interview round answer's format, recorded with the round (Volume 13, prompt 3): part of
+         *     how it was given, never help.
+         */
+        RoundConditions: {
+            /**
+             * Recorded
+             * @description Whether the help was recorded when the answer was saved; false for rounds from before
+             */
+            recorded: boolean;
+            /**
+             * Timed Minutes
+             * @description The round's time limit, in minutes
+             */
+            timed_minutes: number | null;
+            /**
+             * Follow Up
+             * @description The interviewer's follow-up on this answer, if one was asked: part of the format
+             */
+            follow_up: ("answered" | "skipped") | null;
+            /**
+             * Ended Early
+             * @description The round ended before every question was reached
+             */
+            ended_early: boolean;
+            /**
+             * Text
+             * @description One line, e.g. 'A 15-minute timed mock interview; no follow-up.'
+             */
+            text: string;
+        };
         /** RoundFormatOut */
         RoundFormatOut: {
             /**
@@ -12171,6 +12210,11 @@ export interface components {
             /** @description Panel interviews: who asks this question */
             speaker?: components["schemas"]["SpeakerOut"] | null;
             followup?: components["schemas"]["FollowupOut"] | null;
+            /**
+             * Conditions Note
+             * @description For a question the round never reached because it ended early: says so
+             */
+            conditions_note?: string | null;
         };
         /** RoundSkip */
         RoundSkip: {

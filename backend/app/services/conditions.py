@@ -9,6 +9,11 @@ Worked out when read, from records the app already keeps: no separate help log.
 - A career written answer: the Learn lessons that prepare for that question, read before it was
   answered while the question was at the answer's version, as "Hint shown".
 
+- An answer given in an interview round (Volume 13, prompt 3): the same help, worked out when the
+  answer is saved and stored with the round's turn, with the round's format (timed, the
+  interviewer's follow-up asked or skipped, ended early). A round answer from before that began
+  has its format but its help is "Not recorded"; nothing is worked out for it later.
+
 Help is matched by question and version and belongs to the first attempt after it (in the same
 mode): an attempt shows the help since the previous one. Help opened afterwards belongs to the
 next attempt and never changes an earlier one. Nothing outside the app is known, and
@@ -32,16 +37,22 @@ from app.models import (
     AIAction,
     AIInteraction,
     ContentVersion,
+    InterviewStatus,
+    InterviewTurn,
     LearnEvent,
     PracticeAnswer,
+    PracticeSession,
     Submission,
     TestCase,
     User,
 )
 from app.schemas.ai import HINT_LEVEL_NAMES
-from app.schemas.conditions import AttemptConditions, HelpShown
+from app.schemas.conditions import AttemptConditions, HelpShown, RoundConditions
 
 RECORDED_FROM = datetime(2026, 11, 14, tzinfo=UTC)
+# Interview round answers record their conditions when saved from this day (Volume 13, prompt 3).
+ROUND_RECORDED_FROM = datetime(2026, 11, 15, tzinfo=UTC)
+ENDED_EARLY = {InterviewStatus.ABANDONED, InterviewStatus.EXPIRED}
 SOLUTION_LEVEL = 4
 NOTE = (
     "Only help shown in CodeCoach is recorded. Help from anywhere else isn't known, and "
@@ -83,6 +94,39 @@ def conditions(help: list[HelpShown], attempted_at: datetime, *, unknown: bool =
             "Not recorded" if unknown or _aware(attempted_at) < RECORDED_FROM else "No in-app help recorded"
         ]
     return AttemptConditions(labels=labels, help=help, recorded_from=RECORDED_FROM.date(), note=NOTE)
+
+
+def round_text(timed_minutes: int | None, follow_up: str | None, ended_early: bool) -> str:
+    """One line for a round answer's format: how it was given, never help."""
+    text = (
+        f"A {timed_minutes}-minute timed mock interview" if timed_minutes else "A mock interview, not timed"
+    )
+    if follow_up == "answered":
+        text += "; the interviewer asked a follow-up, which you answered"
+    elif follow_up == "skipped":
+        text += "; the interviewer asked a follow-up, which you skipped"
+    else:
+        text += "; no follow-up"
+    if ended_early:
+        text += "; the round ended early"
+    return text + "."
+
+
+def _round(
+    meta: dict, status: InterviewStatus, duration_seconds: int | None, recorded: bool
+) -> RoundConditions:
+    follow_up = (meta.get("followup") or {}).get("status")
+    minutes = (meta.get("conditions") or {}).get("timed_minutes")
+    if minutes is None and duration_seconds:
+        minutes = duration_seconds // 60
+    ended = status in ENDED_EARLY
+    return RoundConditions(
+        recorded=recorded,
+        timed_minutes=minutes,
+        follow_up=follow_up if follow_up in ("answered", "skipped") else None,
+        ended_early=ended,
+        text=round_text(minutes, follow_up, ended),
+    )
 
 
 class Conditions:
@@ -167,8 +211,73 @@ class Conditions:
             u.practice.kind == "question" and u.practice.ref_id == question_id
         )
 
-    def for_answers(self, answers: Iterable[PracticeAnswer]) -> dict[str, AttemptConditions]:
+    def record_for_round(self, row: PracticeAnswer, timed_minutes: int | None) -> dict:
+        """What an interview round stores with an answer when it's saved: the help worked out now
+        (so a lesson read later can't change it) and the round's time limit."""
+        c = self._worked_out([row])[row.id]
+        return {
+            "v": 1,
+            "labels": list(c.labels),
+            "help": [h.model_dump(mode="json") for h in c.help],
+            "timed_minutes": timed_minutes,
+        }
+
+    def for_answers(
+        self, answers: Iterable[PracticeAnswer], *, rounds_possible: bool = True
+    ) -> dict[str, AttemptConditions]:
+        """Every answer's conditions: an interview round's as recorded with it, the others worked
+        out from what's kept. `rounds_possible=False`: the caller knows none of them was given in a
+        round (an answer saved on its own question page), so the round lookup is skipped."""
         answers = list(answers)
+        if not answers:
+            return {}
+        if not rounds_possible:
+            return self._worked_out(answers)
+        rounds = {
+            aid: (meta or {}, status, duration)
+            for aid, meta, status, duration in self.db.execute(
+                select(
+                    InterviewTurn.answer_id,
+                    InterviewTurn.meta,
+                    PracticeSession.status,
+                    PracticeSession.duration_seconds,
+                )
+                .join(PracticeSession, PracticeSession.id == InterviewTurn.session_id)
+                .where(
+                    PracticeSession.user_id == self.user.id,
+                    InterviewTurn.answer_id.in_([a.id for a in answers]),
+                )
+            )
+            if aid is not None
+        }
+        out = self._worked_out([a for a in answers if a.id not in rounds])
+        for a in answers:
+            if a.id not in rounds:
+                continue
+            meta, status, duration = rounds[a.id]
+            stored = meta.get("conditions")
+            if stored:
+                out[a.id] = AttemptConditions(
+                    labels=stored["labels"],
+                    help=[HelpShown.model_validate(h) for h in stored.get("help", [])],
+                    recorded_from=ROUND_RECORDED_FROM.date(),
+                    note=NOTE,
+                    round=_round(meta, status, duration, recorded=True),
+                )
+            else:
+                # From before rounds recorded it: nothing is worked out now, so a lesson read since
+                # can't be taken for help that was there.
+                out[a.id] = AttemptConditions(
+                    labels=["Not recorded"],
+                    help=[],
+                    recorded_from=ROUND_RECORDED_FROM.date(),
+                    note=NOTE,
+                    round=_round(meta, status, duration, recorded=False),
+                )
+        return out
+
+    def _worked_out(self, answers: list[PracticeAnswer]) -> dict[str, AttemptConditions]:
+        """Written answers' help, worked out from the lessons read (docs/ATTEMPT_CONDITIONS.md)."""
         if not answers:
             return {}
         # Only lessons that prepare one of these questions can count; most questions have none, and
@@ -245,5 +354,5 @@ class Conditions:
             out[a.id] = conditions(shown, a.created_at)
         return out
 
-    def for_answer(self, answer: PracticeAnswer) -> AttemptConditions:
-        return self.for_answers([answer])[answer.id]
+    def for_answer(self, answer: PracticeAnswer, *, rounds_possible: bool = True) -> AttemptConditions:
+        return self.for_answers([answer], rounds_possible=rounds_possible)[answer.id]

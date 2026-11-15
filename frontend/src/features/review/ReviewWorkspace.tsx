@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
+import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
 import { useInterviewReview, useReviewQueueMutation } from "@/api/queries";
 import type { Interview, InterviewReview, ReviewEntry } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
@@ -253,6 +254,8 @@ function Detail({ r, item, focusable = false }: { r: InterviewReview; item: Revi
       {isRound && (item.answer_text
         ? <blockquote className="round-result__answer">{item.answer_text}</blockquote>
         : <p className="banner banner--info">{item.status === "skipped" ? "Skipped" : "Not reached"}: no answer, so no feedback.</p>)}
+      {isRound && item.feedback && <AttemptConditionsView conditions={item.feedback.conditions} noun="answer" brief />}
+      {isRound && item.conditions_note && <p className="subtle">{item.conditions_note}</p>}
       {item.followup && item.followup.status !== "pending" && (
         <div className="review-followup stack-sm">
           <p><span className="speaker-label">Follow-up{item.followup.speaker ? ` from the ${item.followup.speaker.title.toLowerCase()}` : ""}:</span> {item.followup.question}</p>

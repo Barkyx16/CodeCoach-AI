@@ -25645,6 +25645,17 @@
             "type": "string",
             "title": "Note",
             "description": "One line on what isn't observed"
+          },
+          "round": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RoundConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For an answer given in an interview round: its format, recorded with the round"
           }
         },
         "type": "object",
@@ -41515,6 +41526,18 @@
                 "type": "null"
               }
             ]
+          },
+          "conditions_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conditions Note",
+            "description": "A question the round never reached because it ended early: nothing recorded"
           }
         },
         "type": "object",
@@ -42081,6 +42104,63 @@
         ],
         "title": "RoundAnswer"
       },
+      "RoundConditions": {
+        "properties": {
+          "recorded": {
+            "type": "boolean",
+            "title": "Recorded",
+            "description": "Whether the help was recorded when the answer was saved; false for rounds from before"
+          },
+          "timed_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timed Minutes",
+            "description": "The round's time limit, in minutes"
+          },
+          "follow_up": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "answered",
+                  "skipped"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Follow Up",
+            "description": "The interviewer's follow-up on this answer, if one was asked: part of the format"
+          },
+          "ended_early": {
+            "type": "boolean",
+            "title": "Ended Early",
+            "description": "The round ended before every question was reached"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "One line, e.g. 'A 15-minute timed mock interview; no follow-up.'"
+          }
+        },
+        "type": "object",
+        "required": [
+          "recorded",
+          "timed_minutes",
+          "follow_up",
+          "ended_early",
+          "text"
+        ],
+        "title": "RoundConditions",
+        "description": "An interview round answer's format, recorded with the round (Volume 13, prompt 3): part of\nhow it was given, never help."
+      },
       "RoundFormatOut": {
         "properties": {
           "id": {
@@ -42210,6 +42290,18 @@
                 "type": "null"
               }
             ]
+          },
+          "conditions_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conditions Note",
+            "description": "For a question the round never reached because it ended early: says so"
           }
         },
         "type": "object",

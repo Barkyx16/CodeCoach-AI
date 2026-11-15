@@ -281,7 +281,7 @@ def _save_answer(
         existing = _answer_by_key(db, user, key)
         if existing is not None:
             return _replay(existing, fingerprint, response, step, "replayed").model_copy(
-                update={"conditions": Conditions(db, user).for_answer(existing)}
+                update={"conditions": Conditions(db, user).for_answer(existing, rounds_possible=False)}
             )
     if is_retired(slug, question_id):
         raise ConflictError(
@@ -315,11 +315,12 @@ def _save_answer(
         if existing is None:
             raise
         return _replay(existing, fingerprint, response, step, "replayed_concurrent").model_copy(
-            update={"conditions": Conditions(db, user).for_answer(existing)}
+            update={"conditions": Conditions(db, user).for_answer(existing, rounds_possible=False)}
         )
     db.commit()
     step.set(result="created")
-    return answer_out(row, Conditions(db, user).for_answer(row))
+    # Saved here on its own question page, never in a round: no round lookup (docs/ATTEMPT_CONDITIONS.md).
+    return answer_out(row, Conditions(db, user).for_answer(row, rounds_possible=False))
 
 
 @router.get(

@@ -229,6 +229,9 @@ class RoundQuestion(APIModel):
     answer: AnswerOut | None = None
     speaker: SpeakerOut | None = Field(default=None, description="Panel interviews: who asks this question")
     followup: FollowupOut | None = None
+    conditions_note: str | None = Field(
+        default=None, description="For a question the round never reached because it ended early: says so"
+    )
 
 
 class RoundSummary(APIModel):

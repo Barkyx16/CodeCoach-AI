@@ -71,7 +71,8 @@ def test_different_conditions_keep_the_scores_comparable_and_are_named():
     c = classify(facts(format="interview"), facts(format="retry"))
     assert (c.outcome, c.scores_comparable) == ("partially_comparable", True)
     assert (
-        "answered in a timed mock interview, the later one as a retry after a mock interview" in c.explanation
+        "the earlier one was timed (answered in a mock interview); this one wasn't "
+        "(answered as a retry after a mock interview)" in c.explanation
     )
     c = classify(facts(help=(HELP_NONE,)), facts(help=("Hint shown",)))
     assert (c.outcome, c.scores_comparable, c.rules) == ("partially_comparable", True, ("help",))

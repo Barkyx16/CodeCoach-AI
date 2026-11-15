@@ -7,15 +7,36 @@ import { formatDateTime } from "@/lib/format";
  * question and version since the previous attempt. Only the four labels the server gives; it never
  * claims anything about help outside the app, and it changes no score or verdict.
  */
-export function AttemptConditionsView({ conditions }: { conditions: AttemptConditions | null | undefined }) {
+export function AttemptConditionsView({ conditions, noun = "attempt", brief = false }: {
+  conditions: AttemptConditions | null | undefined;
+  /** "answer" for an answer given in an interview round. */
+  noun?: "attempt" | "answer";
+  /** One line (a round's results): the labels and the format, without the details. */
+  brief?: boolean;
+}) {
   if (!conditions) return null;
   const notRecorded = conditions.labels.includes("Not recorded");
+  const round = conditions.round ?? null;
+  const line = (
+    <p>
+      <strong>In-app help before this {noun}:</strong> {conditions.labels.join(", ")}
+      {notRecorded && (
+        <span className="subtle"> ({round ? "for interview rounds, help" : "help"} is recorded from {formatDay(conditions.recorded_from)})</span>
+      )}
+    </p>
+  );
+  if (brief) {
+    return (
+      <div className="attempt-conditions attempt-conditions--brief">
+        {line}
+        {round && <p className="subtle">{round.text}</p>}
+      </div>
+    );
+  }
   return (
     <div className="attempt-conditions stack-sm">
-      <p>
-        <strong>In-app help before this attempt:</strong> {conditions.labels.join(", ")}
-        {notRecorded && <span className="subtle"> (help is recorded from {formatDay(conditions.recorded_from)})</span>}
-      </p>
+      {line}
+      {round && <p><strong>How it was given:</strong> {round.text} <span className="subtle">(the format, not help)</span></p>}
       {conditions.help.length > 0 && (
         <ul className="mini-list">
           {conditions.help.map((h) => (

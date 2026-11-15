@@ -49,7 +49,7 @@ improvement.
 | rubric | "scored under different rubrics (v9 and v10): compare what you wrote, not the numbers" |
 | question version | "the question was changed in between (version 1, now 2): compare what you wrote, not the numbers" |
 | scoring | "one was too short to score: compare what you wrote, not the numbers" |
-| format | "the conditions differed: the earlier one was answered in a timed mock interview, the later one as a retry after a mock interview" |
+| format | A timed interview answer and one that wasn't timed name it (Volume 13, prompt 3), from the round's recorded time limit and follow-up: "the conditions differed: the earlier one was timed (answered in a 15-minute mock interview, with a follow-up from the interviewer); this one wasn't (answered as a retry after a mock interview)". Otherwise: "the conditions differed: the earlier one was answered on its own, the later one as a retry after a mock interview". The verdict is rules v1's, unchanged: only the reason says more |
 | help | "the in-app help differed: before the earlier one, none recorded; before the later one, hint shown" |
 | missing | "which rubric graded one of them wasn't recorded" (and the same for who graded it, scoring, the scale, the format, or "in-app help before one of them wasn't recorded (it's recorded from 14 Nov 2026)") |
 

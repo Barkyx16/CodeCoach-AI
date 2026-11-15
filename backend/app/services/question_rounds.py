@@ -71,6 +71,7 @@ from app.schemas.interview import (
     SpeakerOut,
 )
 from app.services import engagement
+from app.services.conditions import Conditions
 
 ROUND = ("motivation", "knowledge", "situational", "behavioral", "leadership")
 DEFAULT_TRACK = "software-engineer"
@@ -230,13 +231,17 @@ class QuestionRounds:
             read = engagement.for_career_answer(question, text, grade(question, text))
         self.db.add(row)
         self.db.flush()
+        # Its conditions, recorded now (docs/ATTEMPT_CONDITIONS.md): a lesson read later can't change them.
+        recorded = Conditions(self.db, user).record_for_round(
+            row, session.duration_seconds // 60 if session.duration_seconds else None
+        )
         self._add(
             session,
             TurnRole.CANDIDATE,
             text,
             body.question_index,
             answer_id=row.id,
-            meta={"source": body.source, "engagement": read.model_dump(mode="json")},
+            meta={"source": body.source, "engagement": read.model_dump(mode="json"), "conditions": recorded},
         )
         if not self._maybe_follow_up(session, body.question_index, text):
             self._advance(session, body.question_index)
@@ -366,6 +371,9 @@ class QuestionRounds:
         }
         current = -1 if (session.plan or {}).get("pending_followup") else self.current_index(session)
         speakers = (session.plan or {}).get("speakers") or []
+        user = self.db.get(User, session.user_id)
+        conditions = Conditions(self.db, user).for_answers(answers.values()) if user and answers else {}
+        ended_early = session.status in (InterviewStatus.ABANDONED, InterviewStatus.EXPIRED)
         out = []
         for i, qid in enumerate(ids):
             q = get_question(session.track or "", qid)
@@ -389,7 +397,12 @@ class QuestionRounds:
                     kind=q.kind,
                     difficulty=q.difficulty,
                     status=status,
-                    answer=answer_out(row) if row is not None else None,
+                    answer=answer_out(row, conditions.get(row.id)) if row is not None else None,
+                    conditions_note=(
+                        "The round ended before this question: nothing was recorded for it."
+                        if ended_early and reply is None
+                        else None
+                    ),
                     speaker=self._speaker(session, speakers[i] if i < len(speakers) else None),
                     followup=self._followup_out(
                         session,

@@ -2,7 +2,8 @@
 
 Each coding attempt and each career written answer says which in-app help was shown before it
 (Volume 12, prompt 3). It's worked out when read from records the app already keeps; there's no
-separate help log.
+separate help log. An answer given in an interview round records it when the answer is saved, with
+the round's format (Volume 13, prompt 3; below).
 
 ## The labels
 
@@ -48,6 +49,31 @@ rubric results are exactly as before.
   response; the data export adds it to submissions and written answers (and each hint's problem
   version). Private to the owner and deleted with the account, like the attempts.
 
+## Interview rounds
+
+A round's answer is saved with its conditions (`interview_turns.meta.conditions`, no new column):
+the help worked out at that moment, by the same rules as a written answer (a Learn lesson that
+prepares that question, read since the previous answer to it), and the round's time limit. They're
+read back as stored, so nothing that happens later (a lesson read afterwards, an earlier answer
+deleted) can change them. With them, each answer carries the round's format, which is never help:
+
+| | Recorded from |
+|---|---|
+| Timed | The round's time limit ("A 15-minute timed mock interview") |
+| The interviewer's follow-up | Asked and answered, or asked and skipped, recorded when it happened. A follow-up isn't help |
+| Ended early | The round was ended or ran out of time before every question was reached |
+
+- **Where it shows**: the round's results (the replay) give one line per answer, "In-app help before
+  this answer: Hint shown", with the format under it; the question page's past answers show the same
+  conditions with "How it was given: …"; the retry comparison names the condition that differed
+  (docs/COMPARING_ATTEMPTS.md). The API: `conditions.round` on every answer response.
+- **Before recording**: a round answer saved before this (15 Nov 2026) is **Not recorded**, never "No
+  in-app help recorded", and nothing is worked out for it later; its format, which the round itself
+  kept, is still shown.
+- **Never reached**: a question an ended-early round didn't reach says "The round ended before this
+  question: nothing was recorded for it."
+- Another account's lesson reads never count; conditions change no score, verdict or count.
+
 ## Not observed
 
 - Help outside the app: other sites, books, people, AI tools. It's unknown and never inferred.
@@ -59,6 +85,18 @@ rubric results are exactly as before.
 
 ## Not covered yet
 
-Coding attempts and career written answers only. Next, each with what it would use: whiteboard
-attempts, code-review exercises (`after_reveal` is already kept), sample-answer comparisons
-(`revealed_early`), work samples, drills, scenarios, interview rounds and the coding interviewer.
+Coding attempts, career written answers and interview rounds. Next, each with what it would use:
+whiteboard attempts, code-review exercises (`after_reveal` is already kept), sample-answer
+comparisons (`revealed_early`), work samples, drills, scenarios and the coding interviewer.
+
+## Checked by tests (interview rounds)
+
+`backend/tests/test_round_conditions.py`: a lesson read before a round marks only the answer it
+prepares; the recorded conditions survive a later read and a deleted earlier answer; an old round is
+"Not recorded" with its format; another account's reads never count; a follow-up is part of the format;
+an ended-early round says so and records nothing for what it didn't reach; the retry comparison names
+the condition that differed and the verdict and score stay. `frontend/src/test/integration/roundConditions.test.tsx`
+covers the results page. Negative controls (each caught): worked out again when read; not recorded when
+saved; an old round's help guessed; another account's reads counted; the follow-up left out of the
+format; an unreached question not said; the differing condition not named; and on the page, no
+conditions, no format line, no unreached note, "Not recorded" without its date.

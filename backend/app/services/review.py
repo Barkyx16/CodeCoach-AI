@@ -192,6 +192,7 @@ class InterviewReviews:
                     question_id=q.id,
                     speaker=q.speaker,
                     followup=q.followup,
+                    conditions_note=q.conditions_note,
                 )
             )
         answered = [i for i in items if i.feedback]

@@ -55,6 +55,10 @@ class AttemptFacts:
     format: Format | None
     help: tuple[str, ...] | None  # labels of in-app help shown before it, or (HELP_NONE,)
     help_recorded_from: date | None = None
+    # An interview round answer's recorded format (Volume 13, prompt 3): it names what differed, and
+    # changes no verdict.
+    timed_minutes: int | None = None
+    follow_up: str | None = None  # "answered" | "skipped": the interviewer's follow-up, part of the format
 
 
 @dataclass(frozen=True)
@@ -73,6 +77,30 @@ class Classification:
     explanation: str
     contract_version: int = CONTRACT_VERSION
     rules: tuple[str, ...] = field(default=())
+
+
+def _how(f: AttemptFacts) -> str:
+    """How an attempt was given, as recorded: the round's time limit and follow-up when known."""
+    if f.format == "interview":
+        text = f"in a {f.timed_minutes}-minute mock interview" if f.timed_minutes else "in a mock interview"
+        if f.follow_up == "answered":
+            text += ", with a follow-up from the interviewer"
+        elif f.follow_up == "skipped":
+            text += ", with a follow-up you skipped"
+        return text
+    return FORMAT_LABEL[f.format] if f.format else "in a way that wasn't recorded"
+
+
+def _format_text(a: AttemptFacts, b: AttemptFacts) -> str:
+    """Which condition differed: a timed interview answer and one that wasn't timed say so."""
+    if a.format == "interview" and b.format != "interview":
+        return f"the conditions differed: the earlier one was timed (answered {_how(a)}); this one wasn't (answered {_how(b)})"
+    if b.format == "interview" and a.format != "interview":
+        return f"the conditions differed: the earlier one wasn't timed (answered {_how(a)}); this one was (answered {_how(b)})"
+    return (
+        f"the conditions differed: the earlier one was answered {FORMAT_LABEL[a.format or 'single']}, "
+        f"the later one {FORMAT_LABEL[b.format or 'single']}"
+    )
 
 
 def _help_text(labels: tuple[str, ...]) -> str:
@@ -141,14 +169,7 @@ def classify(a: AttemptFacts, b: AttemptFacts) -> Classification:
     if a.format is None or b.format is None:
         reasons.append(Reason("format", "unknown", "how one of them was given wasn't recorded"))
     elif a.format != b.format:
-        reasons.append(
-            Reason(
-                "format",
-                "partial_conditions",
-                f"the conditions differed: the earlier one was answered {FORMAT_LABEL[a.format]}, "
-                f"the later one {FORMAT_LABEL[b.format]}",
-            )
-        )
+        reasons.append(Reason("format", "partial_conditions", _format_text(a, b)))
     if a.help is None or b.help is None:
         since = a.help_recorded_from or b.help_recorded_from
         when = f" (it's recorded from {since.day} {since:%b %Y})" if since else ""

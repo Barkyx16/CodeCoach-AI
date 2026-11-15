@@ -91,6 +91,7 @@ class AttemptComparisons:
         for a in answers:
             fb = a.feedback or {}
             labels = tuple(help[a.id].labels) if a.id in help else None
+            rnd = help[a.id].round if a.id in help else None
             out[a.id] = AttemptFacts(
                 id=a.id,
                 track=a.track,
@@ -102,7 +103,9 @@ class AttemptComparisons:
                 scoring=feedback_eligibility(fb),
                 format=formats.get(a.id, "single"),
                 help=None if labels is None or labels == ("Not recorded",) else labels,
-                help_recorded_from=RECORDED_FROM.date(),
+                help_recorded_from=help[a.id].recorded_from if a.id in help else RECORDED_FROM.date(),
+                timed_minutes=rnd.timed_minutes if rnd else None,
+                follow_up=rnd.follow_up if rnd else None,
             )
         return out
 

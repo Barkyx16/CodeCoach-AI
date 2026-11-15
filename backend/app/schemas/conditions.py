@@ -19,6 +19,21 @@ class HelpShown(APIModel):
     at: datetime = Field(description="When it was shown: the time it actually arrived")
 
 
+class RoundConditions(APIModel):
+    """An interview round answer's format, recorded with the round (Volume 13, prompt 3): part of
+    how it was given, never help."""
+
+    recorded: bool = Field(
+        description="Whether the help was recorded when the answer was saved; false for rounds from before"
+    )
+    timed_minutes: int | None = Field(description="The round's time limit, in minutes")
+    follow_up: Literal["answered", "skipped"] | None = Field(
+        description="The interviewer's follow-up on this answer, if one was asked: part of the format"
+    )
+    ended_early: bool = Field(description="The round ended before every question was reached")
+    text: str = Field(description="One line, e.g. 'A 15-minute timed mock interview; no follow-up.'")
+
+
 class AttemptConditions(APIModel):
     labels: list[ConditionsLabel] = Field(
         description="'Hint shown' and/or 'Solution revealed'; or 'No in-app help recorded'; or 'Not recorded' "
@@ -27,6 +42,10 @@ class AttemptConditions(APIModel):
     help: list[HelpShown] = Field(description="Each piece of help shown before this attempt, oldest first")
     recorded_from: date = Field(description="When recording began")
     note: str = Field(description="One line on what isn't observed")
+    round: RoundConditions | None = Field(
+        default=None,
+        description="For an answer given in an interview round: its format, recorded with the round",
+    )
 
 
 class ConditionsQuery(APIModel):

@@ -79,6 +79,10 @@ class ReviewItem(APIModel):
         default=None, description="Panel interviews: the simulated role who asked"
     )
     followup: FollowupOut | None = None
+    conditions_note: str | None = Field(
+        default=None,
+        description="A question the round never reached because it ended early: nothing recorded",
+    )
 
 
 class Perspective(APIModel):

@@ -113,7 +113,7 @@ def test_retry_keeps_the_original_and_compares_on_the_same_rubric(client):
     assert c["classification"]["outcome"] == "partially_comparable"
     assert not c["comparable"] and c["score_change"] is None
     assert (
-        "too short to score" in c["comparability_note"] and "timed mock interview" in c["comparability_note"]
+        "too short to score" in c["comparability_note"] and "minute mock interview" in c["comparability_note"]
     )
     assert c["improved"] and not set(c["improved"]) & set(c["still_missing"])
     again = review(client, h, iv)
@@ -135,7 +135,11 @@ def test_a_scoreable_original_and_retry_compare_with_the_conditions_named(client
     assert cl["outcome"] == "partially_comparable" and cl["scores_comparable"] and cl["contract_version"] == 1
     assert [r["rule"] for r in cl["reasons"]] == ["format"]
     assert c["comparable"] and c["score_change"] == c["latest"]["score"] - c["original"]["score"]
-    assert "answered in a timed mock interview, the later one as a retry" in c["comparability_note"]
+    # The condition that differed is named (Volume 13, prompt 3): the round's time limit, as recorded.
+    assert (
+        "the earlier one was timed (answered in a 30-minute mock interview); this one wasn't "
+        "(answered as a retry after a mock interview)"
+    ) in c["comparability_note"]
 
 
 def test_a_changed_evaluator_is_disclosed_not_compared(client):
