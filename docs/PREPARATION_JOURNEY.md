@@ -301,8 +301,21 @@ those need.
 
 ### Its record
 
-**In CI**: pending, the end-to-end job of the run on the commit that adds the journey; the next
-commit records it here.
+**In CI**: run 343 (`690f000`), the end-to-end job, in its normal run and then in the step that runs
+it twice on fresh accounts (the `device-journey-record` artifact and the job's `[journey-record]`
+lines): **3 passed**, 12 of 12 steps each, every step's device named the same way: steps 1 to 4 and
+8 made on the desktop; 5, 10 and 11 made on the desktop and read back on the phone; 6, 7 and 9 made
+on the phone and read back on the desktop. Each run's collection came back from the backup with its
+own two item ids, in order, and its review; each restore batch was applied and then removed:
+
+| Run | Collection | Improvement | Restore batch | Added at | Reviewed at |
+|---|---|---|---|---|---|
+| Normal run | `126e299c…` | `88b476ef…` | `8cd94db5…` | e-inform-0 v1, e-inform-3 v1 | v2 |
+| Step, first | `0335d0cf…` | `b755ad96…` | `0c74aea0…` | e-inform-0 v1, e-inform-3 v1 | v2 |
+| Step, second | `7c4f769a…` | `eac1101f…` | `7326e2b8…` | e-inform-0 v1, e-inform-3 v2 | v3 |
+
+(Corrections are shared content: the step's second run found the question at the version the first
+left, and corrected it once more.) The phone was 412 × 839; the step took 1 min 2 s.
 
 **Before CI** (the development check, not the record): this machine, on 15 November 2026, through
 the e2e launcher, twice in a row on fresh accounts: 12 of 12 steps each, each step's device named;

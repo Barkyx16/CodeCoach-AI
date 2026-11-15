@@ -13,19 +13,42 @@ from collections.abc import Callable, Iterator
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine, create_engine, make_url
+from sqlalchemy import Engine, create_engine, make_url, text
 
 from app.config import Settings
 from app.db.session import Base
 from app.main import create_app
 
 TEST_DATABASE_URL = os.environ.get("TEST_DATABASE_URL")
+# A role that may create databases (CI: the service's superuser). With it, each PostgreSQL test's
+# database is recreated from one made once per session (see _seeded_postgres_template).
+TEST_DATABASE_ADMIN_URL = os.environ.get("TEST_DATABASE_ADMIN_URL")
 # The suite drops every table in that database before each test. Refuse one that isn't plainly a
 # test database, so a development, staging or production URL pasted here by mistake stays intact.
 if TEST_DATABASE_URL and "test" not in (make_url(TEST_DATABASE_URL).database or ""):
     raise pytest.UsageError(
         "TEST_DATABASE_URL must name a database with 'test' in its name: the suite empties it"
     )
+
+
+def _ensure_test_database() -> None:
+    """With an admin URL each test's database is recreated (dropped, then copied from the
+    session's template); a run stopped between the two leaves none. Make it again, empty."""
+    if not (TEST_DATABASE_URL and TEST_DATABASE_ADMIN_URL):
+        return
+    url = make_url(TEST_DATABASE_URL)
+    admin = create_engine(TEST_DATABASE_ADMIN_URL, isolation_level="AUTOCOMMIT")
+    try:
+        with admin.connect() as c:
+            exists = c.execute(
+                text("SELECT 1 FROM pg_database WHERE datname = :n"), {"n": url.database}
+            ).first()
+            if not exists:
+                c.execute(
+                    text(f"CREATE DATABASE {_quoted(url.database or '')} OWNER {_quoted(url.username or '')}")
+                )
+    finally:
+        admin.dispose()
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -39,6 +62,7 @@ def _test_database_has_no_migration_state() -> None:
         return
     from sqlalchemy import inspect
 
+    _ensure_test_database()
     engine = create_engine(TEST_DATABASE_URL)
     try:
         with engine.connect() as c:
@@ -103,12 +127,95 @@ def disposable_engine() -> Iterator[Callable[..., Engine]]:
         engine.dispose()
 
 
+def _quoted(name: str) -> str:
+    return '"' + name.replace('"', '""') + '"'
+
+
+def _alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+@pytest.fixture(scope="session")
+def _seeded_postgres_template() -> Iterator[str | None]:
+    """PostgreSQL: one database made by the app's own startup (its tables, the row-level security
+    policies, the seeded problem bank), as the app's role, once per session; each test's database is
+    then the test database recreated from it (CREATE DATABASE ... TEMPLATE), so every test starts
+    from exactly that state, whatever the test before it wrote, changed or left connected
+    (docs/CI.md, "The PostgreSQL suite's set-up"). Without an admin URL, each test drops the
+    tables and the app makes them again, as before."""
+    if not (TEST_DATABASE_URL and TEST_DATABASE_ADMIN_URL):
+        yield None
+        return
+    url = make_url(TEST_DATABASE_URL)
+    # Named for this session's process: a pytest run inside a test (tests/test_suite_measure.py
+    # runs one with this conftest) makes and drops its own, never this one.
+    prefix = f"{url.database}_template_"
+    template = f"{prefix}{os.getpid()}"
+    admin = create_engine(TEST_DATABASE_ADMIN_URL, isolation_level="AUTOCOMMIT")
+    try:
+        with admin.connect() as c:
+            # One left by a session that was killed before it could drop its own.
+            for (name,) in c.execute(
+                text("SELECT datname FROM pg_database WHERE starts_with(datname, :p)"), {"p": prefix}
+            ):
+                pid = name.removeprefix(prefix)
+                if pid.isdigit() and not _alive(int(pid)):
+                    c.execute(text(f"DROP DATABASE IF EXISTS {_quoted(name)} WITH (FORCE)"))
+            c.execute(text(f"DROP DATABASE IF EXISTS {_quoted(template)} WITH (FORCE)"))
+            c.execute(text(f"CREATE DATABASE {_quoted(template)} OWNER {_quoted(url.username or '')}"))
+        settings = Settings(
+            environment="test",
+            database_url=url.set(database=template).render_as_string(hide_password=False),
+            secret_key="test-secret-key-that-is-long-enough-0123456789",
+            ai_provider="offline",
+            background_jobs_in_api=False,
+            _env_file=None,
+        )
+        with TestClient(create_app(settings)):
+            pass
+        with admin.connect() as c:
+            # Nothing may connect to it again: a template can only be copied while unused.
+            c.execute(text(f"ALTER DATABASE {_quoted(template)} WITH ALLOW_CONNECTIONS false"))
+        yield template
+    finally:
+        with admin.connect() as c:
+            c.execute(text(f"DROP DATABASE IF EXISTS {_quoted(template)} WITH (FORCE)"))
+        admin.dispose()
+
+
+def _restore_postgres(template: str) -> None:
+    """The test database, recreated from the session's template: the same tables, policies, grants
+    and seeded rows, and nothing any earlier test left (connections still open to it are closed)."""
+    url = make_url(TEST_DATABASE_URL or "")
+    admin = create_engine(TEST_DATABASE_ADMIN_URL or "", isolation_level="AUTOCOMMIT")
+    try:
+        with admin.connect() as c:
+            c.execute(text(f"DROP DATABASE IF EXISTS {_quoted(url.database or '')} WITH (FORCE)"))
+            c.execute(
+                text(
+                    f"CREATE DATABASE {_quoted(url.database or '')} TEMPLATE {_quoted(template)} "
+                    f"OWNER {_quoted(url.username or '')}"
+                )
+            )
+    finally:
+        admin.dispose()
+
+
 @pytest.fixture
-def database_url(tmp_path) -> Iterator[str]:
+def database_url(tmp_path, _seeded_postgres_template) -> Iterator[str]:
     if TEST_DATABASE_URL:
-        engine = create_engine(TEST_DATABASE_URL)
-        Base.metadata.drop_all(engine)
-        engine.dispose()
+        if _seeded_postgres_template:
+            _restore_postgres(_seeded_postgres_template)
+        else:
+            engine = create_engine(TEST_DATABASE_URL)
+            Base.metadata.drop_all(engine)
+            engine.dispose()
         yield TEST_DATABASE_URL
     else:
         yield f"sqlite:///{tmp_path / 'test.db'}"
@@ -175,11 +282,24 @@ def _seeded_sqlite_template(tmp_path_factory) -> str | None:
 
 
 @pytest.fixture
-def make_client(make_settings, database_url, _seeded_sqlite_template) -> Iterator[Callable[..., TestClient]]:
+def make_client(
+    make_settings, database_url, _seeded_sqlite_template, _seeded_postgres_template
+) -> Iterator[Callable[..., TestClient]]:
     clients: list[TestClient] = []
 
     def _make(**overrides) -> TestClient:
         settings = make_settings(**overrides)
+        # PostgreSQL, the test database just recreated from the session's template, the app making
+        # its tables: the template is what that startup made (on the same models, seed and
+        # policies), so running it again would change nothing and cost about a second per test.
+        # A test that sets auto_migrate, or uses another database, is left as it asked.
+        if (
+            _seeded_postgres_template
+            and "auto_migrate" not in overrides
+            and settings.auto_migrate
+            and settings.database_url == database_url
+        ):
+            settings = make_settings(**overrides, auto_migrate=False)
         # The test's own SQLite file, not made yet, with the app making its tables: start from the
         # seeded copy. Any other database (made by the test, overridden, PostgreSQL) is left alone.
         own = database_url.removeprefix("sqlite:///")

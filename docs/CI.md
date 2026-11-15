@@ -171,7 +171,8 @@ After: run 331 (`daa009c`), the first CI run with these changes: **SQLite tests 
 (from 33 min 0 s), **PostgreSQL tests 73 min 5 s** (from 70 min 56 s; that job also failed one
 query-budget assertion, fixed in `8959a18`, which doesn't change its time). Memory fell on both;
 time fell on SQLite only: on PostgreSQL the time is the databases' set-up (each test makes and
-drops its own), which these changes didn't touch (Volume 15, prompt 1, is about that).
+drops its own), which these changes didn't touch (Volume 15, prompt 1, is about that: "The
+PostgreSQL suite's set-up" below).
 
 Locally the slowest file is `test_judge_sandbox.py` (388 judged runs, 14 to 19 minutes) because
 this machine has gVisor; in CI's backend jobs those tests skip and run in the sandbox job.
@@ -256,6 +257,90 @@ pytest's `-q` summary line, fixed before the PostgreSQL pair ran.
   only thread left is the fake SMTP server's accept loop (`tests/smtp_fake.py`), a daemon, which
   exit doesn't wait for. Turning the plugin off would save the time and lose the check, so it stays.
 - CLI commands run inside tests still leave their one connection each, listed by the measurement.
+
+## The PostgreSQL suite's set-up
+
+Volume 15, prompt 1. The PostgreSQL suite proves row-level security and the real database on every
+push, and it was the slowest job (70 min 56 s of tests in CI run 329, 60 min 57 s in run 332):
+before each test the `database_url` fixture dropped every table, and the app's startup then made
+them again, applied the row-level security policies and seeded the problem bank.
+
+### Where the set-up went
+
+Measured first, on a disposable database on this machine (`pg_setup_phases`, median of five; the
+machine was also running the SQLite suite, so the absolute numbers are high and the proportions are
+what matter):
+
+| Step, per test | From scratch | On a database already made and seeded |
+|---|---|---|
+| The fixture's `drop_all` | 185 ms | |
+| `create_all` | 537 ms | 3 ms |
+| `add_missing_columns` | 249 ms | 255 ms |
+| `rls.apply` (policies) | 112 ms | 164 ms |
+| `seed_problems` | 703 ms | 628 ms (reads only: one query per problem and its tests) |
+| **Total** | **1,804 ms** | **1,052 ms** |
+
+Two ways to restore a clean, seeded state, measured the same way: emptying the 69 tables the seed
+doesn't fill (`TRUNCATE … RESTART IDENTITY CASCADE`) took 357 ms; recreating the database from a
+template (`CREATE DATABASE … TEMPLATE`, with the drop) took 77 ms.
+
+### What it does now
+
+**A template, cloned per test.** At the start of the session, a database is made by the app's own
+startup, as the app's role: its tables, the row-level security policies, the seeded problem bank
+(`_seeded_postgres_template` in `tests/conftest.py`), and then closed to connections. It's named
+for the session's process (`<test database>_template_<pid>`), so a pytest run inside a test
+(`tests/test_suite_measure.py` runs one with this conftest) makes and drops its own and never this
+one; a template left by a session that was killed is dropped by the next. Before each
+test, the test database is dropped (closing any connection a test left open: `WITH (FORCE)`) and
+recreated from that template with the same owner, so its tables, policies, grants and seeded rows
+are exactly the template's, whatever the test before wrote, changed or left connected. A template
+copy is a copy of the files, so it beats emptying tables (77 ms against 357 ms) and it can't miss a
+table, a sequence or a seeded row a test changed.
+
+**The startup doesn't redo it.** A test's app on that copy starts with `auto_migrate` off (a test
+setting; no app code changes): the template is what that very startup made, on the same models, seed
+and policies, so running it again would change nothing and cost about a second. A test that sets
+`auto_migrate` itself, or uses another database, gets what it asks for. SQLite is unchanged: each
+test's database is a copy of a seeded file, and its app runs the whole startup on it, as before.
+
+It needs a role that may create databases: CI's PostgreSQL job already gives the suite one
+(`TEST_DATABASE_ADMIN_URL`, the service's superuser, for the storage rehearsals). Without it the
+suite drops and remakes the tables before each test, as before. A run stopped between a test
+database's drop and its copy leaves none; the next session makes it again, empty, before its first
+check.
+
+**Isolation, checked.** `tests/test_database_isolation.py`: the first test changes a seeded problem
+(its title and tests), adds an account and leaves a connection open; the next finds the problem bank
+exactly as seeded, no account, and every table the seed doesn't fill empty. A negative control that
+skips the per-test restore is caught by it. Tests that need an empty database, migrations or roles
+of their own (the storage and backup rehearsals, `check_migrations.py`) keep making their own.
+
+### Before and after
+
+Both on this machine, one after the other, on the same tree (`690f000` and that tree with this
+change), PostgreSQL as the app's role with row-level security enforced, with the measuring plugin:
+every test file but `test_judge_sandbox.py` (this machine has gVisor, so there it's 14 to 19 minutes
+of judged runs; in CI's PostgreSQL job it skips, and it runs in the sandbox job).
+
+| | Before (drop and remake) | After (template copy) |
+|---|---|---|
+| Set-up time inside the tests | 2,672 s (0.83 s per test) | 400 s (0.12 s per test) |
+| Time inside the tests | 4,306 s | 1,688 s |
+| Wall time | 85 min 11 s | 34 min 7 s |
+| Peak resident memory | 1,571 MB | 1,016 MB |
+| Exit after the summary | not recorded (the run was given `-q` twice, which hides pytest's summary line) | 10.0 s |
+| Results | 3,216 passed, 1 skipped, 2 xfailed | 3,218 passed, 1 skipped, 2 xfailed (the two isolation tests added) |
+
+The first "after" run found a real fault, now fixed: the template had one fixed name, so the pytest
+run inside `test_suite_measure.py` made and then dropped it, and the 99 tests after that file
+couldn't be set up (and the test database was left dropped). Each session now names its own
+template and makes a missing test database again; the run above is after that fix.
+
+**In CI** the PostgreSQL step's time varies a lot between runs on the same fixture: 60 min 57 s
+(run 332), 73 min 5 s (run 331), 77 min 10 s (run 342), 47 min 51 s (run 343). The first run with
+this change is recorded in the next commit; one run against that spread proves less than the
+same-machine pair above.
 
 ## Recording CI evidence without churn
 
