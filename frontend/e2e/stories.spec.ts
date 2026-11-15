@@ -117,8 +117,11 @@ test("one story, from a job target to the story bank to practice, with every ver
   await expect(stranger.getByText("No stories yet")).toBeVisible();
   await other.close();
 
-  // Deleting the story keeps the practice answer.
+  // Deleting the story keeps the practice answer: the preview says so first.
   await page.getByRole("button", { name: "Delete…" }).click();
+  const plan = page.getByRole("group", { name: "What this will do" });
+  await expect(plan).toContainText("Practice answer: An answer that rehearsed it Keeps its text and score; it no longer names the story.");
+  await plan.getByRole("button", { name: /^Delete this story/ }).click();
   await expect(page).toHaveURL(/\/stories$/);
   await page.goto("/history");
   await expect(page.getByText(/Patient assessment under pressure/).first()).toBeVisible();

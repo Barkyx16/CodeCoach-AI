@@ -9,7 +9,7 @@ import { Icon } from "@/components/Icon";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useScrollMemory } from "@/hooks/useScrollMemory";
-import { timeAgo } from "@/lib/format";
+import { formatTime, timeAgo } from "@/lib/format";
 import { useQueryClient } from "@tanstack/react-query";
 
 const SOURCE_LABEL = { question: "Question", problem: "Coding problem", lesson: "Lesson", interview: "Interview" } as const;
@@ -38,17 +38,21 @@ export function NotesPage() {
   };
   const notes = useNotes(filters);
   useScrollMemory(Boolean(notes.data) && !notes.isPlaceholderData && !notes.isFetching);
-  const undo = (location.state as { deleted?: { id: string; title: string } } | null)?.deleted ?? null;
+  const undo = (location.state as { deleted?: { id: string; title: string; until?: string | null } } | null)?.deleted ?? null;
   const [undoOpen, setUndoOpen] = useState(Boolean(undo));
   const [restored, setRestored] = useState("");
   const heading = useRef<HTMLHeadingElement>(null);
   const [undoError, setUndoError] = useState<unknown>(null);
 
+  // Undo is offered for as long as the server keeps the note restorable (its delete says until
+  // when), never longer; without that time, for 30 seconds as before.
+  const until = undo?.until ?? null;
   useEffect(() => {
     if (!undo) return;
-    const t = window.setTimeout(() => setUndoOpen(false), UNDO_MS);
+    const left = until ? Math.max(0, new Date(until).getTime() - Date.now()) : UNDO_MS;
+    const t = window.setTimeout(() => setUndoOpen(false), left);
     return () => window.clearTimeout(t);
-  }, [undo]);
+  }, [undo, until]);
 
   function update(next: Record<string, string>, replace = false) {
     const merged = new URLSearchParams(params);
@@ -74,7 +78,11 @@ export function NotesPage() {
       <p className="visually-hidden" role="status">{restored}</p>
       {undo && undoOpen && (
         <div className="banner banner--info row notes-undo" role="status">
-          <span>Deleted “{undo.title}”. You can undo this for 10 minutes; after that it's gone for good.</span>
+          <span>
+            {until
+              ? <>Deleted “{undo.title}”. You can undo this until {formatTime(until)}; after that it's removed from CodeCoach.</>
+              : <>Deleted “{undo.title}”. You can undo this for 10 minutes; after that it's removed from CodeCoach.</>}
+          </span>
           <Button size="sm" onClick={async () => {
             try {
               await api.restoreNote(undo.id);

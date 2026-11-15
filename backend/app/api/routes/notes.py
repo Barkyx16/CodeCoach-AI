@@ -109,6 +109,30 @@ def update_note(
     return Notebook(db).update(user, note_id, body)
 
 
+@router.get(
+    "/{note_id}/delete-preview",
+    response_model=Impact,
+    responses=error_responses(401, 404),
+    summary="What deleting it would do, and how long Undo lasts (nothing is changed)",
+)
+def delete_preview(
+    note_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> Impact:
+    return Lifecycle(db, user).plan_delete_note(note_id)
+
+
+@router.post(
+    "/{note_id}/delete",
+    response_model=LifecycleOutcome,
+    responses=error_responses(401, 404, 409, 422),
+    summary="Delete it as previewed (restorable for 10 minutes); a changed scope is refused (409 impact_changed)",
+)
+def delete_as_previewed(
+    note_id: str, body: LifecycleIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> LifecycleOutcome:
+    return Lifecycle(db, user).delete_note(note_id, body)
+
+
 @router.delete(
     "/{note_id}",
     response_model=DeletedOut,

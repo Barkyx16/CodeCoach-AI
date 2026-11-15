@@ -439,6 +439,9 @@ export const api = {
   updateTarget: (id: string, body: TargetPatch) =>
     apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}`, { method: "PATCH", body }),
   deleteTarget: (id: string) => apiRequest<void>(`/api/v1/targets/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  targetArchivePreview: (id: string) => apiRequest<Impact>(`/api/v1/targets/${encodeURIComponent(id)}/archive-preview`),
+  archiveTargetAsPreviewed: (id: string, body: LifecycleIn) =>
+    apiRequest<LifecycleOutcome>(`/api/v1/targets/${encodeURIComponent(id)}/archive`, { method: "POST", body }),
   reextract: (id: string) => apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/extract`, { method: "POST" }),
   addRequirement: (id: string, body: RequirementInput) =>
     apiRequest<Target>(`/api/v1/targets/${encodeURIComponent(id)}/requirements`, { method: "POST", body }),
@@ -561,7 +564,9 @@ export const api = {
   noteArchivePreview: (id: string) => apiRequest<Impact>(`/api/v1/me/notes/${encodeURIComponent(id)}/archive-preview`),
   archiveNoteAsPreviewed: (id: string, body: LifecycleIn) =>
     apiRequest<LifecycleOutcome>(`/api/v1/me/notes/${encodeURIComponent(id)}/archive`, { method: "POST", body }),
-  deleteNote: (id: string) => apiRequest<{ id: string; restorable_until: string }>(`/api/v1/me/notes/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  noteDeletePreview: (id: string) => apiRequest<Impact>(`/api/v1/me/notes/${encodeURIComponent(id)}/delete-preview`),
+  deleteNoteAsPreviewed: (id: string, body: LifecycleIn) =>
+    apiRequest<LifecycleOutcome>(`/api/v1/me/notes/${encodeURIComponent(id)}/delete`, { method: "POST", body }),
   restoreNote: (id: string) => apiRequest<Note>(`/api/v1/me/notes/${encodeURIComponent(id)}/restore`, { method: "POST" }),
   keyPoints: (id: string) => apiRequest<KeyPoints>(`/api/v1/me/notes/${encodeURIComponent(id)}/key-points`, { method: "POST" }),
 
@@ -598,7 +603,9 @@ export const api = {
   updateStory: (id: string, body: StoryUpdate) => apiRequest<Story>(`/api/v1/me/stories/${encodeURIComponent(id)}`, { method: "PATCH", body }),
   archiveStory: (id: string, archived: boolean) =>
     apiRequest<Story>(`/api/v1/me/stories/${encodeURIComponent(id)}/${archived ? "archive" : "unarchive"}`, { method: "POST" }),
-  deleteStory: (id: string) => apiRequest<void>(`/api/v1/me/stories/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  storyDeletePreview: (id: string) => apiRequest<Impact>(`/api/v1/me/stories/${encodeURIComponent(id)}/delete-preview`),
+  deleteStoryAsPreviewed: (id: string, body: LifecycleIn) =>
+    apiRequest<LifecycleOutcome>(`/api/v1/me/stories/${encodeURIComponent(id)}/delete`, { method: "POST", body }),
   storyUsedIn: (id: string) => apiRequest<StoryUsedIn>(`/api/v1/me/stories/${encodeURIComponent(id)}/used-in`),
   storyRevisions: (id: string) => apiRequest<StoryRevision[]>(`/api/v1/me/stories/${encodeURIComponent(id)}/revisions`),
   restoreStoryRevision: (id: string, revision: number, expected: number) =>

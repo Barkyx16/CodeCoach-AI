@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useId, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -9,6 +9,7 @@ import type { Competency, Story, StoryContext, StorySection } from "@/api/types"
 import { useAuth } from "@/auth/useAuth";
 import { fingerprint, forgetIntent, keyForIntent } from "@/lib/pendingIntents";
 import { useRequestKey } from "@/lib/requestKey";
+import { ImpactPreview } from "@/features/lifecycle/ImpactPreview";
 import { EarlierActionNotice } from "@/features/recovery/EarlierActionNotice";
 import { useEarlierAction } from "@/features/recovery/useEarlierAction";
 import { BackLink } from "@/components/BackLink";
@@ -245,12 +246,21 @@ function Editor({ story, live, gone }: { story: Story | null; live: Story | null
     setNotice(archived ? "Archived. It's hidden from your list until you unarchive it." : "Back in your list.");
   }
 
-  async function remove() {
-    if (!saved || !window.confirm("Delete this story and every saved version of it? Answers you practised with it are kept. Interview kits and reflections that used it will say an example was deleted. This can't be undone.")) return;
-    await api.deleteStory(saved.id);
+  // Deleting shows what it does first, from the plan that deletes it (docs/LIFECYCLE.md).
+  const [previewDelete, setPreviewDelete] = useState(false);
+  const savedId = saved?.id ?? "";
+  const loadDelete = useCallback(() => api.storyDeletePreview(savedId), [savedId]);
+  const runDelete = useCallback(
+    (fingerprint: string, requestKey: string) => api.deleteStoryAsPreviewed(savedId, { expected_fingerprint: fingerprint, client_request_id: requestKey }),
+    [savedId],
+  );
+  function removed() {
+    if (!saved) return;
     tell("deleted", saved.id);
     window.localStorage.removeItem(key);
+    qc.removeQueries({ queryKey: ["me", "story", saved.id] });
     void qc.invalidateQueries({ queryKey: ["me", "stories"] });
+    void qc.invalidateQueries({ queryKey: ["me", "target"] });
     navigate("/stories", { replace: true });
   }
 
@@ -444,8 +454,9 @@ function Editor({ story, live, gone }: { story: Story | null; live: Story | null
               <h2 className="section-title">Keep or remove</h2>
               <span className="row">
                 <Button size="sm" onClick={() => void archive(!saved.archived)}>{saved.archived ? "Unarchive" : "Archive"}</Button>
-                <Button size="sm" variant="danger" onClick={() => void remove()}>Delete…</Button>
+                <Button size="sm" variant="danger" aria-expanded={previewDelete} onClick={() => setPreviewDelete((v) => !v)}>Delete…</Button>
               </span>
+              {previewDelete && <ImpactPreview danger load={loadDelete} run={runDelete} onCancel={() => setPreviewDelete(false)} onDone={removed} />}
             </Card>
           )}
         </aside>

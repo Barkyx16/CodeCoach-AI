@@ -62,6 +62,7 @@ from app.schemas.roles import (
 )
 from app.services.content import retired_problem_slugs
 from app.services.jd_extract import extract, map_skills
+from app.services.lifecycle import archive_target_now
 from app.services.requirement_versions import RequirementVersions
 from app.services.stories import record_revision, snapshot
 from app.services.story_freshness import StoryFreshness, forget, link_prepared, stamp_links
@@ -196,9 +197,10 @@ class RoleTargets:
                     raise AppError(f"{name.capitalize()} can't be empty.", code="invalid_field")
                 setattr(t, name, value.strip() if isinstance(value, str) and name != "description" else value)
         if body.archived is not None:
-            t.archived = body.archived
             if body.archived:
-                t.selected = False
+                archive_target_now(t)  # what the archive preview lists (docs/LIFECYCLE.md)
+            else:
+                t.archived = False
         if body.selected:
             if t.archived:
                 raise AppError("Unarchive this target before making it active.", code="target_archived")

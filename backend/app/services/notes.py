@@ -44,7 +44,7 @@ from app.schemas.notes import (
     TagCount,
 )
 from app.services import request_keys, update_receipts
-from app.services.lifecycle import archive_note_now
+from app.services.lifecycle import Lifecycle, archive_note_now
 
 UNDO_WINDOW = timedelta(minutes=10)
 MAX_NOTES = 2_000
@@ -440,11 +440,12 @@ class Notebook:
         return self.out(n)
 
     def delete(self, user: User, note_id: str) -> DeletedOut:
-        n = self._note(user, note_id)
-        n.deleted_at = _now()
-        n.pinned = False
-        self.db.commit()
-        return DeletedOut(id=n.id, restorable_until=_aware(n.deleted_at) + UNDO_WINDOW)
+        """An older client's delete, sent without a preview: the plan as it is now (docs/LIFECYCLE.md).
+        Its pin is kept, so Undo brings it back exactly as it was."""
+        self._note(user, note_id)
+        done = Lifecycle(self.db, user).delete_note(note_id, None)
+        assert done.restorable_until is not None
+        return DeletedOut(id=note_id, restorable_until=done.restorable_until)
 
     def restore(self, user: User, note_id: str) -> NoteOut:
         n = self.db.get(Note, note_id)

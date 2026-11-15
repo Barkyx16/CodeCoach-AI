@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
-import type { Story, StoryAssist } from "@/api/types";
+import type { Impact, Story, StoryAssist } from "@/api/types";
 
 import { nurseAnswer, tokenResponse, user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
@@ -243,5 +243,66 @@ describe("exact save state", () => {
     await user.click(within(conflict).getByRole("button", { name: "Use the saved version" }));
     expect(screen.getByLabelText("Result")).toHaveValue("Saved later on the other device.");
     expect(window.localStorage.getItem(storyDraftKey(nurse.id, "s1"))).toBeNull();
+  });
+});
+
+describe("deleting a story shows what it reaches first (docs/LIFECYCLE.md)", () => {
+  const plan = (over: Partial<Impact> = {}): Impact => ({
+    action: "delete_story", target_id: "s1", title: "Two call lights at once",
+    summary: "Delete this story, its 1 requirement link and its revisions",
+    effects: [
+      { effect: "deleted", kind: "story", title: "Two call lights at once", id: "s1", note: "With its 2 saved versions." },
+      { effect: "deleted", kind: "requirement link", title: "Its link to “Perform patient assessment”", id: "r1", note: "With the review decisions you made about it. The requirement itself stays on its target." },
+      { effect: "kept", kind: "interview-day kit", title: "Kit for Panel interview", id: "e1", note: "Keeps what it prepared from this story, as it was, until you remove it there (docs/STORY_FRESHNESS.md)." },
+      { effect: "unlinked", kind: "application", title: "Ward nurse at Mercy General", id: "a1", note: "Stays in your applications; it no longer lists this story." },
+    ],
+    notes: ["This can't be undone. Archive keeps it out of the way instead.", "Backups you made before now still hold a copy until you delete them."],
+    fingerprint: "fp-story-1", ...over,
+  });
+  function serveDelete(respond: (body: Record<string, unknown>) => Response) {
+    const posts: Record<string, unknown>[] = [];
+    server.use(
+      http.get(`${API}/api/v1/me/stories/s1/delete-preview`, () => HttpResponse.json(plan())),
+      http.get(`${API}/api/v1/me/stories/s1/used-in`, () => HttpResponse.json({ applications: [], kits: [], reflections: [], applications_total: 0, kits_total: 0, reflections_total: 0, limit: 20 })),
+      http.post(`${API}/api/v1/me/stories/s1/delete`, async ({ request }) => {
+        const body = (await request.json()) as Record<string, unknown>;
+        posts.push(body);
+        return respond(body);
+      }),
+    );
+    return posts;
+  }
+
+  it("lists the kit it keeps and the links it removes, sends nothing until asked, then deletes as listed", async () => {
+    asUser();
+    fakeStories();
+    const posts = serveDelete(() => HttpResponse.json({ ...plan(), done_at: now(), replayed: false, message: "Deleted Two call lights at once.", restorable_until: null }));
+    const confirm = vi.spyOn(window, "confirm");
+    const { user, router } = renderApp("/stories/s1", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Delete…" }));
+    const shown = await screen.findByRole("group", { name: "What this will do" });
+    expect(shown).toHaveTextContent("Deleted (2)");
+    expect(shown).toHaveTextContent("Kept (1)Interview-day kit: Kit for Panel interview Keeps what it prepared from this story");
+    expect(shown).toHaveTextContent("Unlinked (the other record stays) (1)Application: Ward nurse at Mercy General");
+    expect(posts).toEqual([]);
+    await user.click(within(shown).getByRole("button", { name: "Delete this story, its 1 requirement link and its revisions" }));
+    await waitFor(() => expect(router.state.location.pathname).toBe("/stories"));
+    expect(posts).toHaveLength(1);
+    expect(posts[0]).toMatchObject({ expected_fingerprint: "fp-story-1" });
+    expect(String(posts[0]!.client_request_id)).toMatch(/.+/);
+    expect(confirm).not.toHaveBeenCalled(); // the list is the confirmation
+  });
+
+  it("a scope changed since the preview shows the new list, and nothing is deleted", async () => {
+    asUser();
+    fakeStories();
+    const changed = plan({ fingerprint: "fp-story-2", effects: [...plan().effects, { effect: "unavailable", kind: "reflection", title: "Reflection on Final interview", id: "e2", note: "Stays, and says a story you linked was deleted from your story bank since." }] });
+    serveDelete(() => HttpResponse.json({ error: { code: "impact_changed", message: "Changed", request_id: "r", details: { current: changed } } }, { status: 409 }));
+    const { user, router } = renderApp("/stories/s1", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Delete…" }));
+    await user.click(await screen.findByRole("button", { name: "Delete this story, its 1 requirement link and its revisions" }));
+    expect(await screen.findByText("What this affects changed since you looked. Nothing was done: check the list again.")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: "What this will do" })).toHaveTextContent("Reflection: Reflection on Final interview");
+    expect(router.state.location.pathname).toBe("/stories/s1");
   });
 });

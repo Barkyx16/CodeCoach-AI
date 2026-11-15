@@ -84,7 +84,8 @@ test("capture in context, autosave, search, edit in two tabs, leave mid-save, un
 
   // Delete with undo.
   await page.goto(noteUrl);
-  await page.getByRole("button", { name: "Delete" }).click();
+  await page.getByRole("button", { name: "Delete…" }).click();
+  await page.getByRole("group", { name: "What this will do" }).getByRole("button", { name: "Delete this note (you can undo it for 10 minutes)" }).click();
   await expect(page.getByText(/Deleted “Escalate early”/)).toBeVisible();
   await page.getByRole("button", { name: "Undo" }).click();
   await page.getByRole("searchbox", { name: "Search notes" }).fill("");

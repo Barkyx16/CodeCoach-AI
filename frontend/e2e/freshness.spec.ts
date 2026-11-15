@@ -50,8 +50,8 @@ test("a clean list updates at once while a dirty editor keeps its text and offer
   }
 
   // Deleted in the other tab: the text stays, with Copy or a new story; nothing recreates the old one.
-  other.on("dialog", (d) => void d.accept());
   await other.getByRole("button", { name: "Delete…" }).click();
+  await other.getByRole("group", { name: "What this will do" }).getByRole("button", { name: /^Delete this story/ }).click();
   await expect(other).toHaveURL(/\/stories$/);
   const alert = dirty.getByRole("alert").filter({ hasText: "This story was deleted" });
   await expect(alert).toBeVisible();

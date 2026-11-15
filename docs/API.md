@@ -760,6 +760,9 @@ All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a
   `POST /interviews`), `recent_attempts`, `experience`.
 - `PATCH /targets/{id}` edits fields, `archived`, or `selected` (one active target); editing the
   description keeps requirements and attempts. `DELETE /targets/{id}` removes the target only.
+  `GET /targets/{id}/archive-preview` → `Impact` and `POST /targets/{id}/archive`
+  `{expected_fingerprint, client_request_id?}` → `LifecycleOutcome` archive it as previewed (no
+  longer the active target; everything else kept; docs/LIFECYCLE.md).
 - `POST /targets/{id}/extract` adds requirements found in the current description that aren't
   there yet. `POST /targets/{id}/requirements` adds one; `PATCH …/requirements/{rid}` corrects,
   re-maps (`skills` must be the career's), removes or restores, versioned as below.
@@ -851,7 +854,9 @@ All under `/api/v1/me/notes` 🔒; a note is only ever visible to its owner (any
   overwritten. `pinned` (at most 5, `409 pin_limit`) and `archived` don't need a revision and
   don't conflict. `source.available` is false once the source leaves the library; the note stays.
 - `DELETE` starts a 10-minute undo window (`{restorable_until}`); `POST /me/notes/{id}/restore`
-  undoes it; afterwards the note is purged.
+  undoes it, pin and all; afterwards the note is purged. `GET /me/notes/{id}/delete-preview` →
+  `Impact` and `POST /me/notes/{id}/delete` `{expected_fingerprint, client_request_id?}` →
+  `LifecycleOutcome` (with `restorable_until`) do the same, previewed (docs/LIFECYCLE.md).
 - `GET /me/notes/{id}/archive-preview` → `Impact`; `POST /me/notes/{id}/archive`
   `{expected_fingerprint, client_request_id?}` → `LifecycleOutcome` (archived and unpinned; a
   changed scope is `409 impact_changed`). Setting `archived` with `PATCH` does the same change
@@ -1104,7 +1109,8 @@ Job-target examples (`/targets/{id}/experience`) are the same stories.
   edited|assisted, clear_target}` → a new revision, or `409 stale_revision`
   (`details.current_revision`) if it changed since. Nothing changed: no new revision.
 - `POST …/{id}/archive` and `…/unarchive`; `DELETE …/{id}` (`204`; answers that rehearsed it are
-  kept).
+  kept). `GET …/{id}/delete-preview` → `Impact` and `POST …/{id}/delete` `{expected_fingerprint,
+  client_request_id?}` → `LifecycleOutcome` delete it as previewed (docs/LIFECYCLE.md).
 - `GET …/{id}/revisions` → every saved version, newest first; `POST
   …/{id}/revisions/{n}/restore {expected_revision}` → saved as a new version.
 - `POST …/{id}/assist {action: check|shorten|clarity, situation?, task?, action_text?, result?,

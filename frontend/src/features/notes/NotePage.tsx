@@ -62,7 +62,8 @@ function NoteScreen({ note }: { note: Note | null }) {
   const [flagError, setFlagError] = useState<unknown>(null);
   const [points, setPoints] = useState<KeyPoints | null>(null);
   const [pointsError, setPointsError] = useState<unknown>(null);
-  const [deleting, setDeleting] = useState(false);
+  // Deleting shows what it does first too, with how long Undo lasts.
+  const [previewDelete, setPreviewDelete] = useState(false);
   // Archiving shows what it does first, from the plan that archives it (docs/LIFECYCLE.md).
   const [previewArchive, setPreviewArchive] = useState(false);
   const [archived, setArchivedOutcome] = useState<LifecycleOutcome | null>(null);
@@ -74,6 +75,7 @@ function NoteScreen({ note }: { note: Note | null }) {
     (fingerprint: string, key: string) => api.archiveNoteAsPreviewed(noteId, { expected_fingerprint: fingerprint, client_request_id: key }),
     [noteId],
   );
+  const loadDelete = useCallback(() => api.noteDeletePreview(noteId), [noteId]);
 
   async function setFlags(flags: { pinned?: boolean; archived?: boolean }) {
     if (!current) return;
@@ -146,17 +148,25 @@ function NoteScreen({ note }: { note: Note | null }) {
                 </Button>
 {current.archived
                   ? <Button size="sm" onClick={() => { setArchivedOutcome(null); void setFlags({ archived: false }); }}>Unarchive</Button>
-                  : <Button size="sm" aria-expanded={previewArchive} onClick={() => { setArchivedOutcome(null); setPreviewArchive((v) => !v); }}>Archive…</Button>}
-                <Button size="sm" variant="danger" loading={deleting} onClick={async () => {
-                  setDeleting(true);
-                  try {
-                    await editor.save();
-                    await api.deleteNote(current.id);
-                    void qc.invalidateQueries({ queryKey: ["me", "notes"] });
-                    navigate("/notes", { replace: true, state: { deleted: { id: current.id, title: current.title } } });
-                  } catch (e) { setFlagError(e); setDeleting(false); }
-                }}>Delete</Button>
+                  : <Button size="sm" aria-expanded={previewArchive} onClick={() => { setArchivedOutcome(null); setPreviewDelete(false); setPreviewArchive((v) => !v); }}>Archive…</Button>}
+                <Button size="sm" variant="danger" aria-expanded={previewDelete} onClick={() => { setPreviewArchive(false); setPreviewDelete((v) => !v); }}>Delete…</Button>
               </span>
+              {previewDelete && (
+                <ImpactPreview
+                  danger
+                  load={loadDelete}
+                  run={async (fingerprint, key) => {
+                    await editor.save(); // Undo brings back what you typed, too
+                    return api.deleteNoteAsPreviewed(current.id, { expected_fingerprint: fingerprint, client_request_id: key });
+                  }}
+                  onCancel={() => setPreviewDelete(false)}
+                  onDone={(out) => {
+                    void qc.invalidateQueries({ queryKey: ["me", "notes"] });
+                    void qc.invalidateQueries({ queryKey: ["me", "recent-work"] });
+                    navigate("/notes", { replace: true, state: { deleted: { id: current.id, title: current.title, until: out.restorable_until } } });
+                  }}
+                />
+              )}
               {previewArchive && !current.archived && (
                 <ImpactPreview
                   load={loadArchive}

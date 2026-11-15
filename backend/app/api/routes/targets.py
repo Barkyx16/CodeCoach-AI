@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.models import User
 from app.schemas.common import error_responses
+from app.schemas.lifecycle import Impact, LifecycleIn, LifecycleOutcome
 from app.schemas.roles import (
     ExperienceEdit,
     ExperienceIn,
@@ -18,6 +19,7 @@ from app.schemas.roles import (
     TargetPatch,
     TargetSummary,
 )
+from app.services.lifecycle import Lifecycle
 from app.services.roles import RoleTargets
 
 router = APIRouter(prefix="/api/v1/targets", tags=["targets"])
@@ -71,6 +73,30 @@ def update_target(
     db: Session = Depends(get_db),
 ) -> TargetOut:
     return _svc(request, db).update(user, target_id, body)
+
+
+@router.get(
+    "/{target_id}/archive-preview",
+    response_model=Impact,
+    responses=error_responses(401, 404),
+    summary="What archiving it would hide and keep (nothing is changed; archiving is reversible)",
+)
+def archive_preview(
+    target_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> Impact:
+    return Lifecycle(db, user).plan_archive_target(target_id)
+
+
+@router.post(
+    "/{target_id}/archive",
+    response_model=LifecycleOutcome,
+    responses=error_responses(401, 404, 409, 422),
+    summary="Archive it as previewed: a changed scope is refused (409 impact_changed) with the new preview",
+)
+def archive_as_previewed(
+    target_id: str, body: LifecycleIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> LifecycleOutcome:
+    return Lifecycle(db, user).archive_target(target_id, body)
 
 
 @router.delete(

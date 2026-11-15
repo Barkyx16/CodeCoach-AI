@@ -51,7 +51,7 @@ from app.schemas.stories import (
     StoryUseReflection,
 )
 from app.services import request_keys, story_assist, update_receipts
-from app.services.story_freshness import forget
+from app.services.lifecycle import Lifecycle, deleted_earlier
 
 MAX_STORIES = 200
 MAX_REVISIONS = 100
@@ -408,6 +408,8 @@ class Stories:
         if body.client_request_id and (made := self._by_request(user, body.client_request_id)):
             request_keys.check(made.request_fingerprint, print_, "story")
             return self.get(user, made.id)
+        # A late retry of the create of a story deleted since: refused, not made again (docs/LIFECYCLE.md).
+        deleted_earlier(self.db, user, body.client_request_id, kind="story")
         n = (
             self.db.scalar(
                 select(func.count()).select_from(ExperienceEntry).where(ExperienceEntry.user_id == user.id)
@@ -521,12 +523,8 @@ class Stories:
         return self.get(user, e.id)
 
     def delete(self, user: User, story_id: str) -> None:
-        e = self._get(user, story_id)
-        # Its requirement links go with it, and so do the decisions about them. A kit keeps what it
-        # prepared from the story, with its decisions, until removed there (docs/STORY_FRESHNESS.md).
-        forget(self.db, user.id, holder_kind="requirement_link", source_id=e.id)
-        self.db.delete(e)  # revisions go with it; answers that rehearsed it keep their text and score
-        self.db.commit()
+        """An older client's delete, sent without a preview: the plan as it is now (docs/LIFECYCLE.md)."""
+        Lifecycle(self.db, user).delete_story(story_id, None)
 
     def assist(self, user: User, story_id: str, body: StoryAssistIn) -> StoryAssistOut:
         e = self._get(user, story_id)

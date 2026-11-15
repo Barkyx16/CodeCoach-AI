@@ -5,12 +5,18 @@ made unavailable. The list comes from the same planning function that then carri
 (Volume 12, prompt 9).
 
 - The planner: `backend/app/services/lifecycle.py` (`Lifecycle.plan_delete_application`,
-  `plan_archive_note`, and the matching `delete_application`, `archive_note`).
+  `plan_archive_note`, `plan_delete_story`, `plan_delete_note`, `plan_archive_target`, and the
+  matching `delete_application`, `archive_note`, `delete_story`, `delete_note`, `archive_target`).
 - The preview: `frontend/src/features/lifecycle/ImpactPreview.tsx`, on the application page
-  (**Delete…**) and the note page (**Archive…**).
-- Scope so far: **deleting an application** and **archiving a note**. Other lifecycle actions (note
-  deletion with its undo window, story deletion, archiving other kinds, account deletion) keep their
-  own confirmations for now and adopt the planner later, one at a time.
+  (**Delete…**), the note page (**Archive…** and **Delete…**), the story page (**Delete…**) and the
+  target workspace (**Archive…**).
+- Scope so far: **deleting an application** and **archiving a note** (Volume 12, prompt 9);
+  **deleting a story**, **deleting a note** (with its undo window) and **archiving a target**
+  (Volume 13, prompt 5). Other lifecycle actions (archiving a story or an application, account
+  deletion) keep their own confirmations for now and adopt the planner later, one at a time.
+- The older routes carry out the same plan, as it is when they're called: `DELETE
+  /me/stories/{id}`, `DELETE /me/notes/{id}` and `PATCH /targets/{id}` with `archived: true` do
+  exactly what the preview would list.
 
 ## One plan, used twice
 
@@ -37,7 +43,7 @@ get the same plan, worked out at that moment (no fingerprint to compare), and th
 | Effect | Means | Reversible? |
 |---|---|---|
 | **archived** | Hidden from the usual lists; nothing is erased. | Yes: Unarchive. |
-| **deleted** | Removed from the account. No undo window for applications. | No. |
+| **deleted** | Removed from the account. No undo window for applications or stories. | No, except a note: Undo for 10 minutes. |
 | **unlinked** | The link goes; the other record stays exactly as it is. | The link can be made again by hand. |
 | **kept** | Not touched: listed so it's clear it stays. | n/a |
 | **unavailable** | Stays, but what it pointed at is gone, so it says "no longer available". | n/a |
@@ -73,6 +79,53 @@ Before this, an offer comparison that named a deleted application couldn't be op
 
 A note that's already archived previews "This note is already archived" with nothing to do.
 
+### Deleting a story
+
+| What | Effect |
+|---|---|
+| The story, with its saved versions | deleted |
+| Each link to a target's requirement, with the review decisions about it | deleted (the requirement stays on its target) |
+| Each interview-day kit that chose it | kept: the kit keeps what it prepared from the story, as it was, until removed there ("Remove it from this kit"; docs/STORY_FRESHNESS.md) |
+| Applications that list it | unlinked (they stay in your applications; before this, the deleted story's id stayed on them, unlisted, and the version 2 export showed it as a missing link) |
+| Reflections that list it | unavailable: each stays and keeps what it recorded, saying "A story you linked was deleted from your story bank since." (as before) |
+| Practice answers that rehearsed it | unlinked: each keeps its text and score, without naming the story |
+
+The summary names the reach: "Delete this story, its 1 requirement link and its revisions"; with
+nothing else, "Delete this story, its revisions" (a story always has at least its first version).
+The notes are the application's: it can't be undone, Archive keeps it out of the way instead, and
+backups made before now still hold a copy. A story's create key is kept like an application's, so
+a late retry of the create that made it is refused (410 `deleted_earlier`) instead of making it
+again.
+
+### Deleting a note
+
+| What | Effect |
+|---|---|
+| The note | deleted, restorable for 10 minutes (Undo) exactly as it is now; after that it's removed from CodeCoach |
+| Its pin, if pinned | kept: Undo brings it back pinned |
+| A reflection's next step that made it | kept: still done |
+| Practice packets | kept: a packet is made when asked for, so a deleted note just isn't offered; one already saved keeps its copy |
+
+The outcome carries `restorable_until`; the notes list then says "Deleted “Handover phrases”. You
+can undo this until 14:05; after that it's removed from CodeCoach." and offers **Undo** until that
+time (the browser's clock; the server decides). Before this, deleting a pinned note unpinned it, so
+Undo brought it back different; it's kept now. A deleted note isn't in the export.
+
+### Archiving a target
+
+| What | Effect |
+|---|---|
+| The target | archived: hidden from the targets list; still opens; in the export |
+| Being the active target, if it was | unlinked: unarchiving doesn't make it active again |
+| Each requirement (not removed ones) | kept, with its versions |
+| Stories written for it or linked to it | kept, still linked |
+| Applications linked to it | kept, still linked |
+| Accepted improvements listed with its requirements | kept: still on the plan and the schedule |
+| Answers and rounds practised for it | kept: they stay in your history and still count |
+
+Archiving is reversible: **Unarchive** brings it back as it was (not as the active target). A target
+that's already archived previews "This target is already archived" with everything kept.
+
 ## What can't bring it back
 
 - **A retried request** (`client_request_id`): the first one leaves a receipt; the same key again
@@ -81,15 +134,15 @@ A note that's already archived previews "This note is already archived" with not
   `idempotency_key_reused`). A refused request (a changed scope) leaves no receipt, so the key isn't
   spent.
 - **A late retry of the create** (the browser keeps unconfirmed requests for a day): deleting an
-  application records its create key, so that create sent again is refused with 410
-  `deleted_earlier` instead of making it again. A create with a new key makes a new application,
-  as always.
+  application or a story records its create key, so that create sent again is refused with 410
+  `deleted_earlier` instead of making it again. A create with a new key makes a new one, as
+  always.
 - **Another tab or a request in flight**: adding an event, saving its kit or reflection, accepting a
   reflection's next step, or scheduling preparation for a deleted application's event answers 404.
   Two deletes at once: the second waits for the first (a row lock on PostgreSQL), then answers with
   the first's receipt if it's the same request, or 404.
-- Nothing runs in the background for an application or a note (no judge run, no queued email), so
-  there's nothing in flight to finish later.
+- Nothing runs in the background for an application, a note, a story or a target (no judge run, no
+  queued email), so there's nothing in flight to finish later.
 
 ## Privacy and retention
 
@@ -117,6 +170,12 @@ Everything listed as kept or unlinked is where it was." After an archive the not
 "Archived Handover phrases. It's hidden from your notes list, Continue and search; nothing is
 erased. Unarchive brings it back." with focus on it.
 
+The story page's **Delete…** and the note page's **Delete…** replace the browser's confirm box
+(the list is the confirmation); after either, the page goes to the list (the notes list offers
+Undo). The target workspace's **Archive…** opens the list under the header; after it, "Archived ED
+Nurse. Unarchive it any time. It's hidden from your targets list; its requirements, stories and
+practice are kept." has focus, and **Unarchive** (no preview: it hides nothing) takes its place.
+
 ## API
 
 - `GET /api/v1/me/applications/{id}/delete-preview` → `Impact`
@@ -124,5 +183,12 @@ erased. Unarchive brings it back." with focus on it.
   `LifecycleOutcome` (409 `impact_changed`, 404, 409 `idempotency_key_reused`)
 - `GET /api/v1/me/notes/{id}/archive-preview` → `Impact`
 - `POST /api/v1/me/notes/{id}/archive` `{expected_fingerprint, client_request_id?}` → `LifecycleOutcome`
+- `GET /api/v1/me/notes/{id}/delete-preview` → `Impact`; `POST /api/v1/me/notes/{id}/delete` →
+  `LifecycleOutcome` with `restorable_until`; `POST /api/v1/me/notes/{id}/restore` is Undo
+- `GET /api/v1/me/stories/{id}/delete-preview` → `Impact`; `POST /api/v1/me/stories/{id}/delete` →
+  `LifecycleOutcome`
+- `GET /api/v1/targets/{id}/archive-preview` → `Impact`; `POST /api/v1/targets/{id}/archive` →
+  `LifecycleOutcome`
 - `Impact` = `{action, target_id, title, summary, effects: [{effect, kind, title, id, note}], notes,
-  fingerprint}`; `LifecycleOutcome` adds `done_at`, `replayed` and `message`.
+  fingerprint}`; `LifecycleOutcome` adds `done_at`, `replayed`, `message` and `restorable_until`
+  (a deleted note only).

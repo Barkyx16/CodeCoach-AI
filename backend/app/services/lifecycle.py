@@ -9,7 +9,8 @@ refused with the new plan, never carried out silently. A keyed request sent agai
 is answered with what was done (a receipt), never done twice. Only the learner's own records are
 ever read: another account's id is "not found", the same as one that doesn't exist.
 
-Adopted so far by deleting an application and archiving a note.
+Adopted by deleting an application, archiving a note (Volume 12, prompt 9), and deleting a story,
+deleting a note (with its undo window) and archiving a target (Volume 13, prompt 5).
 """
 
 from __future__ import annotations
@@ -27,6 +28,7 @@ from app.errors import ConflictError, GoneError, NotFoundError
 from app.models import (
     AcceptedAction,
     Application,
+    ApplicationEvent,
     Bookmark,
     ExperienceEntry,
     InterviewKit,
@@ -34,8 +36,12 @@ from app.models import (
     LifecycleReceipt,
     Note,
     OfferComparison,
+    PracticeAnswer,
     ReflectionAction,
+    RoleTarget,
     ScheduleEntry,
+    StoryRevision,
+    TargetRequirement,
     User,
 )
 from app.schemas.lifecycle import Effect, EffectKind, Impact, LifecycleIn, LifecycleOutcome
@@ -44,6 +50,8 @@ from app.services.story_freshness import forget
 
 RECEIPT_DAYS = 7  # the browser retries an unconfirmed request for at most a day (pendingIntents.ts)
 TOMBSTONE = "tombstone:application"  # a deleted application's create key: never made again
+STORY_TOMBSTONE = "tombstone:story"  # the same for a deleted story
+NOTE_UNDO = timedelta(minutes=10)  # app/services/notes.py UNDO_WINDOW
 
 
 def _plural(n: int, one: str, many: str | None = None) -> str:
@@ -372,6 +380,344 @@ class Lifecycle:
             n.updated_at = datetime.now(UTC)
         return self._finish(impact, body, f"Archived {impact.title}.")
 
+    # --- delete a story ------------------------------------------------------------------------------
+
+    def _story(self, story_id: str) -> ExperienceEntry:
+        st = self.db.get(ExperienceEntry, story_id)
+        if st is None or st.user_id != self.user.id:
+            raise NotFoundError("Story not found")
+        return st
+
+    def _holding_story(self, model, story_id: str) -> list:
+        """This account's records of one kind that list the story (their `story_ids`)."""
+        return [
+            r
+            for r in self.db.scalars(select(model).where(model.user_id == self.user.id))
+            if story_id in (r.story_ids or [])
+        ]
+
+    def plan_delete_story(self, story_id: str) -> Impact:
+        st = self._story(story_id)
+        uid = self.user.id
+        revisions = len(
+            list(self.db.scalars(select(StoryRevision.id).where(StoryRevision.story_id == st.id)))
+        )
+        effects = [
+            _effect(
+                "deleted",
+                "story",
+                st.title,
+                st.id,
+                f"With its {_plural(revisions, 'saved version')}." if revisions else None,
+            )
+        ]
+        reqs = (
+            {
+                r.id: r
+                for r in self.db.scalars(
+                    select(TargetRequirement)
+                    .join(RoleTarget, RoleTarget.id == TargetRequirement.target_id)
+                    .where(
+                        RoleTarget.user_id == uid, TargetRequirement.id.in_(list(st.requirement_ids or []))
+                    )
+                )
+            }
+            if st.requirement_ids
+            else {}
+        )
+        for rid in st.requirement_ids or []:
+            if (r := reqs.get(rid)) is not None:
+                effects.append(
+                    _effect(
+                        "deleted",
+                        "requirement link",
+                        f"Its link to “{r.text}”",
+                        r.id,
+                        "With the review decisions you made about it. The requirement itself stays on its target.",
+                    )
+                )
+        events = {
+            e.id: e.title
+            for e in self.db.scalars(
+                select(ApplicationEvent)
+                .join(Application, Application.id == ApplicationEvent.application_id)
+                .where(Application.user_id == uid)
+            )
+        }
+        for k in self._holding_story(InterviewKit, st.id):
+            effects.append(
+                _effect(
+                    "kept",
+                    "interview-day kit",
+                    f"Kit for {events.get(k.event_id, 'an interview')}",
+                    k.event_id,
+                    "Keeps what it prepared from this story, as it was, until you remove it there "
+                    "(docs/STORY_FRESHNESS.md).",
+                )
+            )
+        for a in self._holding_story(Application, st.id):
+            effects.append(
+                _effect(
+                    "unlinked",
+                    "application",
+                    f"{a.role_title} at {a.employer}",
+                    a.id,
+                    "Stays in your applications; it no longer lists this story.",
+                )
+            )
+        for r in self._holding_story(InterviewReflection, st.id):
+            # A reflection records what was used, so it keeps the link and says the story was
+            # deleted since (missing_stories), as it always has.
+            effects.append(
+                _effect(
+                    "unavailable",
+                    "reflection",
+                    f"Reflection on {r.event_title}",
+                    r.event_id,
+                    "Stays, and says a story you linked was deleted from your story bank since.",
+                )
+            )
+        for ans in self.db.scalars(
+            select(PracticeAnswer).where(PracticeAnswer.user_id == uid, PracticeAnswer.story_id == st.id)
+        ):
+            effects.append(
+                _effect(
+                    "unlinked",
+                    "practice answer",
+                    "An answer that rehearsed it",
+                    ans.id,
+                    "Keeps its text and score; it no longer names the story.",
+                )
+            )
+        links = sum(e.kind == "requirement link" for e in effects)
+        parts = [
+            p
+            for p in (
+                f"its {_plural(links, 'requirement link')}" if links else "",
+                "its revisions" if revisions else "",
+            )
+            if p
+        ]
+        return Impact(
+            action="delete_story",
+            target_id=st.id,
+            title=st.title,
+            summary="Delete this story" + (", " + " and ".join(parts) if parts else ""),
+            effects=effects,
+            notes=[
+                "This can't be undone. Archive keeps it out of the way instead.",
+                "Backups you made before now still hold a copy until you delete them.",
+            ],
+            fingerprint=fingerprint("delete_story", st.id, effects),
+        )
+
+    def delete_story(self, story_id: str, body: LifecycleIn | None) -> LifecycleOutcome:
+        if (done := self._replay(body, "delete_story", story_id)) is not None:
+            return done
+        try:
+            st = lock_for_update(self.db, self._story(story_id))
+        except InvalidRequestError:
+            self.db.rollback()
+            if (done := self._replay(body, "delete_story", story_id)) is not None:
+                return done
+            raise NotFoundError("Story not found") from None
+        if body and body.client_request_id and body.client_request_id == st.client_request_id:
+            raise request_keys.reused("request")
+        impact = self.plan_delete_story(story_id)  # ownership and links, again
+        self._check(impact, body)
+        for row in self._holding_story(Application, st.id):
+            row.story_ids = [x for x in row.story_ids if x != st.id]
+        # Answers that rehearsed it keep their text and score; their story_id is cleared by the
+        # database (fk_answer_story, ON DELETE SET NULL), as the preview lists.
+        # Its requirement links go with it, and so do the decisions about them; a kit keeps what it
+        # prepared, with its decisions, until removed there (docs/STORY_FRESHNESS.md).
+        forget(self.db, self.user.id, holder_kind="requirement_link", source_id=st.id)
+        if st.client_request_id:
+            self.db.add(
+                LifecycleReceipt(
+                    user_id=self.user.id,
+                    client_request_id=st.client_request_id,
+                    action=STORY_TOMBSTONE,
+                    target_id=st.id,
+                    impact={},
+                    created_at=datetime.now(UTC),
+                )
+            )
+        self.db.delete(st)  # its revisions go with it
+        return self._finish(impact, body, f"Deleted {impact.title}.")
+
+    # --- delete a note (restorable for 10 minutes) ----------------------------------------------------
+
+    def plan_delete_note(self, note_id: str) -> Impact:
+        n = self._note(note_id)
+        title = n.title or "Untitled note"
+        effects = [
+            _effect(
+                "deleted",
+                "note",
+                title,
+                n.id,
+                "Restorable for 10 minutes after you delete it (Undo), exactly as it is now; after that it's "
+                "removed from CodeCoach.",
+            )
+        ]
+        if n.pinned:
+            effects.append(
+                _effect(
+                    "kept",
+                    "pin",
+                    "Pinned to the top of your notes",
+                    n.id,
+                    "Restoring it brings it back pinned.",
+                )
+            )
+        for s in self.db.scalars(
+            select(ReflectionAction).where(
+                ReflectionAction.user_id == self.user.id,
+                ReflectionAction.target == "notebook",
+                ReflectionAction.applied_ref == n.id,
+            )
+        ):
+            effects.append(
+                _effect("kept", "reflection next step", s.title, s.id, "Still done on your reflection.")
+            )
+        effects.append(
+            _effect(
+                "kept",
+                "practice packet",
+                "Practice packets",
+                None,
+                "A packet is made when you ask for one, so a deleted note just isn't offered; a packet you "
+                "already saved keeps its copy.",
+            )
+        )
+        return Impact(
+            action="delete_note",
+            target_id=n.id,
+            title=title,
+            summary="Delete this note (you can undo it for 10 minutes)",
+            effects=effects,
+            notes=["Backups you made before now still hold a copy until you delete them."],
+            fingerprint=fingerprint("delete_note", n.id, effects),
+        )
+
+    def delete_note(self, note_id: str, body: LifecycleIn | None) -> LifecycleOutcome:
+        if (done := self._replay(body, "delete_note", note_id)) is not None:
+            return done
+        impact = self.plan_delete_note(note_id)
+        self._check(impact, body)
+        n = self._note(note_id)
+        delete_note_now(n)
+        until = _aware(n.deleted_at or datetime.now(UTC)) + NOTE_UNDO
+        out = self._finish(
+            impact, body, f"Deleted {impact.title}. You can undo it for 10 minutes.", restorable_until=until
+        )
+        return out
+
+    # --- archive a target ------------------------------------------------------------------------------
+
+    def _target(self, target_id: str) -> RoleTarget:
+        t = self.db.get(RoleTarget, target_id)
+        if t is None or t.user_id != self.user.id:
+            raise NotFoundError("Target not found")
+        return t
+
+    def plan_archive_target(self, target_id: str) -> Impact:
+        from app.services.requirement_versions import RequirementVersions
+
+        t = self._target(target_id)
+        uid = self.user.id
+        effects: list[Effect] = []
+        if not t.archived:
+            effects.append(
+                _effect(
+                    "archived",
+                    "target",
+                    t.title,
+                    t.id,
+                    "Hidden from your targets list. Unarchive it any time and it comes back as it was; nothing "
+                    "is deleted.",
+                )
+            )
+            if t.selected:
+                effects.append(
+                    _effect(
+                        "unlinked",
+                        "active target",
+                        "Your active target",
+                        t.id,
+                        "It stops being your active target; unarchiving won't make it active again.",
+                    )
+                )
+        for r in sorted((r for r in t.requirements if not r.removed), key=lambda r: r.position):
+            effects.append(
+                _effect("kept", "requirement", r.text, r.id, "Kept with the target, with its versions.")
+            )
+        for st in self.db.scalars(
+            select(ExperienceEntry).where(ExperienceEntry.user_id == uid, ExperienceEntry.target_id == t.id)
+        ):
+            effects.append(
+                _effect("kept", "story", st.title, st.id, "Stays in your story bank, still linked to it.")
+            )
+        for a in self.db.scalars(
+            select(Application).where(Application.user_id == uid, Application.target_id == t.id)
+        ):
+            effects.append(
+                _effect(
+                    "kept",
+                    "application",
+                    f"{a.role_title} at {a.employer}",
+                    a.id,
+                    "Stays, still linked to it.",
+                )
+            )
+        seen: set[str] = set()
+        for link in RequirementVersions(self.db, self.user).action_links(t):
+            if link.action_id in seen:
+                continue
+            seen.add(link.action_id)
+            effects.append(
+                _effect(
+                    "kept",
+                    "accepted improvement",
+                    link.title,
+                    link.action_id,
+                    "Stays on your plan and schedule; still listed with the target's requirements.",
+                )
+            )
+        effects.append(
+            _effect(
+                "kept",
+                "practice",
+                "Answers and rounds you practised for it",
+                None,
+                "They stay in your history and still count.",
+            )
+        )
+        return Impact(
+            action="archive_target",
+            target_id=t.id,
+            title=t.title,
+            summary="Archive this target" if not t.archived else "This target is already archived",
+            effects=effects,
+            notes=[
+                "Archiving isn't deleting: everything listed stays, comes back when you unarchive it, and is in "
+                "your data export."
+            ],
+            fingerprint=fingerprint("archive_target", t.id, effects),
+        )
+
+    def archive_target(self, target_id: str, body: LifecycleIn | None) -> LifecycleOutcome:
+        if (done := self._replay(body, "archive_target", target_id)) is not None:
+            return done
+        impact = self.plan_archive_target(target_id)
+        self._check(impact, body)
+        t = self._target(target_id)
+        if not t.archived:
+            archive_target_now(t)
+            t.updated_at = datetime.now(UTC)
+        return self._finish(impact, body, f"Archived {impact.title}. Unarchive it any time.")
+
     # --- shared -------------------------------------------------------------------------------------
 
     def _replay(self, body: LifecycleIn | None, action: str, target_id: str) -> LifecycleOutcome | None:
@@ -402,8 +748,15 @@ class Lifecycle:
                 details={"current": impact.model_dump(mode="json")},
             )
 
-    def _finish(self, impact: Impact, body: LifecycleIn | None, message: str) -> LifecycleOutcome:
-        out = LifecycleOutcome(**impact.model_dump(), done_at=datetime.now(UTC), message=message)
+    def _finish(
+        self, impact: Impact, body: LifecycleIn | None, message: str, restorable_until: datetime | None = None
+    ) -> LifecycleOutcome:
+        out = LifecycleOutcome(
+            **impact.model_dump(),
+            done_at=datetime.now(UTC),
+            message=message,
+            restorable_until=restorable_until,
+        )
         key = body.client_request_id if body else None
         if key:
             # What was done, by kind and id, without any titles: a receipt mustn't keep the words of
@@ -435,6 +788,23 @@ class Lifecycle:
         return out
 
 
+def _aware(dt: datetime) -> datetime:
+    return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
+
+
+def delete_note_now(n: Note) -> None:
+    """What deleting a note does, wherever it's asked: hidden for the undo window, then removed. Its
+    pin is kept, so Undo brings it back exactly as it was."""
+    n.deleted_at = datetime.now(UTC)
+
+
+def archive_target_now(t: RoleTarget) -> None:
+    """What archiving a target does, wherever it's asked (the preview, the target's own Archive):
+    hidden, and no longer the active one. Nothing is deleted; unarchiving doesn't make it active."""
+    t.archived = True
+    t.selected = False
+
+
 def archive_note_now(n: Note) -> None:
     """What archiving a note does, wherever it's asked (the preview, a note's own Archive, a bulk
     archive): hidden, and unpinned. Nothing is erased; unarchiving doesn't pin it again."""
@@ -442,19 +812,20 @@ def archive_note_now(n: Note) -> None:
     n.pinned = False
 
 
-def deleted_earlier(db: Session, user: User, key: str | None) -> None:
-    """A create sent again after the application it made was deleted: refused, not made again."""
+def deleted_earlier(db: Session, user: User, key: str | None, kind: str = "application") -> None:
+    """A create sent again after the record it made was deleted: refused, not made again."""
     if not key:
         return
     if db.scalar(
         select(LifecycleReceipt.id).where(
             LifecycleReceipt.user_id == user.id,
             LifecycleReceipt.client_request_id == key,
-            LifecycleReceipt.action == TOMBSTONE,
+            LifecycleReceipt.action == (STORY_TOMBSTONE if kind == "story" else TOMBSTONE),
         )
     ):
         raise GoneError(
-            "This request made an application that has since been deleted, so it isn't made again.",
+            f"This request made {'a story' if kind == 'story' else 'an application'} that has since been "
+            "deleted, so it isn't made again.",
             code="deleted_earlier",
         )
 

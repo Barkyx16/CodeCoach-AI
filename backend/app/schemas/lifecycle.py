@@ -8,7 +8,9 @@ from pydantic import Field
 from app.schemas.common import APIModel, OptionalKey
 
 EffectKind = Literal["archived", "deleted", "unlinked", "kept", "unavailable"]
-LifecycleAction = Literal["delete_application", "archive_note"]
+LifecycleAction = Literal[
+    "delete_application", "archive_note", "delete_story", "delete_note", "archive_target"
+]
 
 
 class Effect(APIModel):
@@ -54,3 +56,6 @@ class LifecycleOutcome(Impact):
         description="True when this repeats an earlier request whose reply was lost: nothing was done again",
     )
     message: str
+    restorable_until: datetime | None = Field(
+        default=None, description="A deleted note: Undo brings it back exactly as it was until this time"
+    )

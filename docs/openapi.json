@@ -5910,6 +5910,160 @@
         }
       }
     },
+    "/api/v1/me/notes/{note_id}/delete-preview": {
+      "get": {
+        "tags": [
+          "notes"
+        ],
+        "summary": "What deleting it would do, and how long Undo lasts (nothing is changed)",
+        "operationId": "delete_preview_api_v1_me_notes__note_id__delete_preview_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Note Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Impact"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/notes/{note_id}/delete": {
+      "post": {
+        "tags": [
+          "notes"
+        ],
+        "summary": "Delete it as previewed (restorable for 10 minutes); a changed scope is refused (409 impact_changed)",
+        "operationId": "delete_as_previewed_api_v1_me_notes__note_id__delete_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "note_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Note Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LifecycleIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LifecycleOutcome"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/notes/{note_id}/restore": {
       "post": {
         "tags": [
@@ -8104,6 +8258,160 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/stories/{story_id}/delete-preview": {
+      "get": {
+        "tags": [
+          "stories"
+        ],
+        "summary": "What deleting it would delete, unlink and keep (nothing is changed)",
+        "operationId": "delete_preview_api_v1_me_stories__story_id__delete_preview_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "story_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Story Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Impact"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/stories/{story_id}/delete": {
+      "post": {
+        "tags": [
+          "stories"
+        ],
+        "summary": "Delete it as previewed: a changed scope is refused (409 impact_changed) with the new preview",
+        "operationId": "delete_as_previewed_api_v1_me_stories__story_id__delete_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "story_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Story Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LifecycleIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LifecycleOutcome"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -21815,6 +22123,160 @@
         }
       }
     },
+    "/api/v1/targets/{target_id}/archive-preview": {
+      "get": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "What archiving it would hide and keep (nothing is changed; archiving is reversible)",
+        "operationId": "archive_preview_api_v1_targets__target_id__archive_preview_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Impact"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/targets/{target_id}/archive": {
+      "post": {
+        "tags": [
+          "targets"
+        ],
+        "summary": "Archive it as previewed: a changed scope is refused (409 impact_changed) with the new preview",
+        "operationId": "archive_as_previewed_api_v1_targets__target_id__archive_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "target_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Target Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LifecycleIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LifecycleOutcome"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/targets/{target_id}/extract": {
       "post": {
         "tags": [
@@ -32163,7 +32625,10 @@
             "type": "string",
             "enum": [
               "delete_application",
-              "archive_note"
+              "archive_note",
+              "delete_story",
+              "delete_note",
+              "archive_target"
             ],
             "title": "Action"
           },
@@ -34299,7 +34764,10 @@
             "type": "string",
             "enum": [
               "delete_application",
-              "archive_note"
+              "archive_note",
+              "delete_story",
+              "delete_note",
+              "archive_target"
             ],
             "title": "Action"
           },
@@ -34351,6 +34819,19 @@
           "message": {
             "type": "string",
             "title": "Message"
+          },
+          "restorable_until": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Restorable Until",
+            "description": "A deleted note: Undo brings it back exactly as it was until this time"
           }
         },
         "type": "object",

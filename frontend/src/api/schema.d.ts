@@ -1186,6 +1186,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/notes/{note_id}/delete-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What deleting it would do, and how long Undo lasts (nothing is changed) */
+        get: operations["delete_preview_api_v1_me_notes__note_id__delete_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/notes/{note_id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete it as previewed (restorable for 10 minutes); a changed scope is refused (409 impact_changed) */
+        post: operations["delete_as_previewed_api_v1_me_notes__note_id__delete_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/notes/{note_id}/restore": {
         parameters: {
             query?: never;
@@ -1594,6 +1628,40 @@ export interface paths {
         put?: never;
         /** Unarchive */
         post: operations["unarchive_story_api_v1_me_stories__story_id__unarchive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}/delete-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What deleting it would delete, unlink and keep (nothing is changed) */
+        get: operations["delete_preview_api_v1_me_stories__story_id__delete_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/stories/{story_id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete it as previewed: a changed scope is refused (409 impact_changed) with the new preview */
+        post: operations["delete_as_previewed_api_v1_me_stories__story_id__delete_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4097,6 +4165,40 @@ export interface paths {
         head?: never;
         /** Edit, archive or select a target. Editing the description keeps requirements and attempts */
         patch: operations["update_target_api_v1_targets__target_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/archive-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What archiving it would hide and keep (nothing is changed; archiving is reversible) */
+        get: operations["archive_preview_api_v1_targets__target_id__archive_preview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/targets/{target_id}/archive": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Archive it as previewed: a changed scope is refused (409 impact_changed) with the new preview */
+        post: operations["archive_as_previewed_api_v1_targets__target_id__archive_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/targets/{target_id}/extract": {
@@ -8209,7 +8311,7 @@ export interface components {
              * Action
              * @enum {string}
              */
-            action: "delete_application" | "archive_note";
+            action: "delete_application" | "archive_note" | "delete_story" | "delete_note" | "archive_target";
             /** Target Id */
             target_id: string;
             /** Title */
@@ -9009,7 +9111,7 @@ export interface components {
              * Action
              * @enum {string}
              */
-            action: "delete_application" | "archive_note";
+            action: "delete_application" | "archive_note" | "delete_story" | "delete_note" | "archive_target";
             /** Target Id */
             target_id: string;
             /** Title */
@@ -9047,6 +9149,11 @@ export interface components {
             replayed: boolean;
             /** Message */
             message: string;
+            /**
+             * Restorable Until
+             * @description A deleted note: Undo brings it back exactly as it was until this time
+             */
+            restorable_until?: string | null;
         };
         /** LineageEntry */
         LineageEntry: {
@@ -19100,6 +19207,117 @@ export interface operations {
             };
         };
     };
+    delete_preview_api_v1_me_notes__note_id__delete_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Impact"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_as_previewed_api_v1_me_notes__note_id__delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleOutcome"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     restore_note_api_v1_me_notes__note_id__restore_post: {
         parameters: {
             query?: never;
@@ -20694,6 +20912,117 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_preview_api_v1_me_stories__story_id__delete_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Impact"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_as_previewed_api_v1_me_stories__story_id__delete_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                story_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleOutcome"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };
@@ -30371,6 +30700,117 @@ export interface operations {
             };
             /** @description Not found (also returned for resources owned by another user) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    archive_preview_api_v1_targets__target_id__archive_preview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Impact"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    archive_as_previewed_api_v1_targets__target_id__archive_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                target_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LifecycleIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LifecycleOutcome"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

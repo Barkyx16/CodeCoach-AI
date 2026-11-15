@@ -4,10 +4,10 @@ Synthetic accounts only. Restore still reads only version 1 and refuses version 
 import copy
 import json
 
-from sqlalchemy import func, select
+from sqlalchemy import delete, func, select
 
 from app.cli import main as cli
-from app.models import Note
+from app.models import ExperienceEntry, Note
 from app.services.export_v2 import validate_export
 from tests.conftest import auth_headers, register
 
@@ -68,7 +68,11 @@ def linked_account(client, h):
     note_id = next(x for x in accepted.json()["actions"] if x["id"] == note_step["id"])["applied_ref"]
     client.post(f"{r_url}/actions/{practice['id']}/accept", headers=h, json={"target": "saved"})
     client.delete(f"/api/v1/me/notes/{note_id}", headers=h)  # in the bin: not in the file
-    client.delete(f"/api/v1/me/stories/{s3['id']}", headers=h)  # deleted: a missing link
+    # A story gone without its links being cleared (as data from before deleting a story unlinked
+    # applications, docs/LIFECYCLE.md): a missing link.
+    with client.app.state.session_factory() as db:
+        db.execute(delete(ExperienceEntry).where(ExperienceEntry.id == s3["id"]))
+        db.commit()
     prep = client.post(
         "/api/v1/me/schedule",
         headers=h,

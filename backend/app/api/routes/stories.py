@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.models import User
 from app.schemas.common import error_responses
+from app.schemas.lifecycle import Impact, LifecycleIn, LifecycleOutcome
 from app.schemas.stories import (
     Competency,
     StoryAssistIn,
@@ -18,6 +19,7 @@ from app.schemas.stories import (
     StoryUpdate,
     StoryUsedIn,
 )
+from app.services.lifecycle import Lifecycle
 from app.services.stories import Stories
 
 router = APIRouter(prefix="/api/v1/me/stories", tags=["stories"])
@@ -82,6 +84,30 @@ def unarchive_story(
     story_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> StoryOut:
     return Stories(db).set_archived(user, story_id, False)
+
+
+@router.get(
+    "/{story_id}/delete-preview",
+    response_model=Impact,
+    responses=error_responses(401, 404),
+    summary="What deleting it would delete, unlink and keep (nothing is changed)",
+)
+def delete_preview(
+    story_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> Impact:
+    return Lifecycle(db, user).plan_delete_story(story_id)
+
+
+@router.post(
+    "/{story_id}/delete",
+    response_model=LifecycleOutcome,
+    responses=error_responses(401, 404, 409, 422),
+    summary="Delete it as previewed: a changed scope is refused (409 impact_changed) with the new preview",
+)
+def delete_as_previewed(
+    story_id: str, body: LifecycleIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> LifecycleOutcome:
+    return Lifecycle(db, user).delete_story(story_id, body)
 
 
 @router.delete(

@@ -1,7 +1,7 @@
 /** In-memory notes API for tests: revisions, 409 conflicts, undo, and switchable failures. */
 import { http, HttpResponse } from "msw";
 
-import type { Note } from "@/api/types";
+import type { Impact, Note } from "@/api/types";
 
 const API = "http://localhost:8000";
 export const noteStore = {
@@ -21,6 +21,21 @@ export function resetNoteStore() {
   noteStore.keys = new Map();
   noteStore.dropNextCreateReply = false;
   noteStore.bodies = [];
+}
+
+/** What deleting a note would do, as the server works it out (app/services/lifecycle.py). */
+export function notePreview(n: Note): Impact {
+  const fx = (effect: Impact["effects"][number]["effect"], kind: string, title: string, id: string | null, note: string | null) => ({ effect, kind, title, id, note });
+  return {
+    action: "delete_note", target_id: n.id, title: n.title, summary: "Delete this note (you can undo it for 10 minutes)",
+    effects: [
+      fx("deleted", "note", n.title, n.id, "Restorable for 10 minutes after you delete it (Undo), exactly as it is now; after that it's removed from CodeCoach."),
+      ...(n.pinned ? [fx("kept", "pin", "Pinned to the top of your notes", n.id, "Restoring it brings it back pinned.")] : []),
+      fx("kept", "practice packet", "Practice packets", null, "A packet is made when you ask for one, so a deleted note just isn't offered; a packet you already saved keeps its copy."),
+    ],
+    notes: ["Backups you made before now still hold a copy until you delete them."],
+    fingerprint: `fp-${n.id}-${n.pinned ? "pinned" : "plain"}-${n.title}`,
+  };
 }
 
 export function makeNote(over: Partial<Note> = {}): Note {
@@ -98,6 +113,25 @@ export const noteHandlers = [
     noteStore.notes = noteStore.notes.filter((x) => x !== n);
     noteStore.deleted.push(n);
     return HttpResponse.json({ id: n.id, restorable_until: new Date(Date.now() + 600_000).toISOString() });
+  }),
+  // Deleting as previewed (docs/LIFECYCLE.md): restorable for 10 minutes, its pin kept.
+  http.get(`${API}/api/v1/me/notes/:id/delete-preview`, ({ params }) => {
+    const n = noteStore.notes.find((x) => x.id === params.id);
+    if (!n) return err(404, "not_found", "Note not found");
+    return HttpResponse.json(notePreview(n));
+  }),
+  http.post(`${API}/api/v1/me/notes/:id/delete`, async ({ params, request }) => {
+    const n = noteStore.notes.find((x) => x.id === params.id);
+    if (!n) return err(404, "not_found", "Note not found");
+    const body = (await request.json()) as { expected_fingerprint: string };
+    const plan = notePreview(n);
+    if (body.expected_fingerprint !== plan.fingerprint) return err(409, "impact_changed", "What this affects changed.", { current: plan });
+    noteStore.notes = noteStore.notes.filter((x) => x !== n);
+    noteStore.deleted.push(n);
+    return HttpResponse.json({
+      ...plan, done_at: new Date().toISOString(), replayed: false, message: `Deleted ${n.title}. You can undo it for 10 minutes.`,
+      restorable_until: new Date(Date.now() + 600_000).toISOString(),
+    });
   }),
   http.post(`${API}/api/v1/me/notes/:id/restore`, ({ params }) => {
     const n = noteStore.deleted.find((x) => x.id === params.id);

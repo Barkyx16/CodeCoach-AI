@@ -139,9 +139,14 @@ describe("Notebook", () => {
     await user.selectOptions(await screen.findByLabelText("Tag"), "arrays");
     await waitFor(() => expect(within(screen.getByRole("main")).getAllByRole("listitem")).toHaveLength(1));
     await user.click(screen.getByRole("link", { name: "Two pointers" }));
-    await user.click(await screen.findByRole("button", { name: "Delete" }));
+    await user.click(await screen.findByRole("button", { name: "Delete…" }));
+    const plan = await screen.findByRole("group", { name: "What this will do" });
+    expect(plan).toHaveTextContent("Note: Two pointers Restorable for 10 minutes after you delete it (Undo)");
+    expect(plan).toHaveTextContent("Pin: Pinned to the top of your notes Restoring it brings it back pinned.");
+    await user.click(within(plan).getByRole("button", { name: "Delete this note (you can undo it for 10 minutes)" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/notes"));
-    const undo = await screen.findByText(/Deleted “Two pointers”\. You can undo this for 10 minutes/);
+    const undo = await screen.findByText(/Deleted “Two pointers”\. You can undo this until \d{1,2}:\d{2}/);
+    expect(undo).toHaveTextContent(/after that it's removed from CodeCoach\.$/);
     await user.click(within(undo.parentElement!).getByRole("button", { name: "Undo" }));
     await waitFor(() => expect(noteStore.notes.map((n) => n.title)).toContain("Two pointers"));
   });

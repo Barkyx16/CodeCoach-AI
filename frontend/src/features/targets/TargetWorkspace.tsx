@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from "reac
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import { useStartInterview, useTarget, useTargetMutation } from "@/api/queries";
-import type { Experience, Requirement, StoryLinksReviewIn, Target } from "@/api/types";
+import type { Experience, LifecycleOutcome, Requirement, StoryLinksReviewIn, Target } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -22,6 +22,7 @@ import { formatDateTime } from "@/lib/format";
 import { ActionLinks, RequirementHistory, RequirementSetEditor } from "@/features/targets/RequirementVersions";
 import { useRequirementChange } from "@/features/targets/useRequirementChange";
 import { FreshnessReview } from "@/features/stories/FreshnessReview";
+import { ImpactPreview } from "@/features/lifecycle/ImpactPreview";
 
 type Category = Requirement["category"];
 const GROUPS: { id: Category; label: string }[] = [
@@ -54,6 +55,18 @@ function Workspace({ t }: { t: Target }) {
   const update = useTargetMutation((body: Parameters<typeof api.updateTarget>[1]) => api.updateTarget(t.id, body));
   const [params, setParams] = useSearchParams();
   const [editingSet, setEditingSet] = useState(false);
+  // Archiving shows what it hides and keeps first, from the plan that archives it (docs/LIFECYCLE.md).
+  const qc = useQueryClient();
+  const [previewArchive, setPreviewArchive] = useState(false);
+  const [archivedOutcome, setArchivedOutcome] = useState<LifecycleOutcome | null>(null);
+  const archivedNote = useRef<HTMLParagraphElement>(null);
+  // The note appears once the refreshed target says it's archived; focus goes to it then.
+  useEffect(() => { if (archivedOutcome && t.archived) archivedNote.current?.focus(); }, [archivedOutcome, t.archived]);
+  const loadArchive = useCallback(() => api.targetArchivePreview(t.id), [t.id]);
+  const runArchive = useCallback(
+    (fingerprint: string, key: string) => api.archiveTargetAsPreviewed(t.id, { expected_fingerprint: fingerprint, client_request_id: key }),
+    [t.id],
+  );
   const view = params.get("show") ?? "all"; // all | gaps | limited | removed
   const shown = t.requirement_list.filter((r) =>
     view === "removed" ? r.removed
@@ -78,9 +91,31 @@ function Workspace({ t }: { t: Target }) {
         <div className="row">
           {t.selected ? <Badge tone="success">Active target</Badge>
             : !t.archived && <Button variant="secondary" loading={update.isPending} onClick={() => update.mutate({ selected: true })}>Make active</Button>}
-          <Button variant="ghost" loading={update.isPending} onClick={() => update.mutate({ archived: !t.archived })}>{t.archived ? "Unarchive" : "Archive"}</Button>
+          {t.archived
+            ? <Button variant="ghost" loading={update.isPending} onClick={() => { setArchivedOutcome(null); update.mutate({ archived: false }); }}>Unarchive</Button>
+            : <Button variant="ghost" aria-expanded={previewArchive} onClick={() => { setArchivedOutcome(null); setPreviewArchive((v) => !v); }}>Archive…</Button>}
         </div>
       </div>
+      {previewArchive && !t.archived && (
+        <Card>
+          <ImpactPreview
+            load={loadArchive}
+            run={runArchive}
+            onCancel={() => setPreviewArchive(false)}
+            onDone={async (out) => {
+              setPreviewArchive(false);
+              qc.setQueryData(["me", "target", t.id], await api.target(t.id));
+              void qc.invalidateQueries({ queryKey: ["me", "targets"] });
+              setArchivedOutcome(out);
+            }}
+          />
+        </Card>
+      )}
+      {archivedOutcome && t.archived && (
+        <p className="banner banner--success" role="status" tabIndex={-1} ref={archivedNote}>
+          {archivedOutcome.message} It's hidden from your targets list; its requirements, stories and practice are kept.
+        </p>
+      )}
       <InlineError error={update.error} />
 
       <section className="stat-row" aria-label="Practice coverage summary">

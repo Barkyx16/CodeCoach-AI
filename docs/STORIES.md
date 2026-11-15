@@ -75,7 +75,8 @@ On a question page, "Practise with one of your stories" lets the learner pick a 
 answer from it (after confirming if there's already a draft), and optionally link the question
 to the story. The answer is an ordinary graded answer that **points at** the story
 (`practice_answers.story_id`): the story itself is never changed by practising. The story lists
-"Practised with this story". Deleting a story keeps those answers and their scores. Rehearsal
+"Practised with this story". Deleting a story keeps those answers and their scores (the preview
+lists each as unlinked; docs/LIFECYCLE.md). Rehearsal
 versions (short and longer) are the learner's own words, labelled as rehearsals, not scripts.
 
 Voice is in mock interviews; the question page is typed, so practising a story there is typed

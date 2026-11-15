@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
-import type { Freshness, Requirement, RequirementSetIn, RevisionPreview, Target } from "@/api/types";
+import type { Freshness, Impact, Requirement, RequirementSetIn, RevisionPreview, Target } from "@/api/types";
 
 import { tokenResponse, user as baseUser } from "../fixtures";
 import { renderApp } from "../render";
@@ -394,5 +394,55 @@ describe("Story freshness on requirement links (docs/STORY_FRESHNESS.md)", () =>
     await user.click(within(box).getByRole("button", { name: "Use version 2 for these links" }));
     await waitFor(() => expect(sent).toEqual({ reviewed_revision: 2, decision: "refresh", requirement_ids: ["r-1", "r-3"] }));
     await waitFor(() => expect(screen.queryByText(/The story changed since you linked it/)).toBeNull());
+  });
+});
+
+describe("Archiving a target shows what it hides and keeps first (docs/LIFECYCLE.md)", () => {
+  const plan: Impact = {
+    action: "archive_target", target_id: "t-1", title: "ED Nurse", summary: "Archive this target",
+    effects: [
+      { effect: "archived", kind: "target", title: "ED Nurse", id: "t-1", note: "Hidden from your targets list. Unarchive it any time and it comes back as it was; nothing is deleted." },
+      { effect: "unlinked", kind: "active target", title: "Your active target", id: "t-1", note: "It stops being your active target; unarchiving won't make it active again." },
+      { effect: "kept", kind: "requirement", title: "Perform patient assessment and triage", id: "r-1", note: "Kept with the target, with its versions." },
+      { effect: "kept", kind: "story", title: "Night shift escalation", id: "x-1", note: "Stays in your story bank, still linked to it." },
+      { effect: "kept", kind: "practice", title: "Answers and rounds you practised for it", id: null, note: "They stay in your history and still count." },
+    ],
+    notes: ["Archiving isn't deleting: everything listed stays, comes back when you unarchive it, and is in your data export."],
+    fingerprint: "fp-target-1",
+  };
+
+  it("lists the active target it stops being and what it keeps; Cancel sends nothing; archiving does what it listed", async () => {
+    const calls = targetServer();
+    const posts: Record<string, unknown>[] = [];
+    let archived = false;
+    server.use(
+      http.get(`${API}/api/v1/targets/t-1`, () => HttpResponse.json({ ...makeTarget(), archived, selected: !archived })),
+      http.get(`${API}/api/v1/targets/t-1/archive-preview`, () => HttpResponse.json(plan)),
+      http.post(`${API}/api/v1/targets/t-1/archive`, async ({ request }) => {
+        posts.push((await request.json()) as Record<string, unknown>);
+        archived = true;
+        return HttpResponse.json({ ...plan, done_at: now, replayed: false, message: "Archived ED Nurse. Unarchive it any time.", restorable_until: null });
+      }),
+    );
+    const { user } = renderApp("/targets/t-1", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Archive…" }));
+    let shown = await screen.findByRole("group", { name: "What this will do" });
+    expect(shown).toHaveTextContent("Archived (you can undo this) (1)Target: ED Nurse");
+    expect(shown).toHaveTextContent("Active target: Your active target It stops being your active target");
+    expect(shown).toHaveTextContent("Story: Night shift escalation Stays in your story bank, still linked to it.");
+    await user.click(within(shown).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("group", { name: "What this will do" })).not.toBeInTheDocument();
+    expect(posts).toEqual([]);
+
+    await user.click(screen.getByRole("button", { name: "Archive…" }));
+    shown = await screen.findByRole("group", { name: "What this will do" });
+    await user.click(within(shown).getByRole("button", { name: "Archive this target" }));
+    const done = await screen.findByText(/^Archived ED Nurse\. Unarchive it any time\./);
+    expect(done).toHaveTextContent("its requirements, stories and practice are kept.");
+    await waitFor(() => expect(done).toHaveFocus());
+    expect(posts).toEqual([expect.objectContaining({ expected_fingerprint: "fp-target-1" })]);
+    expect(screen.getByRole("button", { name: "Unarchive" })).toBeInTheDocument();
+    expect(screen.queryByText("Active target")).not.toBeInTheDocument();
+    expect(calls.filter((c) => c.method === "PATCH")).toEqual([]); // the preview's plan did it, not an edit
   });
 });
