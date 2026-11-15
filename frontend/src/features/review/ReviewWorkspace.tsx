@@ -24,6 +24,7 @@ import { roundDraftKey } from "@/features/interview/roundDrafts";
 import { EngagementNote } from "@/features/voice/EngagementMeter";
 import { NoteCapture } from "@/features/notes/NoteCapture";
 import { AcceptImprovement } from "@/features/actions/AcceptImprovement";
+import { DisputedNote } from "@/features/plan/DisputedNote";
 
 const STATUS_TEXT: Record<ReviewEntry["status"], string> = {
   answered: "Answered", skipped: "Skipped", not_reached: "Not reached", said: "",
@@ -124,6 +125,7 @@ function Review({ iv, r }: { iv: Interview; r: InterviewReview }) {
                   <li key={imp.key || imp.title} className="stack">
                     <strong>{imp.title}</strong>
                     <p className="subtle">{imp.why}</p>
+                    {imp.dispute && <DisputedNote note={imp.dispute} kept={Boolean(imp.action_id)} />}
                     {imp.evidence.length > 0 && (
                       <p className="review__evidence">
                         <span className="activity-card__label">Seen in:</span>{" "}
@@ -139,6 +141,17 @@ function Review({ iv, r }: { iv: Interview; r: InterviewReview }) {
                   </li>
                 ))}
               </ol>
+            </Card>
+          )}
+          {(r.disputed_points ?? []).length > 0 && (
+            <Card className="stack-sm" role="region" aria-labelledby="disputed-points-title">
+              <h2 className="section-title" id="disputed-points-title">Not suggested ({(r.disputed_points ?? []).length})</h2>
+              <p className="subtle">Left out because of feedback you disputed, not because there's nothing to practise. The feedback itself is unchanged.</p>
+              <ul className="mini-list">
+                {(r.disputed_points ?? []).map((d) => (
+                  <li key={d.key}>{d.text} <Link to={d.dispute.href}>See the dispute</Link></li>
+                ))}
+              </ul>
             </Card>
           )}
 

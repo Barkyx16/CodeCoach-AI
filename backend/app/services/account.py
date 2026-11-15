@@ -50,6 +50,8 @@ from app.services.offers import Offers
 from app.services.onboarding import Onboarding
 from app.services.reflections import Reflections
 from app.services.restore import Restore
+from app.services.review import disputed_point_keys
+from app.services.review_queue import ReviewQueueService
 from app.services.schedule import Schedule
 from app.services.shares import status_of
 from app.services.stories import snapshot
@@ -110,6 +112,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         requirement_history.setdefault(v.requirement_id, []).append(v)
     retries = db.scalars(select(InterviewRetry).where(InterviewRetry.user_id == user.id)).all()
     queue = db.scalars(select(ReviewItem).where(ReviewItem.user_id == user.id)).all()
+    withheld_reviews = ReviewQueueService(db).withheld_ids(user)
     scenario_attempts = db.scalars(
         select(ScenarioAttempt).where(ScenarioAttempt.user_id == user.id).order_by(ScenarioAttempt.created_at)
     ).all()
@@ -241,6 +244,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 "ended_at": iso(s.ended_at),
                 "final_code": s.final_code,
                 "evaluation": s.evaluation,
+                # The summary's points left out because of feedback you disputed (docs/DISPUTES.md).
+                "points_left_out_disputed": disputed_point_keys(db, user.id, s),
                 "transcript": [
                     {
                         "role": t.role.value,
@@ -387,6 +392,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 "reviews": q.reviews,
                 "removed": q.removed,
                 "created_at": iso(q.created_at),
+                # Not scheduled: every reason it's in the queue is feedback you disputed.
+                "left_out_disputed": q.id in withheld_reviews,
             }
             for q in queue
         ],

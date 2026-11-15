@@ -8,6 +8,14 @@
 
 A review counts only when the question is actually answered again (a practice answer recorded
 after the item was last scheduled). Nothing is sent: no email, no push; the queue is a page.
+
+Disputed feedback (Volume 14, prompt 9; docs/DISPUTES.md), by the plan's own rule
+(app/services/disputes.py): an answer whose feedback you disputed overall doesn't move the ladder
+(its score isn't used; counting it again lets the next look use it). An item is here for its
+reasons: you saved it (from an interview's answer, or on its own), and each answer since. When every
+reason comes from disputed feedback (saved from an interview answer you disputed, and not answered
+since except in answers you disputed) it isn't scheduled: it's listed under "You disputed this",
+with a way back. An item with any other reason keeps its schedule and says which reason is disputed.
 """
 
 from __future__ import annotations
@@ -20,8 +28,9 @@ from sqlalchemy.orm import Session
 from app.careers import CATALOG
 from app.careers.questions import get_question
 from app.errors import AppError, NotFoundError
-from app.models import PracticeAnswer, PracticeSession, ReviewItem, User
+from app.models import InterviewTurn, PracticeAnswer, PracticeSession, ReviewItem, User
 from app.schemas.review import ReviewAdd, ReviewQueue, ReviewQueueItem
+from app.services.disputes import Dispute, Disputes, note, overall
 
 LADDER = (1, 3, 7, 14, 30)
 MAX_ACTIVE = 100
@@ -107,10 +116,10 @@ class ReviewQueueService:
         self.db.commit()
         return self.queue(user)
 
-    def _sync(self, user: User, rows: list[ReviewItem]) -> None:
+    def _sync(self, user: User, rows: list[ReviewItem], disputes: dict[tuple[str, str], Dispute]) -> None:
         changed = False
         for row in rows:
-            answer = self.db.scalar(
+            answers = self.db.scalars(
                 select(PracticeAnswer)
                 .where(
                     PracticeAnswer.user_id == user.id,
@@ -119,8 +128,10 @@ class ReviewQueueService:
                     PracticeAnswer.created_at > row.scheduled_at,
                 )
                 .order_by(PracticeAnswer.created_at.desc())
-                .limit(1)
-            )
+            ).all()
+            # The latest answer whose feedback isn't disputed overall: a disputed score doesn't move
+            # the ladder (counted again, the next look uses it).
+            answer = next((a for a in answers if overall(disputes, a.id) is None), None)
             if answer is None:
                 continue
             if answer.score >= 85:
@@ -160,6 +171,56 @@ class ReviewQueueService:
             base += f" Snoozed until {_day(_aware(row.due_at))}."
         return ("Due now. " if due else f"Due {_day(_aware(row.due_at))}. ") + base
 
+    def _saved_from(self, user: User, row: ReviewItem) -> str | None:
+        """The interview answer this item was saved from, if it was saved from an interview."""
+        if not row.session_id:
+            return None
+        return self.db.scalar(
+            select(PracticeAnswer.id)
+            .join(InterviewTurn, InterviewTurn.answer_id == PracticeAnswer.id)
+            .where(
+                InterviewTurn.session_id == row.session_id,
+                PracticeAnswer.user_id == user.id,
+                PracticeAnswer.track == row.track,
+                PracticeAnswer.question_id == row.question_id,
+            )
+            .order_by(PracticeAnswer.created_at.desc())
+            .limit(1)
+        )
+
+    def reasons(
+        self, user: User, row: ReviewItem, disputes: dict[tuple[str, str], Dispute]
+    ) -> tuple[bool, Dispute | None]:
+        """(withheld: every reason it's here is disputed feedback, the dispute to name or None)."""
+        saved_from = self._saved_from(user, row)
+        saved_dispute = overall(disputes, saved_from)
+        since = self.db.scalars(
+            select(PracticeAnswer.id).where(
+                PracticeAnswer.user_id == user.id,
+                PracticeAnswer.track == row.track,
+                PracticeAnswer.question_id == row.question_id,
+                PracticeAnswer.created_at > row.created_at,
+                PracticeAnswer.id != (saved_from or ""),
+            )
+        ).all()
+        since_disputes = [overall(disputes, a) for a in since]
+        undisputed_since = any(d is None for d in since_disputes)
+        if saved_dispute is not None and not undisputed_since:
+            return True, saved_dispute
+        first = saved_dispute or next((d for d in since_disputes if d is not None), None)
+        return False, first
+
+    def withheld_ids(self, user: User) -> set[str]:
+        """Items not scheduled because every reason they're here is disputed feedback: the queue's
+        own rule, for anything that counts or offers due reviews (the schedule, Today)."""
+        disputes = Disputes(self.db, user.id).active()
+        if not disputes:
+            return set()
+        rows = self.db.scalars(
+            select(ReviewItem).where(ReviewItem.user_id == user.id, ReviewItem.removed.is_(False))
+        ).all()
+        return {r.id for r in rows if self.reasons(user, r, disputes)[0]}
+
     def queue(self, user: User) -> ReviewQueue:
         rows = list(
             self.db.scalars(
@@ -168,13 +229,28 @@ class ReviewQueueService:
                 .order_by(ReviewItem.due_at)
             ).all()
         )
-        self._sync(user, rows)
+        disputes = Disputes(self.db, user.id).active()
+        self._sync(user, rows, disputes)
         now = _now()
         due: list[ReviewQueueItem] = []
         upcoming: list[ReviewQueueItem] = []
+        disputed: list[ReviewQueueItem] = []
         for row in sorted(rows, key=lambda r: _aware(r.due_at)):
             q = get_question(row.track, row.question_id)
             is_due = _aware(row.due_at) <= now
+            withheld, dispute = self.reasons(user, row, disputes) if disputes else (False, None)
+            why = self._why(row, is_due)
+            if withheld and dispute is not None:
+                why = (
+                    f"Not scheduled: you saved it from an interview answer whose feedback you disputed {dispute.when}, "
+                    "and that's the only reason it's here. Count that feedback again to put it back, or answer it "
+                    "any time."
+                )
+            elif dispute is not None:
+                why += (
+                    f" One reason it's here is feedback you disputed {dispute.when}; it's scheduled for its other "
+                    "reasons."
+                )
             item = ReviewQueueItem(
                 id=row.id,
                 track=row.track,
@@ -184,16 +260,21 @@ class ReviewQueueService:
                 href=f"/careers/{row.track}/questions/{row.question_id}",
                 due_at=row.due_at,
                 due=is_due,
-                why=self._why(row, is_due),
+                why=why,
                 interval_days=LADDER[row.step],
                 last_score=row.last_score,
                 reviews=row.reviews,
                 snoozed=row.snoozed,
+                dispute=note(dispute),
             )
-            (due if is_due else upcoming).append(item)
+            if withheld:
+                disputed.append(item)
+            else:
+                (due if is_due else upcoming).append(item)
         return ReviewQueue(
             due=due,
             upcoming=upcoming,
+            disputed=disputed,
             ladder_days=list(LADDER),
             note="Answer a due question again to review it. Strong answers (85+) space it out; weaker ones bring it "
             "back sooner. Nothing is emailed or pushed to you.",

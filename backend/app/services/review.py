@@ -39,6 +39,7 @@ from app.schemas.interview import Engagement, InterviewProblem
 from app.schemas.review import (
     Comparison,
     Dimension,
+    DisputedPoint,
     EvidenceLink,
     Improvement,
     InterviewReview,
@@ -48,6 +49,9 @@ from app.schemas.review import (
     ReviewItem,
 )
 from app.services.attempt_comparisons import AttemptComparisons, comparison_out
+from app.services.disputes import Disputes, count_words
+from app.services.disputes import note as dispute_note
+from app.services.disputes import split as split_disputes
 from app.services.question_rounds import QuestionRounds
 
 STATUS_LABEL = {
@@ -89,6 +93,41 @@ TRANSCRIBED = (
     "Spoken and transcribed by your browser's speech recognition, then sent as text. Recognition mistakes "
     "you didn't fix can lower the score; your voice itself isn't analysed or kept."
 )
+
+
+def point_withheld(disputes: dict, label: str, answer_ids: list[str], accepted: set[str]) -> bool:
+    """A missed point isn't suggested when every answer missing it has it disputed (docs/DISPUTES.md),
+    unless you'd already accepted it. Shared by the summary and the export."""
+    kept, _ = split_disputes(disputes, answer_ids, label)
+    return not kept and f"point:{label}"[:200] not in accepted
+
+
+def disputed_point_keys(db: Session, user_id: str, s: PracticeSession) -> list[str]:
+    """The keys of the points this interview's summary leaves out because of a dispute (for the
+    export), read from the stored answers by the same rule as the summary."""
+    disputes = Disputes(db, user_id).active(s.track)
+    if not disputes or s.mode != PracticeMode.QUESTIONS:
+        return []
+    answer_ids = [t.answer_id for t in s.turns if t.answer_id]
+    missed: dict[str, list[str]] = {}
+    for a in db.scalars(select(PracticeAnswer).where(PracticeAnswer.id.in_(answer_ids or [""]))):
+        for p in (a.feedback or {}).get("points") or []:
+            if isinstance(p, dict) and not p.get("covered"):
+                missed.setdefault(str(p.get("label")), []).append(a.id)
+    accepted = set(
+        db.scalars(
+            select(AcceptedAction.source_key).where(
+                AcceptedAction.user_id == user_id,
+                AcceptedAction.source_kind == "interview_improvement",
+                AcceptedAction.source_id == s.id,
+            )
+        ).all()
+    )
+    return sorted(
+        f"point:{label}"[:200]
+        for label, ids in missed.items()
+        if point_withheld(disputes, label, ids, accepted)
+    )
 
 
 def _excerpt(text: str | None, limit: int = 160) -> str | None:
@@ -224,18 +263,59 @@ class InterviewReviews:
                 if not p.covered:
                     missed.setdefault(p.label, []).append(i)
                     advice.setdefault(p.label, p.advice)
-        for label, its in sorted(missed.items(), key=lambda kv: -len(kv[1]))[:2]:
-            worst = min(its, key=lambda i: i.feedback.score if i.feedback else 0)
+        # Disputed feedback (docs/DISPUTES.md), by the plan's own rule: a point missed in an answer you
+        # disputed it on (or disputed overall) is counted and said, but doesn't choose what's suggested;
+        # one missed only where it's disputed isn't suggested at all, unless you'd already accepted it.
+        disputes = Disputes(self.db, user.id).active(track)
+        accepted = set(
+            self.db.scalars(
+                select(AcceptedAction.source_key).where(
+                    AcceptedAction.user_id == user.id,
+                    AcceptedAction.source_kind == "interview_improvement",
+                    AcceptedAction.source_id == s.id,
+                )
+            ).all()
+        )
+        ranked = []
+        disputed_points: list[DisputedPoint] = []
+        for label, its in missed.items():
+            ids = [i.feedback.id for i in its if i.feedback]
+            kept_ids, hits = split_disputes(disputes, ids, label)
+            kept = [i for i in its if i.feedback and i.feedback.id in kept_ids]
+            key = f"point:{label}"[:200]
+            if point_withheld(disputes, label, ids, accepted):
+                disputed_points.append(
+                    DisputedPoint(
+                        key=key,
+                        label=label,
+                        missing=len(its),
+                        disputed=len(hits),
+                        text=(
+                            f"Not suggested: “{label}” (missing in {len(its)} of {len(answered)} answers, "
+                            f"{'all' if len(hits) > 1 else 'the one'} disputed). Left out because of feedback you "
+                            "disputed, not because there's nothing to practise."
+                        ),
+                        dispute=dispute_note(hits[0]),
+                    )
+                )
+                continue
+            ranked.append((label, its, kept or its, hits))
+        for label, its, kept, hits in sorted(ranked, key=lambda r: (-len(r[2]), -len(r[1])))[:2]:
+            worst = min(kept, key=lambda i: i.feedback.score if i.feedback else 0)
+            counted = f"Missing in {len(its)} of {len(answered)} answers"
+            if hits:
+                counted += f", {count_words(len(hits))} disputed"
             improvements.append(
                 Improvement(
                     key=f"point:{label}"[:200],
                     title=label,
-                    why=f"{advice[label]} Missing in {len(its)} of {len(answered)} answers.",
+                    why=f"{advice[label]} {counted}.",
                     evidence=[
                         EvidenceLink(item_key=i.key, label=i.title, excerpt=_excerpt(i.answer_text))
-                        for i in its[:3]
+                        for i in kept[:3]
                     ],
                     practice=PracticeAction(label=f"Retry “{worst.title}”", retry_index=worst.index),
+                    dispute=dispute_note(hits[0]) if hits else None,
                 )
             )
         unanswered = skipped + missing
@@ -344,6 +424,7 @@ class InterviewReviews:
             items=items,
             overall=overall,
             improvements=improvements,
+            disputed_points=disputed_points,
             evaluation_available=bool(answered),
             evaluator=evaluator,
             disclaimer=disclaimer,

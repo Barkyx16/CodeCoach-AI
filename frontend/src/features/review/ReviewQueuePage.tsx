@@ -22,7 +22,7 @@ export function ReviewQueuePage() {
           <p className="page__subtitle">{q.note} Gaps follow a fixed ladder: {q.ladder_days.join(", ")} days.</p>
         </div>
       </div>
-      {q.due.length + q.upcoming.length === 0 ? (
+      {q.due.length + q.upcoming.length + (q.disputed ?? []).length === 0 ? (
         <EmptyState title="Nothing saved for review" action={<Link className="btn btn--primary btn--md" to="/history?type=interview">Review an interview</Link>}>
           After an interview, use "Save for later review" on a question to bring it back on a schedule.
         </EmptyState>
@@ -38,9 +38,35 @@ export function ReviewQueuePage() {
               <ul className="target-list">{q.upcoming.map((i) => <QueueRow key={i.id} item={i} />)}</ul>
             </section>
           )}
+          {(q.disputed ?? []).length > 0 && (
+            <section className="stack" aria-labelledby="disputed-title">
+              <h2 className="section-title" id="disputed-title">You disputed this ({(q.disputed ?? []).length})</h2>
+              <p className="subtle">Not scheduled: the only reason each is here is feedback you disputed. Count that feedback again to put it back, or answer it any time. The feedback itself is unchanged.</p>
+              <ul className="target-list">{(q.disputed ?? []).map((i) => <DisputedRow key={i.id} item={i} />)}</ul>
+            </section>
+          )}
         </>
       )}
     </div>
+  );
+}
+
+function DisputedRow({ item }: { item: ReviewQueueItem }) {
+  const remove = useReviewQueueMutation(() => api.removeReview(item.id));
+  return (
+    <li className="card stack queue-row" aria-label={item.title}>
+      <div className="row queue-row__head">
+        <strong>{item.title}</strong>
+        <span className="subtle">{item.career_title}</span>
+      </div>
+      <p className="subtle">{item.why}</p>
+      <div className="row queue-row__actions">
+        {item.dispute && <Link className="btn btn--secondary btn--sm" to={item.dispute.href}>Count it again (see the dispute)</Link>}
+        <Link className="btn btn--ghost btn--sm" to={item.href} state={{ from: "/reviews", fromLabel: "Back to the review queue" }}>Answer it anyway</Link>
+        <Button size="sm" variant="ghost" loading={remove.isPending} onClick={() => remove.mutate(undefined)}>Remove</Button>
+      </div>
+      <InlineError error={remove.error} />
+    </li>
   );
 }
 

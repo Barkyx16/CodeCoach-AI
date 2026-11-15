@@ -6,8 +6,27 @@ suggests until they count it again. What happened stays as it happened (Volume 1
 - Which disputes stand: `backend/app/services/disputes.py` (`Disputes.active`, `covering`, `note`).
 - Where the plan uses them: `backend/app/services/roadmap.py` (`_evidence`, `_generate`,
   `_new_version`).
-- Scope: feedback on career written answers, read by the adaptive plan. Other feedback sources
-  (coding verdicts, drills, interview-wide summaries, the review queue) don't read disputes yet.
+- Scope: feedback on career written answers. Read, through the same `covering` (and `overall`, for
+  an answer's feedback as a whole), by every place that reuses that advice; see "Every place that
+  reads a dispute" below (Volume 14, prompt 9).
+
+## Every place that reads a dispute
+
+| Place | What a dispute changes there | What it says |
+|---|---|---|
+| The adaptive plan (`roadmap.py`) | as described below | "Not suggested (n): Left out because of feedback you disputed …" |
+| An interview's summary, "Work on next" (`review.py`) | a point missed in an answer you disputed it on (or disputed overall) is still counted, but isn't used as evidence or to choose the retry; a point missed only where it's disputed isn't suggested at all, unless you'd already accepted it (it stays, with its dispute said) | "Missing in 3 of 3 answers, one disputed." with the dispute linked; under **Not suggested (n)**: "Not suggested: “…” (missing in 2 of 4 answers, all disputed). Left out because of feedback you disputed, not because there's nothing to practise." |
+| The review queue (`review_queue.py`) | an answer whose feedback you disputed overall doesn't move an item's ladder (its score isn't used; counted again, the next look uses it). An item whose every reason is disputed (saved from an interview answer you disputed, and not answered since except in answers you disputed) isn't scheduled: it's listed under **You disputed this**, with "Count it again (see the dispute)" and "Answer it anyway". An item with any other reason keeps its schedule | "Not scheduled: you saved it from an interview answer whose feedback you disputed …"; a kept item: "One reason it's here is feedback you disputed …; it's scheduled for its other reasons." |
+| Today and the schedule's "things to schedule" | follow the queue: an item it doesn't schedule isn't counted as due or offered | (the queue's own words) |
+| Accepted improvements | labelled, never moved (Volume 12, prompt 7) | "It stays as it is; it's yours to keep, move or mark done." |
+| Drills | nothing to read: a drill's feedback is its own (each attempt, against the drill's checklist), no drill reuses an answer's feedback, and drill feedback can't be disputed | |
+
+A dispute on one point doesn't dispute an answer's score: the queue only holds an item, or ignores a
+score, for a dispute on the feedback overall. The feedback, scores and history never change; the
+export marks what was left out, by id (`interviews[].points_left_out_disputed`, the keys the summary
+didn't suggest; `review_queue[].left_out_disputed`). Counting the feedback again restores each place
+at once (everything is read live). Another account's disputes never apply: a flag can only be made
+on your own answer (404 otherwise), and every place reads only your own.
 
 ## What counts as a dispute
 

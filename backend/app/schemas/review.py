@@ -8,6 +8,7 @@ from pydantic import Field
 from app.models import InterviewStatus
 from app.schemas.careers import AnswerOut, AttemptComparison
 from app.schemas.common import APIModel
+from app.schemas.disputes import DisputeNote
 from app.schemas.interview import (
     AnswerSource,
     Engagement,
@@ -44,6 +45,22 @@ class Improvement(APIModel):
     evidence: list[EvidenceLink]
     practice: PracticeAction
     action_id: str | None = Field(default=None, description="The action you accepted from it, if any")
+    dispute: DisputeNote | None = Field(
+        default=None,
+        description="Some answers it's drawn from have this point disputed (docs/DISPUTES.md): counted, said, "
+        "and not used to choose the retry",
+    )
+
+
+class DisputedPoint(APIModel):
+    """A point the summary didn't suggest because every answer missing it has it disputed."""
+
+    key: str = Field(description="The improvement's key it would have had (point:<label>)")
+    label: str
+    missing: int = Field(description="Answers in this interview that missed it")
+    disputed: int = Field(description="Of those, how many you disputed")
+    text: str
+    dispute: DisputeNote
 
 
 class Dimension(APIModel):
@@ -114,6 +131,11 @@ class InterviewReview(APIModel):
     items: list[ReviewItem]
     overall: list[Dimension]
     improvements: list[Improvement] = Field(description="At most three, each grounded in this interview")
+    disputed_points: list[DisputedPoint] = Field(
+        default_factory=list,
+        description="Not suggested because of feedback you disputed (docs/DISPUTES.md); the feedback itself is "
+        "unchanged",
+    )
     evaluation_available: bool
     evaluator: str | None
     disclaimer: str
@@ -178,10 +200,20 @@ class ReviewQueueItem(APIModel):
     last_score: int | None
     reviews: int
     snoozed: bool
+    dispute: DisputeNote | None = Field(
+        default=None,
+        description="Disputed: why it's here comes only from feedback you disputed (it's under `disputed`, not "
+        "scheduled); or, on a scheduled item, one of its reasons does (it keeps the others)",
+    )
 
 
 class ReviewQueue(APIModel):
     due: list[ReviewQueueItem]
     upcoming: list[ReviewQueueItem]
+    disputed: list[ReviewQueueItem] = Field(
+        default_factory=list,
+        description="Not scheduled: every reason it's here comes from feedback you disputed (docs/DISPUTES.md). "
+        "Counting that feedback again puts it back",
+    )
     ladder_days: list[int]
     note: str

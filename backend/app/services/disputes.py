@@ -81,6 +81,33 @@ def covering(disputes: dict[tuple[str, str], Dispute], answer_id: str, criterion
     return disputes.get((answer_id, criterion)) or disputes.get((answer_id, OVERALL))
 
 
+def overall(disputes: dict[tuple[str, str], Dispute], answer_id: str | None) -> Dispute | None:
+    """The dispute on an answer's feedback as a whole (its score included), if it stands. A dispute on
+    one point doesn't dispute the score."""
+    return disputes.get((answer_id, OVERALL)) if answer_id else None
+
+
+def split(
+    disputes: dict[tuple[str, str], Dispute], answer_ids: list[str], criterion: str
+) -> tuple[list[str], list[Dispute]]:
+    """Of the answers one point is drawn from: those not disputed on it, and the disputes covering
+    the rest (in the order given). The interview summary, the review queue and the plan read
+    disputes through `covering`, so the same dispute counts the same way everywhere."""
+    kept: list[str] = []
+    hits: list[Dispute] = []
+    for aid in answer_ids:
+        hit = covering(disputes, aid, criterion)
+        if hit is None:
+            kept.append(aid)
+        else:
+            hits.append(hit)
+    return kept, hits
+
+
+def count_words(n: int) -> str:
+    return {1: "one", 2: "two", 3: "three"}.get(n, str(n))
+
+
 def first_disputed(disputes: dict[tuple[str, str], Dispute], derived: list[dict] | None) -> Dispute | None:
     """For something derived from these (answer, criterion) pairs: the first standing dispute among
     them, or None. Derivation not recorded (None) can't be labelled: it isn't guessed."""

@@ -7186,6 +7186,32 @@ export interface components {
             /** Criterion */
             criterion: string;
         };
+        /**
+         * DisputedPoint
+         * @description A point the summary didn't suggest because every answer missing it has it disputed.
+         */
+        DisputedPoint: {
+            /**
+             * Key
+             * @description The improvement's key it would have had (point:<label>)
+             */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Missing
+             * @description Answers in this interview that missed it
+             */
+            missing: number;
+            /**
+             * Disputed
+             * @description Of those, how many you disputed
+             */
+            disputed: number;
+            /** Text */
+            text: string;
+            dispute: components["schemas"]["DisputeNote"];
+        };
         /** DoneIn */
         DoneIn: {
             /** Done */
@@ -8715,6 +8741,8 @@ export interface components {
              * @description The action you accepted from it, if any
              */
             action_id?: string | null;
+            /** @description Some answers it's drawn from have this point disputed (docs/DISPUTES.md): counted, said, and not used to choose the retry */
+            dispute?: components["schemas"]["DisputeNote"] | null;
         };
         /** InterviewAbandon */
         InterviewAbandon: {
@@ -8963,6 +8991,11 @@ export interface components {
              * @description At most three, each grounded in this interview
              */
             improvements: components["schemas"]["Improvement"][];
+            /**
+             * Disputed Points
+             * @description Not suggested because of feedback you disputed (docs/DISPUTES.md); the feedback itself is unchanged
+             */
+            disputed_points?: components["schemas"]["DisputedPoint"][];
             /** Evaluation Available */
             evaluation_available: boolean;
             /** Evaluator */
@@ -12840,6 +12873,11 @@ export interface components {
             due: components["schemas"]["ReviewQueueItem"][];
             /** Upcoming */
             upcoming: components["schemas"]["ReviewQueueItem"][];
+            /**
+             * Disputed
+             * @description Not scheduled: every reason it's here comes from feedback you disputed (docs/DISPUTES.md). Counting that feedback again puts it back
+             */
+            disputed?: components["schemas"]["ReviewQueueItem"][];
             /** Ladder Days */
             ladder_days: number[];
             /** Note */
@@ -12879,6 +12917,8 @@ export interface components {
             reviews: number;
             /** Snoozed */
             snoozed: boolean;
+            /** @description Disputed: why it's here comes only from feedback you disputed (it's under `disputed`, not scheduled); or, on a scheduled item, one of its reasons does (it keeps the others) */
+            dispute?: components["schemas"]["DisputeNote"] | null;
         };
         /** ReviewReference */
         ReviewReference: {

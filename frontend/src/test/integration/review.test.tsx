@@ -211,3 +211,44 @@ describe("Review queue", () => {
     expect(await screen.findByText("Nothing saved for review")).toBeInTheDocument();
   });
 });
+
+describe("Disputed feedback in the summary and the review queue (Volume 14, prompt 9)", () => {
+  const disputeNote = { text: "Based on feedback you disputed on 15 November: “Explains what you personally did”.", href: "/careers/registered-nurse/questions/e-time-0?answer=a-1", answer_id: "a-1", criterion: "Explains what you personally did" };
+
+  it("counts a disputed point and says so, and lists what it didn't suggest", async () => {
+    serve({
+      ...roundReview,
+      improvements: [{ ...roundReview.improvements[0]!, why: "Say “I” for your own actions. Missing in 2 of 2 answers, one disputed.", dispute: disputeNote }],
+      disputed_points: [{ key: "point:Gives a concrete example", label: "Gives a concrete example", missing: 1, disputed: 1, dispute: disputeNote,
+        text: "Not suggested: “Gives a concrete example” (missing in 1 of 2 answers, the one disputed). Left out because of feedback you disputed, not because there's nothing to practise." }],
+    });
+    renderApp("/interviews/iv-r", { signedIn: true });
+    expect(await screen.findByText("Say “I” for your own actions. Missing in 2 of 2 answers, one disputed.")).toBeInTheDocument();
+    expect(screen.getByText(/Based on feedback you disputed on 15 November/)).toBeInTheDocument();
+    const left = screen.getByRole("region", { name: "Not suggested (1)" });
+    expect(left).toHaveTextContent("Not suggested: “Gives a concrete example” (missing in 1 of 2 answers, the one disputed).");
+    expect(left).toHaveTextContent("The feedback itself is unchanged.");
+    expect(within(left).getByRole("link", { name: "See the dispute" })).toHaveAttribute("href", disputeNote.href);
+  });
+
+  it("the queue lists an item held by a dispute apart, with a way to put it back", async () => {
+    const held = {
+      id: "r-1", track: "registered-nurse", career_title: "Registered Nurse", question_id: "e-time-0", title: "A hard shift",
+      href: "/careers/registered-nurse/questions/e-time-0", due_at: now, due: true, interval_days: 1, last_score: null, reviews: 0, snoozed: false,
+      why: "Not scheduled: you saved it from an interview answer whose feedback you disputed on 15 November, and that's the only reason it's here. Count that feedback again to put it back, or answer it any time.",
+      dispute: { ...disputeNote, criterion: "Overall" },
+    };
+    server.use(
+      http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.json(tokenResponse({ user: nurse }))),
+      http.get(`${API}/api/v1/me/reviews`, () => HttpResponse.json({ due: [], upcoming: [], disputed: [held], ladder_days: [1, 3, 7, 14, 30], note: "Answer a due question again to review it." })),
+    );
+    renderApp("/reviews", { signedIn: true });
+    const section = (await screen.findByRole("heading", { name: "You disputed this (1)" })).closest("section")!;
+    expect(screen.getByRole("heading", { name: "Due now (0)" })).toBeInTheDocument();
+    const row = within(section).getByRole("listitem", { name: "A hard shift" });
+    expect(row).toHaveTextContent("Not scheduled: you saved it from an interview answer whose feedback you disputed");
+    expect(within(row).getByRole("link", { name: "Count it again (see the dispute)" })).toHaveAttribute("href", disputeNote.href);
+    expect(within(row).getByRole("link", { name: "Answer it anyway" })).toHaveAttribute("href", held.href);
+    expect(within(row).queryByRole("button", { name: /Snooze/ })).toBeNull(); // not scheduled, so nothing to snooze
+  });
+});

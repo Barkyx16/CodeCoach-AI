@@ -375,6 +375,9 @@ class Schedule:
                         )
                     )
         soon = datetime.now(UTC) + timedelta(days=14)
+        from app.services.review_queue import ReviewQueueService
+
+        withheld = ReviewQueueService(self.db).withheld_ids(self.user)  # the queue's own rule
         for r in self.db.scalars(
             select(ReviewItem)
             .where(
@@ -384,7 +387,7 @@ class Schedule:
             .limit(20)
         ):
             q = get_question(r.track, r.question_id)
-            if q is not None:
+            if q is not None and r.id not in withheld:
                 out.append(
                     SchedulableOut(
                         kind="review_item",

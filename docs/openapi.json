@@ -30778,6 +30778,47 @@
         "title": "DisputeNote",
         "description": "Something derived from feedback the learner disputed. It stays; the learner decides."
       },
+      "DisputedPoint": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "The improvement's key it would have had (point:<label>)"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "missing": {
+            "type": "integer",
+            "title": "Missing",
+            "description": "Answers in this interview that missed it"
+          },
+          "disputed": {
+            "type": "integer",
+            "title": "Disputed",
+            "description": "Of those, how many you disputed"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "dispute": {
+            "$ref": "#/components/schemas/DisputeNote"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "missing",
+          "disputed",
+          "text",
+          "dispute"
+        ],
+        "title": "DisputedPoint",
+        "description": "A point the summary didn't suggest because every answer missing it has it disputed."
+      },
       "DoneIn": {
         "properties": {
           "done": {
@@ -34189,6 +34230,17 @@
             ],
             "title": "Action Id",
             "description": "The action you accepted from it, if any"
+          },
+          "dispute": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DisputeNote"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Some answers it's drawn from have this point disputed (docs/DISPUTES.md): counted, said, and not used to choose the retry"
           }
         },
         "type": "object",
@@ -34845,6 +34897,14 @@
             "type": "array",
             "title": "Improvements",
             "description": "At most three, each grounded in this interview"
+          },
+          "disputed_points": {
+            "items": {
+              "$ref": "#/components/schemas/DisputedPoint"
+            },
+            "type": "array",
+            "title": "Disputed Points",
+            "description": "Not suggested because of feedback you disputed (docs/DISPUTES.md); the feedback itself is unchanged"
           },
           "evaluation_available": {
             "type": "boolean",
@@ -44560,6 +44620,14 @@
             "type": "array",
             "title": "Upcoming"
           },
+          "disputed": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewQueueItem"
+            },
+            "type": "array",
+            "title": "Disputed",
+            "description": "Not scheduled: every reason it's here comes from feedback you disputed (docs/DISPUTES.md). Counting that feedback again puts it back"
+          },
           "ladder_days": {
             "items": {
               "type": "integer"
@@ -44643,6 +44711,17 @@
           "snoozed": {
             "type": "boolean",
             "title": "Snoozed"
+          },
+          "dispute": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DisputeNote"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Disputed: why it's here comes only from feedback you disputed (it's under `disputed`, not scheduled); or, on a scheduled item, one of its reasons does (it keeps the others)"
           }
         },
         "type": "object",
