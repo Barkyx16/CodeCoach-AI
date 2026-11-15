@@ -51696,6 +51696,14 @@
             "title": "Changes",
             "description": "What changed in each version, oldest first"
           },
+          "minor_versions": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Minor Versions",
+            "description": "Versions whose change was reviewed as minor: they never ask you to review a note"
+          },
           "scope_note": {
             "anyOf": [
               {

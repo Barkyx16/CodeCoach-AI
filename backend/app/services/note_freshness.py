@@ -148,7 +148,7 @@ def source_now(ref: SourceRef, problems: dict[str, int]) -> SourceNow:
         return SourceNow(
             exists=True,
             version=u.version,
-            history={i + 1: (note, True) for i, note in enumerate(u.changes) if i > 0},
+            history={i + 1: (note, (i + 1) not in u.minor) for i, note in enumerate(u.changes) if i > 0},
         )
     slug = ref.id
     if slug not in problems:
@@ -307,7 +307,11 @@ class SourceFreshness:
             text += (
                 f" The {noun} doesn't keep its earlier wording, so what changed can't be shown side by side."
             )
-        notes = [f"Version {v}: {note}" for v, (note, _) in sorted(newer.items()) if note]
+        notes = [
+            f"Version {v}: {note}{'' if significant else ' (minor)'}"
+            for v, (note, significant) in sorted(newer.items())
+            if note
+        ]
         return NoteFreshness(
             state="needs_review",
             text=text,

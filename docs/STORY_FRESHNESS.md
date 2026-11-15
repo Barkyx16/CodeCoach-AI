@@ -102,8 +102,8 @@ never changed, and its snapshot (the excerpt) is never refreshed.
 | Source | A change that asks | What's shown |
 |---|---|---|
 | Question | A published correction marked significant. A typo fix is published as not significant and never asks ("Up to date: … only for typos or wording marked minor"). | Title and question side by side, as captured (or last reviewed) and now, with each correction's note. |
-| Lesson | Any new version (lessons don't mark typo fixes). | The lesson's own note for each newer version; it doesn't keep its earlier wording, so the page says it can't be shown side by side. |
-| Coding problem | Any new test version (its statement and tests are corrected together in its seed files). | That it changed; there's no earlier wording to show. |
+| Lesson | A new version that isn't marked minor. A typo fix isn't a new version at all (authors don't bump for typos); a wording fix kept on record can be published as a version marked minor (`Unit.minor`, Volume 15, prompt 5), which never asks, and a later version that matters still does. | The lesson's own note for each newer version, a minor one labelled "(minor)"; it doesn't keep its earlier wording, so the page says it can't be shown side by side. The lesson's version history labels minor versions too. |
+| Coding problem | Any new test version. A problem's version changes only when its tests change (`app/db/seed.py`); a statement edit alone keeps the version, so it never asked. New tests are never minor: a verdict depends on them. | That it changed; there's no earlier wording to show. |
 | Interview | Not versioned: no notice. | |
 
 - **States.** `current`; `needs_review` ("The question changed since you captured this note
@@ -164,9 +164,11 @@ source, with its own words and its own reviews. There is no second rule.
   (from the file, only if the source has had it; otherwise "not known") and their reviews.
   Collections aren't restored from a file yet, so their items' versions come back only with a
   collection that's still there; there's no way to share or copy a collection.
-- **Limits.** Typo fixes in lessons and coding problems still ask, until content can mark them as
-  minor (questions already can). A coding problem's earlier statement isn't kept, so its change
-  can't be shown side by side.
+- **Limits.** A lesson's minor mark is reviewed content: a person marks it, and the content gate
+  refuses one on version 1, beyond the lesson's version, or without a change note
+  (`tests/test_minor_changes.py`; 6 negative controls, all caught). No lesson has a minor version
+  yet: all six are at version 1. A coding problem's earlier statement isn't kept, so its change can't
+  be shown side by side.
 
 ## API and data
 

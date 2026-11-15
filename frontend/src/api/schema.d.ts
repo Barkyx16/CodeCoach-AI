@@ -15586,6 +15586,11 @@ export interface components {
              * @description What changed in each version, oldest first
              */
             changes: string[];
+            /**
+             * Minor Versions
+             * @description Versions whose change was reviewed as minor: they never ask you to review a note
+             */
+            minor_versions?: number[];
             /** Scope Note */
             scope_note: string | null;
             /** Explanation */

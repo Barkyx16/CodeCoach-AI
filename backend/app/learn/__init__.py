@@ -97,6 +97,10 @@ class Unit:
     question_ids: tuple[str, ...] = field(default=())  # questions this unit prepares for
     # Other practice it prepares for (docs/ATTEMPT_CONDITIONS.md): "scenario:<id>" or "drill:<id>".
     prepares: tuple[str, ...] = field(default=())
+    # Versions whose change was reviewed as minor (a typo or wording fix, with its note in `changes`):
+    # they never ask anyone to review a note or a saved item (docs/STORY_FRESHNESS.md, Volume 15,
+    # prompt 5). Version 1 can't be minor; the content gate checks each.
+    minor: tuple[int, ...] = field(default=())
 
 
 PASS_RULE = "Every answer in the check is right."

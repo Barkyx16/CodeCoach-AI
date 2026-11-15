@@ -86,6 +86,7 @@ def unit_out(u: Unit) -> UnitOut:
         **summary(u).model_dump(),
         career_title=CATALOG[u.track].title,
         changes=list(u.changes),
+        minor_versions=sorted(u.minor),
         scope_note=u.scope_note,
         explanation=list(u.explanation),
         example=ExampleOut(

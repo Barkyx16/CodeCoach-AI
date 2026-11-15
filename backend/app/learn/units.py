@@ -2,7 +2,9 @@
 
 Rules for authors:
 - Bump `version` and add a line to `changes` whenever the meaning of a unit changes (a fix,
-  a new check question, a different worked example). Typos don't need a bump.
+  a new check question, a different worked example). Typos don't need a bump. A wording fix you
+  want on record can be published as a version marked minor (add it to `minor`): it's listed in
+  `changes` but never asks anyone to review a note taken from the lesson (docs/STORY_FRESHNESS.md).
 - References are real documents only. If you don't know a stable link, leave `url=None`; never
   guess one. Repository references point at the code or data the unit is grounded in.
 - `review.status` is "author_reviewed" only after someone has checked the unit against its

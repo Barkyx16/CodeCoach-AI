@@ -229,7 +229,7 @@ export function UnitPage() {
             {!u.references.some((r) => r.kind === "external") && <p className="subtle">No outside references: this unit is based on CodeCoach's own question bank and rubric.</p>}
             <details>
               <summary>Version history</summary>
-              <ol>{u.changes.map((c, i) => <li key={i}>Version {i + 1}: {c}</li>)}</ol>
+              <ol>{u.changes.map((c, i) => <li key={i}>Version {i + 1}: {c}{u.minor_versions?.includes(i + 1) ? " (minor: notes from this lesson aren't asked to be reviewed)" : ""}</li>)}</ol>
             </details>
           </section>
 

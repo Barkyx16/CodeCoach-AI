@@ -2,7 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 import { tokenResponse, user as baseUser } from "../fixtures";
-import { learnStore } from "../learn";
+import { learnStore, sbarUnit } from "../learn";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -99,5 +99,17 @@ describe("Learn mode", () => {
     renderApp("/learn?career=software-engineer");
     expect(await screen.findByText("No lessons for Software Engineer yet")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Registered Nurse (3)" })).toHaveAttribute("href", "/learn?career=registered-nurse");
+  });
+
+  it("labels a version marked minor in the lesson's history (Volume 15, prompt 5)", async () => {
+    server.use(http.get(`${API}/api/v1/learn/units/:id`, () => HttpResponse.json({
+      ...sbarUnit(), version: 3, changes: ["First version.", "Fixed a typo.", "A new worked example."], minor_versions: [2],
+    })));
+    renderApp("/learn/rn-prioritization", { signedIn: true });
+    const history = (await screen.findByText("Version history", undefined, { timeout: 4000 })).closest("details")!;
+    const items = within(history).getAllByRole("listitem");
+    expect(items[1]).toHaveTextContent("Version 2: Fixed a typo. (minor: notes from this lesson aren't asked to be reviewed)");
+    expect(items[2]).toHaveTextContent("Version 3: A new worked example.");
+    expect(items[2]).not.toHaveTextContent("minor");
   });
 });

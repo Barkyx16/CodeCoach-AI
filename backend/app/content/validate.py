@@ -135,6 +135,11 @@ def _learn(report: Report, retired: set[tuple[str, str]], seed_slugs: set[str]) 
                 report.errors.append(f"{where}: linked question {qid!r} doesn't exist")
             elif ("question", f"{unit.track}/{qid}") in retired:
                 report.warnings.append(f"{where}: linked question {qid!r} is retired")
+        for v in unit.minor:  # a minor change: a later version, with its note (docs/STORY_FRESHNESS.md)
+            if not 2 <= v <= unit.version:
+                report.errors.append(f"{where}: version {v} is marked minor but isn't a later version")
+            elif len(unit.changes) < v or not unit.changes[v - 1].strip():
+                report.errors.append(f"{where}: version {v} is marked minor without a change note")
         target = unit.practice
         if target.kind == "question" and get_question(unit.track, target.ref_id) is None:
             report.errors.append(f"{where}: practice question {target.ref_id!r} doesn't exist")

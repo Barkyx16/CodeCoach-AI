@@ -81,6 +81,10 @@ class UnitSummary(APIModel):
 class UnitOut(UnitSummary):
     career_title: str
     changes: list[str] = Field(description="What changed in each version, oldest first")
+    minor_versions: list[int] = Field(
+        default_factory=list,
+        description="Versions whose change was reviewed as minor: they never ask you to review a note",
+    )
     scope_note: str | None
     explanation: list[str]
     example: ExampleOut
