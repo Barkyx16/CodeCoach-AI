@@ -25,11 +25,14 @@ function viewFor(indices: number[], ai = false): SharedView {
   };
 }
 
+const NO_NAMES = { replaced: 0, listed: 0, as_of: null, text: "You hadn't listed any names, so nothing was replaced." };
+
 function detail(over: Partial<ShareDetail> = {}): ShareDetail {
   return {
     id: "s1", status: "active", kind: "practice_answer", career_title: "Registered Nurse", question_title: "Patient assessment under pressure",
     source_answer_id: "a-1", created_at: now(), expires_at: later(), closed_at: null, revoked_at: null, last_opened_at: null,
-    feedback_count: 0, last_feedback_at: null, view: viewFor([0, 1, 2]), feedback: [], source_changed: false, source_missing: false, ...over,
+    feedback_count: 0, last_feedback_at: null, view: viewFor([0, 1, 2]), feedback: [], source_changed: false, source_missing: false,
+    names: NO_NAMES, ...over,
   };
 }
 
@@ -41,7 +44,7 @@ describe("sharing an answer: owner", () => {
       http.post(`${API}/api/v1/me/shares/preview`, async ({ request }) => {
         const body = (await request.json()) as { sentences?: number[] | null; include_ai_feedback: boolean };
         previews.push(body);
-        return HttpResponse.json({ source_sentences: SENTENCES, has_followup: false, view: viewFor(body.sentences ?? [0, 1, 2], body.include_ai_feedback) });
+        return HttpResponse.json({ source_sentences: SENTENCES, has_followup: false, names: NO_NAMES, view: viewFor(body.sentences ?? [0, 1, 2], body.include_ai_feedback) });
       }),
       http.post(`${API}/api/v1/me/shares`, async ({ request }) => {
         created = (await request.json()) as Record<string, unknown>;

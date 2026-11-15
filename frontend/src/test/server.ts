@@ -99,6 +99,8 @@ export const handlers = [
   http.get(`${API}/api/v1/me/dismissals`, () => HttpResponse.json({ items: [] })),
   http.post(`${API}/api/v1/me/dismissals`, () => HttpResponse.json({ items: [] })),
   http.delete(`${API}/api/v1/me/dismissals`, () => new HttpResponse(null, { status: 204 })),
+  // Names kept in (Volume 15, prompt 7): none listed unless a test says so.
+  http.get(`${API}/api/v1/me/listed-names`, () => HttpResponse.json({ items: [], max: 100, placeholder: "[name]", note: "Each of these is replaced with [name] in what leaves CodeCoach." })),
   http.get(`${API}/api/v1/problems/:slug/follow-ups`, () => HttpResponse.json({ status: "none", message: "No reviewed related problem is linked to this one yet.", offers: [], answered: [] })),
   http.get(`${API}/api/v1/me/actions/:id/practice`, ({ params }) => HttpResponse.json({
     action_id: params.id, count: 0, items: [], origin: null, linked: true, disputed: null,

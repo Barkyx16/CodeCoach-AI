@@ -74,6 +74,7 @@ from app.services.ai.offline import OfflineCoach
 from app.services.ai.static_analysis import Analysis, analyze
 from app.services.conditions import problem_version
 from app.services.judge.views import public_result_view
+from app.services.listed_names import names_for, names_note, replace_in, replace_names
 
 T = TypeVar("T")
 
@@ -357,6 +358,7 @@ class CoachService:
         code, analysis, items = self._code_items(
             problem,
             source_code,
+            names=names_for(self.db, user.id),
             label="Your code",
             source=lambda lines: (
                 f"As in the editor when you asked: {lines} line{'' if lines == 1 else 's'}. "
@@ -505,6 +507,7 @@ class CoachService:
         code, analysis, items = self._code_items(
             problem,
             source_code,
+            names=names_for(self.db, user.id),
             label="Your code",
             source=lambda lines: (
                 f"As in the editor when you asked: {lines} line{'' if lines == 1 else 's'}. "
@@ -569,11 +572,14 @@ class CoachService:
         label: str,
         source: Callable[[int], str],
         why: str,
+        names: tuple[str, ...] = (),
     ) -> tuple[str, Analysis, list[ContextItem]]:
-        """The code as it's sent (secret-looking strings replaced, cut to size, both said) and
-        CodeCoach's own checks of it: the same two items, built the same way, for every operation."""
+        """The code as it's sent (secret-looking strings replaced, names you listed replaced, cut to
+        size, each said) and CodeCoach's own checks of it: the same two items, built the same way, for
+        every operation."""
         expected = problem.expected_complexity or {}
         code, redacted, truncated = sanitize_code_report(source_code, self.settings.ai_max_code_chars)
+        code, named = replace_names(code, names)
         analysis = analyze(
             code,
             signature=problem.signature,
@@ -586,6 +592,8 @@ class CoachService:
             notes.append(
                 f"{redacted} secret-looking string{'' if redacted == 1 else 's'} replaced with [REDACTED]."
             )
+        if named:
+            notes.append(names_note(named) or "")
         if truncated:
             notes.append(f"Cut to its first {self.settings.ai_max_code_chars:,} characters.")
         lines = len(source_code.splitlines()) or 1
@@ -599,6 +607,7 @@ class CoachService:
                 required=True,
                 why_required=why,
                 notes=notes,
+                names_replaced=named,
             ),
             ContextItem(
                 key="checks",
@@ -649,6 +658,8 @@ class CoachService:
             ),
             remaining_today=max(0, self.settings.ai_daily_request_limit - self._used_today(user)),
             context_fingerprint=fingerprint,
+            names_replaced=sum(i.names_replaced for i in items),
+            names_note=names_note(sum(i.names_replaced for i in items)),
         )
 
     def review_preview(self, user: User, req: ReviewPreviewRequest) -> ReviewPreview:
@@ -765,9 +776,11 @@ class CoachService:
         first = next((r for r in rows if not r.passed), None)
         submitted = _aware(sub.created_at)
         when = submitted.strftime("%d %B %Y, %H:%M UTC").lstrip("0")
+        listed = names_for(self.db, user.id)
         code, analysis, items = self._code_items(
             problem,
             sub.source_code,
+            names=listed,
             label="The submitted code",
             source=lambda lines: (
                 f"Your submission of {when}: {lines} line{'' if lines == 1 else 's'}. "
@@ -802,6 +815,9 @@ class CoachService:
         )
         left_out: list[LeftOut] = []
         compile_output = view.stderr_excerpt if view else None
+        compile_named = 0
+        if compile_output:
+            compile_output, compile_named = replace_names(compile_output, listed)
         if compile_output:
             if share_compile:
                 items.append(
@@ -812,18 +828,24 @@ class CoachService:
                         text=compile_output,
                         derived=False,
                         required=False,
+                        notes=[n for n in [names_note(compile_named)] if n],
+                        names_replaced=compile_named,
                     )
                 )
             else:
                 left_out.append(LeftOut(key="compile_output", label="The compiler output", reason="removed"))
+        # What your program printed or threw is yours: names you listed are replaced in it too (the
+        # test's own input and expected output are public).
+        actual, actual_named = replace_in(first.actual_output, listed) if first else (None, 0)
+        message, message_named = replace_names(first.exception_message or "", listed) if first else ("", 0)
         case = (
             FailingCase(
                 index=first.index,
                 input=first.input,
                 expected=first.expected_output,
-                actual=first.actual_output,
+                actual=actual,
                 exception=first.exception,
-                message=first.exception_message,
+                message=message if first.exception_message is not None else None,
                 line=first.line,
                 missing=first.missing,
             )
@@ -851,6 +873,8 @@ class CoachService:
                         ),
                         derived=False,
                         required=False,
+                        notes=[n for n in [names_note(actual_named + message_named)] if n],
+                        names_replaced=actual_named + message_named,
                     )
                 )
             else:

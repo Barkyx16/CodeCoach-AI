@@ -27,7 +27,7 @@ let actionTitle = "Explain why it matters";
 
 function packetFor(body: Body): Packet {
   return {
-    title: body.title, assembled_at: "2026-11-15T08:30:00Z", digest: `d-${actionTitle.length}-${body.items.length}`, redacted: 0, shortened: false, unavailable: [],
+    title: body.title, assembled_at: "2026-11-15T08:30:00Z", digest: `d-${actionTitle.length}-${body.items.length}`, redacted: 0, names_replaced: 0, shortened: false, unavailable: [],
     items: body.items.map((i) => i.type === "action"
       ? {
         type: "action", id: i.id, title: actionTitle, notes: [],

@@ -62,6 +62,8 @@ export function CoachContext({ preview, choices, onChoose, stale, changed, busy,
       <p>
         <strong>Read by:</strong> {preview.recipient}.{preview.fallback ? ` ${preview.fallback}` : ""}
       </p>
+      {/* Names you listed in Settings (docs/PRIVACY.md): what's below is what's sent, with them replaced. */}
+      {preview.names_note && <p className="coach-context__names">{preview.names_note}</p>}
       <ul className="coach-context__items">
         {preview.items.map((item) => (
           <li key={item.key} className="coach-context__item stack-sm">

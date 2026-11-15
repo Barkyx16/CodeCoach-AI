@@ -137,6 +137,9 @@ class ContextItem(APIModel):
     notes: list[str] = Field(
         default_factory=list, description="What changed between your material and `text`"
     )
+    names_replaced: int = Field(
+        default=0, description="Names you listed (docs/PRIVACY.md) replaced with [name] in `text`"
+    )
 
 
 class LeftOut(APIModel):
@@ -178,6 +181,12 @@ class CoachPreview(APIModel):
     )
     context_fingerprint: str = Field(
         description="Send it back as `approved_context` to bind the request to this preview"
+    )
+    names_replaced: int = Field(
+        default=0, description="Names you listed replaced with [name], in all of the items together"
+    )
+    names_note: str | None = Field(
+        default=None, description="Says how many names you listed were replaced, when any were"
     )
 
 

@@ -21679,11 +21679,11 @@
               "type": "integer",
               "maximum": 2,
               "minimum": 1,
-              "description": "1 (default; what restore reads) or 2: the same data plus record ids and typed links between records (applications, events, targets, stories, notes, schedule entries, kits, reflections and their steps). Version 2 can't be restored yet.",
+              "description": "1 (default; what restore reads) or 2: the same data plus record ids and typed links between records (applications, events, targets, stories, notes, schedule entries, kits, reflections and their steps, collections and their items). Restore reads both; accepted improvements and collections only from version 2, under their ids.",
               "default": 1,
               "title": "Version"
             },
-            "description": "1 (default; what restore reads) or 2: the same data plus record ids and typed links between records (applications, events, targets, stories, notes, schedule entries, kits, reflections and their steps). Version 2 can't be restored yet."
+            "description": "1 (default; what restore reads) or 2: the same data plus record ids and typed links between records (applications, events, targets, stories, notes, schedule entries, kits, reflections and their steps, collections and their items). Restore reads both; accepted improvements and collections only from version 2, under their ids."
           }
         ],
         "responses": {
@@ -22529,6 +22529,261 @@
               "minLength": 1,
               "maxLength": 200,
               "title": "Key"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/listed-names": {
+      "get": {
+        "tags": [
+          "listed names"
+        ],
+        "summary": "Your listed names",
+        "operationId": "list_names_api_v1_me_listed_names_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListedNamesOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "listed names"
+        ],
+        "summary": "Add a name (the same name again, in any letter case, is the one already listed)",
+        "operationId": "add_name_api_v1_me_listed_names_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListedNameIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListedNamesOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/me/listed-names/{name_id}": {
+      "patch": {
+        "tags": [
+          "listed names"
+        ],
+        "summary": "Change a name",
+        "operationId": "change_name_api_v1_me_listed_names__name_id__patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "name_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListedNameIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListedNamesOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "listed names"
+        ],
+        "summary": "Remove a name",
+        "operationId": "remove_name_api_v1_me_listed_names__name_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "name_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name Id"
             }
           }
         ],
@@ -28927,6 +29182,24 @@
             "type": "string",
             "title": "Context Fingerprint",
             "description": "Send it back as `approved_context` to bind the request to this preview"
+          },
+          "names_replaced": {
+            "type": "integer",
+            "title": "Names Replaced",
+            "description": "Names you listed replaced with [name], in all of the items together",
+            "default": 0
+          },
+          "names_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Names Note",
+            "description": "Says how many names you listed were replaced, when any were"
           }
         },
         "type": "object",
@@ -30418,6 +30691,12 @@
             "type": "array",
             "title": "Notes",
             "description": "What changed between your material and `text`"
+          },
+          "names_replaced": {
+            "type": "integer",
+            "title": "Names Replaced",
+            "description": "Names you listed (docs/PRIVACY.md) replaced with [name] in `text`",
+            "default": 0
           }
         },
         "type": "object",
@@ -37356,6 +37635,85 @@
         ],
         "title": "LinkedStory"
       },
+      "ListedNameIn": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "description": "A name as you'd type it (spaces and letter case don't matter)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "ListedNameIn"
+      },
+      "ListedNameOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ListedNameOut"
+      },
+      "ListedNamesOut": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ListedNameOut"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "max": {
+            "type": "integer",
+            "title": "Max",
+            "description": "How many the list holds"
+          },
+          "placeholder": {
+            "type": "string",
+            "title": "Placeholder",
+            "description": "What each one becomes in what leaves the app"
+          },
+          "note": {
+            "type": "string",
+            "title": "Note"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "max",
+          "placeholder",
+          "note"
+        ],
+        "title": "ListedNamesOut"
+      },
       "LoginRequest": {
         "properties": {
           "email": {
@@ -39926,6 +40284,12 @@
             "type": "integer",
             "title": "Redacted",
             "description": "Email addresses and phone numbers removed from your own text"
+          },
+          "names_replaced": {
+            "type": "integer",
+            "title": "Names Replaced",
+            "description": "Names you listed (Settings \u2192 Names kept in) replaced with [name], anywhere in the packet",
+            "default": 0
           },
           "shortened": {
             "type": "boolean",
@@ -47526,6 +47890,9 @@
           "view": {
             "$ref": "#/components/schemas/SharedView"
           },
+          "names": {
+            "$ref": "#/components/schemas/ShareNames"
+          },
           "feedback": {
             "items": {
               "$ref": "#/components/schemas/FeedbackOut"
@@ -47560,11 +47927,52 @@
           "feedback_count",
           "last_feedback_at",
           "view",
+          "names",
           "feedback",
           "source_changed",
           "source_missing"
         ],
         "title": "ShareDetail"
+      },
+      "ShareNames": {
+        "properties": {
+          "replaced": {
+            "type": "integer",
+            "title": "Replaced",
+            "description": "How many were replaced in what's shared"
+          },
+          "listed": {
+            "type": "integer",
+            "title": "Listed",
+            "description": "How many names were on your list when the snapshot was made"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of",
+            "description": "When the list was read: changing it later doesn't change a share"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "replaced",
+          "listed",
+          "as_of",
+          "text"
+        ],
+        "title": "ShareNames",
+        "description": "Names you listed (docs/PRIVACY.md), replaced with [name] in what the reviewer sees."
       },
       "SharePreview": {
         "properties": {
@@ -47582,13 +47990,17 @@
           },
           "view": {
             "$ref": "#/components/schemas/SharedView"
+          },
+          "names": {
+            "$ref": "#/components/schemas/ShareNames"
           }
         },
         "type": "object",
         "required": [
           "source_sentences",
           "has_followup",
-          "view"
+          "view",
+          "names"
         ],
         "title": "SharePreview"
       },

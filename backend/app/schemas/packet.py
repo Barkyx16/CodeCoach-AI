@@ -144,6 +144,10 @@ class PacketOut(APIModel):
         "id is just not found)"
     )
     redacted: int = Field(description="Email addresses and phone numbers removed from your own text")
+    names_replaced: int = Field(
+        default=0,
+        description="Names you listed (Settings → Names kept in) replaced with [name], anywhere in the packet",
+    )
     shortened: bool = Field(description="Something was cut short to keep the packet bounded")
     digest: str = Field(
         description="A fingerprint of exactly this content, shown with the preview and in the file"

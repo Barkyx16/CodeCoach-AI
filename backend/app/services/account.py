@@ -45,6 +45,7 @@ from app.services.drills import Drills
 from app.services.explore import IN_COLLECTION, SAVED
 from app.services.kit_templates import KitTemplates
 from app.services.kits import Kits
+from app.services.listed_names import ListedNames
 from app.services.note_freshness import NoteFreshnessService, SourceFreshness
 from app.services.offer_comparisons import OfferComparisons
 from app.services.offers import Offers
@@ -543,6 +544,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         # Your choices about the first-session introduction (no answer text is part of it).
         "onboarding": Onboarding(db, user).export(),
         "dismissed_suggestions": Dismissals(db, user).export(),
+        # Names you listed, replaced with [name] in what leaves the app (docs/PRIVACY.md).
+        "listed_names": ListedNames(db, user).export(),
         # Problems you reported in questions or feedback, and what happened (no internal notes).
         "content_reports": [
             {

@@ -31,14 +31,14 @@ const preview = (over: { message?: string; code?: string; fingerprint?: string; 
   items: [
     ...(over.feedback ? [] : [{ key: "message" as const, label: "Your message", source: "As you wrote it: 24 characters.",
       text: over.message ?? "My token was [REDACTED].", derived: false, required: true, why_required: "It's what the interviewer answers.",
-      notes: ["1 secret-looking string replaced with [REDACTED]."] }]),
+      notes: ["1 secret-looking string replaced with [REDACTED]."], names_replaced: 0 }]),
     { key: "conversation", label: "The conversation so far", source: "Every message in this interview, in order.",
       text: "[clarify] INTERVIEWER: Hi! Tell me how you understand the problem.", derived: false, required: true,
-      why_required: "The interviewer answers in the context of what's been said.", notes: [] },
+      why_required: "The interviewer answers in the context of what's been said.", notes: [], names_replaced: 0 },
     { key: "code", label: "Your code", source: "As in the editor when you checked: 3 lines. Sent with line numbers added.",
-      text: over.code ?? "class Solution {}", derived: false, required: true, why_required: "The interviewer reads your code as it stands with each message.", notes: [] },
+      text: over.code ?? "class Solution {}", derived: false, required: true, why_required: "The interviewer reads your code as it stands with each message.", notes: [], names_replaced: 0 },
     ...(over.feedback ? [{ key: "ending" as const, label: "How it ended", source: "Worked out by CodeCoach from how you're ending it.",
-      text: `How it ended: ${over.feedback}.`, derived: true, required: true, why_required: null, notes: [] }] : []),
+      text: `How it ended: ${over.feedback}.`, derived: true, required: true, why_required: null, notes: [], names_replaced: 0 }] : []),
   ],
   left_out: [],
   required_public: ["The problem “Two Sum”: its statement, constraints, method signature and expected complexity."],
@@ -46,6 +46,8 @@ const preview = (over: { message?: string; code?: string; fingerprint?: string; 
   recipient: "The built-in interviewer, on CodeCoach's own server: nothing leaves it",
   recipient_kind: "built_in", fallback: null, remaining_today: 48,
   context_fingerprint: over.fingerprint ?? "v1:interviewer",
+  names_replaced: 0,
+  names_note: null,
 });
 
 function interviewServer(opts: { refuse?: CoachPreview } = {}) {

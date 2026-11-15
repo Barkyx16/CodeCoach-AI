@@ -80,12 +80,12 @@ export function reviewPreview(over: { share?: boolean; code?: string; fingerprin
     items: [
       { key: "code", label: "Your code", source: "As in the editor when you asked: 3 lines. Sent with line numbers added.",
         text: over.code ?? "class Solution {\n  // token = \"[REDACTED]\"\n}", derived: false, required: true,
-        why_required: "A code review is of your code.", notes: ["1 secret-looking string replaced with [REDACTED]."] },
+        why_required: "A code review is of your code.", notes: ["1 secret-looking string replaced with [REDACTED]."], names_replaced: 0 },
       { key: "checks", label: "CodeCoach's own checks of your code", source: "Worked out from the code above on CodeCoach's server.",
         text: "Heuristic complexity estimate: time O(n^2), space O(1)\nStatic findings (heuristic, may contain false positives): []",
-        derived: true, required: true, why_required: "They go with your code: the coach confirms or discards each one.", notes: [] },
+        derived: true, required: true, why_required: "They go with your code: the coach confirms or discards each one.", notes: [], names_replaced: 0 },
       ...(share ? [{ key: "verdict" as const, label: "The judge's verdict on your submission", source: "Judged 2026-11-14T10:42:00Z.",
-        text: "FAILED", derived: false, required: false, why_required: null, notes: [] }] : []),
+        text: "FAILED", derived: false, required: false, why_required: null, notes: [], names_replaced: 0 }] : []),
     ],
     left_out: share ? [] : [{ key: "verdict", label: "The judge's verdict on your submission", reason: "removed" }],
     required_public: ["The problem “Two Sum”: its statement, constraints, method signature and expected complexity. Public, the same for everyone, and needed to review code against it."],
@@ -95,6 +95,8 @@ export function reviewPreview(over: { share?: boolean; code?: string; fingerprin
     fallback: over.external ? "If it can't be reached, the built-in coach answers from this same material, and says so." : null,
     remaining_today: 48,
     context_fingerprint: over.fingerprint ?? (share ? "v1:with-verdict" : "v1:without-verdict"),
+    names_replaced: 0,
+    names_note: null,
   };
 }
 
@@ -114,7 +116,7 @@ export function hintPreview(level: number, over: { code?: string; fingerprint?: 
     ],
     items: [
       { key: "level", label: "The hint level you're asking for", source: `Level ${level} of 4.`, text: `Requested hint level: ${level} (${LEVEL_NAMES[level]}).`,
-        derived: false, required: true, why_required: "A hint is for one level; each goes further than the one before.", notes: [] },
+        derived: false, required: true, why_required: "A hint is for one level; each goes further than the one before.", notes: [], names_replaced: 0 },
       ...base.items.map((i) => (i.key === "code" ? { ...i, why_required: "A hint is about your code as it is now." } : i)),
     ],
     left_out: [],
@@ -123,6 +125,8 @@ export function hintPreview(level: number, over: { code?: string; fingerprint?: 
       `The problem's reference hint for level ${level}: written by CodeCoach, public and the same for everyone; the coach adapts it to your code. It isn't shown here, so checking doesn't give the hint away.`,
     ],
     context_fingerprint: over.fingerprint ?? `v1:hint-${level}`,
+    names_replaced: 0,
+    names_note: null,
   };
 }
 
@@ -138,12 +142,12 @@ export function explainPreview(over: { compile?: boolean; failing?: boolean; fin
     already_answered: over.answered ? "This submission was explained before: asking again shows that explanation and sends nothing." : null,
     items: [
       ...base.items.map((i) => (i.key === "code" ? { ...i, label: "The submitted code", why_required: "An explanation is of the code that failed." } : i)),
-      { key: "verdict", label: "The judge's verdict", source: "Judged 14 November 2026, 10:42 UTC.", text: "Judge verdict: FAILED", derived: false, required: true, why_required: "It's what the explanation is about.", notes: [] },
+      { key: "verdict", label: "The judge's verdict", source: "Judged 14 November 2026, 10:42 UTC.", text: "Judge verdict: FAILED", derived: false, required: true, why_required: "It's what the explanation is about.", notes: [], names_replaced: 0 },
       { key: "counts", label: "How many tests passed", source: "Counted by the judge. Hidden tests' inputs and outputs are never sent, only these counts.",
-        text: "Public tests passed: 1/2. Hidden tests passed: 3/5 (hidden inputs are secret).", derived: true, required: true, why_required: "They say whether only hidden tests failed.", notes: [] },
-      ...(compile ? [{ key: "compile_output" as const, label: "The compiler output", source: "From the judge, with its own driver lines removed.", text: "Solution.java:4: warning: unchecked", derived: false, required: false, why_required: null, notes: [] }] : []),
+        text: "Public tests passed: 1/2. Hidden tests passed: 3/5 (hidden inputs are secret).", derived: true, required: true, why_required: "They say whether only hidden tests failed.", notes: [], names_replaced: 0 },
+      ...(compile ? [{ key: "compile_output" as const, label: "The compiler output", source: "From the judge, with its own driver lines removed.", text: "Solution.java:4: warning: unchecked", derived: false, required: false, why_required: null, notes: [], names_replaced: 0 }] : []),
       ...(failing ? [{ key: "failing_test" as const, label: "The first failing public test, with your program's output", source: "Public test 2: the test is public; what your program printed or threw is yours.",
-        text: "{\"test\": 2, \"input\": {\"nums\": [3, 2, 4], \"target\": 6}, \"expected\": [1, 2], \"actual\": [0, 0]}", derived: false, required: false, why_required: null, notes: [] }] : []),
+        text: "{\"test\": 2, \"input\": {\"nums\": [3, 2, 4], \"target\": 6}, \"expected\": [1, 2], \"actual\": [0, 0]}", derived: false, required: false, why_required: null, notes: [], names_replaced: 0 }] : []),
     ],
     left_out: [
       ...(compile ? [] : [{ key: "compile_output" as const, label: "The compiler output", reason: "removed" as const }]),
@@ -151,6 +155,8 @@ export function explainPreview(over: { compile?: boolean; failing?: boolean; fin
     ],
     required_public: ["The problem “Two Sum”: its statement, constraints, method signature and expected complexity. Public, the same for everyone, and needed to explain a failure against it."],
     context_fingerprint: over.fingerprint ?? `v1:explain-${compile ? 1 : 0}${failing ? 1 : 0}`,
+    names_replaced: 0,
+    names_note: null,
   };
 }
 

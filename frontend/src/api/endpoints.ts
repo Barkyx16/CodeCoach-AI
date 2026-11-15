@@ -92,6 +92,7 @@ import type {
   LearnUnit,
   LifecycleIn,
   LifecycleOutcome,
+  ListedNames,
   LoginRequest,
   MyExploreResult,
   MyReport,
@@ -397,6 +398,12 @@ export const api = {
   dismissals: () => apiRequest<DismissedList>("/api/v1/me/dismissals"),
   dismiss: (items: { key: string; offered_on?: string | null }[]) =>
     apiRequest<DismissedList>("/api/v1/me/dismissals", { method: "POST", body: { items } }),
+  // Names kept out of what leaves the app (docs/PRIVACY.md, "Names you listed").
+  listedNames: () => apiRequest<ListedNames>("/api/v1/me/listed-names"),
+  addListedName: (name: string) => apiRequest<ListedNames>("/api/v1/me/listed-names", { method: "POST", body: { name } }),
+  changeListedName: (id: string, name: string) =>
+    apiRequest<ListedNames>(`/api/v1/me/listed-names/${encodeURIComponent(id)}`, { method: "PATCH", body: { name } }),
+  removeListedName: (id: string) => apiRequest<void>(`/api/v1/me/listed-names/${encodeURIComponent(id)}`, { method: "DELETE" }),
   offerAgain: (key: string) =>
     apiRequest<void>(`/api/v1/me/dismissals?key=${encodeURIComponent(key)}`, { method: "DELETE" }),
   /** A reviewed, different coding problem offered after a judged submission of this one passed. */

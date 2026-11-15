@@ -88,6 +88,7 @@ export function ShareDetailPage() {
 
       {s.source_changed && <p className="banner banner--info">Your original answer has changed since you shared it. Reviewers still see the copy you shared.</p>}
       {s.source_missing && <p className="banner banner--info">The original answer is no longer in your history. Reviewers still see the copy you shared.</p>}
+      {s.names.listed > 0 && <p className="subtle share-detail__names">{s.names.text}</p>}
 
       <Card className="stack-sm share-controls">
         <h2 className="section-title">The link</h2>

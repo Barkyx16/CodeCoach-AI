@@ -1248,6 +1248,23 @@ class OnboardingState(Base):
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
+class ListedName(Base):
+    """A name the learner doesn't want anywhere outside the app (Volume 15, prompt 7;
+    docs/PRIVACY.md, "Names you listed"): the practice packet, a shared answer and every coach-context
+    preview replace it with "[name]". The learner's own copy never changes. `folded` is the name in
+    one letter case, so the same name twice is one row. Deleted with the account."""
+
+    __tablename__ = "listed_names"
+    __table_args__ = (UniqueConstraint("user_id", "folded", name="uq_listed_name"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(80))
+    folded: Mapped[str] = mapped_column(String(80))
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
 class DismissedSuggestion(Base):
     """A suggestion the learner said "not now" to, kept with the account so every device respects it
     and Settings can offer it again (Volume 15, prompt 2; docs/FOLLOW_UPS.md, "Not now"). `key` names

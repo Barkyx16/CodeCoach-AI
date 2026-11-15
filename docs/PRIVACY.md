@@ -105,6 +105,34 @@ log line already shipped elsewhere.
 | The production image logs no visitor IP addresses | `backend/Dockerfile` (`--no-access-log`); compose rehearsal step 2c |
 | Failure output carries no configured value, password or private key | `tests/test_redaction_canaries.py`, `tests/test_backup.py` |
 
+## Names you listed (Volume 15, prompt 7)
+
+Settings → Privacy & data → **Names kept in** is a private list of names a learner doesn't want
+anywhere outside the app: an interviewer, a manager, a patient's family. One function
+(`backend/app/services/listed_names.py`, `replace_names`) replaces each with **[name]** and counts
+them, in what leaves CodeCoach only:
+
+| Where text leaves | What's replaced | Where it's said |
+|---|---|---|
+| The practice packet | Everything in it: the title, each item's title, every section's heading and text | "2 names you listed were replaced with [name]" under the preview (`names_replaced`) |
+| A shared answer | The shared sentences, the follow-up reply and the note to the reviewer; the reviewer sees exactly the preview | The share preview, and the share's own page with the list it used (`names`) |
+| What the coach or interviewer reads (code review, hints, failure explanations, the coding interviewer's messages and feedback) | Your code, your message, the conversation so far, the compiler output and your program's output | Each item's notes and the preview's total (`names_note`); what's sent is what was previewed, by the same fingerprint as before |
+
+- **How it matches**: whole words in any letter case, with any spacing inside a name; a possessive
+  stays readable ("Priya's" becomes "[name]'s"); a name inside a longer word isn't replaced, a
+  hyphenated one included ("Ann" leaves "Ann-Marie" alone: list that too if it's meant); with
+  several listed, the longest is matched first.
+- **Only what leaves**: your own notes, answers, stories and the interview transcript keep the
+  names. Changing the list later doesn't change a share already made: its page says which list it
+  used ("Your list as it was on 15 Nov 2026 (3 names) was used: …").
+- **Only these names**: it finds the names on the list and nothing else. It doesn't detect other
+  names, and it can't promise nothing personal leaves: a nickname, a misspelling or a name not on
+  the list goes as written.
+- **Private**: read only for the signed-in account (another account's list is never read, owner-only
+  under row-level security), in the data export (`listed_names`) and the data summary, deleted with
+  the account, not restored from a backup file (add them again), and never written to a log or a
+  trace (`tests/test_listed_names.py`, a canary name through the packet, a hint and the list itself).
+
 ## Limits
 
 - Operators with database access can read what the database holds; row-level security restricts

@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent, type MouseEvent, type ReactNode } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
@@ -123,6 +123,7 @@ export function SettingsPage() {
           <Section id="privacy" title="Privacy & data" description="What the AI coach sees, and a copy of everything we store.">
             <YourDataRow userId={user.id} />
             <AIPrivacyRow />
+            <ListedNamesRow />
             <RetentionRow />
             <SharedRow />
             <ReportsRow />
@@ -639,6 +640,76 @@ function DismissedRow() {
           </ul>
         )}
         {again.error && <InlineError error={again.error} />}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Names you don't want anywhere outside the app (Volume 15, prompt 7; docs/PRIVACY.md, "Names you
+ * listed"): the practice packet, a shared answer and what the coach or interviewer reads replace them
+ * with [name]. Kept with your account; your own notes, answers and stories keep them.
+ */
+function ListedNamesRow() {
+  const queryClient = useQueryClient();
+  const key = ["me", "listed-names"];
+  const list = useQuery({ queryKey: key, queryFn: api.listedNames });
+  const [draft, setDraft] = useState("");
+  const [editing, setEditing] = useState<{ id: string; name: string } | null>(null);
+  const [announce, setAnnounce] = useState("");
+  const done = (data: unknown, said: string) => {
+    if (data) queryClient.setQueryData(key, data);
+    else void queryClient.invalidateQueries({ queryKey: key });
+    setAnnounce(said);
+  };
+  const add = useMutation({ mutationFn: (name: string) => api.addListedName(name), onSuccess: (d, name) => { setDraft(""); done(d, `Added “${name.trim()}”.`); } });
+  const change = useMutation({ mutationFn: (v: { id: string; name: string }) => api.changeListedName(v.id, v.name), onSuccess: (d, v) => { setEditing(null); done(d, `Changed to “${v.name.trim()}”.`); } });
+  const remove = useMutation({ mutationFn: (v: { id: string; name: string }) => api.removeListedName(v.id), onSuccess: (_d, v) => done(null, `Removed “${v.name}”.`) });
+  const items = list.data?.items ?? [];
+  const full = list.data ? items.length >= list.data.max : false;
+  return (
+    <div className="setting" role="group" aria-labelledby="listed-names-title">
+      <RowIntro icon="lock" id="listed-names-title" title="Names kept in">
+        People you&apos;d rather not name outside CodeCoach: an interviewer, a manager, a patient&apos;s family. Each is replaced
+        with [name] in the practice packet, a shared answer, and what the coach or interviewer reads, and each preview
+        says how many. Only the names listed here are found; other names aren&apos;t.
+      </RowIntro>
+      <div className="setting__body stack-sm">
+        {list.isPending ? <p className="subtle">Loading…</p> : list.error ? <InlineError error={list.error} /> : items.length === 0 ? (
+          <p className="subtle">No names listed.</p>
+        ) : (
+          <ul className="mini-list listed-names" aria-label="Names kept in">
+            {items.map((n) => (
+              <li key={n.id} className="row">
+                {editing?.id === n.id ? (
+                  <form className="row" onSubmit={(e) => { e.preventDefault(); if (editing.name.trim()) change.mutate(editing); }}>
+                    <label className="visually-hidden" htmlFor={`listed-${n.id}`}>Change {n.name}</label>
+                    <input id={`listed-${n.id}`} className="input" value={editing.name} maxLength={80} onChange={(e) => setEditing({ id: n.id, name: e.target.value })} />
+                    <Button size="sm" type="submit" loading={change.isPending}>Save</Button>
+                    <Button size="sm" variant="ghost" type="button" onClick={() => setEditing(null)}>Cancel</Button>
+                  </form>
+                ) : (
+                  <>
+                    <span>{n.name}</span>
+                    <Button size="sm" variant="ghost" aria-label={`Change: ${n.name}`} onClick={() => setEditing({ id: n.id, name: n.name })}>Change</Button>
+                    <Button size="sm" variant="ghost" aria-label={`Remove: ${n.name}`} loading={remove.isPending && remove.variables?.id === n.id}
+                      onClick={() => remove.mutate({ id: n.id, name: n.name })}>Remove</Button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        <form className="row" onSubmit={(e) => { e.preventDefault(); if (draft.trim()) add.mutate(draft); }}>
+          <label className="field">
+            <span className="field__label">Add a name</span>
+            <input className="input" value={draft} maxLength={80} disabled={full} onChange={(e) => setDraft(e.target.value)} placeholder="e.g. Priya Raman" />
+          </label>
+          <Button type="submit" variant="secondary" loading={add.isPending} disabled={full || !draft.trim()}>Add</Button>
+        </form>
+        {full && <p className="subtle">The list holds up to {list.data?.max} names.</p>}
+        {(add.error || change.error || remove.error) && <InlineError error={add.error ?? change.error ?? remove.error} />}
+        <p className="visually-hidden" role="status">{announce}</p>
       </div>
     </div>
   );

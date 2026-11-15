@@ -236,6 +236,10 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | POST | `/api/v1/problems/{slug}/follow-ups/{to_slug}/dismiss` | 🔒 | Not now: kept with the account, so it stays dismissed on every device |
 | GET | `/api/v1/me/dismissals` | 🔒 | Suggestions you dismissed with "Not now", in plain words (docs/FOLLOW_UPS.md, "Not now") |
 | POST | `/api/v1/me/dismissals` | 🔒 | Dismiss suggestions by key (the same one twice is one record) |
+| GET | `/api/v1/me/listed-names` | 🔒 | Names you listed, replaced with `[name]` in what leaves the app (docs/PRIVACY.md, "Names you listed"): `{items: [{id, name, created_at, updated_at}], max, placeholder, note}` |
+| POST | `/api/v1/me/listed-names` | 🔒 | Add one `{name}` (the same name in any letter case is the one already listed; `400 invalid_name`, `400 too_many_names` past 100) |
+| PATCH | `/api/v1/me/listed-names/{id}` | 🔒 | Change one (`409 name_listed` when it's already in the list; another account's id is a 404) |
+| DELETE | `/api/v1/me/listed-names/{id}` | 🔒 | Remove one (`204`) |
 | DELETE | `/api/v1/me/dismissals?key=` | 🔒 | Offer a dismissed suggestion again; it then follows its own rules |
 | GET | `/api/v1/me/careers/{slug}/analytics/attempts?since=&until=&offset=&limit≤100` | 🔒 | Every answer in an analytics range: in the trend or why not, each with its comparison with the answer before it (docs/COMPARING_ATTEMPTS.md) |
 | POST | `/api/v1/me/attempt-conditions` | 🔒 | The in-app help shown before each of up to 50 submissions, answers, drill attempts, scenario runs, whiteboard attempts, code reviews, comparison readings and work-sample attempts (docs/ATTEMPT_CONDITIONS.md) |

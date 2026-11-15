@@ -166,6 +166,7 @@ export function ShareComposerPage() {
           {preview.isError ? <InlineError error={preview.error} />
             : view ? (
               <>
+                {preview.data && preview.data.names.listed > 0 && <p className="subtle share-preview__names">{preview.data.names.text}</p>}
                 <SharedSnapshot view={view} idPrefix="preview" />
                 <div className="stack-sm">
                   <h2 className="section-title">They're asked</h2>

@@ -115,6 +115,15 @@ from the career catalog, so they're referenced by `(track, question_id)`, not a 
 | `offered_on` | varchar(200) null | The page it was offered on |
 | `dismissed_at` | timestamptz | The first time it was dismissed |
 
+### `listed_names`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | varchar(36) PK | UUID4 |
+| `user_id` | FK → users (cascade), indexed | Owner-only under row-level security (migration `e4c8a2d6f913`) |
+| `name` | varchar(80) | A name the learner doesn't want anywhere outside the app, as typed (spaces collapsed) |
+| `folded` | varchar(80) | The same in one letter case: unique per account, so the same name twice is one row |
+| `created_at`, `updated_at` | timestamptz | |
+
 ### `refresh_tokens`
 | Column | Type | Notes |
 |---|---|---|

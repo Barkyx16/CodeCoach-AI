@@ -21,6 +21,7 @@ import hashlib
 import re
 import secrets
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -54,12 +55,14 @@ from app.schemas.shares import (
     SharedQuestion,
     SharedSentence,
     SharedView,
+    ShareNames,
     SharePreview,
     ShareSelection,
     ShareStatus,
     ShareSummary,
 )
 from app.services import request_keys
+from app.services.listed_names import names_for, names_note, replace_names
 
 PROMPTS = ["What was clear?", "What needs more evidence?", "One useful next step"]
 MAX_ACTIVE_SHARES = 50
@@ -100,6 +103,30 @@ def status_of(share: Share, now: datetime | None = None) -> ShareStatus:
     if share.closed_at is not None:
         return "closed"
     return "active"
+
+
+def names_of(snapshot: dict, preview: bool = False) -> ShareNames:
+    """Which of your listed names were replaced in a share, and with the list as of when. A share made
+    before names could be listed says so."""
+    rec = snapshot.get("names")
+    if not isinstance(rec, dict):
+        return ShareNames(
+            replaced=0, listed=0, as_of=None, text="Made before names could be listed: nothing was replaced."
+        )
+    n, listed = int(rec.get("replaced") or 0), int(rec.get("listed") or 0)
+    as_of = datetime.fromisoformat(rec["as_of"]) if rec.get("as_of") else None
+    if not listed:
+        text = "You hadn't listed any names, so nothing was replaced."
+    elif preview:
+        text = names_note(n) or "None of the names you listed is in what you chose."
+    else:
+        when = f"{as_of.day} {as_of:%b %Y}" if as_of else "when it was made"
+        did = names_note(n) or "none of them was in what you shared."
+        text = (
+            f"Your list as it was on {when} ({listed} name{'' if listed == 1 else 's'}) was used: {did[0].lower() + did[1:]}"
+            " Changing the list now doesn't change this share."
+        )
+    return ShareNames(replaced=n, listed=listed, as_of=as_of, text=text)
 
 
 def view_of(snapshot: dict) -> SharedView:
@@ -194,7 +221,7 @@ class Shares:
         )
         kind = "interview_answer" if context is not None else "practice_answer"
         career = CATALOG[answer.track].title if answer.track in CATALOG else answer.track
-        snapshot = {
+        snapshot: dict[str, Any] = {
             "v": SNAPSHOT_VERSION,
             "kind": kind,
             "career_title": career,
@@ -211,6 +238,20 @@ class Shares:
             "note": _clean(sel.note),
             "answered_on": answer.created_at.date().isoformat(),
         }
+        # Names you listed (docs/PRIVACY.md) leave as [name], in what the reviewer sees only; the
+        # list as it was now goes with the snapshot, so a later change to it changes no share.
+        listed = names_for(self.db, user.id)
+        replaced = 0
+        if listed:
+            for part in snapshot["excerpt"]:
+                part["text"], n = replace_names(part["text"], listed)
+                replaced += n
+            if followup is not None:
+                followup["answer"], n = replace_names(followup["answer"], listed)
+                replaced += n
+            snapshot["note"], n = replace_names(snapshot["note"], listed)
+            replaced += n
+        snapshot["names"] = {"replaced": replaced, "listed": len(listed), "as_of": _now().isoformat()}
         source_text = answer.answer + "\x00" + (record.get("answer") or "")
         return snapshot, kind, sentences, has_followup, _digest(source_text)
 
@@ -220,6 +261,7 @@ class Shares:
             source_sentences=[SharedSentence(index=i, text=t) for i, t in enumerate(sentences)],
             has_followup=has_followup,
             view=view_of(snapshot),
+            names=names_of(snapshot, preview=True),
         )
 
     # ------------------------------------------------------------------ owner
@@ -297,6 +339,7 @@ class Shares:
         return ShareDetail(
             **self._summary_fields(share),
             view=view_of(share.snapshot),
+            names=names_of(share.snapshot),
             feedback=[self._feedback_out(share, f, names) for f in share.feedback],
             source_changed=changed,
             source_missing=source is None,

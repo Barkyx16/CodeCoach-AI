@@ -91,6 +91,7 @@ from app.services.ai.context_text import ending_text, interview_phase_text, tran
 from app.services.ai.offline import OfflineCoach
 from app.services.ai.service import CoachService, problem_context, redact_secrets_counted
 from app.services.ai.static_analysis import analyze
+from app.services.listed_names import names_for, names_note, replace_names
 from app.services.progress import ProgressService
 from app.services.question_rounds import ROUND, QuestionRounds
 
@@ -114,16 +115,21 @@ def _replaced_note(n: int) -> list[str]:
     return [f"{_plural(n, 'secret-looking string')} replaced with [REDACTED]."] if n else []
 
 
-def _as_read(turns: Sequence[InterviewTurn]) -> tuple[list[TranscriptTurn], int]:
+def _as_read(
+    turns: Sequence[InterviewTurn], names: tuple[str, ...] = ()
+) -> tuple[list[TranscriptTurn], int, int]:
     """The stored conversation as the interviewer reads it: every turn, in order, with
-    secret-looking strings replaced (the stored turns keep what was written), and how many were."""
+    secret-looking strings and names you listed replaced (the stored turns keep what was written),
+    and how many of each were."""
     out: list[TranscriptTurn] = []
-    replaced = 0
+    replaced = named = 0
     for t in turns:
         text, n = redact_secrets_counted(t.content)
+        text, m = replace_names(text, names)
         replaced += n
+        named += m
         out.append(TranscriptTurn(role=t.role.value, phase=t.phase or InterviewPhase.WRAP_UP, content=text))
-    return out, replaced
+    return out, replaced, named
 
 
 def _now() -> datetime:
@@ -583,7 +589,9 @@ class InterviewService:
             return code, True
         return session.final_code or "", False
 
-    def _conversation_item(self, turns: Sequence[TranscriptTurn], replaced: int, why: str) -> ContextItem:
+    def _conversation_item(
+        self, turns: Sequence[TranscriptTurn], replaced: int, why: str, named: int = 0
+    ) -> ContextItem:
         mine = sum(1 for t in turns if t.role == TurnRole.CANDIDATE.value)
         return ContextItem(
             key="conversation",
@@ -597,7 +605,8 @@ class InterviewService:
             derived=False,
             required=True,
             why_required=why,
-            notes=_replaced_note(replaced),
+            notes=[*_replaced_note(replaced), *[n for n in [names_note(named)] if n]],
+            names_replaced=named,
         )
 
     @staticmethod
@@ -615,12 +624,15 @@ class InterviewService:
         problem = session.problem
         assert problem is not None
         phase = session.phase or InterviewPhase.WRAP_UP
-        earlier, earlier_replaced = _as_read(session.turns)
+        listed = names_for(self.db, user.id)
+        earlier, earlier_replaced, earlier_named = _as_read(session.turns, listed)
         sent, replaced = redact_secrets_counted(message.strip())
+        sent, named = replace_names(sent, listed)
         in_phase = 1 + sum(1 for t in session.turns if t.role == TurnRole.CANDIDATE and t.phase == phase)
         code, analysis, code_items = self.coach._code_items(
             problem,
             source_code,
+            names=listed,
             label="Your code",
             source=self._code_source(from_editor),
             why="The interviewer reads your code as it stands with each message.",
@@ -636,10 +648,14 @@ class InterviewService:
                 derived=False,
                 required=True,
                 why_required="It's what the interviewer answers.",
-                notes=_replaced_note(replaced),
+                notes=[*_replaced_note(replaced), *[n for n in [names_note(named)] if n]],
+                names_replaced=named,
             ),
             self._conversation_item(
-                earlier, earlier_replaced, "The interviewer answers in the context of what's been said."
+                earlier,
+                earlier_replaced,
+                "The interviewer answers in the context of what's been said.",
+                earlier_named,
             ),
             *code_items,
             ContextItem(
@@ -683,10 +699,12 @@ class InterviewService:
         problem = session.problem
         assert problem is not None
         phase = session.phase or InterviewPhase.WRAP_UP
-        turns, replaced = _as_read(session.turns)
+        listed = names_for(self.db, user.id)
+        turns, replaced, named = _as_read(session.turns, listed)
         code, analysis, code_items = self.coach._code_items(
             problem,
             source_code,
+            names=listed,
             label="Your code",
             source=self._code_source(from_editor),
             why="The feedback covers your code as well as the conversation.",
@@ -694,7 +712,7 @@ class InterviewService:
         if not source_code.strip():
             code_items[0].notes.append("No code: the feedback is told none was written.")
         items = [
-            self._conversation_item(turns, replaced, "The feedback is on the whole interview."),
+            self._conversation_item(turns, replaced, "The feedback is on the whole interview.", named),
             *code_items,
             ContextItem(
                 key="ending",

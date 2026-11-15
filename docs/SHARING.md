@@ -33,6 +33,12 @@ nothing to share; no audio option exists).
 What the reviewer sees is a **snapshot** taken when the link is made. Editing or deleting the
 original later never changes it; the owner's page says when the original changed or is gone.
 
+Names you listed in Settings (docs/PRIVACY.md, "Names you listed") are replaced with [name] in
+the snapshot: the shared sentences, the follow-up reply and the note. The preview says how many,
+and the reviewer sees exactly that; your original answer keeps them. The list as it was when the
+link was made goes with the snapshot, so changing the list later changes no share, and the share's
+page says which list it used.
+
 ## The link and its secret
 
 - The secret is 256 bits from `secrets.token_urlsafe(32)`. Record ids are never used as keys.

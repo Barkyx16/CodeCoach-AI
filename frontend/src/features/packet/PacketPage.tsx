@@ -228,6 +228,7 @@ export function PacketPage() {
                   <ul className="mini-list">{preview.packet.unavailable.map((u) => <li key={`${u.type}:${u.id}`}>{titleOf(u.type, u.id)}: {u.reason}</li>)}</ul>
                 </div>
               )}
+              {preview.packet.names_replaced > 0 && <p className="subtle">{preview.packet.names_replaced} name{preview.packet.names_replaced === 1 ? "" : "s"} you listed {preview.packet.names_replaced === 1 ? "was" : "were"} replaced with [name] (Settings → Names kept in). Your own notes and stories keep them.</p>}
               {preview.packet.redacted > 0 && <p className="subtle">{preview.packet.redacted} email address{preview.packet.redacted === 1 ? "" : "es"} or phone number{preview.packet.redacted === 1 ? "" : "s"} removed from your own text.</p>}
             </div>
             {!stale && <PacketView packet={preview.packet} titleOf={titleOf} />}

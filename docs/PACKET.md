@@ -54,6 +54,10 @@ repeat the kit's interviewers.
 
 ## Exact preview
 
+Names you listed in Settings (docs/PRIVACY.md, "Names you listed") are replaced with [name]
+everywhere in the packet, its title and item titles included, and the preview says how many
+(`names_replaced`). The notes and stories the packet reads from keep them.
+
 `GET /api/v1/me/packet/kits` lists the saved kits you can choose (with whether each has a meeting
 link, interviewers or private notes, never what they are). `GET /api/v1/me/packet/reflections` lists
 your reflections, the 30 most recent interviews (`items`, `total`, `limit`; the page says how many

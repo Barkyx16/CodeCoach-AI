@@ -21,7 +21,7 @@ const story = (id: string, title: string): StorySummary => ({ id, title, track: 
 
 function packetFor(body: { title: string; items: { type: string; id: string; parts: string[] }[] }): Packet {
   return {
-    title: body.title, assembled_at: "2026-11-11T08:30:00Z", digest: "abc123def4567890", redacted: 1, shortened: false,
+    title: body.title, assembled_at: "2026-11-11T08:30:00Z", digest: "abc123def4567890", redacted: 1, names_replaced: 0, shortened: false,
     unavailable: body.items.filter((i) => i.id === "gone").map((i) => ({ type: i.type as Packet["unavailable"][number]["type"], id: i.id, reason: "Not found: it may have been deleted." })),
     items: body.items.filter((i) => i.id !== "gone").map((i) => ({
       type: i.type as Packet["items"][number]["type"], id: i.id, title: i.type === "story" ? "Two call lights" : i.type === "note" ? "Handover notes" : "What good patient assessment looks like", notes: [],
@@ -109,6 +109,18 @@ describe("A practice packet", () => {
     expect(file.text).toContain(`## note [Yours]\n(note note provenance)\n${NASTY}`);
     expect(file.text).toContain("## your_answer [Yours]");
     expect(file.text).not.toContain("task text"); // left out, so not in the file
+  });
+
+  it("says how many listed names were replaced (Volume 15, prompt 7)", async () => {
+    serve();
+    server.use(http.post(`${API}/api/v1/me/packet/preview`, async ({ request }) => {
+      const body = (await request.json()) as (typeof sent)[number];
+      return HttpResponse.json({ ...packetFor(body), names_replaced: 2 });
+    }));
+    const { user } = renderApp("/packet", { signedIn: true });
+    await user.click(await screen.findByRole("checkbox", { name: "Handover notes" }, { timeout: 3000 }));
+    await user.click(screen.getByRole("button", { name: "Preview packet" }));
+    expect(await screen.findByText(/2 names you listed were replaced with \[name\] \(Settings → Names kept in\)/)).toBeInTheDocument();
   });
 
   it("hides saving after a change until it's previewed again", async () => {

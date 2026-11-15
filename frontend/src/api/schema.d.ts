@@ -4334,6 +4334,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/listed-names": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Your listed names */
+        get: operations["list_names_api_v1_me_listed_names_get"];
+        put?: never;
+        /** Add a name (the same name again, in any letter case, is the one already listed) */
+        post: operations["add_name_api_v1_me_listed_names_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/listed-names/{name_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a name */
+        delete: operations["remove_name_api_v1_me_listed_names__name_id__delete"];
+        options?: never;
+        head?: never;
+        /** Change a name */
+        patch: operations["change_name_api_v1_me_listed_names__name_id__patch"];
+        trace?: never;
+    };
     "/api/v1/me/search": {
         parameters: {
             query?: never;
@@ -6330,6 +6366,17 @@ export interface components {
              * @description Send it back as `approved_context` to bind the request to this preview
              */
             context_fingerprint: string;
+            /**
+             * Names Replaced
+             * @description Names you listed replaced with [name], in all of the items together
+             * @default 0
+             */
+            names_replaced: number;
+            /**
+             * Names Note
+             * @description Says how many names you listed were replaced, when any were
+             */
+            names_note?: string | null;
         };
         /**
          * CodeReview
@@ -6951,6 +6998,12 @@ export interface components {
              * @description What changed between your material and `text`
              */
             notes?: string[];
+            /**
+             * Names Replaced
+             * @description Names you listed (docs/PRIVACY.md) replaced with [name] in `text`
+             * @default 0
+             */
+            names_replaced: number;
         };
         /** Conversion */
         Conversion: {
@@ -9871,6 +9924,48 @@ export interface components {
              */
             archived: boolean;
         };
+        /** ListedNameIn */
+        ListedNameIn: {
+            /**
+             * Name
+             * @description A name as you'd type it (spaces and letter case don't matter)
+             */
+            name: string;
+        };
+        /** ListedNameOut */
+        ListedNameOut: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+        };
+        /** ListedNamesOut */
+        ListedNamesOut: {
+            /** Items */
+            items: components["schemas"]["ListedNameOut"][];
+            /**
+             * Max
+             * @description How many the list holds
+             */
+            max: number;
+            /**
+             * Placeholder
+             * @description What each one becomes in what leaves the app
+             */
+            placeholder: string;
+            /** Note */
+            note: string;
+        };
         /** LoginRequest */
         LoginRequest: {
             /**
@@ -10914,6 +11009,12 @@ export interface components {
              * @description Email addresses and phone numbers removed from your own text
              */
             redacted: number;
+            /**
+             * Names Replaced
+             * @description Names you listed (Settings → Names kept in) replaced with [name], anywhere in the packet
+             * @default 0
+             */
+            names_replaced: number;
             /**
              * Shortened
              * @description Something was cut short to keep the packet bounded
@@ -14016,6 +14117,7 @@ export interface components {
             /** Last Feedback At */
             last_feedback_at: string | null;
             view: components["schemas"]["SharedView"];
+            names: components["schemas"]["ShareNames"];
             /** Feedback */
             feedback: components["schemas"]["FeedbackOut"][];
             /**
@@ -14029,6 +14131,29 @@ export interface components {
              */
             source_missing: boolean;
         };
+        /**
+         * ShareNames
+         * @description Names you listed (docs/PRIVACY.md), replaced with [name] in what the reviewer sees.
+         */
+        ShareNames: {
+            /**
+             * Replaced
+             * @description How many were replaced in what's shared
+             */
+            replaced: number;
+            /**
+             * Listed
+             * @description How many names were on your list when the snapshot was made
+             */
+            listed: number;
+            /**
+             * As Of
+             * @description When the list was read: changing it later doesn't change a share
+             */
+            as_of: string | null;
+            /** Text */
+            text: string;
+        };
         /** SharePreview */
         SharePreview: {
             /**
@@ -14039,6 +14164,7 @@ export interface components {
             /** Has Followup */
             has_followup: boolean;
             view: components["schemas"]["SharedView"];
+            names: components["schemas"]["ShareNames"];
         };
         /**
          * ShareSelection
@@ -31643,7 +31769,7 @@ export interface operations {
     export_api_v1_me_export_get: {
         parameters: {
             query?: {
-                /** @description 1 (default; what restore reads) or 2: the same data plus record ids and typed links between records (applications, events, targets, stories, notes, schedule entries, kits, reflections and their steps). Version 2 can't be restored yet. */
+                /** @description 1 (default; what restore reads) or 2: the same data plus record ids and typed links between records (applications, events, targets, stories, notes, schedule entries, kits, reflections and their steps, collections and their items). Restore reads both; accepted improvements and collections only from version 2, under their ids. */
                 version?: number;
             };
             header?: never;
@@ -32132,6 +32258,204 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_names_api_v1_me_listed_names_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListedNamesOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    add_name_api_v1_me_listed_names_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListedNameIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListedNamesOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    remove_name_api_v1_me_listed_names__name_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    change_name_api_v1_me_listed_names__name_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListedNameIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListedNamesOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

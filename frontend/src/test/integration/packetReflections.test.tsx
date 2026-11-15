@@ -23,7 +23,7 @@ type Body = { title: string; items: { type: string; id: string; parts: string[] 
 let sent: Body[] = [];
 function packetFor(body: Body): Packet {
   return {
-    title: body.title, assembled_at: "2026-11-15T08:30:00Z", digest: `d-${body.items[0]?.parts.length}`, redacted: 0, shortened: false, unavailable: [],
+    title: body.title, assembled_at: "2026-11-15T08:30:00Z", digest: `d-${body.items[0]?.parts.length}`, redacted: 0, names_replaced: 0, shortened: false, unavailable: [],
     items: body.items.map((i) => ({
       type: "reflection", id: i.id, title: "Reflection on Panel interview: Ward nurse at Mercy General",
       notes: i.parts.includes("observations") ? [] : ["What you noticed isn't included: choose “What you noticed” to add it."],

@@ -15,6 +15,14 @@ each operation sends, and how the code review (Volume 12, prompt 2), hints and f
 | **Coding interviewer** (each message, and the feedback on Finish or End early) | Your message and the conversation so far (secret-looking strings replaced in both), your code (replaced and cut), CodeCoach's checks, and where the interview is (the phase and your messages in it) or, for the feedback, how it ended. Public: the problem. The opening turn sends only the problem and the time available | **Yes** (below) |
 | Written answers, career interviews, practice labs, drills, scenarios, code-review exercises, story help, offer comparisons, whiteboards | Nothing: they're checked by fixed rules on CodeCoach's server | Nothing to preview |
 
+**Names you listed** (Settings → Names kept in; docs/PRIVACY.md, "Names you listed") are replaced
+with [name] in every one of these, wherever your own text is sent: your code, your message, the
+conversation so far, the compiler output and what your program printed. Each item's notes say how
+many ("1 name you listed was replaced with [name]."), and so does the check as a whole
+(`names_replaced`, `names_note`), so you see it before anything is sent. What's sent is what was
+previewed: the replaced text is part of what the fingerprint covers. Your own code, transcript and
+submissions keep the names. Only the names on the list are found.
+
 The coach's fixed instructions are CodeCoach's own, the same for everyone, and aren't shown.
 Everything you wrote is given to the coach as material to read, never as instructions: the
 instructions say so, and your text sits inside marked, numbered blocks.

@@ -148,6 +148,13 @@ CATEGORIES: tuple[Category, ...] = (
         note="Settings lists them and can offer any of them again.",
     ),
     Category(
+        "listed_names",
+        "account",
+        "Names you listed, to be replaced in what leaves the app",
+        ("listed_names",),
+        note="Settings lists them; the packet, shares and the coach replace them with [name].",
+    ),
+    Category(
         "restores",
         "account",
         "Restores from a backup file",

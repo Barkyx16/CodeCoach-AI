@@ -72,6 +72,7 @@ from app.schemas.packet import (
     PacketSection,
     PacketUnavailable,
 )
+from app.services.listed_names import names_for, replace_names
 
 MAX_CHARS = 150_000  # the whole packet's text
 MAX_SECTION = 20_000  # one section's text
@@ -146,6 +147,35 @@ class _Budget:
         )
 
 
+def _without_names(
+    title: str, items: list[PacketItemOut], names: tuple[str, ...]
+) -> tuple[str, list[PacketItemOut], int]:
+    if not names:
+        return title, items, 0
+    total = 0
+
+    def swap(text: str) -> str:
+        nonlocal total
+        out, n = replace_names(text, names)
+        total += n
+        return out
+
+    title = swap(title)
+    out = [
+        item.model_copy(
+            update={
+                "title": swap(item.title),
+                "sections": [
+                    sec.model_copy(update={"heading": swap(sec.heading), "text": swap(sec.text)})
+                    for sec in item.sections
+                ],
+            }
+        )
+        for item in items
+    ]
+    return title, out, total
+
+
 class Packets:
     def __init__(self, db: Session, user: User):
         self.db = db
@@ -202,6 +232,10 @@ class Packets:
                 items.append(made)
         items = self._beside_kits(items)
         title = body.title.strip() or "My practice packet"
+        # Names you listed (docs/PRIVACY.md): replaced everywhere in the packet, the title, headings
+        # and every section, by the one function the shares and the coach use too. The records the
+        # packet reads from keep them.
+        title, items, named = _without_names(title, items, names_for(self.db, self.user.id))
         digest = hashlib.sha256(
             json.dumps(
                 {"title": title, "items": [i.model_dump(mode="json") for i in items]}, sort_keys=True
@@ -213,6 +247,7 @@ class Packets:
             items=items,
             unavailable=unavailable,
             redacted=budget.redacted,
+            names_replaced=named,
             shortened=budget.shortened,
             digest=digest,
         )

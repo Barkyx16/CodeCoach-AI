@@ -102,10 +102,22 @@ class RecipientView(APIModel):
     )
 
 
+class ShareNames(APIModel):
+    """Names you listed (docs/PRIVACY.md), replaced with [name] in what the reviewer sees."""
+
+    replaced: int = Field(description="How many were replaced in what's shared")
+    listed: int = Field(description="How many names were on your list when the snapshot was made")
+    as_of: datetime | None = Field(
+        description="When the list was read: changing it later doesn't change a share"
+    )
+    text: str
+
+
 class SharePreview(APIModel):
     source_sentences: list[SharedSentence] = Field(description="Every sentence of the answer, to choose from")
     has_followup: bool
     view: SharedView
+    names: ShareNames
 
 
 class ReviewerIdentity(APIModel):
@@ -177,6 +189,7 @@ class ShareSummary(APIModel):
 
 class ShareDetail(ShareSummary):
     view: SharedView
+    names: ShareNames
     feedback: list[FeedbackOut]
     source_changed: bool = Field(description="The original answer differs from what was shared")
     source_missing: bool = Field(description="The original answer is no longer in your history")
