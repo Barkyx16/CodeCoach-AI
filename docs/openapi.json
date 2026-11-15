@@ -4135,6 +4135,62 @@
         ]
       }
     },
+    "/api/v1/me/bookmarks/review/batch": {
+      "post": {
+        "tags": [
+          "explore"
+        ],
+        "summary": "Mark several saved items reviewed, each at the version you were shown, with an outcome for each (docs/BULK_ACTIONS.md)",
+        "operationId": "review_bookmarks_api_v1_me_bookmarks_review_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SavedReviewBatchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedReviewBatchOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/me/collections": {
       "get": {
         "tags": [
@@ -4975,6 +5031,83 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/CollectionOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/me/collections/{collection_id}/items/review/batch": {
+      "post": {
+        "tags": [
+          "explore"
+        ],
+        "summary": "Mark several items of a collection reviewed, each at the version you were shown, with an outcome for each (docs/BULK_ACTIONS.md)",
+        "operationId": "review_collection_items_api_v1_me_collections__collection_id__items_review_batch_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Collection Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionReviewBatchIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionReviewBatchOut"
                 }
               }
             }
@@ -29151,6 +29284,46 @@
         ],
         "title": "CollectionOut"
       },
+      "CollectionReviewBatchIn": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ItemReviewIn"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "CollectionReviewBatchIn",
+        "description": "Mark several items of a collection reviewed, each at the version it was shown."
+      },
+      "CollectionReviewBatchOut": {
+        "properties": {
+          "collection": {
+            "$ref": "#/components/schemas/CollectionOut"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewResult"
+            },
+            "type": "array",
+            "title": "Results",
+            "description": "One per item sent, in the order sent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "collection",
+          "results"
+        ],
+        "title": "CollectionReviewBatchOut"
+      },
       "CollectionSummary": {
         "properties": {
           "id": {
@@ -35825,6 +35998,28 @@
         },
         "type": "object",
         "title": "Interviewer"
+      },
+      "ItemReviewIn": {
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Item Id"
+          },
+          "reviewed_version": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Reviewed Version",
+            "description": "The source's version you were shown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_id",
+          "reviewed_version"
+        ],
+        "title": "ItemReviewIn"
       },
       "ItemStatus": {
         "properties": {
@@ -44140,7 +44335,7 @@
               }
             ],
             "title": "Removal",
-            "description": "After removal: removed, kept_edited, already_gone"
+            "description": "After removal: removed, kept_edited, already_gone; kept_collections names the collections changed since and kept"
           },
           "created_at": {
             "type": "string",
@@ -44181,7 +44376,8 @@
               "stories",
               "bookmarks",
               "applications",
-              "accepted_actions"
+              "accepted_actions",
+              "collections"
             ],
             "title": "Key"
           },
@@ -45738,6 +45934,40 @@
         ],
         "title": "ReviewResponse"
       },
+      "ReviewResult": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "The item as sent: 'type:track:ref' for a saved item, the item id in a collection"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "reviewed",
+              "already_reviewed",
+              "newer_since",
+              "not_versioned",
+              "unavailable",
+              "invalid_version",
+              "not_there",
+              "repeated"
+            ],
+            "title": "Outcome"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "outcome",
+          "message"
+        ],
+        "title": "ReviewResult"
+      },
       "ReviewerIdentity": {
         "properties": {
           "kind": {
@@ -46268,6 +46498,50 @@
         ],
         "title": "SaveReplay",
         "description": "Set when this save had already been accepted under its key (its first reply was lost)."
+      },
+      "SavedReviewBatchIn": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SavedReviewIn"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Items"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "SavedReviewBatchIn",
+        "description": "Mark several saved items reviewed, each at the version it was shown (docs/BULK_ACTIONS.md)."
+      },
+      "SavedReviewBatchOut": {
+        "properties": {
+          "bookmarks": {
+            "items": {
+              "$ref": "#/components/schemas/BookmarkOut"
+            },
+            "type": "array",
+            "title": "Bookmarks"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/ReviewResult"
+            },
+            "type": "array",
+            "title": "Results",
+            "description": "One per item sent, in the order sent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bookmarks",
+          "results"
+        ],
+        "title": "SavedReviewBatchOut"
       },
       "SavedReviewIn": {
         "properties": {

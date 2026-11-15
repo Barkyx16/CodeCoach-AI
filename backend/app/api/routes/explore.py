@@ -19,6 +19,8 @@ from app.schemas.explore import (
     CollectionIn,
     CollectionItemIn,
     CollectionOut,
+    CollectionReviewBatchIn,
+    CollectionReviewBatchOut,
     CollectionSummary,
     DoneIn,
     ExploreResult,
@@ -28,6 +30,8 @@ from app.schemas.explore import (
     MyExploreResult,
     OrderIn,
     QueueIn,
+    SavedReviewBatchIn,
+    SavedReviewBatchOut,
     SavedReviewIn,
 )
 from app.schemas.notes import NoteSourceReviewIn
@@ -161,6 +165,19 @@ def review_bookmark(
     body: SavedReviewIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> BookmarkOut:
     return Explorer(db).review_bookmark(user, body)
+
+
+@router.post(
+    "/me/bookmarks/review/batch",
+    response_model=SavedReviewBatchOut,
+    responses=error_responses(401, 422),
+    summary="Mark several saved items reviewed, each at the version you were shown, with an outcome for each "
+    "(docs/BULK_ACTIONS.md)",
+)
+def review_bookmarks(
+    body: SavedReviewBatchIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> SavedReviewBatchOut:
+    return Explorer(db).review_bookmarks(user, body)
 
 
 # --- collections -------------------------------------------------------------------------------
@@ -318,6 +335,22 @@ def mark_item_done(
     db: Session = Depends(get_db),
 ) -> CollectionOut:
     return Explorer(db).mark_done(user, collection_id, item_id, body.done)
+
+
+@router.post(
+    "/me/collections/{collection_id}/items/review/batch",
+    response_model=CollectionReviewBatchOut,
+    responses=error_responses(401, 404, 422),
+    summary="Mark several items of a collection reviewed, each at the version you were shown, with an outcome "
+    "for each (docs/BULK_ACTIONS.md)",
+)
+def review_collection_items(
+    collection_id: str,
+    body: CollectionReviewBatchIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CollectionReviewBatchOut:
+    return Explorer(db).review_items(user, collection_id, body)
 
 
 @router.post(

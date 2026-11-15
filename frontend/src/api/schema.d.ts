@@ -925,6 +925,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/bookmarks/review/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark several saved items reviewed, each at the version you were shown, with an outcome for each (docs/BULK_ACTIONS.md) */
+        post: operations["review_bookmarks_api_v1_me_bookmarks_review_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/collections": {
         parameters: {
             query?: never;
@@ -1058,6 +1075,23 @@ export interface paths {
         /** Mark an item done in this queue (queue progress only; mastery comes from your answers) */
         put: operations["mark_item_done_api_v1_me_collections__collection_id__items__item_id__done_put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/collections/{collection_id}/items/review/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mark several items of a collection reviewed, each at the version you were shown, with an outcome for each (docs/BULK_ACTIONS.md) */
+        post: operations["review_collection_items_api_v1_me_collections__collection_id__items_review_batch_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -6440,6 +6474,23 @@ export interface components {
             /** Queue Done */
             queue_done: number;
         };
+        /**
+         * CollectionReviewBatchIn
+         * @description Mark several items of a collection reviewed, each at the version it was shown.
+         */
+        CollectionReviewBatchIn: {
+            /** Items */
+            items: components["schemas"]["ItemReviewIn"][];
+        };
+        /** CollectionReviewBatchOut */
+        CollectionReviewBatchOut: {
+            collection: components["schemas"]["CollectionOut"];
+            /**
+             * Results
+             * @description One per item sent, in the order sent
+             */
+            results: components["schemas"]["ReviewResult"][];
+        };
         /** CollectionSummary */
         CollectionSummary: {
             /** Id */
@@ -9289,6 +9340,16 @@ export interface components {
              * @default
              */
             role: string;
+        };
+        /** ItemReviewIn */
+        ItemReviewIn: {
+            /** Item Id */
+            item_id: string;
+            /**
+             * Reviewed Version
+             * @description The source's version you were shown
+             */
+            reviewed_version: number;
         };
         /**
          * ItemStatus
@@ -12637,7 +12698,7 @@ export interface components {
             };
             /**
              * Removal
-             * @description After removal: removed, kept_edited, already_gone
+             * @description After removal: removed, kept_edited, already_gone; kept_collections names the collections changed since and kept
              */
             removal: {
                 [key: string]: unknown;
@@ -12656,7 +12717,7 @@ export interface components {
              * Key
              * @enum {string}
              */
-            key: "notes" | "stories" | "bookmarks" | "applications" | "accepted_actions";
+            key: "notes" | "stories" | "bookmarks" | "applications" | "accepted_actions" | "collections";
             /** Label */
             label: string;
             /**
@@ -13257,6 +13318,21 @@ export interface components {
              */
             disclaimer: string;
         };
+        /** ReviewResult */
+        ReviewResult: {
+            /**
+             * Key
+             * @description The item as sent: 'type:track:ref' for a saved item, the item id in a collection
+             */
+            key: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "reviewed" | "already_reviewed" | "newer_since" | "not_versioned" | "unavailable" | "invalid_version" | "not_there" | "repeated";
+            /** Message */
+            message: string;
+        };
         /** ReviewerIdentity */
         ReviewerIdentity: {
             /**
@@ -13493,6 +13569,24 @@ export interface components {
              * @description The revision now. Greater than accepted_revision: it was changed after your save (maybe on another device); what's returned is that newer version, not yours
              */
             current_revision: number;
+        };
+        /**
+         * SavedReviewBatchIn
+         * @description Mark several saved items reviewed, each at the version it was shown (docs/BULK_ACTIONS.md).
+         */
+        SavedReviewBatchIn: {
+            /** Items */
+            items: components["schemas"]["SavedReviewIn"][];
+        };
+        /** SavedReviewBatchOut */
+        SavedReviewBatchOut: {
+            /** Bookmarks */
+            bookmarks: components["schemas"]["BookmarkOut"][];
+            /**
+             * Results
+             * @description One per item sent, in the order sent
+             */
+            results: components["schemas"]["ReviewResult"][];
         };
         /** SavedReviewIn */
         SavedReviewIn: {
@@ -19096,6 +19190,48 @@ export interface operations {
             };
         };
     };
+    review_bookmarks_api_v1_me_bookmarks_review_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SavedReviewBatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedReviewBatchOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     list_collections_api_v1_me_collections_get: {
         parameters: {
             query?: {
@@ -19660,6 +19796,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    review_collection_items_api_v1_me_collections__collection_id__items_review_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionReviewBatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionReviewBatchOut"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */

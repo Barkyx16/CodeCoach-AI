@@ -74,7 +74,7 @@ nothing.
 | Default download | yes | opt-in |
 | All data and fields | yes | yes (the same fields) |
 | Ids and links between records | stories only | yes |
-| Restore | yes (the sections below) | **no**: refused before anything is read or written ("Download a version 1 export to restore") |
+| Restore | yes (the sections below) | yes: the same sections, plus accepted improvements (Volume 14, prompt 5) and collections (Volume 15, prompt 6), which need the ids only a version 2 file keeps |
 
 **Privacy.** Both versions are your own complete data: they include private details kept out of
 printouts (a kit's meeting link, interviewer names, private notes). They never include request
@@ -88,6 +88,7 @@ keys, sign-in tokens, password hashes, share secrets or server settings.
 | `stories` | New stories (all the STAR fields, versions, competencies, tags), with a first saved version | The same title, situation, action and result | A career that doesn't exist is dropped from the story |
 | `bookmarks` | Bookmarks on questions, problems or drills | The same item is already bookmarked | Skipped, with the reason |
 | `applications` | Applications with their interview events, and a first stage-history entry "Restored from a backup" | The same employer, role, date applied and link | A time that's ambiguous or invalid in its time zone keeps the date only |
+| `collections` (version 2 files only) | Collections with their name and queue (its position, and when it started), and their items in the order of each item's `position` (not where it sits in the file), each with the version it was added at (only one the source has had; otherwise "not known", never the version now), its mark of done in the queue (never later than now) and its "Mark reviewed" (`source_reviews`). Under the collection's and each item's id in the file when the file is this account's and no one has the id; otherwise new ids (Volume 15, prompt 6) | The same collection (by id) is already here: never overwritten, counted as already there. Another collection with the same name (spacing and capitals aside): skipped and said ("it's never overwritten or merged") | An item whose question, problem or drill left the library is left out with the reason (never swapped for a similar one); a retired one is kept and shown as unavailable, as the collection shows it today; the same item twice in one collection is kept once. Items name library content, not bookmarks, so nothing of another account is ever linked |
 | `accepted_actions` (version 2 files only) | Accepted improvements with their notes, recurrence, marks of done and archive date, under the id in the file, and their occurrences from `schedule.entries` (date, time, time zone, length, status and marks of done), under theirs; requirement reuse only for requirements in this account (Volume 14, prompt 5) | One from the same suggestion (interview and improvement key) is already there | Its interview isn't in this account: skipped with the reason. An id already used elsewhere gets a new one |
 
 Each record is checked against the same limits as the app's own forms (lengths, `http(s)` links,
@@ -96,7 +97,10 @@ fields inside a record are ignored and counted. Ids, owner ids, revision numbers
 the file are never used: restored records get new ids, belong to the signed-in account, and are
 dated now. The exception is accepted improvements from a version 2 file: they keep their ids (so
 the kits and requirement links that name them find them again) and their marks of done (never later
-than now), but still belong to the signed-in account and need its interview.
+than now), but still belong to the signed-in account and need its interview; and collections from a
+version 2 file of this account, which keep their ids, their items' ids and their queue. A file from
+another account brings collections in under new ids, so another account's ids are never restored
+into this one (even after that account deleted them).
 
 ## What restore never reads
 
@@ -105,7 +109,7 @@ than now), but still belong to the signed-in account and need its interview.
 | `profile`, `onboarding` | Account details, sign-in and roles are never restored. The account stays exactly as it is, whatever the file says (an `is_admin` in a file changes nothing). |
 | `submissions`, `practice_sessions`, `answers`, `ai_interactions`, `drill_attempts`, `whiteboard`, `code_reviews`, `test_design_runs`, `work_samples`, `comparisons`, `offer_rehearsals`, `offer_comparisons` (not restored: re-enter them), `scenario_attempts`, `learn_events`, `answer_reviews`, plans, goals and the review queue | Practice results and evaluations can't be verified from a file, so an edited backup can't create a passing verdict, a score, progress or readiness. |
 | `shares`, `shared_feedback`, `schedule`, sessions | They could share data or start something (links, sessions, reminders). |
-| `targets`, `collections`, `interview_kits`, `kit_templates`, `interview_reflections`, `content_reports` | Not restorable yet (they depend on other records by id); listed in the preview. `accepted_actions` in a version 1 file (no ids) are listed as skipped: restore them from a version 2 file. |
+| `targets`, `interview_kits`, `kit_templates`, `interview_reflections`, `content_reports` | Not restorable yet (they depend on other records by id); listed in the preview. `accepted_actions` and `collections` in a version 1 file (no ids) are listed as skipped: restore them from a version 2 file. |
 | Anything else | Not recognised, ignored, and listed. |
 
 ## How a restore runs
@@ -130,7 +134,10 @@ Nothing is ever overwritten or replaced, so there's no destructive step and no r
 "Your restores" lists every batch. **Remove what this added** deletes only the records that are
 still exactly as they were restored; anything edited since is kept, and anything already deleted
 is left alone. The result says how many were removed, kept and already gone. Removing again does
-nothing more. Notes are removed with the notebook's own delete.
+nothing more. Notes are removed with the notebook's own delete. A collection counts as changed if it
+was renamed, reordered, its queue moved, an item was added, removed, marked done or reviewed since;
+the collections kept for that are named (`removal.kept_collections`), and removing one takes its
+items and their reviews with it.
 
 ## Privacy
 

@@ -57,6 +57,43 @@ describe("restoring from a backup", () => {
     expect(await screen.findByText(/kept 1 you'd changed since/)).toBeInTheDocument();
   });
 
+  it("restores collections from a version 2 file and names the ones a removal kept (Volume 15, prompt 6)", async () => {
+    setup();
+    const v2: RestorePreview = {
+      ...preview, export_version: 2, from_other_account: false,
+      categories: [
+        ...preview.categories,
+        { key: "collections", label: "Collections, with their items in order (version 2 files)", found: 2, new: 1, duplicates: 1, samples: ["Night shift prep"],
+          skipped: [{ reason: "Items kept but shown as unavailable: retired from the library", count: 1 }] },
+      ],
+    };
+    const done: RestoreBatch = { ...batch, categories: ["collections"], counts: { collections: { added: 1, duplicates: 1, skipped: 0 } } };
+    let batches: RestoreBatch[] = [];
+    let applied = "";
+    server.use(
+      http.post(`${P}/preview`, () => HttpResponse.json(v2)),
+      http.post(P, ({ request }) => { applied = request.url; batches = [done]; return HttpResponse.json(done, { status: 201 }); }),
+      http.get(`${P}/batches`, () => HttpResponse.json(batches)),
+      http.post(`${P}/batches/b1/remove`, () => {
+        batches = [{ ...done, status: "removed", removal: { removed: 0, kept_edited: 1, already_gone: 0, kept_collections: ["Night shift prep"] } }];
+        return HttpResponse.json(batches[0]);
+      }),
+    );
+    window.confirm = () => true;
+    const { user } = renderApp("/settings/restore", { signedIn: true });
+    expect(await screen.findByRole("heading", { level: 1, name: "Restore from a backup" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Backup file"), { target: { files: [new File([FILE], "codecoach-data-v2.json", { type: "application/json" })] } });
+    const region = await screen.findByRole("region", { name: "2. Check what would be added" });
+    const box = within(region).getByRole("checkbox", { name: "Collections, with their items in order (version 2 files): 1 new" });
+    expect(within(region).getByText(/retired from the library/)).toBeInTheDocument();
+    await user.click(within(region).getByRole("checkbox", { name: "Notes: 1 new" })); // only the collections
+    if (!(box as HTMLInputElement).checked) await user.click(box);
+    await user.click(within(region).getByRole("button", { name: /^Restore / }));
+    await waitFor(() => expect(applied).toContain("categories=collections"));
+    await user.click(await screen.findByRole("button", { name: "Remove what this added" }));
+    expect(await screen.findByText(/Collections kept because you changed them: “Night shift prep”\./)).toBeInTheDocument();
+  });
+
   it("refuses an oversized file before sending it, and shows the server's reason for a bad one", async () => {
     setup();
     let calls = 0;

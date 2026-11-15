@@ -1,9 +1,8 @@
 import { forwardRef } from "react";
 
-import type { BatchResult } from "@/api/types";
 import { Button } from "@/components/Button";
 
-import { isDone, outcomeLabel } from "./bulkSelection";
+import { type BulkResult, isDone, outcomeLabel } from "./bulkSelection";
 
 /**
  * Picking several saved items at once and saying exactly what happened to each (Volume 11,
@@ -17,7 +16,7 @@ import { isDone, outcomeLabel } from "./bulkSelection";
 
 /** What happened to each item, said item by item, with the ones that need attention first. */
 export const BulkOutcomes = forwardRef<HTMLHeadingElement, {
-  results: BatchResult[];
+  results: BulkResult[];
   titleOf: (key: string) => string;
   verb: string;
   /** The heading level that fits where it's shown (the page's outline mustn't skip a level). */

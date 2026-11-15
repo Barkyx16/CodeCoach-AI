@@ -14,7 +14,7 @@ class RestoreSkip(APIModel):
 
 
 class RestoreCategory(APIModel):
-    key: Literal["notes", "stories", "bookmarks", "applications", "accepted_actions"]
+    key: Literal["notes", "stories", "bookmarks", "applications", "accepted_actions", "collections"]
     label: str
     found: int = Field(description="Records of this kind in the file")
     new: int = Field(description="Would be added")
@@ -34,7 +34,10 @@ class RestoreBatch(APIModel):
     status: Literal["applied", "failed", "removed"]
     categories: list[str]
     counts: dict
-    removal: dict | None = Field(description="After removal: removed, kept_edited, already_gone")
+    removal: dict | None = Field(
+        description="After removal: removed, kept_edited, already_gone; kept_collections names the "
+        "collections changed since and kept"
+    )
     created_at: datetime
     removed_at: datetime | None
 

@@ -151,8 +151,10 @@ source, with its own words and its own reviews. There is no second rule.
 - **Mark reviewed** records the version shown (`source_reviews`, holder_kind `bookmark` or
   `collection_item`), once, also from two tabs at once (the unique row), and clears the badge until
   a further change. A review on the saved list doesn't clear the collection's badge, or the other
-  way round: each place is reviewed where it's shown. It isn't a bulk action yet; bulk add and
-  remove keep working, and a bulk add takes the same versions as a single one.
+  way round: each place is reviewed where it's shown. Several can be marked at once, on the saved
+  list and in a collection ("Mark N reviewed", docs/BULK_ACTIONS.md; Volume 15, prompt 6): each at
+  the version its row shows, by this same rule, with its own outcome (a newer version since still
+  asks). A bulk add takes the same versions as a single one.
 - **Never changed.** A saved item isn't changed, moved, reordered or unsaved by any of this.
   Removing a saved item or a collection item takes its reviews with it; saving it again starts
   from the version then.
@@ -162,8 +164,10 @@ source, with its own words and its own reviews. There is no second rule.
 - **Data.** The export carries each saved item's and collection item's `version` and
   `source_reviews`. Restoring a backup brings saved items back with the version they were saved at
   (from the file, only if the source has had it; otherwise "not known") and their reviews.
-  Collections aren't restored from a file yet, so their items' versions come back only with a
-  collection that's still there; there's no way to share or copy a collection.
+  Collections come back from a version 2 file too (Volume 15, prompt 6; docs/BACKUP_FORMAT.md):
+  each item with the version it was added at, by the same rule (only a version the source has had,
+  otherwise "not known"), and its reviews, so a restored collection's badges read as they did.
+  There's no way to share or copy a collection.
 - **Limits.** A lesson's minor mark is reviewed content: a person marks it, and the content gate
   refuses one on version 1, beyond the lesson's version, or without a change note
   (`tests/test_minor_changes.py`; 6 negative controls, all caught). No lesson has a minor version

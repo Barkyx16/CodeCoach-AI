@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 
-import type { BatchResult } from "@/api/types";
+import type { BatchResult, ReviewResult } from "@/api/types";
 
 /** The selection and outcome rules behind the bulk actions (docs/BULK_ACTIONS.md); see bulk.tsx. */
 
@@ -24,7 +24,10 @@ export function useSelection(keys: string[]) {
   return { selected, isSelected: (k: string) => picked.has(k) && shown.has(k), toggle, setAll, keep, all: keys.length > 0 && selected.length === keys.length };
 }
 
-const OUTCOME: Record<BatchResult["outcome"], { label: string; done: boolean }> = {
+/** An outcome of any bulk action: adding, removing or marking reviewed. */
+export type BulkResult = BatchResult | ReviewResult;
+
+const OUTCOME: Record<BulkResult["outcome"], { label: string; done: boolean }> = {
   added: { label: "Added", done: true },
   already_there: { label: "Already there", done: true },
   removed: { label: "Removed", done: true },
@@ -32,8 +35,14 @@ const OUTCOME: Record<BatchResult["outcome"], { label: string; done: boolean }> 
   repeated: { label: "Listed twice", done: true },
   unavailable: { label: "Not available", done: false },
   full: { label: "Didn't fit", done: false },
+  // Marking reviewed (Volume 15, prompt 6): by the same rule as one at a time.
+  reviewed: { label: "Marked reviewed", done: true },
+  already_reviewed: { label: "Already reviewed", done: true },
+  not_versioned: { label: "No versions to review", done: true },
+  newer_since: { label: "Still asks: a newer version", done: false },
+  invalid_version: { label: "Version not found", done: false },
 };
 
-export const isDone = (r: BatchResult) => OUTCOME[r.outcome].done;
+export const isDone = (r: BulkResult) => OUTCOME[r.outcome].done;
 
-export const outcomeLabel = (r: BatchResult) => OUTCOME[r.outcome].label;
+export const outcomeLabel = (r: BulkResult) => OUTCOME[r.outcome].label;

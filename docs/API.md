@@ -822,7 +822,10 @@ All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a
   drill) and `freshness` (the notes' shape and rule; docs/STORY_FRESHNESS.md, "Saved items and
   collections"). `POST /api/v1/me/bookmarks/review {item_type, track, ref_id, reviewed_version}` →
   that bookmark: "Mark reviewed" at the version shown (404 if it isn't saved; `400 not_versioned`
-  for a drill; the bookmark itself isn't changed).
+  for a drill; the bookmark itself isn't changed). `POST /api/v1/me/bookmarks/review/batch {items:
+  [{item_type, track, ref_id, reviewed_version}]}` (1–50) → `{bookmarks, results: [{key, outcome,
+  message}]}`, one per entry in order: `reviewed | already_reviewed | newer_since | not_versioned |
+  unavailable | invalid_version | not_there | repeated` (docs/BULK_ACTIONS.md).
 - Collections 🔒, private to the owner (another user's id is a 404): `GET|POST
   /api/v1/me/collections` (`GET` with `item_type, track, ref_id` adds `contains` to each),
   `GET|PATCH|DELETE /me/collections/{id}`, `POST /me/collections/{id}/items` (`409
@@ -833,7 +836,9 @@ All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a
   back `available: false` with an `unavailable_reason` and is never swapped for another.
   `queue_done` is queue progress only; `practiced_since_added` comes from real answers or judged
   submissions. Each item has `content_version` (when added) and `freshness`; `POST
-  …/items/{item_id}/review {reviewed_version}` → the collection, the item where it was. Limits: 50 collections, 200 items each. Bookmarks and collections are in the data
+  …/items/{item_id}/review {reviewed_version}` → the collection, the item where it was; `POST
+  …/items/review/batch {items: [{item_id, reviewed_version}]}` (1–50) → `{collection, results}`,
+  the same outcomes as the saved list's. Limits: 50 collections, 200 items each. Bookmarks and collections are in the data
   export and deleted with the account.
 
 ### Learn mode
@@ -1036,7 +1041,8 @@ only; ids, account details, roles and results in the file are never trusted.
 
 - `POST /api/v1/me/restore/preview` 🔒 (the backup file as the JSON body, at most 5 MB) →
   `{export_version, exported_at, file_sha256, from_other_account, categories: [{key: notes|stories|
-  bookmarks|applications, label, found, new, duplicates, skipped: [{reason, count}], samples}],
+  bookmarks|applications|accepted_actions|collections, label, found, new, duplicates, skipped: [{reason,
+  count}], samples}] (accepted improvements and collections from version 2 files only),
   not_restored: [{key, count, reason}], ignored_fields, previous}`. Nothing changes. `400
   invalid_json | not_a_backup | unsupported_version (details.supported) | file_too_large`.
 - `POST /api/v1/me/restore?categories=notes&categories=stories…` 🔒 (the same file) → `201` the
@@ -1046,7 +1052,8 @@ only; ids, account details, roles and results in the file are never trusted.
   `400 over_limit` when the account limits would be exceeded.
 - `GET /api/v1/me/restore/batches` → your restores, newest first.
 - `POST /api/v1/me/restore/batches/{id}/remove` → removes the records the batch added that are
-  still exactly as restored; `removal: {removed, kept_edited, already_gone}`. Idempotent.
+  still exactly as restored; `removal: {removed, kept_edited, already_gone, kept_collections?}`
+  (`kept_collections` names the collections changed since and kept). Idempotent.
 
 ### Interview reflections
 

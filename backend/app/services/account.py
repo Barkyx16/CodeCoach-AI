@@ -415,12 +415,14 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         ],
         "collections": [
             {
+                **ids(c.id),
                 "name": c.name,
                 "queue_position": c.queue_position,
                 "queue_started_at": iso(c.queue_started_at),
                 "created_at": iso(c.created_at),
                 "items": [
                     {
+                        **ids(i.id),
                         "type": i.item_type,
                         "career": i.track or None,
                         "item": i.ref_id,

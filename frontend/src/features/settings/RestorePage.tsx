@@ -12,10 +12,15 @@ import { InlineError } from "@/components/States";
 import { formatDateTime } from "@/lib/format";
 
 const MAX_BYTES = 5 * 1024 * 1024;
-const LABEL: Record<string, string> = { notes: "Notes", stories: "Stories", bookmarks: "Bookmarks", applications: "Applications" };
+const LABEL: Record<string, string> = {
+  notes: "Notes", stories: "Stories", bookmarks: "Bookmarks", applications: "Applications",
+  accepted_actions: "Accepted improvements", collections: "Collections",
+};
+/** A section's short name; one this page doesn't know yet is named by its key, never a crash. */
+const labelOf = (key: string) => (LABEL[key] ?? key.replace(/_/g, " ")).toLowerCase();
 
 /**
- * Restore your own notes, stories, bookmarks and applications from a CodeCoach backup into this
+ * Restore your own notes, stories, bookmarks, applications, accepted improvements and collections from a CodeCoach backup into this
  * account: check the file first, choose what to add, and undo a restore later (keeping edits).
  */
 export function RestorePage() {
@@ -144,7 +149,7 @@ export function RestorePage() {
           {preview.ignored_fields > 0 && <p className="subtle">{preview.ignored_fields} unrecognised fields inside records were ignored.</p>}
           <span className="row">
             <Button variant="primary" loading={busy === "restore"} disabled={!chosen.length} onClick={() => void restore()}>
-              Restore {chosen.length ? chosen.map((k) => LABEL[k]!.toLowerCase()).join(", ") : "nothing yet"}
+              Restore {chosen.length ? chosen.map(labelOf).join(", ") : "nothing yet"}
             </Button>
           </span>
         </section>
@@ -152,7 +157,7 @@ export function RestorePage() {
 
       {result && (
         <p className="banner banner--success" role="status">
-          {result.again ? "This file was already restored with these choices, so nothing new was added." : `Restored: ${Object.entries(result.batch.counts).map(([k, v]) => `${(v as { added: number }).added} ${LABEL[k]!.toLowerCase()}`).join(", ")}.`}
+          {result.again ? "This file was already restored with these choices, so nothing new was added." : `Restored: ${Object.entries(result.batch.counts).map(([k, v]) => `${(v as { added: number }).added} ${labelOf(k)}`).join(", ")}.`}
         </p>
       )}
       <InlineError error={error} />
@@ -168,7 +173,7 @@ export function RestorePage() {
                   <Badge tone={b.status === "applied" ? "success" : b.status === "failed" ? "warning" : "neutral"}>{b.status === "applied" ? "Added" : b.status === "failed" ? "Stopped, nothing changed" : "Removed"}</Badge>
                   <span className="subtle">{b.categories.map((k) => LABEL[k] ?? k).join(", ")}</span>
                 </span>
-                {b.removal && <p className="subtle">Removed {(b.removal as { removed: number }).removed}; kept {(b.removal as { kept_edited: number }).kept_edited} you'd changed since; {(b.removal as { already_gone: number }).already_gone} were already gone.</p>}
+                {b.removal && <p className="subtle">Removed {(b.removal as { removed: number }).removed}; kept {(b.removal as { kept_edited: number }).kept_edited} you'd changed since; {(b.removal as { already_gone: number }).already_gone} were already gone.{keptCollections(b.removal)}</p>}
                 {b.status === "applied" && <Button size="sm" variant="ghost" loading={busy === `remove-${b.id}`} onClick={() => void remove(b)}>Remove what this added</Button>}
               </li>
             ))}
@@ -177,4 +182,10 @@ export function RestorePage() {
       </Card>
     </div>
   );
+}
+
+/** The collections a removal kept because they changed since (Volume 15, prompt 6), by name. */
+function keptCollections(removal: unknown): string {
+  const names = (removal as { kept_collections?: string[] } | null)?.kept_collections ?? [];
+  return names.length ? ` Collections kept because you changed them: ${names.map((n) => `“${n}”`).join(", ")}.` : "";
 }

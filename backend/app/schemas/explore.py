@@ -149,6 +149,47 @@ class CollectionBatchOut(APIModel):
     results: list[BatchResult] = Field(description="One per item sent, in the order sent")
 
 
+ReviewOutcome = Literal[
+    "reviewed", "already_reviewed", "newer_since", "not_versioned", "unavailable", "invalid_version",
+    "not_there", "repeated",
+]  # fmt: skip
+
+
+class SavedReviewBatchIn(APIModel):
+    """Mark several saved items reviewed, each at the version it was shown (docs/BULK_ACTIONS.md)."""
+
+    items: list[SavedReviewIn] = Field(min_length=1, max_length=BATCH_LIMIT)
+
+
+class ItemReviewIn(APIModel):
+    item_id: str = Field(min_length=1, max_length=36)
+    reviewed_version: int = Field(ge=1, description="The source's version you were shown")
+
+
+class CollectionReviewBatchIn(APIModel):
+    """Mark several items of a collection reviewed, each at the version it was shown."""
+
+    items: list[ItemReviewIn] = Field(min_length=1, max_length=BATCH_LIMIT)
+
+
+class ReviewResult(APIModel):
+    key: str = Field(
+        description="The item as sent: 'type:track:ref' for a saved item, the item id in a collection"
+    )
+    outcome: ReviewOutcome
+    message: str
+
+
+class SavedReviewBatchOut(APIModel):
+    bookmarks: list[BookmarkOut]
+    results: list[ReviewResult] = Field(description="One per item sent, in the order sent")
+
+
+class CollectionReviewBatchOut(APIModel):
+    collection: "CollectionOut"
+    results: list[ReviewResult] = Field(description="One per item sent, in the order sent")
+
+
 class OrderIn(APIModel):
     item_ids: list[str] = Field(
         max_length=200, description="Every item id of the collection, in the new order"

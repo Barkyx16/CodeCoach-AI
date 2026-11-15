@@ -82,7 +82,8 @@ def export_v2(db: Session, user: User) -> dict:
     doc["export_version"] = EXPORT_VERSION_2
     doc["identities"] = {
         "scope": "unique per record type within this file; opaque; not stable across accounts",
-        "restore": "read like version 1; accepted improvements and their occurrences are restored with their ids",
+        "restore": "read like version 1; accepted improvements and their occurrences, and collections with their "
+        "items, are restored with their ids",
         "states": list(STATES),
     }
     apps = doc["applications"]

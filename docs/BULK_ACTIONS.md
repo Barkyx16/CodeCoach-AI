@@ -10,6 +10,7 @@ membership; nothing here deletes a bookmark, a question, an answer or a collecti
 |---|---|---|---|
 | Saved → Bookmarks | **Add the selected to** a collection you choose | those items join the collection, at the end | the bookmarks stay; nothing about your answers |
 | A collection | **Remove N from "…"** | those items leave this collection; positions close up; the practice queue stays on the item it was on (or the last one) | the questions stay in the library; your bookmarks and answers aren't touched |
+| Saved → Bookmarks, and a collection | **Mark N reviewed** (Volume 15, prompt 6) | a "Mark reviewed" for each, at the version its row shows (docs/STORY_FRESHNESS.md) | the items themselves: nothing is moved, reordered, unsaved or removed; the saved list's reviews and a collection's are each their own |
 
 Not offered as a bulk action (on purpose): deleting bookmarks, collections or anything else;
 answers, scores, schedules, shares or account settings.
@@ -49,6 +50,27 @@ entries. Answer: the collection as it is now, and one result per entry, in the o
   batches adding the same item at the same moment keep one copy (each add in its own savepoint; the
   unique constraint decides, tested on PostgreSQL).
 - **200 doesn't mean all done:** the page reads each result.
+
+## `POST /api/v1/me/bookmarks/review/batch` and `POST /api/v1/me/collections/{id}/items/review/batch`
+
+Body: `{"items": [...]}`, 1–50 entries: a saved item by its kind, career and id with
+`reviewed_version`, or a collection's item by `item_id` with `reviewed_version`, each the version
+its row shows. Answer: the saved list (or the collection) as it is now, and one result per entry,
+in the order sent. Each is decided by the same rule as one at a time:
+
+| Outcome | Meaning |
+|---|---|
+| `reviewed` | Recorded at that version; the badge goes. |
+| `already_reviewed` | Already reviewed at that version or later; nothing more recorded (also after a lost reply that did record it). |
+| `newer_since` | Recorded at that version, but the source has a newer one since, so it still asks. Needs attention. |
+| `not_versioned` | A drill: no versions to review. |
+| `unavailable` | No longer in the library: nothing to review. Needs attention. |
+| `invalid_version` | That version doesn't exist yet. Needs attention. |
+| `not_there` | Not saved (or not an item of this collection, or another account's: the same answer). |
+| `repeated` | The same entry earlier in this request; counted once. |
+
+The collection must be yours (404 otherwise, before any entry is looked at). Sending the same batch
+again records nothing twice.
 
 ## The results on the page
 

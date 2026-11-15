@@ -5,14 +5,14 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import { useCollection, useCollectionMutation, useDeleteCollection } from "@/api/queries";
-import type { BatchResult, CollectionItem } from "@/api/types";
+import type { CollectionItem } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 
 import { BulkOutcomes, NoReply, SelectBox } from "./bulk";
-import { isDone, useSelection } from "./bulkSelection";
+import { type BulkResult, isDone, useSelection } from "./bulkSelection";
 import { useItemKind } from "./labels";
 import { SavedFreshness } from "./SavedFreshness";
 
@@ -44,8 +44,8 @@ export function CollectionPage() {
   const itemIds = useMemo(() => collection.data?.item_list.map((i) => i.id) ?? [], [collection.data]);
   const selection = useSelection(itemIds);
   const [bulkBusy, setBulkBusy] = useState(false);
-  const [bulkResults, setBulkResults] = useState<{ rows: BatchResult[]; titles: Map<string, string> } | null>(null);
-  const [bulkLost, setBulkLost] = useState<string[] | null>(null);
+  const [bulkResults, setBulkResults] = useState<{ verb: string; rows: BulkResult[]; titles: Map<string, string> } | null>(null);
+  const [bulkLost, setBulkLost] = useState<{ kind: "remove" | "review"; ids: string[] } | null>(null);
   const [bulkError, setBulkError] = useState<unknown>(null);
   const outcomesRef = useRef<HTMLHeadingElement>(null);
   const focusOutcomes = useRef(false);
@@ -85,11 +85,32 @@ export function CollectionPage() {
       qc.setQueryData(["me", "collection", id], out.collection);
       void qc.invalidateQueries({ queryKey: ["me", "collections"] });
       void qc.invalidateQueries({ queryKey: ["me", "explore"] });
-      setBulkResults({ rows: out.results, titles: new Map([...(bulkResults?.titles ?? []), ...titles]) });
+      setBulkResults({ verb: `removing from “${c.name}”`, rows: out.results, titles: new Map([...(bulkResults?.titles ?? []), ...titles]) });
       selection.keep(out.results.filter((r) => !isDone(r)).map((r) => r.key));
       focusOutcomes.current = true; // after the results are on screen (the effect below)
     } catch (e) {
-      if (e instanceof ApiError && (e.code === "network_error" || e.status >= 500)) setBulkLost(ids);
+      if (e instanceof ApiError && (e.code === "network_error" || e.status >= 500)) setBulkLost({ kind: "remove", ids });
+      else setBulkError(e);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  // "Mark reviewed" for several, each at the version its row shows: the same rule as one at a time,
+  // and the items stay where they are.
+  async function reviewSelected(ids: string[]) {
+    setBulkBusy(true);
+    setBulkError(null);
+    setBulkLost(null);
+    const chosen = items.filter((i) => ids.includes(i.id));
+    try {
+      const out = await api.reviewCollectionItems(id, chosen.map((i) => ({ itemId: i.id, reviewedVersion: i.freshness?.current_version ?? 1 })));
+      qc.setQueryData(["me", "collection", id], out.collection);
+      setBulkResults({ verb: `marking reviewed in “${c.name}”`, rows: out.results, titles: new Map(chosen.map((i) => [i.id, i.title])) });
+      selection.keep(out.results.filter((r) => !isDone(r)).map((r) => r.key));
+      focusOutcomes.current = true;
+    } catch (e) {
+      if (e instanceof ApiError && (e.code === "network_error" || e.status >= 500)) setBulkLost({ kind: "review", ids });
       else setBulkError(e);
     } finally {
       setBulkBusy(false);
@@ -192,6 +213,9 @@ export function CollectionPage() {
               <Button size="sm" loading={bulkBusy} onClick={() => void removeSelected(selection.selected)}>
                 Remove {selection.selected.length} from “{c.name}”
               </Button>
+              <Button size="sm" loading={bulkBusy} onClick={() => void reviewSelected(selection.selected)}>
+                Mark {selection.selected.length} reviewed
+              </Button>
               <Button size="sm" variant="ghost" onClick={() => selection.setAll(false)}>Clear selection</Button>
             </span>
           )}
@@ -199,9 +223,9 @@ export function CollectionPage() {
         {selection.selected.length > 0 && (
           <p className="subtle">Removing only takes them out of this collection. The questions stay in the library, and your bookmarks and answers aren't touched.</p>
         )}
-        {bulkLost && <NoReply busy={bulkBusy} onRetry={() => void removeSelected(bulkLost)} />}
+        {bulkLost && <NoReply busy={bulkBusy} onRetry={() => void (bulkLost.kind === "remove" ? removeSelected(bulkLost.ids) : reviewSelected(bulkLost.ids))} />}
         <InlineError error={bulkError} />
-        {bulkResults && <BulkOutcomes ref={outcomesRef} level={2} results={bulkResults.rows} verb={`removing from “${c.name}”`} titleOf={(k) => bulkResults.titles.get(k) ?? "An item"} />}
+        {bulkResults && <BulkOutcomes ref={outcomesRef} level={2} results={bulkResults.rows} verb={bulkResults.verb} titleOf={(k) => bulkResults.titles.get(k) ?? "An item"} />}
         <ol className="collection-items" aria-label="Items in order">
           {items.map((item, index) => (
             <li key={item.id} className={`card collection-item${item.available ? "" : " collection-item--gone"}`}>
@@ -244,7 +268,7 @@ export function CollectionPage() {
         </ol>
         </div>
       )}
-      {items.length === 0 && bulkResults && <BulkOutcomes ref={outcomesRef} level={2} results={bulkResults.rows} verb={`removing from “${c.name}”`} titleOf={(k) => bulkResults.titles.get(k) ?? "An item"} />}
+      {items.length === 0 && bulkResults && <BulkOutcomes ref={outcomesRef} level={2} results={bulkResults.rows} verb={bulkResults.verb} titleOf={(k) => bulkResults.titles.get(k) ?? "An item"} />}
       <InlineError error={reorder.error ?? remove.error} />
     </div>
   );

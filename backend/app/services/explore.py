@@ -47,6 +47,8 @@ from app.schemas.explore import (
     CollectionItemIn,
     CollectionItemOut,
     CollectionOut,
+    CollectionReviewBatchIn,
+    CollectionReviewBatchOut,
     CollectionSummary,
     ExploreFacets,
     ExploreItem,
@@ -56,6 +58,9 @@ from app.schemas.explore import (
     Facet,
     ItemStatus,
     MyExploreResult,
+    ReviewResult,
+    SavedReviewBatchIn,
+    SavedReviewBatchOut,
     SavedReviewIn,
 )
 from app.schemas.notes import NoteFreshness
@@ -503,6 +508,96 @@ class Explorer:
             raise AppError("A drill has no versions to review.", code="not_versioned")
         SourceFreshness(self.db, user.id, IN_COLLECTION).review_ref(item.id, ref, reviewed_version)
         return self.get(user, cid)
+
+    def _review_one(
+        self, user: User, holder: Holder, holder_id: str, ref: SourceRef | None, version: int, key: str
+    ) -> ReviewResult:
+        """One item's "Mark reviewed" in a batch, by the same rule as one at a time: recorded once for
+        the version shown, never for a newer one silently, and nothing about the item itself changes."""
+        if ref is None:
+            return ReviewResult(
+                key=key, outcome="not_versioned", message="A drill has no versions to review."
+            )
+        fresh = SourceFreshness(self.db, user.id, holder)
+        rows = fresh.reviews([holder_id]).get(holder_id, [])
+        seen = max(
+            [v for v in (ref.captured, rows[0].to_revision if rows else None) if v is not None], default=None
+        )
+        try:
+            after = fresh.review_ref(holder_id, ref, version)
+        except NotFoundError:
+            return ReviewResult(
+                key=key,
+                outcome="unavailable",
+                message="No longer in the library, so there's nothing to review.",
+            )
+        except AppError as e:
+            if e.code != "invalid_version":
+                raise
+            return ReviewResult(key=key, outcome="invalid_version", message=e.message)
+        if seen is not None and version <= seen:
+            return ReviewResult(
+                key=key,
+                outcome="already_reviewed",
+                message=f"Already reviewed at version {seen}; nothing more recorded.",
+            )
+        if after.state == "needs_review":
+            return ReviewResult(
+                key=key,
+                outcome="newer_since",
+                message=f"Marked reviewed at version {version}; it's version {after.current_version} now, so it still asks.",
+            )
+        return ReviewResult(key=key, outcome="reviewed", message=f"Marked reviewed at version {version}.")
+
+    def review_bookmarks(self, user: User, body: SavedReviewBatchIn) -> SavedReviewBatchOut:
+        """Several saved items marked reviewed, each with its own outcome (docs/BULK_ACTIONS.md). An
+        item that isn't one of yours is "not_there", the same answer as one never saved."""
+        rows = self.db.scalars(select(Bookmark).where(Bookmark.user_id == user.id)).all()
+        by_key = {(b.item_type, b.track, b.ref_id): b for b in rows}
+        results: list[ReviewResult] = []
+        seen: set[str] = set()
+        for item in body.items:
+            track = item.track if item.item_type == "question" else ""
+            key = f"{item.item_type}:{track}:{item.ref_id}"
+            if key in seen:
+                results.append(
+                    ReviewResult(key=key, outcome="repeated", message="Listed twice; counted once.")
+                )
+                continue
+            seen.add(key)
+            b = by_key.get((item.item_type, track, item.ref_id))
+            if b is None:
+                results.append(ReviewResult(key=key, outcome="not_there", message="Not saved (any more)."))
+                continue
+            ref = saved_ref(b.item_type, b.track, b.ref_id, b.content_version)
+            results.append(self._review_one(user, SAVED, b.id, ref, item.reviewed_version, key))
+        return SavedReviewBatchOut(bookmarks=self.bookmarks(user), results=results)
+
+    def review_items(self, user: User, cid: str, body: CollectionReviewBatchIn) -> CollectionReviewBatchOut:
+        """Several items of one collection marked reviewed, each with its own outcome. The collection
+        must be yours (404 otherwise, before anything is looked at); an id that isn't one of its items
+        is "not_there"."""
+        c = self._collection(user, cid)
+        items = {i.id: i for i in c.items}
+        results: list[ReviewResult] = []
+        seen: set[str] = set()
+        for entry in body.items:
+            key = entry.item_id
+            if key in seen:
+                results.append(
+                    ReviewResult(key=key, outcome="repeated", message="Listed twice; counted once.")
+                )
+                continue
+            seen.add(key)
+            i = items.get(key)
+            if i is None:
+                results.append(
+                    ReviewResult(key=key, outcome="not_there", message=f"Not in “{c.name}” (any more).")
+                )
+                continue
+            ref = saved_ref(i.item_type, i.track, i.ref_id, i.content_version)
+            results.append(self._review_one(user, IN_COLLECTION, i.id, ref, entry.reviewed_version, key))
+        return CollectionReviewBatchOut(collection=self.get(user, cid), results=results)
 
     # --- collections -----------------------------------------------------------------------
 

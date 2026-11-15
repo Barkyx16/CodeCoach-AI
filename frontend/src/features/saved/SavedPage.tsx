@@ -5,7 +5,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import { useBookmarks, useCollectionMutation, useCollections, useToggleBookmark } from "@/api/queries";
-import type { BatchResult, Bookmark } from "@/api/types";
+import type { Bookmark } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { Icon } from "@/components/Icon";
@@ -13,7 +13,7 @@ import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/
 import { timeAgo } from "@/lib/format";
 
 import { BulkOutcomes, NoReply, SelectBox } from "./bulk";
-import { BATCH_LIMIT, isDone, useSelection } from "./bulkSelection";
+import { BATCH_LIMIT, type BulkResult, isDone, useSelection } from "./bulkSelection";
 import { useItemKind } from "./labels";
 import { sourceUpdated } from "./freshness";
 import { SavedFreshness } from "./SavedFreshness";
@@ -176,8 +176,8 @@ function BulkBookmarks({ marks, collections, onRemove, onReviewed }: {
   const selection = useSelection(keys);
   const [target, setTarget] = useState("");
   const [busy, setBusy] = useState(false);
-  const [results, setResults] = useState<{ verb: string; rows: BatchResult[]; titles: Map<string, string> } | null>(null);
-  const [lost, setLost] = useState<{ cid: string; marks: Bookmark[] } | null>(null);
+  const [results, setResults] = useState<{ verb: string; rows: BulkResult[]; titles: Map<string, string> } | null>(null);
+  const [lost, setLost] = useState<{ kind: "add"; cid: string; marks: Bookmark[] } | { kind: "review"; marks: Bookmark[] } | null>(null);
   const [error, setError] = useState<unknown>(null);
   const outcomesRef = useRef<HTMLHeadingElement>(null);
   const focusOutcomes = useRef(false);
@@ -205,7 +205,31 @@ function BulkBookmarks({ marks, collections, onRemove, onReviewed }: {
       selection.keep(out.results.filter((r) => !isDone(r)).map((r) => r.key));
       focusOutcomes.current = true; // after the results are on screen (the effect below)
     } catch (e) {
-      if (e instanceof ApiError && (e.code === "network_error" || e.status >= 500)) setLost({ cid, marks: these });
+      if (e instanceof ApiError && (e.code === "network_error" || e.status >= 500)) setLost({ kind: "add", cid, marks: these });
+      else setError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // "Mark reviewed" for several, each at the version its row shows (docs/BULK_ACTIONS.md): the same
+  // rule as one at a time, so a newer version since still asks, and nothing about the items changes.
+  async function markReviewed(these: Bookmark[]) {
+    setBusy(true);
+    setError(null);
+    setLost(null);
+    try {
+      const out = await api.reviewBookmarks(these.map((m) => ({ ref: m, reviewedVersion: m.freshness?.current_version ?? 1 })));
+      qc.setQueryData<Bookmark[]>(["me", "bookmarks"], out.bookmarks);
+      for (const r of out.results) {
+        const m = these.find((x) => markKey(x) === r.key);
+        if (m && (r.outcome === "reviewed" || r.outcome === "newer_since")) onReviewed(m.id);
+      }
+      setResults({ verb: "marking reviewed", rows: out.results, titles: new Map(these.map((m) => [markKey(m), m.title])) });
+      selection.keep(out.results.filter((r) => !isDone(r)).map((r) => r.key));
+      focusOutcomes.current = true;
+    } catch (e) {
+      if (e instanceof ApiError && (e.code === "network_error" || e.status >= 500)) setLost({ kind: "review", marks: these });
       else setError(e);
     } finally {
       setBusy(false);
@@ -233,13 +257,16 @@ function BulkBookmarks({ marks, collections, onRemove, onReviewed }: {
               onClick={() => destination && void send(destination.id, chosen)}>
               {destination ? `Add ${chosen.length} to “${destination.name}”` : "Add"}
             </Button>
+            <Button size="sm" loading={busy} disabled={tooMany} onClick={() => void markReviewed(chosen)}>
+              Mark {chosen.length} reviewed
+            </Button>
             <Button size="sm" variant="ghost" onClick={() => selection.setAll(false)}>Clear selection</Button>
           </span>
         )}
       </div>
       {tooMany && <p className="subtle" role="status">Up to {BATCH_LIMIT} at a time: {chosen.length} are selected.</p>}
       {collections.length === 0 && selection.selected.length > 0 && <p className="subtle">Create a collection above first.</p>}
-      {lost && <NoReply busy={busy} onRetry={() => void send(lost.cid, lost.marks)} />}
+      {lost && <NoReply busy={busy} onRetry={() => void (lost.kind === "add" ? send(lost.cid, lost.marks) : markReviewed(lost.marks))} />}
       <InlineError error={error} />
       {results && <BulkOutcomes ref={outcomesRef} results={results.rows} verb={results.verb} titleOf={(k) => results.titles.get(k) ?? k} />}
       <ul className="saved-list">

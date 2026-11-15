@@ -69,7 +69,8 @@ def export(
         le=2,
         description="1 (default; what restore reads) or 2: the same data plus record ids and typed links "
         "between records (applications, events, targets, stories, notes, schedule entries, kits, "
-        "reflections and their steps). Version 2 can't be restored yet.",
+        "reflections and their steps, collections and their items). Restore reads both; accepted improvements and "
+        "collections only from version 2, under their ids.",
     ),
 ) -> JSONResponse:
     from app.services.export_v2 import export_v2

@@ -8,7 +8,8 @@ The contract (see docs/BACKUP_FORMAT.md):
   never trusted: records get new ids and belong to whoever is signed in.
 - Restorable: notes, stories, bookmarks, and applications with their events; from a version 2
   file (which keeps ids), accepted improvements with their occurrences, under their own ids
-  (Volume 14, prompt 5). Everything else is listed as not restored, with the reason: account details and roles; practice results and any
+  (Volume 14, prompt 5), and collections with their items in order, each item's version and
+  reviews, under theirs (Volume 15, prompt 6). Everything else is listed as not restored, with the reason: account details and roles; practice results and any
   evaluation (they can't be verified from a file, so an edited backup can't create a passing
   verdict or a score); and shares, sessions and the schedule (they could expose data or trigger
   something).
@@ -32,10 +33,12 @@ from typing import Any
 
 from pydantic import ValidationError
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.careers import CATALOG
-from app.careers.questions import get_question
+from app.careers.questions import content_key, get_question
+from app.content import state as content_state
 from app.drills import BY_ID as DRILLS
 from app.errors import AppError, NotFoundError
 from app.models import (
@@ -44,14 +47,17 @@ from app.models import (
     ApplicationEvent,
     ApplicationStageChange,
     Bookmark,
+    CollectionItem,
     ExperienceEntry,
     ImportBatch,
     ImportedRecord,
     Note,
+    PracticeCollection,
     PracticeSession,
     Problem,
     RoleTarget,
     ScheduleEntry,
+    SourceReview,
     TargetRequirement,
     User,
 )
@@ -60,7 +66,7 @@ from app.schemas.notes import NoteIn, SourceIn
 from app.schemas.restore import RestoreBatch, RestoreCategory, RestorePreview, RestoreSkip, RestoreUnsupported
 from app.schemas.stories import StoryCreate
 from app.services.applications import MAX_APPLICATIONS
-from app.services.explore import SAVED
+from app.services.explore import IN_COLLECTION, MAX_COLLECTIONS, MAX_ITEMS, SAVED
 from app.services.note_freshness import (
     NOTE,
     SourceFreshness,
@@ -83,6 +89,7 @@ CATEGORIES: dict[str, str] = {
     "bookmarks": "Bookmarks",
     "applications": "Applications and their events",
     "accepted_actions": "Accepted improvements, with their occurrences (version 2 files)",
+    "collections": "Collections, with their items in order (version 2 files)",
 }
 _ACCOUNT = "Account details, sign-in and roles are never restored. Your account stays exactly as it is."
 _RESULTS = (
@@ -122,7 +129,6 @@ NOT_RESTORED: dict[str, str] = {
     # and brings back its reviews (Volume 14, prompt 7; docs/STORY_FRESHNESS.md).
     "answer_reviews": _RESULTS,
     "targets": "Job targets aren't restored yet; their requirements link to postings by id.",
-    "collections": "Collections aren't restored yet. Bookmarks are, with the version each was saved at and what you reviewed.",
     "shares": _EXPOSE,
     "shared_feedback": _EXPOSE,
     "sessions": _EXPOSE,
@@ -206,6 +212,27 @@ def bookmark_identity(item_type: str, track: str, ref_id: str) -> str:
     return _sha(["bookmark", item_type, track, ref_id])
 
 
+def collection_name_key(name: str) -> str:
+    return " ".join(name.split()).casefold()
+
+
+def collection_full(c: PracticeCollection, reviews: list[tuple[str, int]]) -> str:
+    """A collection as restored: its name, queue, and each item in order with its version, its mark
+    of done and its reviews. Any change since (renamed, reordered, an item added, removed, marked done
+    or reviewed) keeps it when the restore is removed."""
+    return _sha(
+        [
+            c.name,
+            c.queue_position,
+            [
+                [i.item_type, i.track, i.ref_id, i.position, i.content_version, bool(i.queue_done_at)]
+                for i in sorted(c.items, key=lambda i: i.position)
+            ],
+            sorted(reviews),
+        ]
+    )
+
+
 def application_identity(employer: str, role_title: str, applied_on: Any, link: Any) -> str:
     return _sha(
         [
@@ -263,6 +290,10 @@ class _Plan:
     skipped: dict[str, Counter] = field(default_factory=lambda: {k: Counter() for k in CATEGORIES})
     unsupported: list[RestoreUnsupported] = field(default_factory=list)
     ignored_fields: int = 0
+    # A collection's items left out or kept as unavailable, by reason (collections themselves are
+    # counted in `skipped`).
+    item_notes: Counter = field(default_factory=Counter)
+    names: set[str] = field(default_factory=set)  # collection names this file would add
 
 
 class Restore:
@@ -323,7 +354,12 @@ class Restore:
                 AcceptedAction.user_id == uid
             )
         ).all()
+        collections = self.db.execute(
+            select(PracticeCollection.id, PracticeCollection.name).where(PracticeCollection.user_id == uid)
+        ).all()
+        self._collection_names = {collection_name_key(n) for _, n in collections}
         return {
+            "collections": {f"id:{c}" for c, _ in collections},
             "notes": {note_identity(*r) for r in notes},
             "stories": {story_identity(*r) for r in stories},
             "bookmarks": {bookmark_identity(*r) for r in marks},
@@ -343,6 +379,7 @@ class Restore:
                 )
             )
         seen = self._existing()
+        self._existing_cache = seen
         for cat in CATEGORIES:
             rows = data.get(cat) or []
             if not isinstance(rows, list):
@@ -359,6 +396,8 @@ class Restore:
                 checked = (
                     self._check_accepted_actions(row, plan, data)
                     if cat == "accepted_actions"
+                    else self._check_collections(row, plan, data)
+                    if cat == "collections"
                     else getattr(self, f"_check_{cat}")(row, plan)
                 )
                 if isinstance(checked, str):
@@ -725,6 +764,200 @@ class Restore:
         self.db.flush()
         return "accepted_action", a.id, action_full(a, made)
 
+    def _check_collections(self, row: dict, plan: _Plan, data: dict) -> dict | str:
+        """A collection from a version 2 file, with its items in their order. Its id (and its items')
+        is kept when the file is this account's and no one has it; a collection already here (the
+        same id) is never overwritten, and one with the same name is skipped and said. An item whose
+        content left the library entirely is left out with the reason (never swapped for a similar
+        one); a retired one is kept, shown as unavailable as the collection shows it today. Items
+        name library content, not bookmarks or anything else of an account, so nothing in another
+        account is ever linked."""
+        if data.get("export_version") != 2:
+            return "Restored from a version 2 export only (it keeps the ids and the order)"
+        plan.ignored_fields += len(
+            set(row) - {"id", "name", "queue_position", "queue_started_at", "created_at", "items"}
+        )
+        name = " ".join(_s(row.get("name")).split())[:80]
+        raw_items = row.get("items")
+        if not name or not isinstance(raw_items, list):
+            return "Not a valid record"
+        cid = row.get("id") if isinstance(row.get("id"), str) and 0 < len(row["id"]) <= 36 else None
+        if cid is not None and f"id:{cid}" in self._mine("collections"):
+            return {"identity": f"id:{cid}"}  # already here: counted as a duplicate, never overwritten
+        key = collection_name_key(name)
+        if key in self._collection_names or key in plan.names:
+            return "A collection with this name is already here (it's never overwritten or merged)"
+        ordered = sorted(
+            (
+                (r.get("position") if isinstance(r.get("position"), int) else i, i, r)
+                for i, r in enumerate(raw_items)
+                if isinstance(r, dict)
+            ),
+            key=lambda t: (t[0], t[1]),
+        )
+        items: list[dict] = []
+        seen: set[tuple[str, str, str]] = set()
+        problems_now = problem_versions(
+            self.db,
+            {
+                r["item"]
+                for _, _, r in ordered
+                if r.get("type") == "problem" and isinstance(r.get("item"), str)
+            },
+        )
+        for _, _, r in ordered:
+            got = self._collection_item(r, problems_now)
+            if isinstance(got, str):
+                plan.item_notes[f"Items left out: {got}"] += 1
+                continue
+            k = (got["kind"], got["track"], got["ref"])
+            if k in seen:
+                plan.item_notes["Items left out: the same item twice in one collection"] += 1
+                continue
+            if len(items) >= MAX_ITEMS:
+                plan.item_notes[f"Items left out: more than {MAX_ITEMS} in one collection"] += 1
+                continue
+            seen.add(k)
+            if got.pop("retired"):
+                plan.item_notes["Items kept but shown as unavailable: retired from the library"] += 1
+            items.append(got)
+        plan.names.add(key)
+        qp = row.get("queue_position")
+        return {
+            "identity": f"id:{cid}" if cid else _sha(["collection", key]),
+            "id": cid,
+            "title": name,
+            "queue_position": max(0, min(qp, len(items) - 1)) if isinstance(qp, int) and items else 0,
+            "queue_started_at": _when(row.get("queue_started_at")),
+            "items": items,
+        }
+
+    def _mine(self, cat: str) -> set[str]:
+        return self._existing_cache[cat]
+
+    def _collection_item(self, r: dict, problems_now: dict[str, int]) -> dict | str:
+        kind, track, ref = r.get("type"), r.get("career") or "", r.get("item")
+        if (
+            kind not in ("question", "problem", "drill")
+            or not isinstance(ref, str)
+            or not isinstance(track, str)
+        ):
+            return "not a valid item"
+        retired = False
+        version = None
+        if kind == "question":
+            if (track not in CATALOG) or get_question(track, ref) is None:
+                return "the question isn't in the library (it's never swapped for a similar one)"
+            retired = ("question", content_key(track, ref)) in content_state.current().retired
+            version = known_version(
+                SourceRef(kind="question", id=ref, track=track, captured=None), r.get("version"), {}
+            )
+        elif kind == "problem":
+            if (
+                ref not in problems_now
+                and self.db.scalar(select(Problem.id).where(Problem.slug == ref)) is None
+            ):
+                return "the problem isn't in the library"
+            retired = ("problem", ref) in content_state.current().retired
+            version = known_version(
+                SourceRef(kind="problem", id=ref, track=None, captured=None), r.get("version"), problems_now
+            )
+        else:
+            track = ""
+            if ref not in DRILLS:
+                return "the drill isn't offered any more"
+        if kind != "question":
+            track = ""
+        done = _when(r.get("queue_done_at"))
+        now = datetime.now(UTC)
+        iid = r.get("id") if isinstance(r.get("id"), str) and 0 < len(r["id"]) <= 36 else None
+        return {
+            "id": iid,
+            "kind": kind,
+            "track": track,
+            "ref": ref,
+            "version": version,
+            "done_at": min(done, now) if done else None,
+            "reviews": r.get("source_reviews") if kind in ("question", "problem") else None,
+            "retired": retired,
+        }
+
+    def _add_collections(self, item: dict) -> tuple[str, str, str]:
+        uid = self.user.id
+        # Its own id when the file is this account's and no one else has it (nothing about another
+        # account's is said or used); otherwise a new one.
+        own = self._from_self
+
+        def insert(model: Any, rid: str | None, **fields: Any) -> Any:
+            """With the file's id when it's free; a clash (even with a row this account can't see)
+            gets a new id, and nothing about the other is said."""
+            if own and rid and self.db.get(model, rid) is None:
+                try:
+                    with self.db.begin_nested():
+                        row = model(id=rid, **fields)
+                        self.db.add(row)
+                        self.db.flush()
+                    return row
+                except IntegrityError:
+                    pass
+            row = model(**fields)
+            self.db.add(row)
+            self.db.flush()
+            return row
+
+        c = insert(
+            PracticeCollection,
+            item["id"],
+            user_id=uid,
+            name=item["title"],
+            queue_position=item["queue_position"],
+            queue_started_at=item["queue_started_at"],
+        )
+        made: list[tuple[CollectionItem, dict]] = []
+        for pos, it in enumerate(item["items"]):
+            row = insert(
+                CollectionItem,
+                it["id"],
+                collection_id=c.id,
+                item_type=it["kind"],
+                track=it["track"],
+                ref_id=it["ref"],
+                position=pos,
+                content_version=it["version"],
+                queue_done_at=it["done_at"],
+            )
+            made.append((row, it))
+        refs = [
+            SourceRef(kind=it["kind"], id=it["ref"], track=it["track"] or None, captured=it["version"])
+            for _, it in made
+            if it["reviews"]
+        ]
+        if refs:
+            fresh = SourceFreshness(self.db, uid, IN_COLLECTION)
+            problems = fresh.problems_for_refs(refs)
+            for row, it in made:
+                if it["reviews"]:
+                    ref = SourceRef(
+                        kind=it["kind"], id=it["ref"], track=it["track"] or None, captured=it["version"]
+                    )
+                    fresh.restore_reviews(row.id, ref, it["reviews"], problems)
+        self.db.flush()
+        self.db.refresh(c)
+        return "collection", c.id, collection_full(c, self._item_reviews(c))
+
+    def _item_reviews(self, c: PracticeCollection) -> list[tuple[str, int]]:
+        ids = {i.id: i.position for i in c.items}
+        if not ids:
+            return []
+        rows = self.db.execute(
+            select(SourceReview.holder_id, SourceReview.to_revision).where(
+                SourceReview.user_id == self.user.id,
+                SourceReview.holder_kind == IN_COLLECTION.kind,
+                SourceReview.holder_id.in_(list(ids)),
+            )
+        ).all()
+        return [(str(ids[h]), v) for h, v in rows]
+
     def _already(self, sha: str, categories: list[str]) -> ImportBatch | None:
         rows = self.db.scalars(
             select(ImportBatch).where(
@@ -763,6 +996,8 @@ class Restore:
         adds = plan.adds[key]
         linkless = sum(1 for a in adds if a.get("link_note"))
         skipped = [RestoreSkip(reason=r, count=n) for r, n in plan.skipped[key].items() if n]
+        if key == "collections":
+            skipped += [RestoreSkip(reason=r, count=n) for r, n in plan.item_notes.items() if n]
         if linkless:
             skipped.append(
                 RestoreSkip(
@@ -798,6 +1033,9 @@ class Restore:
         if not chosen:
             raise AppError("Choose at least one kind of record to restore.", code="nothing_chosen")
         data = self.parse(raw)
+        raw_profile = data.get("profile")
+        profile: dict = raw_profile if isinstance(raw_profile, dict) else {}
+        self._from_self = bool(profile) and profile.get("id") == self.user.id
         sha = hashlib.sha256(raw).hexdigest()
         done = self._already(sha, chosen)
         if done is not None:
@@ -868,6 +1106,10 @@ class Restore:
             "applications": (
                 MAX_APPLICATIONS,
                 select(func.count()).select_from(Application).where(Application.user_id == uid),
+            ),
+            "collections": (
+                MAX_COLLECTIONS,
+                select(func.count()).select_from(PracticeCollection).where(PracticeCollection.user_id == uid),
             ),
         }
         for cat, (limit, stmt) in checks.items():
@@ -1018,6 +1260,7 @@ class Restore:
         if b.status != "applied":
             return self._batch_out(b)
         removed = kept = gone = 0
+        kept_collections: list[str] = []
         for r in self.db.scalars(select(ImportedRecord).where(ImportedRecord.batch_id == b.id)):
             row: Any = None
             if r.kind == "note":
@@ -1033,6 +1276,9 @@ class Restore:
                 row = self.db.get(AcceptedAction, r.record_id)
                 occ = self._occurrences(r.record_id) if row is not None else []
                 current = action_full(row, occ) if row is not None else None
+            elif r.kind == "collection":
+                row = self.db.get(PracticeCollection, r.record_id)
+                current = collection_full(row, self._item_reviews(row)) if row is not None else None
             else:
                 row = self.db.get(Application, r.record_id)
                 current = application_full(row) if row is not None else None
@@ -1040,6 +1286,8 @@ class Restore:
                 gone += 1
             elif current != r.fingerprint:
                 kept += 1  # edited since: never rolled back
+                if r.kind == "collection":
+                    kept_collections.append(row.name)
             else:
                 if r.kind == "note":
                     row.deleted_at = datetime.now(UTC)  # the notebook's own soft delete
@@ -1050,11 +1298,16 @@ class Restore:
                     for e in self._occurrences(row.id):
                         self.db.delete(e)
                     self.db.delete(row)
+                elif r.kind == "collection":
+                    forget(self.db, self.user.id, IN_COLLECTION.kind, [i.id for i in row.items])
+                    self.db.delete(row)  # its items with it
                 else:
                     self.db.delete(row)
                 removed += 1
         b.status, b.removed_at = "removed", datetime.now(UTC)
         b.removal = {"removed": removed, "kept_edited": kept, "already_gone": gone}
+        if kept_collections:
+            b.removal["kept_collections"] = sorted(kept_collections)  # changed since: kept, by name
         self.db.commit()
         return self._batch_out(b)
 
