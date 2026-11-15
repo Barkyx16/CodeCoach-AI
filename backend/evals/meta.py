@@ -78,9 +78,15 @@ def request_fingerprint() -> str:
                 ct.failure_verdict_text,
                 ct.failure_counts_text,
                 ct.failing_test_text,
+                # The coding interviewer's conversation, phase and ending (Volume 14, prompt 3).
+                ct.transcript_line,
+                ct.transcript_text,
+                ct.interview_phase_text,
+                ct.ending_text,
             )
         ),
         ct.NO_VERDICT,
+        ct.NO_MESSAGES,
         *(
             inspect.getsource(getattr(ap.AnthropicCoach, m))
             for m in ("__init__", "hint", "review", "explain_failure", "interview_turn", "evaluate_interview")

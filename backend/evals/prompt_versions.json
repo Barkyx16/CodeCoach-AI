@@ -1,6 +1,6 @@
 {
   "_doc": "Each coach prompt version and the fingerprint of the prompts and request settings it names (evals/meta.py:request_fingerprint). tests/test_eval_harness.py fails when the prompts change without a new version here.",
-  "current": "coach-2026-11-15",
+  "current": "coach-2026-11-15b",
   "versions": {
     "coach-2026-11-03": {
       "fingerprint": "f7a9c11481d697f2564299101984818644836f905a7094a304890a53c9de1586",
@@ -31,6 +31,11 @@
       "fingerprint": "e5fb5d9dee6f22cc7a1b95353f6a5963c91687949f6227602a2758aea955b922",
       "recorded": "2026-11-15",
       "notes": "No wording changed in what's asked: a hint's requested level and a failure explanation's verdict, pass counts and failing public test moved to context_text (hint_level_text, failure_verdict_text, failure_counts_text, failing_test_text), shared with their previews, byte for byte as before, and are now part of this fingerprint. What can be asked changed: a failure explanation is sent without the compiler output or the failing public test when the learner leaves them out in the preview, and both a hint and an explanation are sent only as previewed (Volume 13 prompt 2, docs/COACH_CONTEXT.md). No schema, setting or system prompt changed."
+    },
+    "coach-2026-11-15b": {
+      "fingerprint": "973bb92548263f66bf27c6a3240d3eecbc595a0cfedcc6dfac14748fce51cdfd",
+      "recorded": "2026-11-15",
+      "notes": "No wording changed in what's asked: the coding interviewer's transcript lines, its 'no messages yet', its phase line and the feedback's 'How it ended' moved to context_text (transcript_line, transcript_text, NO_MESSAGES, interview_phase_text, ending_text), shared with the interviewer's preview, byte for byte as before, and are now part of this fingerprint. What can be asked changed: the interviewer and the interview's feedback are sent the conversation with every turn redacted as the preview shows it, and, when the learner checks before each message, only the code and messages they approved (Volume 14 prompt 3, docs/COACH_CONTEXT.md, 'The coding interviewer'). No schema, setting or system prompt changed."
     }
   }
 }
