@@ -96,6 +96,7 @@ it("a blocked AI request: the wait is the server's, and the report says so witho
   server.use(http.post(`${API}/api/v1/ai/hint`, () => failure("rate_limited", 429, "ee55ff66aa77bb88", { "Retry-After": "3600" })));
   const { user } = renderApp("/problems/two-sum", { signedIn: true });
   await user.click(await screen.findByRole("button", { name: "Get a hint" }, { timeout: 3000 }));
+  await user.click(await screen.findByRole("button", { name: "Ask for the level 1 hint" }));
   await user.click(await screen.findByRole("button", { name: "Get help with this" }));
   const report = reportIn();
   expect(report.problem).toEqual({

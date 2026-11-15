@@ -57,6 +57,7 @@ test("submissions are judged in the gVisor sandbox", async ({ page, context }) =
 
   // Ask the coach why: grounded in the first failing public test, never in hidden ones.
   await page.getByRole("button", { name: "Explain this failure" }).click();
+  await page.getByRole("button", { name: "Ask for the explanation" }).click();
   const why = page.getByRole("region", { name: "Why it failed" });
   await expect(why.getByText("Wrong answer on a public test.")).toBeVisible();
   await expect(why.getByText(/Public test 2 \(nums = \[3, 2, 4\], target = 6\): expected \[1, 2\], got \[0, 1\]/)).toBeVisible();

@@ -244,6 +244,7 @@ test("every control does something", async ({ page, context, browserName }, test
   await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/two-sum/);
   await page.getByRole("button", { name: "Get a hint" }).click();
+  await page.getByRole("button", { name: "Ask for the level 1 hint" }).click();
   await expect(page.getByText(/level 1/i).first()).toBeVisible();
   await page.getByRole("tab", { name: "Code review" }).click();
   await page.getByRole("button", { name: /review my code/i }).click();

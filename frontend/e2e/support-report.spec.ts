@@ -31,6 +31,7 @@ test("a dropped hint: the report in place, copied and downloaded exactly as prev
   await page.route("**/api/v1/ai/hint", (route) => route.abort("connectionreset"));
   const coach = page.getByRole("region", { name: "AI coach" });
   await coach.getByRole("button", { name: "Get a hint" }).click();
+  await coach.getByRole("button", { name: "Ask for the level 1 hint" }).click();
   await expect(page.getByText("The hint didn't go through.")).toBeVisible();
   await page.getByRole("button", { name: "Get help with this" }).click();
 

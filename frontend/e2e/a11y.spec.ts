@@ -60,6 +60,7 @@ test("signed-in screens have no WCAG 2.1 A/AA violations", async ({ page }) => {
   // Workspace with coach output on screen (desktop shows the coach panel side by side).
   if (test.info().project.name === "desktop") {
     await page.getByRole("button", { name: "Get a hint" }).click();
+    await page.getByRole("button", { name: "Ask for the level 1 hint" }).click();
     await expect(page.getByText(/level 1/i).first()).toBeVisible();
     await page.getByRole("tab", { name: "Code review" }).click();
     await page.getByRole("button", { name: /review my code/i }).click();

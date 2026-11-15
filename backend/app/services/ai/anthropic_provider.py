@@ -13,7 +13,6 @@ Prompting and safety rules (blueprint section 06):
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 import time
@@ -36,7 +35,14 @@ from app.services.ai.base import (
     ProviderResult,
     ReviewContext,
 )
-from app.services.ai.context_text import analysis_text, verdict_text
+from app.services.ai.context_text import (
+    analysis_text,
+    failing_test_text,
+    failure_counts_text,
+    failure_verdict_text,
+    hint_level_text,
+    verdict_text,
+)
 from app.services.ai.static_analysis import Analysis
 
 logger = logging.getLogger("codecoach.ai.anthropic")
@@ -227,7 +233,7 @@ class AnthropicCoach:
             f"{_problem_block(ctx.problem)}\n\n"
             f"<learner_code>\n{_numbered(ctx.code) if ctx.code.strip() else '(empty draft)'}\n</learner_code>\n\n"
             f"{_analysis_block(ctx.analysis)}\n\n"
-            f"Requested hint level: {ctx.level} ({HINT_LEVEL_NAMES[ctx.level]}).\n"
+            f"{hint_level_text(ctx.level, HINT_LEVEL_NAMES[ctx.level])}\n"
             f"{_LEVEL_GUIDANCE[ctx.level]}\n\n"
             f"Instructor's reference hint for this level (adapt it to the learner's code; "
             f"don't go beyond it in detail):\n{reference}"
@@ -265,10 +271,9 @@ class AnthropicCoach:
         return result
 
     def explain_failure(self, ctx: FailureContext) -> ProviderResult[FailureExplanation]:
-        evidence = [f"Judge verdict: {ctx.status}"]
+        evidence = [failure_verdict_text(ctx.status)]
         evidence.append(
-            f"Public tests passed: {ctx.public_passed}/{ctx.public_total}. "
-            f"Hidden tests passed: {ctx.hidden_passed}/{ctx.hidden_total} (hidden inputs are secret)."
+            failure_counts_text(ctx.public_passed, ctx.public_total, ctx.hidden_passed, ctx.hidden_total)
         )
         if ctx.compile_output:
             evidence.append(f"<compiler_output>\n{ctx.compile_output}\n</compiler_output>")
@@ -276,17 +281,8 @@ class AnthropicCoach:
         if c is not None:
             evidence.append(
                 "<failing_public_test>\n"
-                + json.dumps(
-                    {
-                        "test": c.index + 1,
-                        "input": c.input,
-                        "expected": c.expected,
-                        "actual": c.actual,
-                        "exception": c.exception,
-                        "exception_message": c.message,
-                        "exception_line": c.line,
-                        "did_not_finish": c.missing,
-                    }
+                + failing_test_text(
+                    c.index, c.input, c.expected, c.actual, c.exception, c.message, c.line, c.missing
                 )
                 + "\n</failing_public_test>"
             )

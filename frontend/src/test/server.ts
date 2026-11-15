@@ -10,7 +10,7 @@ import { learnHandlers } from "./learn";
 import { noteHandlers } from "./notes";
 import { scenarioHandlers } from "./scenarios";
 import { reviewFor } from "./review";
-import { activityFacets, activityItems, careers, executionStatus, nurseFormats, hint, makePlan, nurseAnalytics, nurseGoals, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, reviewPreview, tokenResponse, twoSum, user, verificationStatus } from "./fixtures";
+import { activityFacets, activityItems, careers, executionStatus, explainPreview, nurseFormats, hint, hintPreview, makePlan, nurseAnalytics, nurseGoals, nurseAnswer, nurseQuestions, page, problems, progress, queuedSubmission, review, reviewPreview, tokenResponse, twoSum, user, verificationStatus } from "./fixtures";
 
 export const API = "http://localhost:8000";
 
@@ -93,6 +93,14 @@ export const handlers = [
   http.post(`${API}/api/v1/ai/hint`, async ({ request }) => {
     const body = (await request.json()) as { level: 1 | 2 | 3 | 4 };
     return HttpResponse.json(hint(body.level));
+  }),
+  http.post(`${API}/api/v1/ai/hint/preview`, async ({ request }) => {
+    const body = (await request.json()) as { level: 1 | 2 | 3 | 4; source_code?: string };
+    return HttpResponse.json(hintPreview(body.level));
+  }),
+  http.post(`${API}/api/v1/ai/explain-failure/preview`, async ({ request }) => {
+    const body = (await request.json()) as { share_compile_output?: boolean; share_failing_test?: boolean };
+    return HttpResponse.json(explainPreview({ compile: body.share_compile_output !== false, failing: body.share_failing_test !== false }));
   }),
   http.post(`${API}/api/v1/ai/review/preview`, async ({ request }) => {
     const body = (await request.json()) as { share_verdict?: boolean };

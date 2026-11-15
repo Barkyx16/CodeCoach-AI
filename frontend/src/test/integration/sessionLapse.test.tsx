@@ -69,6 +69,7 @@ async function adaLapsesMidWork(s: ReturnType<typeof world>) {
   await app.user.click(screen.getByRole("button", { name: /^Submit/ }));
   expect(await screen.findByText(/We couldn't confirm your submission/)).toBeInTheDocument();
   await app.user.click(screen.getByRole("button", { name: "Get a hint" }));
+  await app.user.click(await screen.findByRole("button", { name: "Ask for the level 1 hint" }));
   expect(await screen.findByText("Your session ended. Please sign in again.")).toBeInTheDocument();
   expect(s.posts).toHaveLength(1);
   return app;

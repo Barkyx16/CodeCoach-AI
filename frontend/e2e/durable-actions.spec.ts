@@ -45,6 +45,7 @@ test("a submission and a hint whose replies were lost are found after a reload, 
   const before = Number((await left.innerText()).split("/")[0]);
   const hints = loseFirstReply(page, "**/api/v1/ai/hint");
   await coach.getByRole("button", { name: "Get a hint" }).click();
+  await coach.getByRole("button", { name: "Ask for the level 1 hint" }).click();
   await expect(coach.getByText(/The hint didn't go through/)).toBeVisible();
   await page.reload();
   const coachAgain = page.getByRole("region", { name: "AI coach" });

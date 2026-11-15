@@ -98,6 +98,62 @@ export function reviewPreview(over: { share?: boolean; code?: string; fingerprin
   };
 }
 
+const LEVEL_NAMES = ["", "nudge", "concept", "pseudocode", "full explanation"];
+
+/** What a hint would send (docs/COACH_CONTEXT.md), as the server describes it. */
+export function hintPreview(level: number, over: { code?: string; fingerprint?: string; seen?: number } = {}): ReviewPreview {
+  const base = reviewPreview({ share: false, code: over.code });
+  const seen = over.seen ?? level - 1;
+  return {
+    ...base,
+    operation: "hint",
+    about: [
+      `Level ${level} of 4: ${LEVEL_NAMES[level]![0]!.toUpperCase()}${LEVEL_NAMES[level]!.slice(1)}.`,
+      seen === 0 ? "Your first hint for this problem." : "You've seen level 1 (Nudge) for this problem, so this one goes further.",
+      "Which levels you've seen isn't sent; the level you ask for is.",
+    ],
+    items: [
+      { key: "level", label: "The hint level you're asking for", source: `Level ${level} of 4.`, text: `Requested hint level: ${level} (${LEVEL_NAMES[level]}).`,
+        derived: false, required: true, why_required: "A hint is for one level; each goes further than the one before.", notes: [] },
+      ...base.items.map((i) => (i.key === "code" ? { ...i, why_required: "A hint is about your code as it is now." } : i)),
+    ],
+    left_out: [],
+    required_public: [
+      "The problem “Two Sum”: its statement, constraints, method signature and expected complexity. Public, the same for everyone, and needed to give a hint for it.",
+      `The problem's reference hint for level ${level}: written by CodeCoach, public and the same for everyone; the coach adapts it to your code. It isn't shown here, so checking doesn't give the hint away.`,
+    ],
+    context_fingerprint: over.fingerprint ?? `v1:hint-${level}`,
+  };
+}
+
+/** What explaining a failure would send. */
+export function explainPreview(over: { compile?: boolean; failing?: boolean; fingerprint?: string; answered?: boolean } = {}): ReviewPreview {
+  const base = reviewPreview({ share: false });
+  const compile = over.compile ?? true;
+  const failing = over.failing ?? true;
+  return {
+    ...base,
+    operation: "failure_explanation",
+    about: ["Explains your submission of 14 November 2026, 10:42 UTC (failed tests).", "One explanation is kept for each submission: asking again shows it and sends nothing."],
+    already_answered: over.answered ? "This submission was explained before: asking again shows that explanation and sends nothing." : null,
+    items: [
+      ...base.items.map((i) => (i.key === "code" ? { ...i, label: "The submitted code", why_required: "An explanation is of the code that failed." } : i)),
+      { key: "verdict", label: "The judge's verdict", source: "Judged 14 November 2026, 10:42 UTC.", text: "Judge verdict: FAILED", derived: false, required: true, why_required: "It's what the explanation is about.", notes: [] },
+      { key: "counts", label: "How many tests passed", source: "Counted by the judge. Hidden tests' inputs and outputs are never sent, only these counts.",
+        text: "Public tests passed: 1/2. Hidden tests passed: 3/5 (hidden inputs are secret).", derived: true, required: true, why_required: "They say whether only hidden tests failed.", notes: [] },
+      ...(compile ? [{ key: "compile_output" as const, label: "The compiler output", source: "From the judge, with its own driver lines removed.", text: "Solution.java:4: warning: unchecked", derived: false, required: false, why_required: null, notes: [] }] : []),
+      ...(failing ? [{ key: "failing_test" as const, label: "The first failing public test, with your program's output", source: "Public test 2: the test is public; what your program printed or threw is yours.",
+        text: "{\"test\": 2, \"input\": {\"nums\": [3, 2, 4], \"target\": 6}, \"expected\": [1, 2], \"actual\": [0, 0]}", derived: false, required: false, why_required: null, notes: [] }] : []),
+    ],
+    left_out: [
+      ...(compile ? [] : [{ key: "compile_output" as const, label: "The compiler output", reason: "removed" as const }]),
+      ...(failing ? [] : [{ key: "failing_test" as const, label: "The first failing public test, with your program's output", reason: "removed" as const }]),
+    ],
+    required_public: ["The problem “Two Sum”: its statement, constraints, method signature and expected complexity. Public, the same for everyone, and needed to explain a failure against it."],
+    context_fingerprint: over.fingerprint ?? `v1:explain-${compile ? 1 : 0}${failing ? 1 : 0}`,
+  };
+}
+
 export const review: ReviewResponse = {
   review: {
     summary: "1 thing to look at.",

@@ -52,6 +52,7 @@ describe("Untrusted text renders as text", () => {
     server.use(http.post(`${API}/api/v1/ai/hint`, () => HttpResponse.json({ ...hint(1), content: { ...hint(1).content, hint: `Try ${PAYLOAD}` } })));
     const { user, container } = renderApp("/problems/two-sum", { signedIn: true });
     await user.click(await screen.findByRole("button", { name: "Get a hint" }));
+    await user.click(await screen.findByRole("button", { name: "Ask for the level 1 hint" }));
     expect(await screen.findByText(/Try <img src=x onerror/)).toBeInTheDocument();
     expect(container.querySelector("img[src='x'], script")).toBeNull();
     expect(window.__pwned).toBeUndefined();

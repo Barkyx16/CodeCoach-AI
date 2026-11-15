@@ -29,3 +29,52 @@ def verdict_text(judge_status: str | None) -> str:
     """The judge's verdict as the coach reads it. Left out (or never judged) reads the same, so
     leaving it out says nothing about whether there was one."""
     return judge_status or NO_VERDICT
+
+
+# --- hints ------------------------------------------------------------------------------------
+
+
+def hint_level_text(level: int, name: str) -> str:
+    """The hint level asked for, as the coach reads it (the level's guidance after it is CodeCoach's
+    fixed instructions, not shown)."""
+    return f"Requested hint level: {level} ({name})."
+
+
+# --- failure explanations ---------------------------------------------------------------------
+
+
+def failure_verdict_text(status: str) -> str:
+    return f"Judge verdict: {status}"
+
+
+def failure_counts_text(public_passed: int, public_total: int, hidden_passed: int, hidden_total: int) -> str:
+    """Pass counts: the only thing ever sent about hidden tests."""
+    return (
+        f"Public tests passed: {public_passed}/{public_total}. "
+        f"Hidden tests passed: {hidden_passed}/{hidden_total} (hidden inputs are secret)."
+    )
+
+
+def failing_test_text(
+    index: int,
+    input: dict | None,
+    expected: object | None,
+    actual: object | None,
+    exception: str | None,
+    message: str | None,
+    line: int | None,
+    missing: bool,
+) -> str:
+    """The first failing PUBLIC test with the program's output, exactly as the coach reads it."""
+    return json.dumps(
+        {
+            "test": index + 1,
+            "input": input,
+            "expected": expected,
+            "actual": actual,
+            "exception": exception,
+            "exception_message": message,
+            "exception_line": line,
+            "did_not_finish": missing,
+        }
+    )

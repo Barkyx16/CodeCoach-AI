@@ -117,6 +117,7 @@ describe("The workspace: Run and Submit", () => {
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
     expect(await screen.findByText(/my work in progress/, {}, { timeout: 3000 })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Get a hint" }));
+    await user.click(await screen.findByRole("button", { name: "Ask for the level 1 hint" }));
     expect(await screen.findByText(/Your session ended/)).toBeInTheDocument();
     expect(screen.getByText(/my work in progress/)).toBeInTheDocument();
     localStorage.clear();
@@ -132,6 +133,7 @@ describe("The coach: no second charge for a lost answer", () => {
     }));
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
     await user.click(await screen.findByRole("button", { name: "Get a hint" }, { timeout: 3000 }));
+    await user.click(await screen.findByRole("button", { name: "Ask for the level 1 hint" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "The hint didn't go through. No reply came back, so we can't tell whether it arrived. Trying again is safe: it won't be done twice.");
     await user.click(screen.getByRole("button", { name: "Try again" }));
@@ -167,9 +169,10 @@ describe("The coach: no second charge for a lost answer", () => {
     }));
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
     await user.click(await screen.findByRole("button", { name: "Get a hint" }, { timeout: 3000 }));
+    await user.click(await screen.findByRole("button", { name: "Ask for the level 1 hint" }));
     expect(await screen.findByText(/still being answered/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Get a hint" })).toBeDisabled();
-    await waitFor(() => expect(screen.getByRole("button", { name: "Get a hint" })).toBeEnabled(), { timeout: 3000 });
+    expect(screen.getByRole("button", { name: "Ask for the level 1 hint" })).toBeDisabled();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Ask for the level 1 hint" })).toBeEnabled(), { timeout: 3000 });
   });
 });
 

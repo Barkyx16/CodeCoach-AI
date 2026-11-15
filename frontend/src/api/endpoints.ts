@@ -48,7 +48,11 @@ import type {
   DrillAttemptIn,
   ExperienceEdit,
   ExperienceInput,
+  CoachPreview,
+  ExplainFailurePreviewRequest,
+  ExplainFailureRequest,
   ExplainFailureResponse,
+  HintPreviewRequest,
   ExploreResult,
   ExploreSort,
   FeedbackInput,
@@ -403,8 +407,14 @@ export const api = {
   /** What a review would send, exactly; no provider call and no budget (docs/COACH_CONTEXT.md). */
   reviewPreview: (body: ReviewPreviewRequest) =>
     apiRequest<ReviewPreview>("/api/v1/ai/review/preview", { method: "POST", body }),
-  explainFailure: (submissionId: string) =>
-    apiRequest<ExplainFailureResponse>("/api/v1/ai/explain-failure", { method: "POST", body: { submission_id: submissionId } }),
+  /** What a hint would send, exactly; no provider call and no budget (docs/COACH_CONTEXT.md). */
+  hintPreview: (body: HintPreviewRequest) =>
+    apiRequest<CoachPreview>("/api/v1/ai/hint/preview", { method: "POST", body }),
+  /** What explaining a failure would send, exactly; no provider call and no budget. */
+  explainPreview: (body: ExplainFailurePreviewRequest) =>
+    apiRequest<CoachPreview>("/api/v1/ai/explain-failure/preview", { method: "POST", body }),
+  explainFailure: (body: ExplainFailureRequest) =>
+    apiRequest<ExplainFailureResponse>("/api/v1/ai/explain-failure", { method: "POST", body }),
   aiUsage: () => apiRequest<AIUsage>("/api/v1/ai/usage"),
   aiHistory: (query: { problem_slug?: string; action?: AIHistoryAction; page?: number; page_size?: number } = {}) =>
     apiRequest<Page<AIHistoryItem>>("/api/v1/me/ai-history", { query }),

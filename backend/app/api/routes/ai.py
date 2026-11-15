@@ -9,11 +9,13 @@ from app.models import AIAction, AIInteraction, Problem, User
 from app.schemas.ai import (
     AIHistoryItem,
     AIUsage,
+    CoachPreview,
+    ExplainFailurePreviewRequest,
     ExplainFailureRequest,
     ExplainFailureResponse,
+    HintPreviewRequest,
     HintRequest,
     HintResponse,
-    ReviewPreview,
     ReviewPreviewRequest,
     ReviewRequest,
     ReviewResponse,
@@ -31,6 +33,15 @@ def get_coach(
     return CoachService(db, settings, request.app.state.ai_provider)
 
 
+def _preview_allowed(request: Request, user: User) -> None:
+    """Previews are free but limited: 60 a minute per account, for every operation together."""
+    allowed, retry_after = request.app.state.coach_preview_limiter.hit(f"coach-preview:{user.id}")
+    if not allowed:
+        raise RateLimitedError.wait(
+            "That's a lot of previews in a minute. Try again in a moment.", retry_after
+        )
+
+
 @router.post(
     "/ai/hint",
     response_model=HintResponse,
@@ -41,6 +52,22 @@ def hint(
     body: HintRequest, user: User = Depends(get_current_user), coach: CoachService = Depends(get_coach)
 ) -> HintResponse:
     return coach.hint(user, body)
+
+
+@router.post(
+    "/ai/hint/preview",
+    response_model=CoachPreview,
+    responses=_ERRORS,
+    summary="What a hint would send to the coach, exactly (no provider call, no budget)",
+)
+def hint_preview(
+    body: HintPreviewRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    coach: CoachService = Depends(get_coach),
+) -> CoachPreview:
+    _preview_allowed(request, user)
+    return coach.hint_preview(user, body)
 
 
 @router.post(
@@ -57,7 +84,7 @@ def review(
 
 @router.post(
     "/ai/review/preview",
-    response_model=ReviewPreview,
+    response_model=CoachPreview,
     responses=_ERRORS,
     summary="What a code review would send to the coach, exactly (no provider call, no budget)",
 )
@@ -66,13 +93,25 @@ def review_preview(
     request: Request,
     user: User = Depends(get_current_user),
     coach: CoachService = Depends(get_coach),
-) -> ReviewPreview:
-    allowed, retry_after = request.app.state.coach_preview_limiter.hit(f"coach-preview:{user.id}")
-    if not allowed:
-        raise RateLimitedError.wait(
-            "That's a lot of previews in a minute. Try again in a moment.", retry_after
-        )
+) -> CoachPreview:
+    _preview_allowed(request, user)
     return coach.review_preview(user, body)
+
+
+@router.post(
+    "/ai/explain-failure/preview",
+    response_model=CoachPreview,
+    responses=_ERRORS,
+    summary="What explaining a failed submission would send to the coach, exactly (no provider call, no budget)",
+)
+def explain_failure_preview(
+    body: ExplainFailurePreviewRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    coach: CoachService = Depends(get_coach),
+) -> CoachPreview:
+    _preview_allowed(request, user)
+    return coach.explain_preview(user, body)
 
 
 @router.post(

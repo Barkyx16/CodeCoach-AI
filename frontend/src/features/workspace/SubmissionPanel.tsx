@@ -1,8 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { POLL_GIVE_UP_MS, useExplainFailure } from "@/api/queries";
 import { useNow } from "@/hooks/useNow";
-import type { Submission } from "@/api/types";
+import { ApiError } from "@/api/client";
+import { api } from "@/api/endpoints";
+import type { CoachPreview, Submission } from "@/api/types";
+import { ActionError } from "@/components/ActionError";
+import { CoachContext, REFUSED, type ChoiceKey } from "@/features/workspace/CoachContext";
 import { StatusBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Spinner } from "@/components/Spinner";
@@ -186,13 +190,79 @@ function ExplainFailure({ submissionId, onHighlightLine }: { submissionId: strin
       </section>
     );
   }
+  return <ExplainCheck submissionId={submissionId} explain={explain} />;
+}
+
+/** Check, then send (docs/COACH_CONTEXT.md): what the explanation would read, for this submission. */
+function ExplainCheck({ submissionId, explain }: { submissionId: string; explain: ReturnType<typeof useExplainFailure> }) {
+  const [preview, setPreview] = useState<{ data: CoachPreview; submissionId: string } | null>(null);
+  const [choices, setChoices] = useState<Record<"compile_output" | "failing_test", boolean>>({ compile_output: true, failing_test: true });
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState<unknown>(null);
+  const [changed, setChanged] = useState<string | null>(null);
+  const [cancelled, setCancelled] = useState(false);
+
+  async function check(next = choices) {
+    setChecking(true);
+    setCheckError(null);
+    setCancelled(false);
+    try {
+      const data = await api.explainPreview({ submission_id: submissionId, share_compile_output: next.compile_output, share_failing_test: next.failing_test });
+      setPreview({ data, submissionId });
+      setChanged(null);
+    } catch (e) {
+      setCheckError(e);
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  function send() {
+    if (!preview) return;
+    explain.mutate(
+      { submission_id: preview.submissionId, share_compile_output: choices.compile_output, share_failing_test: choices.failing_test,
+        approved_context: preview.data.context_fingerprint },
+      {
+        onError: (e) => {
+          if (e instanceof ApiError && e.code === "context_changed") {
+            const now = (e.details as { preview?: CoachPreview } | undefined)?.preview;
+            if (now) setPreview({ data: now, submissionId: preview.submissionId });
+            setChanged(REFUSED);
+            explain.reset();
+          }
+        },
+      },
+    );
+  }
+
+  if (preview) {
+    return (
+      <div className="explain-cta stack-sm">
+        <CoachContext preview={preview.data} choices={choices} changed={changed}
+          stale={preview.submissionId !== submissionId ? "A newer submission came in since this was checked: check again to explain that one." : null}
+          busy={explain.isPending || checking}
+          sendLabel={preview.data.already_answered ? "Show the explanation" : "Ask for the explanation"}
+          onChoose={(key: ChoiceKey, send) => {
+            if (key === "verdict") return;
+            const next = { ...choices, [key]: send };
+            setChoices(next);
+            void check(next);
+          }}
+          onSend={send}
+          onCancel={() => { setPreview(null); setChanged(null); setCancelled(true); }}
+          onCheckAgain={() => void check()} />
+        {!explain.isPending && <ActionError error={explain.error} action="The explanation" repeatSafe onRetry={send} />}
+      </div>
+    );
+  }
   return (
     <div className="explain-cta">
-      <Button size="sm" variant="secondary" loading={explain.isPending} onClick={() => explain.mutate(submissionId)}>
+      <Button size="sm" variant="secondary" loading={checking} onClick={() => void check()}>
         Explain this failure
       </Button>
-      <span className="subtle">Uses the public tests and compiler output only.</span>
-      <InlineError error={explain.error} />
+      <span className="subtle">Uses the public tests and compiler output only. You'll see exactly what the coach will read first.</span>
+      {cancelled && <p className="subtle" role="status">Cancelled. Nothing was sent.</p>}
+      <InlineError error={checkError} />
     </div>
   );
 }

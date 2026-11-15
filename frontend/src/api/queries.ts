@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClie
 
 import { ApiError, isSameSession, sessionMark } from "./client";
 import { api, type ActivityFilters, type ExploreFilters, type NoteFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
-import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, ShareDetail, Target, ContentKind, Onboarding, OnboardingUpdate, UnitProgress, HintRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate, WorkspaceSearchBody } from "./types";
+import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, ShareDetail, Target, ContentKind, Onboarding, OnboardingUpdate, UnitProgress, HintRequest, ExplainFailureRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate, WorkspaceSearchBody } from "./types";
 import { withOfflineCopy } from "@/features/offline/offlineStore";
 import { clearFinishPending } from "@/features/onboarding/finishIntent";
 
@@ -226,7 +226,7 @@ export function useReview() {
 export function useExplainFailure() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (submissionId: string) => api.explainFailure(submissionId),
+    mutationFn: (body: ExplainFailureRequest) => api.explainFailure(body),
     onSettled: () => void queryClient.invalidateQueries({ queryKey: ["me"] }),
   });
 }

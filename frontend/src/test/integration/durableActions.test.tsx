@@ -141,6 +141,7 @@ it("a hint whose reply was lost is found after a reload, and the budget isn't us
   );
   const first = renderApp("/problems/two-sum", { signedIn: true });
   await first.user.click(await screen.findByRole("button", { name: "Get a hint" }, { timeout: 3000 }));
+  await first.user.click(await screen.findByRole("button", { name: "Ask for the level 1 hint" }));
   expect(await screen.findByText(/The hint didn't go through/)).toBeInTheDocument();
   first.unmount();
 

@@ -37,8 +37,13 @@ async function editorText(page: Page): Promise<string> {
 
 /** Ada types in the workspace, then her session is revoked and her next request finds out. */
 async function adaLapsesMidEdit(page: Page, request: APIRequestContext, ada: { email: string }) {
+  // The coach's requests: checking what a hint would send (the first one to meet the ended session),
+  // and the hint itself, which isn't asked for without that check.
   const hints: string[] = [];
-  page.on("request", (r) => { if (r.url().endsWith("/api/v1/ai/hint")) hints.push(r.method()); });
+  page.on("request", (r) => {
+    if (r.url().endsWith("/api/v1/ai/hint/preview")) hints.push(`check ${r.method()}`);
+    if (r.url().endsWith("/api/v1/ai/hint")) hints.push(`hint ${r.method()}`);
+  });
   await page.goto("/login");
   await signInHere(page, ada.email);
   await expect(page).not.toHaveURL(/\/login$/);
@@ -67,7 +72,7 @@ test("the same account signs back in and carries on with the code that was on sc
   await expect(page).toHaveURL(/\/problems\/two-sum$/);
   await expect.poll(() => editorText(page)).toContain(MARK);
   await expect(page.getByText("Your session ended. Please sign in again.")).toHaveCount(0);
-  expect(hints).toEqual(["POST"]); // the hint that met the ended session isn't asked again by itself
+  expect(hints).toEqual(["check POST"]); // the check that met the ended session isn't sent again by itself
 });
 
 test("another account signing in sees its own code; Ada's stays locked to Ada until she returns", async ({ page, request }) => {

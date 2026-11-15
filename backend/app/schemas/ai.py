@@ -24,6 +24,13 @@ class HintRequest(APIModel):
     problem_slug: str
     source_code: str = Field(default="", description="The learner's current draft")
     level: HintLevel = Field(description="1 nudge, 2 concept, 3 pseudocode, 4 full explanation")
+    approved_context: str | None = Field(
+        default=None,
+        max_length=80,
+        description="The `context_fingerprint` from POST /ai/hint/preview. The hint is asked for only if what "
+        "the coach would read now is exactly what was previewed; otherwise nothing is sent and the answer is "
+        "409 `context_changed` with a fresh preview in `details.preview`. Without it, as before (no preview).",
+    )
     client_request_id: OptionalKey = Field(
         default=None,
         min_length=8,
@@ -81,6 +88,21 @@ class ReviewRequest(APIModel):
     )
 
 
+class HintPreviewRequest(APIModel):
+    problem_slug: str
+    source_code: str = Field(default="", description="The learner's current draft")
+    level: HintLevel
+
+
+class ExplainFailurePreviewRequest(APIModel):
+    submission_id: str = Field(min_length=1, max_length=36)
+    share_compile_output: bool = Field(default=True, description="Send the compiler output, if there is any")
+    share_failing_test: bool = Field(
+        default=True,
+        description="Send the first failing public test with your program's output, if there is one",
+    )
+
+
 class ReviewPreviewRequest(APIModel):
     problem_slug: str
     source_code: str = Field(min_length=1)
@@ -91,7 +113,7 @@ class ReviewPreviewRequest(APIModel):
 class ContextItem(APIModel):
     """One piece of your private material, exactly as the coach would read it."""
 
-    key: Literal["code", "checks", "verdict"]
+    key: Literal["code", "checks", "verdict", "level", "counts", "compile_output", "failing_test"]
     label: str = Field(description="What it is, in plain words")
     source: str = Field(description="Where it comes from and as of when")
     text: str = Field(
@@ -106,18 +128,28 @@ class ContextItem(APIModel):
 
 
 class LeftOut(APIModel):
-    key: Literal["verdict"]
+    key: Literal["verdict", "compile_output", "failing_test"]
     label: str
     reason: Literal["removed", "unavailable"] = Field(
         description="removed: you left it out; unavailable: it no longer exists or isn't yours"
     )
 
 
-class ReviewPreview(APIModel):
-    """What a code review would send, built the way the review builds it, with no provider call and
-    no use of the daily budget (docs/COACH_CONTEXT.md)."""
+class CoachPreview(APIModel):
+    """What a coaching request would send (a code review, a hint or a failure explanation), built the
+    way the request builds it, with no provider call and no use of the daily budget
+    (docs/COACH_CONTEXT.md)."""
 
-    operation: Literal["code_review"] = "code_review"
+    operation: Literal["code_review", "hint", "failure_explanation"] = "code_review"
+    about: list[str] = Field(
+        default_factory=list,
+        description="What the request is for: the hint level asked for and the levels already seen, or "
+        "which submission an explanation is about",
+    )
+    already_answered: str | None = Field(
+        default=None,
+        description="Set when asking again sends nothing (a submission's explanation is kept): says so",
+    )
     items: list[ContextItem]
     left_out: list[LeftOut]
     required_public: list[str] = Field(description="Public material that is always sent, and why")
@@ -131,8 +163,11 @@ class ReviewPreview(APIModel):
         description="Coaching requests left in the last 24 hours; previews don't use one"
     )
     context_fingerprint: str = Field(
-        description="Send it back as `approved_context` to bind the review to this preview"
+        description="Send it back as `approved_context` to bind the request to this preview"
     )
+
+
+ReviewPreview = CoachPreview  # the code review's preview, by its first name
 
 
 class Complexity(BaseModel):
@@ -208,6 +243,18 @@ FailureCause = Literal[
 
 class ExplainFailureRequest(APIModel):
     submission_id: str = Field(min_length=1, max_length=36)
+    share_compile_output: bool = Field(default=True, description="Send the compiler output, if there is any")
+    share_failing_test: bool = Field(
+        default=True,
+        description="Send the first failing public test with your program's output, if there is one",
+    )
+    approved_context: str | None = Field(
+        default=None,
+        max_length=80,
+        description="The `context_fingerprint` from POST /ai/explain-failure/preview: the explanation is "
+        "asked for only if what the coach would read now is exactly that; otherwise 409 `context_changed` "
+        "with a fresh preview. Without it, as before (everything sent, no preview).",
+    )
 
 
 class FailureExplanation(BaseModel):

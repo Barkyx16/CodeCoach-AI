@@ -17483,6 +17483,92 @@
         ]
       }
     },
+    "/api/v1/ai/hint/preview": {
+      "post": {
+        "tags": [
+          "ai coach"
+        ],
+        "summary": "What a hint would send to the coach, exactly (no provider call, no budget)",
+        "operationId": "hint_preview_api_v1_ai_hint_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HintPreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachPreview"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/ai/review": {
       "post": {
         "tags": [
@@ -17592,7 +17678,93 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReviewPreview"
+                  "$ref": "#/components/schemas/CoachPreview"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/ai/explain-failure/preview": {
+      "post": {
+        "tags": [
+          "ai coach"
+        ],
+        "summary": "What explaining a failed submission would send to the coach, exactly (no provider call, no budget)",
+        "operationId": "explain_failure_preview_api_v1_ai_explain_failure_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExplainFailurePreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachPreview"
                 }
               }
             }
@@ -26388,6 +26560,116 @@
         ],
         "title": "ChecklistItem"
       },
+      "CoachPreview": {
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "code_review",
+              "hint",
+              "failure_explanation"
+            ],
+            "title": "Operation",
+            "default": "code_review"
+          },
+          "about": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "About",
+            "description": "What the request is for: the hint level asked for and the levels already seen, or which submission an explanation is about"
+          },
+          "already_answered": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Already Answered",
+            "description": "Set when asking again sends nothing (a submission's explanation is kept): says so"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ContextItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "left_out": {
+            "items": {
+              "$ref": "#/components/schemas/LeftOut"
+            },
+            "type": "array",
+            "title": "Left Out"
+          },
+          "required_public": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required Public",
+            "description": "Public material that is always sent, and why"
+          },
+          "instructions": {
+            "type": "string",
+            "title": "Instructions",
+            "description": "One sentence about the coach's fixed instructions (not shown)"
+          },
+          "recipient": {
+            "type": "string",
+            "title": "Recipient",
+            "description": "Who reads it"
+          },
+          "recipient_kind": {
+            "type": "string",
+            "enum": [
+              "built_in",
+              "external"
+            ],
+            "title": "Recipient Kind"
+          },
+          "fallback": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fallback",
+            "description": "Who answers, from the same material, if the coach can't be reached"
+          },
+          "remaining_today": {
+            "type": "integer",
+            "title": "Remaining Today",
+            "description": "Coaching requests left in the last 24 hours; previews don't use one"
+          },
+          "context_fingerprint": {
+            "type": "string",
+            "title": "Context Fingerprint",
+            "description": "Send it back as `approved_context` to bind the request to this preview"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "left_out",
+          "required_public",
+          "instructions",
+          "recipient",
+          "recipient_kind",
+          "fallback",
+          "remaining_today",
+          "context_fingerprint"
+        ],
+        "title": "CoachPreview",
+        "description": "What a coaching request would send (a code review, a hint or a failure explanation), built the\nway the request builds it, with no provider call and no use of the daily budget\n(docs/COACH_CONTEXT.md)."
+      },
       "CodeReview": {
         "properties": {
           "summary": {
@@ -27539,7 +27821,11 @@
             "enum": [
               "code",
               "checks",
-              "verdict"
+              "verdict",
+              "level",
+              "counts",
+              "compile_output",
+              "failing_test"
             ],
             "title": "Key"
           },
@@ -29888,6 +30174,33 @@
         ],
         "title": "ExperienceOut"
       },
+      "ExplainFailurePreviewRequest": {
+        "properties": {
+          "submission_id": {
+            "type": "string",
+            "maxLength": 36,
+            "minLength": 1,
+            "title": "Submission Id"
+          },
+          "share_compile_output": {
+            "type": "boolean",
+            "title": "Share Compile Output",
+            "description": "Send the compiler output, if there is any",
+            "default": true
+          },
+          "share_failing_test": {
+            "type": "boolean",
+            "title": "Share Failing Test",
+            "description": "Send the first failing public test with your program's output, if there is one",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "submission_id"
+        ],
+        "title": "ExplainFailurePreviewRequest"
+      },
       "ExplainFailureRequest": {
         "properties": {
           "submission_id": {
@@ -29895,6 +30208,31 @@
             "maxLength": 36,
             "minLength": 1,
             "title": "Submission Id"
+          },
+          "share_compile_output": {
+            "type": "boolean",
+            "title": "Share Compile Output",
+            "description": "Send the compiler output, if there is any",
+            "default": true
+          },
+          "share_failing_test": {
+            "type": "boolean",
+            "title": "Share Failing Test",
+            "description": "Send the first failing public test with your program's output, if there is one",
+            "default": true
+          },
+          "approved_context": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Context",
+            "description": "The `context_fingerprint` from POST /ai/explain-failure/preview: the explanation is asked for only if what the coach would read now is exactly that; otherwise 409 `context_changed` with a fresh preview. Without it, as before (everything sent, no preview)."
           }
         },
         "type": "object",
@@ -31603,6 +31941,36 @@
         "title": "HintContent",
         "description": "Schema the model must fill for a hint."
       },
+      "HintPreviewRequest": {
+        "properties": {
+          "problem_slug": {
+            "type": "string",
+            "title": "Problem Slug"
+          },
+          "source_code": {
+            "type": "string",
+            "title": "Source Code",
+            "description": "The learner's current draft",
+            "default": ""
+          },
+          "level": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "title": "Level"
+          }
+        },
+        "type": "object",
+        "required": [
+          "problem_slug",
+          "level"
+        ],
+        "title": "HintPreviewRequest"
+      },
       "HintRequest": {
         "properties": {
           "problem_slug": {
@@ -31625,6 +31993,19 @@
             ],
             "title": "Level",
             "description": "1 nudge, 2 concept, 3 pseudocode, 4 full explanation"
+          },
+          "approved_context": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Context",
+            "description": "The `context_fingerprint` from POST /ai/hint/preview. The hint is asked for only if what the coach would read now is exactly what was previewed; otherwise nothing is sent and the answer is 409 `context_changed` with a fresh preview in `details.preview`. Without it, as before (no preview)."
           },
           "client_request_id": {
             "anyOf": [
@@ -33778,7 +34159,11 @@
         "properties": {
           "key": {
             "type": "string",
-            "const": "verdict",
+            "enum": [
+              "verdict",
+              "compile_output",
+              "failing_test"
+            ],
             "title": "Key"
           },
           "label": {
@@ -41185,92 +41570,6 @@
           "note"
         ],
         "title": "ReviewOut"
-      },
-      "ReviewPreview": {
-        "properties": {
-          "operation": {
-            "type": "string",
-            "const": "code_review",
-            "title": "Operation",
-            "default": "code_review"
-          },
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/ContextItem"
-            },
-            "type": "array",
-            "title": "Items"
-          },
-          "left_out": {
-            "items": {
-              "$ref": "#/components/schemas/LeftOut"
-            },
-            "type": "array",
-            "title": "Left Out"
-          },
-          "required_public": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Required Public",
-            "description": "Public material that is always sent, and why"
-          },
-          "instructions": {
-            "type": "string",
-            "title": "Instructions",
-            "description": "One sentence about the coach's fixed instructions (not shown)"
-          },
-          "recipient": {
-            "type": "string",
-            "title": "Recipient",
-            "description": "Who reads it"
-          },
-          "recipient_kind": {
-            "type": "string",
-            "enum": [
-              "built_in",
-              "external"
-            ],
-            "title": "Recipient Kind"
-          },
-          "fallback": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Fallback",
-            "description": "Who answers, from the same material, if the coach can't be reached"
-          },
-          "remaining_today": {
-            "type": "integer",
-            "title": "Remaining Today",
-            "description": "Coaching requests left in the last 24 hours; previews don't use one"
-          },
-          "context_fingerprint": {
-            "type": "string",
-            "title": "Context Fingerprint",
-            "description": "Send it back as `approved_context` to bind the review to this preview"
-          }
-        },
-        "type": "object",
-        "required": [
-          "items",
-          "left_out",
-          "required_public",
-          "instructions",
-          "recipient",
-          "recipient_kind",
-          "fallback",
-          "remaining_today",
-          "context_fingerprint"
-        ],
-        "title": "ReviewPreview",
-        "description": "What a code review would send, built the way the review builds it, with no provider call and\nno use of the daily budget (docs/COACH_CONTEXT.md)."
       },
       "ReviewPreviewRequest": {
         "properties": {

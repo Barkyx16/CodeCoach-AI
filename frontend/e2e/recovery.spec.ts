@@ -57,6 +57,7 @@ test("a submission and a hint whose replies were lost aren't done twice", async 
   const before = Number((await left.innerText()).split("/")[0]);
   const firstHint = loseFirstReply(page, "**/api/v1/ai/hint");
   await coach.getByRole("button", { name: "Get a hint" }).click();
+  await coach.getByRole("button", { name: "Ask for the level 1 hint" }).click();
   const lostHint = (await firstHint) as { content: { hint: string } };
   await expect(coach.getByRole("alert")).toContainText("No reply came back, so we can't tell whether it arrived. Trying again is safe");
   await coach.getByRole("button", { name: "Try again" }).click();

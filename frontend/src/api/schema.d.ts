@@ -3337,6 +3337,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/ai/hint/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What a hint would send to the coach, exactly (no provider call, no budget) */
+        post: operations["hint_preview_api_v1_ai_hint_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/ai/review": {
         parameters: {
             query?: never;
@@ -3365,6 +3382,23 @@ export interface paths {
         put?: never;
         /** What a code review would send to the coach, exactly (no provider call, no budget) */
         post: operations["review_preview_api_v1_ai_review_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/ai/explain-failure/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What explaining a failed submission would send to the coach, exactly (no provider call, no budget) */
+        post: operations["explain_failure_preview_api_v1_ai_explain_failure_preview_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5729,6 +5763,69 @@ export interface components {
             action?: components["schemas"]["KitAction"] | null;
         };
         /**
+         * CoachPreview
+         * @description What a coaching request would send (a code review, a hint or a failure explanation), built the
+         *     way the request builds it, with no provider call and no use of the daily budget
+         *     (docs/COACH_CONTEXT.md).
+         */
+        CoachPreview: {
+            /**
+             * Operation
+             * @default code_review
+             * @enum {string}
+             */
+            operation: "code_review" | "hint" | "failure_explanation";
+            /**
+             * About
+             * @description What the request is for: the hint level asked for and the levels already seen, or which submission an explanation is about
+             */
+            about?: string[];
+            /**
+             * Already Answered
+             * @description Set when asking again sends nothing (a submission's explanation is kept): says so
+             */
+            already_answered?: string | null;
+            /** Items */
+            items: components["schemas"]["ContextItem"][];
+            /** Left Out */
+            left_out: components["schemas"]["LeftOut"][];
+            /**
+             * Required Public
+             * @description Public material that is always sent, and why
+             */
+            required_public: string[];
+            /**
+             * Instructions
+             * @description One sentence about the coach's fixed instructions (not shown)
+             */
+            instructions: string;
+            /**
+             * Recipient
+             * @description Who reads it
+             */
+            recipient: string;
+            /**
+             * Recipient Kind
+             * @enum {string}
+             */
+            recipient_kind: "built_in" | "external";
+            /**
+             * Fallback
+             * @description Who answers, from the same material, if the coach can't be reached
+             */
+            fallback: string | null;
+            /**
+             * Remaining Today
+             * @description Coaching requests left in the last 24 hours; previews don't use one
+             */
+            remaining_today: number;
+            /**
+             * Context Fingerprint
+             * @description Send it back as `approved_context` to bind the request to this preview
+             */
+            context_fingerprint: string;
+        };
+        /**
          * CodeReview
          * @description Matches the structured review example in the blueprint (section 06).
          */
@@ -6214,7 +6311,7 @@ export interface components {
              * Key
              * @enum {string}
              */
-            key: "code" | "checks" | "verdict";
+            key: "code" | "checks" | "verdict" | "level" | "counts" | "compile_output" | "failing_test";
             /**
              * Label
              * @description What it is, in plain words
@@ -7206,10 +7303,44 @@ export interface components {
              */
             updated_at: string;
         };
+        /** ExplainFailurePreviewRequest */
+        ExplainFailurePreviewRequest: {
+            /** Submission Id */
+            submission_id: string;
+            /**
+             * Share Compile Output
+             * @description Send the compiler output, if there is any
+             * @default true
+             */
+            share_compile_output: boolean;
+            /**
+             * Share Failing Test
+             * @description Send the first failing public test with your program's output, if there is one
+             * @default true
+             */
+            share_failing_test: boolean;
+        };
         /** ExplainFailureRequest */
         ExplainFailureRequest: {
             /** Submission Id */
             submission_id: string;
+            /**
+             * Share Compile Output
+             * @description Send the compiler output, if there is any
+             * @default true
+             */
+            share_compile_output: boolean;
+            /**
+             * Share Failing Test
+             * @description Send the first failing public test with your program's output, if there is one
+             * @default true
+             */
+            share_failing_test: boolean;
+            /**
+             * Approved Context
+             * @description The `context_fingerprint` from POST /ai/explain-failure/preview: the explanation is asked for only if what the coach would read now is exactly that; otherwise 409 `context_changed` with a fresh preview. Without it, as before (everything sent, no preview).
+             */
+            approved_context?: string | null;
         };
         /** ExplainFailureResponse */
         ExplainFailureResponse: {
@@ -7988,6 +8119,22 @@ export interface components {
              */
             encouragement: string;
         };
+        /** HintPreviewRequest */
+        HintPreviewRequest: {
+            /** Problem Slug */
+            problem_slug: string;
+            /**
+             * Source Code
+             * @description The learner's current draft
+             * @default
+             */
+            source_code: string;
+            /**
+             * Level
+             * @enum {integer}
+             */
+            level: 1 | 2 | 3 | 4;
+        };
         /** HintRequest */
         HintRequest: {
             /** Problem Slug */
@@ -8004,6 +8151,11 @@ export interface components {
              * @enum {integer}
              */
             level: 1 | 2 | 3 | 4;
+            /**
+             * Approved Context
+             * @description The `context_fingerprint` from POST /ai/hint/preview. The hint is asked for only if what the coach would read now is exactly what was previewed; otherwise nothing is sent and the answer is 409 `context_changed` with a fresh preview in `details.preview`. Without it, as before (no preview).
+             */
+            approved_context?: string | null;
             /**
              * Client Request Id
              * @description One key per request: the same request sent again (its response was lost) gets the first answer back, with no second provider call and no second use of the daily budget. The same key for a different request is a 409 `idempotency_key_reused`.
@@ -8810,9 +8962,9 @@ export interface components {
         LeftOut: {
             /**
              * Key
-             * @constant
+             * @enum {string}
              */
-            key: "verdict";
+            key: "verdict" | "compile_output" | "failing_test";
             /** Label */
             label: string;
             /**
@@ -11772,58 +11924,6 @@ export interface components {
             on: string;
             /** Note */
             note: string;
-        };
-        /**
-         * ReviewPreview
-         * @description What a code review would send, built the way the review builds it, with no provider call and
-         *     no use of the daily budget (docs/COACH_CONTEXT.md).
-         */
-        ReviewPreview: {
-            /**
-             * Operation
-             * @default code_review
-             * @constant
-             */
-            operation: "code_review";
-            /** Items */
-            items: components["schemas"]["ContextItem"][];
-            /** Left Out */
-            left_out: components["schemas"]["LeftOut"][];
-            /**
-             * Required Public
-             * @description Public material that is always sent, and why
-             */
-            required_public: string[];
-            /**
-             * Instructions
-             * @description One sentence about the coach's fixed instructions (not shown)
-             */
-            instructions: string;
-            /**
-             * Recipient
-             * @description Who reads it
-             */
-            recipient: string;
-            /**
-             * Recipient Kind
-             * @enum {string}
-             */
-            recipient_kind: "built_in" | "external";
-            /**
-             * Fallback
-             * @description Who answers, from the same material, if the coach can't be reached
-             */
-            fallback: string | null;
-            /**
-             * Remaining Today
-             * @description Coaching requests left in the last 24 hours; previews don't use one
-             */
-            remaining_today: number;
-            /**
-             * Context Fingerprint
-             * @description Send it back as `approved_context` to bind the review to this preview
-             */
-            context_fingerprint: string;
         };
         /** ReviewPreviewRequest */
         ReviewPreviewRequest: {
@@ -27125,6 +27225,75 @@ export interface operations {
             };
         };
     };
+    hint_preview_api_v1_ai_hint_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HintPreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachPreview"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
     review_api_v1_ai_review_post: {
         parameters: {
             query?: never;
@@ -27213,7 +27382,76 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReviewPreview"];
+                    "application/json": components["schemas"]["CoachPreview"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    explain_failure_preview_api_v1_ai_explain_failure_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExplainFailurePreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachPreview"];
                 };
             };
             /** @description Missing, invalid, expired or revoked access token */

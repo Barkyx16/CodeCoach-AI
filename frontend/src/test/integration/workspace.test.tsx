@@ -61,8 +61,10 @@ describe("Problem workspace", () => {
   it("unlocks hints one level at a time", async () => {
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
     await user.click(await screen.findByRole("button", { name: "Get a hint" }));
+    await user.click(await screen.findByRole("button", { name: "Ask for the level 1 hint" }));
     expect(await screen.findByText("Hint text for level 1")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Unlock level 2: Concept" }));
+    await user.click(await screen.findByRole("button", { name: "Ask for the level 2 hint" }));
     expect(await screen.findByText("Hint text for level 2")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Unlock level 3: Pseudocode" })).toBeInTheDocument();
     expect(screen.getByText("48/50 left")).toBeInTheDocument();
@@ -96,9 +98,10 @@ describe("Problem workspace", () => {
     { status: 429, headers: { "Retry-After": "7200" } })));
     const { user } = renderApp("/problems/two-sum", { signedIn: true });
     await user.click(await screen.findByRole("button", { name: "Get a hint" }));
+    await user.click(await screen.findByRole("button", { name: "Ask for the level 1 hint" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("The hint didn't go through. You've used today's AI coaching budget.");
     expect(screen.getByText("You can try again in about 2 h.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Get a hint" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Ask for the level 1 hint" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Try again" })).toBeDisabled();
   });
 

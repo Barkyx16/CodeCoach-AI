@@ -49,8 +49,10 @@ test("guest journey: try it, code, hints, review, submit, progress", async ({ pa
 
   // Hints unlock one level at a time.
   await page.getByRole("button", { name: "Get a hint" }).click();
+  await page.getByRole("button", { name: "Ask for the level 1 hint" }).click();
   await expect(page.getByText("Level 1 · Nudge")).toBeVisible();
   await page.getByRole("button", { name: "Unlock level 2: Concept" }).click();
+  await page.getByRole("button", { name: "Ask for the level 2 hint" }).click();
   await expect(page.getByText("Level 2 · Concept")).toBeVisible();
   await expect(page.getByText(/HashMap/).first()).toBeVisible();
 

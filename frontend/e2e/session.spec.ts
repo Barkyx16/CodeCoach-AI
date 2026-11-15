@@ -39,6 +39,7 @@ test("a guest keeps their work by upgrading to a full account", async ({ page })
   await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/two-sum/);
   await page.getByRole("button", { name: "Get a hint" }).click(); // some guest activity to keep
+  await page.getByRole("button", { name: "Ask for the level 1 hint" }).click();
   await expect(page.getByText(/level 1/i).first()).toBeVisible();
 
   await page.goto("/settings");

@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 
 import { useAIHistory, useAIUsage, useHint, useReview } from "@/api/queries";
 import { api } from "@/api/endpoints";
-import type { CodeReview, HintLevel, HintResponse, ReviewPreview, ReviewResponse } from "@/api/types";
+import type { CodeReview, CoachPreview, HintLevel, HintResponse, ReviewResponse } from "@/api/types";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { ActionError } from "@/components/ActionError";
@@ -15,7 +15,7 @@ import { useRetryWait } from "@/hooks/useCountdown";
 import { fingerprint, forgetIntent, keyForIntent, type IntentKind } from "@/lib/pendingIntents";
 import { Tabs } from "@/components/Tabs";
 import { FallbackNotice } from "@/components/FallbackNotice";
-import { CoachContext } from "@/features/workspace/CoachContext";
+import { CODE_CHANGED, CoachContext, REFUSED } from "@/features/workspace/CoachContext";
 
 const LEVELS: { level: HintLevel; name: string; blurb: string }[] = [
   { level: 1, name: "Nudge", blurb: "A question that points you in the right direction" },
@@ -99,12 +99,47 @@ function HintLadder({ problemSlug, maxLevel, code }: { problemSlug: string; maxL
   // answer back, without a second AI call or a second use of the budget. Changed code is a new
   // request with a new key (the server refuses an old key with different code).
   const earlier = useEarlierAction("hint", problemSlug);
+  // Check, then send (docs/COACH_CONTEXT.md): the preview shows exactly what the coach would read
+  // for this level, and the hint is asked for bound to it.
+  const [preview, setPreview] = useState<{ data: CoachPreview; code: string; level: HintLevel } | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [checkError, setCheckError] = useState<unknown>(null);
+  const [changed, setChanged] = useState<string | null>(null);
+  const [cancelled, setCancelled] = useState(false);
 
-  async function request(level: HintLevel) {
+  async function check(level: HintLevel) {
+    setChecking(true);
+    setCheckError(null);
+    setCancelled(false);
+    try {
+      setPreview({ data: await api.hintPreview({ problem_slug: problemSlug, source_code: code, level }), code, level });
+      setChanged(null);
+    } catch (e) {
+      setCheckError(e);
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  async function request() {
+    if (!preview) return;
     if (earlier.status !== "none") earlier.dismiss();
-    const response = await keyed(user?.id, "hint", problemSlug, fingerprint(problemSlug, level, code), (key) =>
-      hint.mutateAsync({ problem_slug: problemSlug, level, source_code: code, client_request_id: key }));
-    setFresh((f) => [...f.filter((h) => h.level !== response.level), response]);
+    const { level, code: sent } = preview;
+    const approved = preview.data.context_fingerprint;
+    try {
+      const response = await keyed(user?.id, "hint", problemSlug, fingerprint(problemSlug, level, sent, approved), (key) =>
+        hint.mutateAsync({ problem_slug: problemSlug, level, source_code: sent, approved_context: approved, client_request_id: key }));
+      setFresh((f) => [...f.filter((h) => h.level !== response.level), response]);
+      setPreview(null);
+    } catch (e) {
+      if (e instanceof ApiError && e.code === "context_changed") {
+        // Nothing was sent: show what would be sent now, to check before asking again.
+        const now = (e.details as { preview?: CoachPreview } | undefined)?.preview;
+        if (now) setPreview({ data: now, code: sent, level });
+        setChanged(REFUSED);
+        hint.reset();
+      }
+    }
   }
 
   return (
@@ -127,21 +162,29 @@ function HintLadder({ problemSlug, maxLevel, code }: { problemSlug: string; maxL
           </li>
         ))}
       </ol>
-      {next ? (
+      {preview ? (
+        <CoachContext preview={preview.data} choices={{}} onChoose={() => undefined}
+          stale={preview.code !== code ? CODE_CHANGED : null} changed={changed}
+          busy={hint.isPending || checking} blocked={wait > 0} sendLabel={`Ask for the level ${preview.level} hint`}
+          onSend={() => void request().catch(() => undefined)}
+          onCancel={() => { setPreview(null); setChanged(null); setCancelled(true); }}
+          onCheckAgain={() => void check(preview.level)} />
+      ) : next ? (
         <div className="hint-next">
-          <Button variant={highest === 0 ? "primary" : "secondary"} loading={hint.isPending} disabled={wait > 0}
-            onClick={() => void request(next.level).catch(() => undefined)}>
+          <Button variant={highest === 0 ? "primary" : "secondary"} loading={checking} disabled={wait > 0}
+            onClick={() => void check(next.level)}>
             {highest === 0 ? "Get a hint" : `Unlock level ${next.level}: ${next.name}`}
           </Button>
-          <span className="subtle">{next.blurb}</span>
+          <span className="subtle">{next.blurb} You'll see exactly what the coach will read first.</span>
           {next.level === 4 && <span className="subtle">Heads up: this explains the full solution.</span>}
         </div>
       ) : (
         hints.length > 0 && <p className="subtle">You've unlocked every hint for this problem.</p>
       )}
-      {!hint.isPending && (
-        <ActionError error={hint.error} action="The hint" repeatSafe
-          onRetry={next ? () => void request(next.level).catch(() => undefined) : undefined} />
+      {cancelled && !preview && <p className="subtle" role="status">Cancelled. Nothing was sent.</p>}
+      <ActionError error={checkError} action="Checking what would be sent" onRetry={next ? () => void check(next.level) : undefined} />
+      {!hint.isPending && preview && (
+        <ActionError error={hint.error} action="The hint" repeatSafe onRetry={() => void request().catch(() => undefined)} />
       )}
     </div>
   );
@@ -156,7 +199,7 @@ function ReviewTab({ problemSlug, code, submissionId, onHighlightLine }: {
   const [result, setResult] = useState<ReviewResponse | null>(null);
   // Check, then send (docs/COACH_CONTEXT.md): the preview shows exactly what the coach would read,
   // and the review is sent bound to it, so it goes only if what's sent is what was shown.
-  const [preview, setPreview] = useState<{ data: ReviewPreview; code: string } | null>(null);
+  const [preview, setPreview] = useState<{ data: CoachPreview; code: string } | null>(null);
   const [share, setShare] = useState(true);
   const [checking, setChecking] = useState(false);
   const [checkError, setCheckError] = useState<unknown>(null);
@@ -195,9 +238,9 @@ function ReviewTab({ problemSlug, code, submissionId, onHighlightLine }: {
     } catch (e) {
       if (e instanceof ApiError && e.code === "context_changed") {
         // Nothing was sent: show what would be sent now, to check before sending again.
-        const fresh = (e.details as { preview?: ReviewPreview } | undefined)?.preview;
+        const fresh = (e.details as { preview?: CoachPreview } | undefined)?.preview;
         if (fresh) setPreview({ data: fresh, code: preview.code });
-        setChanged("What the coach would read changed since you checked it, so nothing was sent. This is what it would read now.");
+        setChanged(REFUSED);
         review.reset();
       }
     }
@@ -217,9 +260,9 @@ function ReviewTab({ problemSlug, code, submissionId, onHighlightLine }: {
       {cancelled && !preview && <p className="subtle" role="status">Cancelled. Nothing was sent.</p>}
       <ActionError error={checkError} action="Checking what would be sent" onRetry={() => void check()} />
       {preview && (
-        <CoachContext preview={preview.data} share={share} stale={preview.code !== code} changed={changed}
-          busy={review.isPending || checking}
-          onShare={(next) => { setShare(next); void check(next); }}
+        <CoachContext preview={preview.data} choices={{ verdict: share }} stale={preview.code !== code ? CODE_CHANGED : null} changed={changed}
+          busy={review.isPending || checking} blocked={wait > 0} sendLabel="Send for review"
+          onChoose={(_key, next) => { setShare(next); void check(next); }}
           onSend={() => void send()}
           onCancel={() => { setPreview(null); setChanged(null); setCancelled(true); }}
           onCheckAgain={() => void check()} />

@@ -120,8 +120,9 @@ describe("Judge results", () => {
     serveSequence([failed]);
     const ctx = await submitTwoSum();
     await ctx.user.click(await screen.findByRole("button", { name: "Explain this failure" }));
+    await ctx.user.click(await screen.findByRole("button", { name: "Ask for the explanation" }));
     expect(await screen.findByText("An index went out of range at line 5.")).toBeInTheDocument();
-    expect(body).toEqual({ submission_id: failed.id });
+    expect(body).toEqual({ submission_id: failed.id, share_compile_output: true, share_failing_test: true, approved_context: "v1:explain-11" });
     const why = screen.getByRole("region", { name: "Why it failed" });
     expect(why).toHaveTextContent("Index out of bounds");
     expect(why.querySelector("code")?.textContent).toBe("i + 1"); // backticks render as code, never as HTML
@@ -137,6 +138,7 @@ describe("Judge results", () => {
     serveSequence([failed]);
     const ctx = await submitTwoSum();
     await ctx.user.click(await screen.findByRole("button", { name: "Explain this failure" }));
+    await ctx.user.click(await screen.findByRole("button", { name: "Ask for the explanation" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(/budget/i);
   });
 
