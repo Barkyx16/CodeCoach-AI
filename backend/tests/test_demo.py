@@ -35,7 +35,8 @@ def demo_db(tmp_path):
     url = f"sqlite:///{tmp_path / 'codecoach-demo.db'}"
     engine = make_engine(url)
     Base.metadata.create_all(engine)
-    return url, engine
+    yield url, engine
+    engine.dispose()
 
 
 def run(url, engine, confirm, **overrides):
@@ -102,11 +103,10 @@ def test_a_database_that_isnt_a_demo_is_refused_before_anything_changes(tmp_path
         assert users(engine) == 1  # untouched
         with make_session_factory(engine)() as db:
             assert db.scalar(select(func.count()).select_from(PracticeAnswer)) == 1
-    code, out = run(
-        f"sqlite:///{tmp_path / 'codecoach.db'}",
-        make_engine(f"sqlite:///{tmp_path / 'codecoach.db'}"),
-        "codecoach.db",
-    )
+        engine.dispose()
+    renamed = make_engine(f"sqlite:///{tmp_path / 'codecoach.db'}")
+    code, out = run(f"sqlite:///{tmp_path / 'codecoach.db'}", renamed, "codecoach.db")
+    renamed.dispose()
     assert "the database's name must contain 'demo' (it's 'codecoach.db')" in out
 
 

@@ -1,14 +1,14 @@
 """A database an older local run created (by create_all, not migrations) gets the columns added
 since, when that's safe, so a `git pull` doesn't leave pages failing with "no such column"."""
 
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import inspect, text
 
 from app.db.dev_schema import add_missing_columns
 from app.db.session import Base
 
 
-def test_missing_safe_columns_are_added_once_and_existing_rows_keep_their_data(tmp_path):
-    engine = create_engine(f"sqlite:///{tmp_path / 'old.db'}")
+def test_missing_safe_columns_are_added_once_and_existing_rows_keep_their_data(tmp_path, disposable_engine):
+    engine = disposable_engine(f"sqlite:///{tmp_path / 'old.db'}")
     Base.metadata.create_all(engine)
     with engine.begin() as c:  # as a database made before these columns existed
         c.exec_driver_sql(
@@ -56,10 +56,10 @@ def test_missing_safe_columns_are_added_once_and_existing_rows_keep_their_data(t
     assert add_missing_columns(engine, Base.metadata) == []  # nothing more the second time
 
 
-def test_a_column_that_cant_be_added_safely_is_left_for_migrations(tmp_path, caplog):
+def test_a_column_that_cant_be_added_safely_is_left_for_migrations(tmp_path, caplog, disposable_engine):
     from sqlalchemy import Column, Integer, MetaData, String, Table
 
-    engine = create_engine(f"sqlite:///{tmp_path / 'x.db'}")
+    engine = disposable_engine(f"sqlite:///{tmp_path / 'x.db'}")
     old = MetaData()
     Table("things", old, Column("id", Integer, primary_key=True))
     old.create_all(engine)

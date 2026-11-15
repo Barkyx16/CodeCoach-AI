@@ -8,11 +8,12 @@ TEST_DATABASE_URL to a PostgreSQL URL to run the exact same suite against Postgr
 from __future__ import annotations
 
 import os
+import shutil
 from collections.abc import Callable, Iterator
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, make_url
+from sqlalchemy import Engine, create_engine, make_url
 
 from app.config import Settings
 from app.db.session import Base
@@ -64,6 +65,44 @@ def _fresh_content_state() -> Iterator[None]:
     content_state.invalidate()
 
 
+def _release_fastapi_caches() -> None:
+    """FastAPI keeps module-level caches keyed by endpoint function (fastapi.dependencies.models:
+    whether a dependency is a generator, a coroutine...). `create_app` defines its `/metrics`
+    endpoint inside itself, so each cached entry holds that app, and with it the app's engine,
+    caches and every object it made: thousands of test apps stayed alive (docs/CI.md, "Suite time
+    and memory"). Production builds one app per process, so this is the suite's, not the app's.
+    Clearing them after a test only drops classifications FastAPI recomputes on the next call."""
+    from fastapi.dependencies import models
+
+    for value in vars(models).values():
+        clear = getattr(value, "cache_clear", None)
+        if callable(clear):
+            clear()
+
+
+@pytest.fixture(autouse=True)
+def _release_finished_apps() -> Iterator[None]:
+    yield
+    _release_fastapi_caches()
+
+
+@pytest.fixture
+def disposable_engine() -> Iterator[Callable[..., Engine]]:
+    """An engine a test makes for itself (a database file of its own, or one to hand to a
+    command), disposed when the test ends: an engine that's never disposed keeps its pooled
+    connections open for the rest of the run (docs/CI.md, "Suite time and memory")."""
+    made: list[Engine] = []
+
+    def _make(url: str, **kwargs) -> Engine:
+        engine = create_engine(url, **kwargs)
+        made.append(engine)
+        return engine
+
+    yield _make
+    for engine in made:
+        engine.dispose()
+
+
 @pytest.fixture
 def database_url(tmp_path) -> Iterator[str]:
     if TEST_DATABASE_URL:
@@ -112,12 +151,46 @@ def make_settings(database_url) -> Callable[..., Settings]:
     return _make
 
 
+@pytest.fixture(scope="session")
+def _seeded_sqlite_template(tmp_path_factory) -> str | None:
+    """One SQLite database made by the app's own startup (tables, row-level security where it
+    applies, the seeded problem bank), once per session. A test's own database starts as a copy of
+    it, and the app then runs its whole startup on that copy as before: every test still has a
+    database of its own, it's only made 0.5 s faster (docs/CI.md, "Suite time and memory").
+    PostgreSQL runs keep making theirs from scratch."""
+    if TEST_DATABASE_URL:
+        return None
+    path = tmp_path_factory.mktemp("seeded-template") / "seeded.db"
+    settings = Settings(
+        environment="test",
+        database_url=f"sqlite:///{path}",
+        secret_key="test-secret-key-that-is-long-enough-0123456789",
+        ai_provider="offline",
+        background_jobs_in_api=False,
+        _env_file=None,
+    )
+    with TestClient(create_app(settings)):
+        pass
+    return str(path)
+
+
 @pytest.fixture
-def make_client(make_settings) -> Iterator[Callable[..., TestClient]]:
+def make_client(make_settings, database_url, _seeded_sqlite_template) -> Iterator[Callable[..., TestClient]]:
     clients: list[TestClient] = []
 
     def _make(**overrides) -> TestClient:
-        app = create_app(make_settings(**overrides))
+        settings = make_settings(**overrides)
+        # The test's own SQLite file, not made yet, with the app making its tables: start from the
+        # seeded copy. Any other database (made by the test, overridden, PostgreSQL) is left alone.
+        own = database_url.removeprefix("sqlite:///")
+        if (
+            _seeded_sqlite_template
+            and settings.auto_migrate
+            and settings.database_url == database_url
+            and not os.path.exists(own)
+        ):
+            shutil.copyfile(_seeded_sqlite_template, own)
+        app = create_app(settings)
         client = TestClient(app)
         client.__enter__()  # runs startup: create tables + seed
         clients.append(client)

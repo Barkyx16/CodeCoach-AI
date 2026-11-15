@@ -96,6 +96,162 @@ Expected critical path: the PostgreSQL half, about 38 minutes. **That is an esti
 numbers above, not a measurement.** The first run of the new workflow is recorded in the next
 code commit's message with its own job timings, compared with this table.
 
+## Suite time and memory
+
+Volume 13, prompt 9. The backend suites gate every push, so their time and memory decide how often
+the work can be checked. Measure them with one command (on PostgreSQL, with `TEST_DATABASE_URL` and
+`TEST_DATABASE_ADMIN_URL` set as for the suite):
+
+```bash
+cd backend && python scripts/suite_table.py --out suite-run.json
+```
+
+It runs pytest with the measuring plugin (`tests/suite_measure.py`, off unless asked for; it never
+changes, skips or reorders a test) and prints, per test file, the time in its tests and how much of
+that was setting them up, the resident memory its tests added, and what they left behind: test
+clients still entered, database connections still open (with **where each was opened**: the test
+line, or the app's when no test frame led there), and apps still alive after a garbage collection.
+The run's record (`--out`) keeps the wall time, the peak resident memory, **how long the process
+took to exit after printing its summary**, the pass, skip, xfail and failure counts, the threads
+still running at the end, every thread's stack every few seconds while the process was exiting, and
+the time the plugin's own collections took (between files, counted apart so they're never charged
+to a file). `tests/test_suite_measure.py` checks that a deliberately leaked client and connection
+are reported against their file and a tidy file isn't, and that a thread left running is listed and
+its stack written while the process waits for it.
+
+### What was wasting it
+
+1. **Every test's app stayed alive.** FastAPI keeps module-level caches keyed by endpoint function
+   (`fastapi.dependencies.models`: whether a dependency is a generator, a coroutine…). The app's
+   `/metrics` endpoint is defined inside `create_app`, so each cached entry held its app, and with
+   it the app's engine, caches and everything it made: at the end of the run 1,181 apps were alive
+   on SQLite and 1,229 on PostgreSQL, the process peaked at 7.4 GB and 9.1 GB, and on PostgreSQL it
+   then spent 333 s freeing them after its summary. Production builds one app per process, so this
+   was the suite's, not the app's: an autouse fixture (`tests/conftest.py`) clears those caches
+   after each test (FastAPI recomputes the classifications on the next call). After: no app alive at
+   the end, 0.76 GB and 1.26 GB.
+2. **Every test's SQLite database was built from scratch** (tables, then the 303 seeded problems),
+   about 0.5 s per app. Now one database is made by the app's own startup once per session, and a
+   test's own database starts as a copy of it; the app then runs its whole startup on that copy as
+   before, so every test still has a database of its own. PostgreSQL runs make theirs as before.
+3. **Engines that tests made for themselves were never disposed**, so their pooled connections
+   stayed open for the rest of the run: 28 left open by eleven files on SQLite, 46 by twelve on
+   PostgreSQL, the same before and after the two fixes above. They now come from a
+   `disposable_engine` fixture, disposed when the test ends; measured again on those files, 27
+   became 6 on SQLite and 14 became 1 on PostgreSQL. What's left is CLI commands run inside a test (`housekeeping`, `grant-admin`, `revoke-admin`,
+   `email-status`, `prune-guests`, `check-rls`): each opens the database once for its process, and
+   in production each runs as its own process (compose and the backup service start one per
+   command), so it isn't a leak the app has; app code is unchanged. The measurement still lists
+   them, with where each was opened.
+
+### Before and after
+
+Each pair ran side by side on the same machine: the tree before (`4c74664`, with only the
+measuring plugin added) and after (the Volume 13, prompt 10 commit with these changes). Test counts
+are the same on both sides.
+
+| | SQLite before | SQLite after | PostgreSQL before | PostgreSQL after |
+|---|---|---|---|---|
+| Peak resident memory | 7,388 MB | 756 MB | 9,104 MB | 1,257 MB |
+| Apps alive at the end | 1,181 | 0 | 1,229 | 0 |
+| Exit after the summary | not recorded | not recorded | 333 s | 22.5 s |
+| Results | 3,373 passed, 46 skipped, 2 xfailed | the same | 3,417 passed, 1 failed, 1 skipped, 2 xfailed | 3,418 passed, 1 skipped, 2 xfailed |
+
+The one failure before is the memory's doing, not the test's: `test_searching_is_rate_limited_per_account`
+sends 121 searches and expects the 121st refused inside the limiter's window; in the 9 GB process
+they took longer than the window. Alone on the same tree it passes in 5.2 s, and it passed in the
+run after.
+
+**Wall time is CI's.** The machine these ran on wasn't idle (each pair ran together, beside other
+suites), and the "before" runs' wall times also include the plugin's own collections over a 7 to
+9 GB heap, which weren't yet counted apart. So the time comparison is CI's timed steps, on the
+same runner type: before, run 329 (`b3f34bf`): **SQLite tests 33 min 0 s, PostgreSQL tests 70 min
+56 s** (they were 18 min 31 s and 35 min 53 s in run 274, before the suite and its memory grew).
+After: the first CI run with these changes, recorded in the next code commit's message
+("Recording CI evidence without churn", below).
+
+Locally the slowest file is `test_judge_sandbox.py` (388 judged runs, 14 to 19 minutes) because
+this machine has gVisor; in CI's backend jobs those tests skip and run in the sandbox job.
+
+**SQLite, the ten slowest files** (seconds in the file's tests, of which setting up)
+
+| Before | | After | |
+|---|---|---|---|
+| `test_judge_sandbox.py` | 843 (426) | `test_judge_sandbox.py` | 863 (452) |
+| `test_eval_harness.py` | 125 (34) | `test_eval_harness.py` | 75 (20) |
+| `test_eval_protocol.py` | 62 (0) | `test_eval_protocol.py` | 52 (0) |
+| `test_email_verification.py` | 53 (28) | `test_test_design.py` | 46 (3) |
+| `test_test_design.py` | 50 (3) | `test_live_eval.py` | 45 (0) |
+| `test_interviews.py` | 48 (37) | `test_packet_plans.py` | 35 (8) |
+| `test_judge.py` | 46 (0) | `test_tracing.py` | 32 (8) |
+| `test_live_eval.py` | 40 (0) | `test_roadmap.py` | 29 (10) |
+| `test_answer_keys.py` | 38 (20) | `test_disputes.py` | 27 (8) |
+| `test_explore.py` | 34 (26) | `test_seed_and_reference_solutions.py` | 26 (19) |
+
+**SQLite, the ten largest memory growths** (MB of resident memory a file's tests added)
+
+| Before | | After | |
+|---|---|---|---|
+| `test_judge_sandbox.py` | 772 | `test_career_scope.py` | 56 |
+| `test_tracing.py` | 256 | `test_access_log_file.py` | 27 |
+| `test_disputes.py` | 234 | `test_judge_sandbox.py` | 22 |
+| `test_roadmap.py` | 230 | `test_actions.py` | 17 |
+| `test_story_freshness.py` | 216 | `test_requirement_versions.py` | 17 |
+| `test_requirement_versions.py` | 213 | `test_applications.py` | 16 |
+| `test_question_rounds.py` | 198 | `test_demo.py` | 16 |
+| `test_interviews.py` | 196 | `test_related_practice.py` | 14 |
+| `test_request_identity.py` | 174 | `test_lifecycle_more.py` | 13 |
+| `test_explore.py` | 155 | `test_tracing.py` | 13 |
+
+**PostgreSQL, the ten slowest files** (seconds in the file's tests, of which setting up)
+
+| Before | | After | |
+|---|---|---|---|
+| `test_judge_sandbox.py` | 1032 (619) | `test_judge_sandbox.py` | 1143 (660) |
+| `test_eval_harness.py` | 78 (20) | `test_test_design.py` | 76 (14) |
+| `test_answer_keys.py` | 71 (46) | `test_answer_keys.py` | 75 (47) |
+| `test_test_design.py` | 61 (9) | `test_eval_harness.py` | 73 (19) |
+| `test_tracing.py` | 58 (34) | `test_roadmap.py` | 71 (46) |
+| `test_storage.py` | 52 (1) | `test_tracing.py` | 69 (46) |
+| `test_backup.py` | 51 (38) | `test_story_freshness.py` | 64 (38) |
+| `test_roadmap.py` | 51 (34) | `test_refresh_recovery.py` | 64 (58) |
+| `test_disputes.py` | 50 (36) | `test_storage.py` | 63 (1) |
+| `test_eval_protocol.py` | 50 (0) | `test_explore.py` | 62 (54) |
+
+**PostgreSQL, the ten largest memory growths** (MB of resident memory a file's tests added)
+
+| Before | | After | |
+|---|---|---|---|
+| `test_judge_sandbox.py` | 937 | `test_career_scope.py` | 76 |
+| `test_tracing.py` | 288 | `test_access_log_file.py` | 35 |
+| `test_roadmap.py` | 264 | `test_answer_keys.py` | 34 |
+| `test_disputes.py` | 245 | `test_shares.py` | 32 |
+| `test_requirement_versions.py` | 242 | `test_execution_health.py` | 29 |
+| `test_story_freshness.py` | 240 | `test_related_practice.py` | 25 |
+| `test_interviews.py` | 226 | `test_tracing.py` | 25 |
+| `test_question_rounds.py` | 220 | `test_plan_updates.py` | 23 |
+| `test_request_identity.py` | 196 | `test_account.py` | 22 |
+| `test_explore.py` | 181 | `test_roadmap.py` | 22 |
+
+Over the whole run, the files' growths add up to 7,291 MB before and 485 MB after on SQLite, and
+9,041 MB and 1,005 MB on PostgreSQL. Resident memory alone can't say whether what's left is live
+objects or memory the allocator kept after freeing them, so the plugin now also records the live
+Python objects after each file's collection (`objects_after`): flat while resident memory rises
+means nothing is leaking.
+
+The SQLite runs' exit delay wasn't recorded: the first version of the script didn't recognise
+pytest's `-q` summary line, fixed before the PostgreSQL pair ran.
+
+### What's left
+
+- **PostgreSQL's remaining 22.5 s after the summary isn't explained yet.** With no app alive and no
+  connection left open by a test, what's left is the interpreter's own teardown, or something it
+  waits for. The plugin now lists the threads still running at the end (a non-daemon one is waited
+  for) and, through `suite_table.py`, writes every thread's stack every few seconds while the
+  process exits, so the next measured run says what it is.
+- CLI commands run inside tests still leave their one connection each, listed by the measurement.
+- Wall time after these changes: the first CI run with them, recorded in the next code commit.
+
 ## Recording CI evidence without churn
 
 The canonical record of a run is its **CI summary** for the exact SHA, on GitHub. Evidence is

@@ -163,14 +163,14 @@ def test_a_backup_restores_into_a_separate_database_and_the_app_runs_on_it(
             assert db.get(EmailJob, unsent).status == "held"
 
 
-def test_the_restore_refuses_before_writing_anything(source, empty_target, keys, tmp_path):
+def test_the_restore_refuses_before_writing_anything(source, empty_target, keys, tmp_path, disposable_engine):
     recipients, identity = keys
     made = backup(source.owner_url, tmp_path / "backups", recipients)
 
     def refused(dump: Path, key: Path = identity, target: str = empty_target, match: str = "") -> None:
         with pytest.raises(BackupError, match=match):
             restore(dump, key, target, live_url=source.owner_url)
-        with create_engine(target).connect() as conn:  # and nothing was written
+        with disposable_engine(target).connect() as conn:  # and nothing was written
             assert (
                 conn.execute(text("SELECT count(*) FROM pg_tables WHERE schemaname = 'public'")).scalar() == 0
             )

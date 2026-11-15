@@ -46,6 +46,8 @@ runner/.pytest_cache/
 backend/e2e-outbox/
 backend/e2e-outbox-*/
 backend/e2e-access*.log
+backend/.suite-measure.json
+backend/suite-run.json
 backend/e2e-demo-outbox-*/
 backend/e2e-demo-fingerprint-*.txt
 backend/outbox/

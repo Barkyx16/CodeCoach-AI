@@ -269,7 +269,9 @@ def _denied(engine, statement: str) -> bool:
 
 
 @needs_admin
-def test_the_api_runs_as_an_app_role_that_owns_nothing_and_its_data_survives_restarts(rehearsal, tmp_path):
+def test_the_api_runs_as_an_app_role_that_owns_nothing_and_its_data_survives_restarts(
+    rehearsal, tmp_path, disposable_engine
+):
     rehearsal.init_roles()
     run(["alembic", "upgrade", "head"], rehearsal.owner_url)
     run(["app.cli", "seed"], rehearsal.owner_url)
@@ -295,7 +297,7 @@ def test_the_api_runs_as_an_app_role_that_owns_nothing_and_its_data_survives_res
     assert "Row-level security is enforced." in app_check.stdout and "least-privilege" in app_check.stdout
 
     # Granting is refused to a superuser and when connected as the app role itself.
-    with create_engine(rehearsal.owner_url).begin() as c, pytest.raises(ValueError, match="superuser"):
+    with disposable_engine(rehearsal.owner_url).begin() as c, pytest.raises(ValueError, match="superuser"):
         apply_grants(c, make_url(ADMIN_URL).username)
     refused = run(["app.cli", "grant-app-role", rehearsal.app], rehearsal.app_url, check=False)
     assert refused.returncode == 1 and "owner" in refused.stdout
@@ -463,11 +465,13 @@ def signed_in_notes(make_settings, url: str, email: str) -> list[str]:
         return [n["title"] for n in c.get("/api/v1/me/notes", headers=h).json()["items"]]
 
 
-def test_copy_moves_accounts_and_work_and_refuses_what_it_cant_do_safely(make_settings, tmp_path):
+def test_copy_moves_accounts_and_work_and_refuses_what_it_cant_do_safely(
+    make_settings, tmp_path, disposable_engine
+):
     source_url = dev_database(make_settings, tmp_path / "dev.db")
     source = create_engine(source_url)
 
-    unmigrated = create_engine(f"sqlite:///{tmp_path / 'empty.db'}")
+    unmigrated = disposable_engine(f"sqlite:///{tmp_path / 'empty.db'}")
     assert any("alembic upgrade head" in p for p in dbcopy.plan(source, unmigrated).problems)
 
     target_url = migrated_sqlite(tmp_path / "target.db")
@@ -520,12 +524,12 @@ def test_rows_that_point_at_each_other_are_copied_parents_first():
         )
 
 
-def test_the_copy_command_is_a_dry_run_unless_asked(make_settings, tmp_path):
+def test_the_copy_command_is_a_dry_run_unless_asked(make_settings, tmp_path, disposable_engine):
     source_url = dev_database(make_settings, tmp_path / "dev.db")
     target_url = migrated_sqlite(tmp_path / "target.db")
     dry = run(["app.cli", "copy-database", "--from", source_url], target_url)
     assert "Dry run: nothing was written" in dry.stdout and "copy       2  users" in dry.stdout
-    with create_engine(target_url).connect() as c:
+    with disposable_engine(target_url).connect() as c:
         assert c.execute(text("SELECT count(*) FROM users")).scalar_one() == 0
     done = run(["app.cli", "copy-database", "--from", source_url, "--apply"], target_url)
     assert "every table's count matched" in done.stdout

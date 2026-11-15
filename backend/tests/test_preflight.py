@@ -10,7 +10,6 @@ import shutil
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from sqlalchemy import create_engine
 
 from app.config import Settings
 from app.models import EmailJob
@@ -35,12 +34,12 @@ def test_a_development_setup_is_plainly_not_ready(make_settings, client):
     assert found["backups"][0] == UNVERIFIED
 
 
-def test_production_settings_pass_their_own_checks_and_print_no_secret(make_settings):
+def test_production_settings_pass_their_own_checks_and_print_no_secret(make_settings, disposable_engine):
     s = Settings(
         **{**PRODUCTION_BASE, "smtp_username": "u", "smtp_password": "smtp-synthetic-secret-value"},
         _env_file=None,
     )
-    engine = create_engine(make_settings().database_url)  # the database part is tested below
+    engine = disposable_engine(make_settings().database_url)  # the database part is tested below
     checks = run_preflight(s, engine=engine)
     found = by_area(checks)
     assert found["configuration"][0] == READY and found["secrets"][0] == READY and found["links"][0] == READY
@@ -56,17 +55,17 @@ def test_production_settings_pass_their_own_checks_and_print_no_secret(make_sett
     json.loads(render(checks, as_json=True))
 
 
-def test_missing_secrets_are_named_not_shown(make_settings):
+def test_missing_secrets_are_named_not_shown(make_settings, disposable_engine):
     s = make_settings(
         email_backend="smtp", smtp_host="smtp.example.com", metrics_enabled=True, metrics_token=None
     )
-    found = by_area(run_preflight(s, engine=create_engine(s.database_url)))
+    found = by_area(run_preflight(s, engine=disposable_engine(s.database_url)))
     assert found["secrets"][0] == BLOCKED
     assert "METRICS_TOKEN" in found["secrets"][1] and "SMTP_PASSWORD" in found["secrets"][1]
 
 
 @pytest.mark.skipif(shutil.which("openssl") is None, reason="needs openssl")
-def test_connect_email_proves_tls_and_sign_in_or_says_why_not(make_settings, tmp_path):
+def test_connect_email_proves_tls_and_sign_in_or_says_why_not(make_settings, tmp_path, disposable_engine):
     from tests.smtp_fake import FakeSMTPServer, make_certificate
 
     cert = make_certificate(tmp_path, "localhost")
@@ -76,13 +75,13 @@ def test_connect_email_proves_tls_and_sign_in_or_says_why_not(make_settings, tmp
                     smtp_password="p-synthetic", smtp_timeout_seconds=2)  # fmt: skip
         trusted = make_settings(**base, smtp_ca_bundle=str(cert[0]))
         found = by_area(
-            run_preflight(trusted, connect_email=True, engine=create_engine(trusted.database_url))
+            run_preflight(trusted, connect_email=True, engine=disposable_engine(trusted.database_url))
         )
         assert found["mail transport"][0] == READY and "certificate verified" in found["mail transport"][1]
         assert srv.messages == []  # nothing sent
         untrusted = make_settings(**base)
         found = by_area(
-            run_preflight(untrusted, connect_email=True, engine=create_engine(untrusted.database_url))
+            run_preflight(untrusted, connect_email=True, engine=disposable_engine(untrusted.database_url))
         )
         assert found["mail transport"] == (
             BLOCKED,
@@ -92,9 +91,11 @@ def test_connect_email_proves_tls_and_sign_in_or_says_why_not(make_settings, tmp
         srv.close()
 
 
-def test_a_backup_manifest_is_judged_by_age_and_never_called_recovery(make_settings, tmp_path):
+def test_a_backup_manifest_is_judged_by_age_and_never_called_recovery(
+    make_settings, tmp_path, disposable_engine
+):
     s = make_settings()
-    engine = create_engine(s.database_url)
+    engine = disposable_engine(s.database_url)
 
     def backups(created: datetime | None, raw: str | None = None) -> tuple[str, str]:
         path = tmp_path / "m.json"

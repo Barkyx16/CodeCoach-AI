@@ -60,7 +60,7 @@ def test_an_unreachable_database_is_one_clear_line_without_the_password(tmp_path
     assert "Backup failed" in out or "Not restored" in out
 
 
-def test_the_preflight_never_prints_a_configured_value():
+def test_the_preflight_never_prints_a_configured_value(disposable_engine):
     s = Settings(
         **{
             **PRODUCTION_BASE,
@@ -70,11 +70,10 @@ def test_the_preflight_never_prints_a_configured_value():
         },
         _env_file=None,
     )
-    from sqlalchemy import create_engine
 
     os.environ["FORWARDED_ALLOW_IPS"] = "10.9.8.7"  # a value, not a secret, but still never shown
     try:
-        checks = run_preflight(s, engine=create_engine("sqlite://"))
+        checks = run_preflight(s, engine=disposable_engine("sqlite://"))
     finally:
         del os.environ["FORWARDED_ALLOW_IPS"]
     text = render(checks) + render(checks, as_json=True)

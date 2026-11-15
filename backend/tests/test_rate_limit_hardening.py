@@ -7,7 +7,7 @@ import threading
 from types import SimpleNamespace
 
 import pytest
-from sqlalchemy import create_engine, select, text
+from sqlalchemy import select, text
 from sqlalchemy.orm import sessionmaker
 
 from app.models import RateLimitCounter
@@ -111,13 +111,13 @@ def test_the_ai_budget_says_when_a_request_frees_up(make_client):
 
 
 @pytest.mark.skipif(not TEST_DATABASE_URL, reason="the per-user AI lock is a PostgreSQL advisory lock")
-def test_one_ai_request_per_user_at_a_time(make_client):
+def test_one_ai_request_per_user_at_a_time(make_client, disposable_engine):
     c = make_client()
     data = register(c, email="parallel@example.com")
     h = auth_headers(data)
     user_id = data["user"]["id"]
     body = {"problem_slug": "two-sum", "level": 1, "source_code": ""}
-    holder = create_engine(TEST_DATABASE_URL).connect()
+    holder = disposable_engine(TEST_DATABASE_URL).connect()
     try:
         tx = holder.begin()  # another request of this user, mid-call
         holder.execute(
@@ -198,11 +198,11 @@ def test_memory_limiter_forgets_idle_keys_instead_of_growing():
     assert limiter.hit("hot")[0] is False
 
 
-def test_peek_counts_nothing(make_settings):
+def test_peek_counts_nothing(make_settings, disposable_engine):
     now = [1000.0]
     for limiter in (
         SlidingWindowLimiter(2, 60.0, clock=lambda: now[0]),
-        _db_limiter(make_settings, 2, lambda: now[0]),
+        _db_limiter(make_settings, disposable_engine, 2, lambda: now[0]),
     ):
         for _ in range(5):
             assert limiter.peek("k") == (True, 0.0)
@@ -211,17 +211,17 @@ def test_peek_counts_nothing(make_settings):
         assert limiter.peek("k")[0] is False
 
 
-def _db_limiter(make_settings, limit, clock):
+def _db_limiter(make_settings, disposable_engine, limit, clock):
     from app.db.session import Base
 
-    engine = create_engine(make_settings().database_url)
+    engine = disposable_engine(make_settings().database_url)
     Base.metadata.create_all(engine, tables=[RateLimitCounter.__table__])
     return DatabaseRateLimiter(sessionmaker(engine), limit, 60, clock=clock)
 
 
-def test_expired_counters_are_purged_and_live_ones_kept(make_settings):
+def test_expired_counters_are_purged_and_live_ones_kept(make_settings, disposable_engine):
     now = [10_000.0]
-    limiter = _db_limiter(make_settings, 5, lambda: now[0])
+    limiter = _db_limiter(make_settings, disposable_engine, 5, lambda: now[0])
     hourly = DatabaseRateLimiter(limiter.session_factory, 5, 3600, clock=lambda: now[0])
     limiter.hit("auth:1.2.3.4")
     hourly.hit("practice:u1")
