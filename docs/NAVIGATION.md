@@ -257,7 +257,78 @@ tearing down the diagnostics hit the timeout too. The traces were overwritten by
   server; one listed there reached it and stuck.
 
 **Still unresolved:** what stopped the page, and whether the two reads ever reached the API. The
-new tests establish the deadline and recovery behaviour, not the cause.
+new tests establish the deadline and recovery behaviour, not the cause. Since Volume 13, prompt 8,
+a failed test's diagnostics name which explanation a waiting request matches ("Requests that never
+reach the API", below), so the next occurrence is read against them.
+
+### Requests that never reach the API (Volume 13, prompt 8)
+
+**The answer for CI run 315: not a stall.** Its failed test (disputes.spec.ts, desktop) listed six
+requests "still waiting" 11 s (`GET /me/plan`, `/me/reviews`, `/me/schedule`, `/me/resume`,
+`/me/recent-work`, `/interviews`) and the API had nothing open. All six are the dashboard's reads,
+asked for in the 0.1 s before the test called `page.goto` to the question page. When a page is
+replaced, Chrome sends no "finished" or "failed" event for the requests it was still waiting on,
+and neither does Playwright, so the list kept them forever. The API had answered them (the fix in
+`020eeb1` found that the plan request had already built the plan). Reproduced: the spec from
+`87fc649`, four times under CPU load (the backend suite running beside it), failed once as on CI,
+and every request its diagnostics listed now reads, for example:
+
+    GET /api/v1/careers/registered-nurse/progress [Fetch] waiting 11.4s (+1.3s): H6 from an earlier
+    page: asked for 0.1s before the page was replaced (+1.4s); its outcome went with that page, so
+    this isn't a stall; the API got it at +1.3s and answered it
+
+So the waiting list was wrong, not the network: it counted requests a page had abandoned. The
+failure itself was the race fixed in `020eeb1`.
+
+**The 63-second stall** (above) is different: there the document itself never committed, so it
+wasn't only abandoned requests. It hasn't happened again: the suspect specs (navigation, explore,
+progress, and the pre-fix disputes spec) ran 4 times each under CPU load, twice (64 tests), and no
+request, other than ones left by replaced pages, took 5 s. It's bounded rather than explained: the
+diagnostics below will name it the next time.
+
+**The explanations, and what each predicts** (each one has a forced example in
+`e2e/network-watch.spec.ts` that produces its line):
+
+| | Explanation | It predicts | Evidence so far |
+|---|---|---|---|
+| H1 | Six connections held: Chrome sends at most 6 requests at once to one server over HTTP/1.1, so a 7th waits in the browser | The request was never handed to the network (no headers sent) while 6 others to the same server were open | Not seen. The API is its own server (the app calls it directly, no dev proxy), so the dev server's module requests don't take its connections. Forced: six held requests, and the 7th reads "H1 queued in the browser: 6 requests to … were already open" |
+| H2 | A kept-alive connection closed by the server as the browser reused it | A quick `ERR_EMPTY_RESPONSE`, `ERR_CONNECTION_RESET` or `CLOSED`, or an invisible retry: never a long wait | Not seen, and unlikely: measured, Chrome keeps idle connections at least 15 s, the API (uvicorn 0.54) and the dev server (Node 22, Vite 8) close them after 5 s, and Chrome sees that close: after 6 s idle it opened a new connection, after 4.9 s it reused the old one. Only a close crossing the request in the same instant fails, and Chrome resends a request whose reused connection closed. Forced: a server that closes the connection as the request arrives reads "H2 the server closed the connection under it" |
+| H3 | The service worker holding or answering it | The response says it came from the service worker, or one controls the page | Ruled out for the dev-server specs: the worker is registered in production builds only (`src/pwa/appShell.ts`); only the offline and install specs, on the preview build, have one |
+| H4 | The dev server's proxy | — | Not applicable: the app calls the API at `VITE_API_BASE_URL`; Vite proxies nothing |
+| H5 | The page's main thread blocked | The page doesn't answer a probe within 500 ms; nothing it asked for is heard back, on every server at once | Fits the 63-second stall's timeline best (a document and two reads to two different servers all stopped together), not established. Forced: a page busy for 2.5 s reads "H5 the page's main thread is blocked" |
+| H6 | Left by a replaced page | Asked for before the main frame's document changed; never reports an end; the API's log shows it answered (or never got it) | **CI run 315**, reproduced as above. Forced: a request open when the page navigates reads "H6 from an earlier page"; Chrome and Playwright report neither its end nor its failure |
+| — | Sent and lost on the way, or stuck in the API | Headers sent but no start in the API's log; or a start with no finish | Not seen. Said as "sent by the browser and never reached the API" or "the API is still working on it" |
+| — | A CORS preflight whose request the page canceled | The `OPTIONS` never reports an end; the request it was sent for (Chrome's `initiator.requestId`) failed `ERR_ABORTED`, canceled | **Seen twice in the full desktop run of this change** (observability and share specs: an `OPTIONS` "waiting" 5-7 s with no answer, the queries behind them canceled as the page moved on). Chrome reports the cancel on the request and nothing on its preflight, so a preflight now takes its request's end and reads "a CORS preflight for GET …, which failed (net::ERR_ABORTED, canceled by the page) … so it ended then and this isn't a stall". A request still waiting on its preflight reads "waiting for its CORS preflight". Forced: a held preflight and a fetch aborted after 250 ms |
+
+**What's measured** (`e2e/network-watch.ts`, used by `e2e/fixtures.ts` for every test):
+
+- From Chrome's own network events (a DevTools session beside Playwright's): when each request was
+  asked for and by which document, whether its headers reached the network stack, how many
+  requests to the same server were open then, the connection it used (reused or new, and how long
+  that connection had been idle), the time it waited before being sent, whether a service worker
+  answered it, and how it ended. When the page's document is replaced.
+- From the API's access log: whether a request like it (method and path, after it was asked for)
+  started and finished; requests the browser already has answers for are matched by the
+  `X-Request-ID` the API returns, so only the rest are candidates. CORS preflights aren't in that
+  log, and are said so.
+- From the kernel's socket table (Linux): how many connections the API and the dev server hold.
+- A probe of the page's main thread (at most 500 ms).
+
+**Where it shows:** a failed test's diagnostics list every request still waiting with the line
+that classifies it, the servers' open connections, and what the diagnostics cost. Every test, passed
+or not, records any request slower than 5 s ("[slow]" lines in the log and a "slow-requests"
+attachment); requests left by replaced pages are counted there, not listed. Methods, paths
+(never query strings), timings and connection numbers only: no bodies, headers or cookies (the
+`X-Request-ID` is read to match, and was already printed). Watching changes nothing the page does.
+
+**Cost:** attaching the watch took 5-10 ms per page and a report 3-7 ms (12 measured runs of the
+forced examples); a report waits up to 500 ms more only when the page doesn't answer its probe.
+The failed test in the reproduction reported "network diagnostics took 15 ms".
+
+**The first full run with it** (desktop, 160 passed, 5 judge tests skipped) recorded "[slow]" in two
+tests, both the preflight case above, before it was handled: no request reached 5 s otherwise.
+
+**Not done:** no retry, longer timeout or "flaky" mark hides a stall; nothing changed in the app.
 
 ### Command palette (Volume 10, prompt 1)
 
@@ -396,7 +467,8 @@ typing. `app/commands.ts` is the list; `app/CommandPalette.tsx` the dialog.
 - **The browse line is on the public pages listed.** A single question or problem page names its
   career in its heading and breadcrumb instead. Drills, the plan and Today follow the learner's
   own career only and take no `?career=`.
-- **An unexplained hang, seen once (still unexplained; see "The 63-second stall" below).** One run
+- **An unexplained hang, seen once (still unexplained; see "The 63-second stall" below, and
+  "Requests that never reach the API", which now names the explanation a stall matches).** One run
   of the related browser specs hung two API reads for 63 s, and then the next navigation was aborted.
   It didn't reproduce in four more runs of that test (two alone, two with the same specs), and the
   server logged nothing. It's recorded here, not explained.

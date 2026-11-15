@@ -8,14 +8,20 @@
  * - API calls: method, path (no query string), status, time to response, X-Request-ID;
  * - failed requests (including JS modules), console errors and warnings, page errors;
  * - the app's own breadcrumbs (src/lib/diagnostics.ts): round actions and views, auth refreshes;
- * - what the page showed: URL, headings, alerts and status messages, busy or disabled buttons.
- * It never records request or response bodies, form field values, cookies or headers.
+ * - what the page showed: URL, headings, alerts and status messages, busy or disabled buttons;
+ * - each request still waiting, and why it waited (e2e/network-watch.ts: which of the explanations in
+ *   docs/NAVIGATION.md, "Requests that never reach the API", it matches), with the servers' open
+ *   connections.
+ * Any request slower than 5 s is recorded for every test, passed or not ("[slow]" lines, and a
+ * "slow-requests" attachment). It never records request or response bodies, form field values,
+ * cookies, headers or query strings.
  */
 import { readFileSync } from "node:fs";
 
 import { test as base, type Page, type Request } from "@playwright/test";
 
-import { ACCESS_LOG } from "./ports";
+import { NetworkWatch, ServerLog, SLOW_MS, openConnections } from "./network-watch";
+import { ACCESS_LOG, API_URL, PORTS } from "./ports";
 
 export * from "@playwright/test";
 
@@ -99,10 +105,13 @@ export const test = base.extend<{ failureDiagnostics: void }>({
       };
       const sent = new Map<Request, number>();
       const pages: Page[] = [];
+      const watches: { tab: string; w: NetworkWatch | null }[] = [];
+      const attaching: Promise<void>[] = [];
       // Every tab of the test's browser context; lines from a second tab start with "[tab 2]".
       const watch = (p: Page) => {
         pages.push(p);
         const tab = pages.length === 1 ? "" : `[tab ${pages.length}] `;
+        attaching.push(NetworkWatch.attach(p, started).then((w) => { watches.push({ tab, w }); }));
         p.on("request", (r) => { if (isInteresting(r.url())) sent.set(r, Date.now()); });
         p.on("requestfinished", (r) => { sent.delete(r); });
         p.on("response", (r) => {
@@ -123,15 +132,37 @@ export const test = base.extend<{ failureDiagnostics: void }>({
       };
       watch(page);
       context.on("page", watch);
+      await Promise.all(attaching);
 
       await use();
 
-      if (testInfo.status === testInfo.expectedStatus) return;
-      const pending = [...sent.entries()].map(([r, t0]) => `${r.method()} ${pathOf(r.url())} (waiting ${Date.now() - t0}ms)`);
+      // Why requests waited (docs/NAVIGATION.md): every test records any slower than SLOW_MS.
+      const t0 = Date.now();
+      await Promise.all(attaching);
+      const failed = testInfo.status !== testInfo.expectedStatus;
+      const live = watches.filter((x): x is { tab: string; w: NetworkWatch } => x.w !== null);
+      const slowOnes = live.some(({ w }) => [...w.entries.values()].some((e) => (w.endOf(e) ?? Date.now()) - e.sentAt >= SLOW_MS));
+      const reports = failed || slowOnes
+        ? await Promise.all(live.map(async ({ tab, w }) => ({ tab, r: await w.report(new ServerLog(ACCESS_LOG, API_URL, started)) })))
+        : [];
+      const slow = reports.flatMap(({ tab, r }) => r.slow.map((l) => `${tab}${l}`));
+      if (slow.length) {
+        const text = [...slow, openConnections({ api: PORTS.api, web: PORTS.web })].join("\n");
+        await testInfo.attach("slow-requests", { body: text, contentType: "text/plain" });
+        process.stdout.write(`\n[slow] ${testInfo.title}\n${text.split("\n").map((l) => `[slow] ${l}`).join("\n")}\n`);
+      }
+      const cost = Date.now() - t0 + Math.max(0, ...live.map(({ w }) => w.setupMs));
+      if (!failed) return;
+      const pending = live.length
+        ? reports.flatMap(({ tab, r }) => r.waiting.map((l) => `${tab}${l}`))
+        : [...sent.entries()].map(([r, at]) => `${r.method()} ${pathOf(r.url())} (waiting ${Date.now() - at}ms)`);
       const body = [
         "== network and console (last lines) ==", ...lines.slice(-MAX_LINES),
-        "== requests still waiting ==", ...(pending.length ? pending : ["(none)"]),
+        "== requests still waiting, and why (docs/NAVIGATION.md, \"Requests that never reach the API\") ==",
+        ...(pending.length ? pending : ["(none)"]),
+        openConnections({ api: PORTS.api, web: PORTS.web }),
         "== API requests the server started during this test and hasn't finished ==", ...serverOpen(started),
+        `(network diagnostics took ${cost} ms)`,
       ];
       for (const [i, p] of pages.entries()) {
         const tab = pages.length === 1 ? "" : ` (tab ${i + 1}${p.isClosed() ? ", closed" : ""})`;
