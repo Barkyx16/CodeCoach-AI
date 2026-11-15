@@ -73,7 +73,8 @@ to the section a link names. No new way to export or delete.
 - **The AI coach**: with the built-in coach, nothing is sent to an AI provider. With an outside
   provider (`AI_PROVIDER=anthropic`), hints, code reviews, failed-test explanations and the coding
   interviewer send the problem, your code and the interview so far, with secret-looking strings
-  removed; CodeCoach keeps the reply, never the request. **How long the provider keeps it: not known
+  removed; each can be checked before it's sent (docs/COACH_CONTEXT.md). CodeCoach keeps the reply,
+  never the request. **How long the provider keeps it: not known
   to CodeCoach**, and deleting your account can't erase the provider's copy. Written answers,
   question rounds and the practice labs are checked by fixed rules whichever coach is set.
 - **Dictation**: off until you press the microphone; typing works everywhere. The browser turns

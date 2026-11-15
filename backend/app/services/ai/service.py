@@ -203,7 +203,11 @@ def _aware(dt: datetime) -> datetime:
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
 
-INSTRUCTIONS = "CodeCoach's own instructions to the coach, the same for everyone. They aren't shown here."
+def instructions(reader: str = "coach") -> str:
+    return f"CodeCoach's own instructions to the {reader}, the same for everyone. They aren't shown here."
+
+
+INSTRUCTIONS = instructions()
 
 
 def _turn_key(user_id: str) -> str:
@@ -619,6 +623,8 @@ class CoachService:
         *,
         about: list[str] | None = None,
         already: str | None = None,
+        reader: str = "coach",
+        fallback: str | None = None,
     ) -> CoachPreview:
         external = self.provider.name != "offline"
         return CoachPreview(
@@ -628,15 +634,16 @@ class CoachService:
             items=items,
             left_out=left_out,
             required_public=public,
-            instructions=INSTRUCTIONS,
+            instructions=instructions(reader),
             recipient=(
                 "Claude, by Anthropic: an outside service CodeCoach sends this to"
                 if external
-                else "The built-in coach, on CodeCoach's own server: nothing leaves it"
+                else f"The built-in {reader}, on CodeCoach's own server: nothing leaves it"
             ),
             recipient_kind="external" if external else "built_in",
             fallback=(
-                "If it can't be reached, the built-in coach answers from this same material, and says so."
+                fallback
+                or f"If it can't be reached, the built-in {reader} answers from this same material, and says so."
                 if external
                 else None
             ),

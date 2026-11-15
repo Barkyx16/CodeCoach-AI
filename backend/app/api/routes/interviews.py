@@ -4,14 +4,19 @@ from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, get_settings_dep
+from app.api.routes.ai import _preview_allowed
 from app.config import Settings
 from app.models import User
+from app.schemas.ai import CoachPreview
 from app.schemas.common import Page, error_responses
 from app.schemas.interview import (
     FollowupAnswer,
     FormatOption,
+    InterviewAbandon,
+    InterviewFeedbackPreview,
     InterviewFinish,
     InterviewMessage,
+    InterviewMessagePreview,
     InterviewOut,
     InterviewStart,
     InterviewSummary,
@@ -236,6 +241,43 @@ def finish(
     summary="Stop early; still returns feedback for what was covered",
 )
 def abandon(
-    interview_id: str, user: User = Depends(get_current_user), svc: InterviewService = Depends(get_interviews)
+    interview_id: str,
+    body: InterviewAbandon | None = None,
+    user: User = Depends(get_current_user),
+    svc: InterviewService = Depends(get_interviews),
 ) -> InterviewOut:
-    return svc.abandon(user, interview_id)
+    return svc.abandon(user, interview_id, body)
+
+
+@router.post(
+    "/{interview_id}/message/preview",
+    response_model=CoachPreview,
+    responses=_ERRORS,
+    summary="What the interviewer would read with this message (free: no coach call, no budget, nothing stored)",
+)
+def message_preview(
+    interview_id: str,
+    body: InterviewMessagePreview,
+    request: Request,
+    user: User = Depends(get_current_user),
+    svc: InterviewService = Depends(get_interviews),
+) -> CoachPreview:
+    _preview_allowed(request, user)
+    return svc.message_preview(user, interview_id, body)
+
+
+@router.post(
+    "/{interview_id}/feedback/preview",
+    response_model=CoachPreview,
+    responses=_ERRORS,
+    summary="What the end-of-interview feedback would read, on Finish or End early (free, nothing stored)",
+)
+def feedback_preview(
+    interview_id: str,
+    body: InterviewFeedbackPreview,
+    request: Request,
+    user: User = Depends(get_current_user),
+    svc: InterviewService = Depends(get_interviews),
+) -> CoachPreview:
+    _preview_allowed(request, user)
+    return svc.feedback_preview(user, interview_id, body)

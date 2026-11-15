@@ -78,3 +78,31 @@ def failing_test_text(
             "did_not_finish": missing,
         }
     )
+
+
+# --- the coding interviewer -------------------------------------------------------------------
+
+
+def transcript_line(phase: str, role: str, content: str) -> str:
+    """One turn of an interview's conversation, as the interviewer reads it."""
+    return f"[{phase}] {role.upper()}: {content}"
+
+
+NO_MESSAGES = "(no messages yet)"
+
+
+def transcript_text(lines: list[str]) -> str:
+    return "\n".join(lines) or NO_MESSAGES
+
+
+def interview_phase_text(phase: str, guide: str, candidate_turns_in_phase: int) -> str:
+    """Where the interview is, as the interviewer reads it before writing its next message."""
+    return (
+        f"Current phase: {phase} ({guide}). The candidate has sent "
+        f"{candidate_turns_in_phase} message(s) in this phase."
+    )
+
+
+def ending_text(end_reason: str | None) -> str:
+    """How the interview ended, as the feedback reads it."""
+    return f"How it ended: {end_reason or 'finished'}."

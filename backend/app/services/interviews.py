@@ -23,6 +23,10 @@ Rules
   back to the offline scorer when the budget is used up) so a learner never loses feedback for
   a finished session.
 - Transcript turns are stored; prompts are not.
+- What the interviewer reads can be previewed (a message, and the feedback on Finish or End early):
+  the preview is built by the same code as the request, with secret-looking strings replaced in
+  messages and code, and a request carrying its fingerprint (`approved_context`) is sent only if
+  what would be read is still exactly that (docs/COACH_CONTEXT.md, "The coding interviewer").
 
 Question rounds (kind="questions", see question_rounds.py) share this service's loading, ownership,
 deadline and one-active-interview rules; they have no phases and make no AI calls.
@@ -30,6 +34,8 @@ deadline and one-active-interview rules; they have no phases and make no AI call
 
 from __future__ import annotations
 
+import hmac
+from collections.abc import Callable, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -55,6 +61,7 @@ from app.models import (
     TurnRole,
     User,
 )
+from app.schemas.ai import CoachPreview, ContextItem
 from app.schemas.common import Page
 from app.schemas.interview import (
     PHASE_GUIDE,
@@ -62,10 +69,13 @@ from app.schemas.interview import (
     FollowupAnswer,
     FormatOption,
     FormatSlot,
+    InterviewAbandon,
     InterviewEvaluation,
+    InterviewFeedbackPreview,
     InterviewFinish,
     InterviewKind,
     InterviewMessage,
+    InterviewMessagePreview,
     InterviewOut,
     InterviewProblem,
     InterviewStart,
@@ -77,8 +87,9 @@ from app.schemas.interview import (
 )
 from app.services import engagement, request_keys
 from app.services.ai.base import CoachProvider, InterviewContext, ProviderResult, TranscriptTurn
+from app.services.ai.context_text import ending_text, interview_phase_text, transcript_line, transcript_text
 from app.services.ai.offline import OfflineCoach
-from app.services.ai.service import CoachService, problem_context, sanitize_code
+from app.services.ai.service import CoachService, problem_context, redact_secrets_counted
 from app.services.ai.static_analysis import analyze
 from app.services.progress import ProgressService
 from app.services.question_rounds import ROUND, QuestionRounds
@@ -86,6 +97,33 @@ from app.services.question_rounds import ROUND, QuestionRounds
 MAX_CANDIDATE_TURNS = 30
 PHASES = list(InterviewPhase)
 INTERVIEW_MODES = (PracticeMode.INTERVIEW, PracticeMode.QUESTIONS)
+
+# What the interviewer reads, previewed and bound (docs/COACH_CONTEXT.md, "The coding interviewer").
+CHANGED = (
+    "What the interviewer would read changed since you checked it, so nothing was sent. "
+    "Check it again before sending."
+)
+BUILT_IN_FALLBACK = "If it can't be reached, the built-in interviewer answers from this same material."
+
+
+def _plural(n: int, word: str) -> str:
+    return f"{n} {word}{'' if n == 1 else 's'}"
+
+
+def _replaced_note(n: int) -> list[str]:
+    return [f"{_plural(n, 'secret-looking string')} replaced with [REDACTED]."] if n else []
+
+
+def _as_read(turns: Sequence[InterviewTurn]) -> tuple[list[TranscriptTurn], int]:
+    """The stored conversation as the interviewer reads it: every turn, in order, with
+    secret-looking strings replaced (the stored turns keep what was written), and how many were."""
+    out: list[TranscriptTurn] = []
+    replaced = 0
+    for t in turns:
+        text, n = redact_secrets_counted(t.content)
+        replaced += n
+        out.append(TranscriptTurn(role=t.role.value, phase=t.phase or InterviewPhase.WRAP_UP, content=text))
+    return out, replaced
 
 
 def _now() -> datetime:
@@ -193,7 +231,7 @@ class InterviewService:
                 raise
             raise self._in_progress(winner) from None
 
-        ctx = self._context(session, code="", is_opening=True)
+        ctx = self._opening_context(session)
         result = self.coach.call_with_fallback(lambda p: p.interview_turn(ctx))
         self._add_turn(session, TurnRole.INTERVIEWER, result.content.message)
         session.provider = result.provider
@@ -221,20 +259,15 @@ class InterviewService:
             self._expire_if_due(user, session)
             return self._to_out(session)
         self._expire_if_due(user, session)
-        self._require_in_progress(session)
-        self._require_kind(session, PracticeMode.INTERVIEW)
-        if body.after_seq is not None and body.after_seq != len(session.turns):
-            raise self._advanced(session)
-        candidate_turns = sum(1 for t in session.turns if t.role == TurnRole.CANDIDATE)
-        if candidate_turns >= MAX_CANDIDATE_TURNS:
-            raise AppError(
-                "This interview has reached its message limit. Finish it to get feedback.",
-                code="turn_limit_reached",
-                details={"max_candidate_turns": MAX_CANDIDATE_TURNS},
-            )
+        self._require_message_allowed(session, body.after_seq)
+        # What the interviewer reads, built once: compared with the approved preview (if any) before
+        # anything is stored or spent, then sent exactly as built.
+        ctx, preview = self._message_material(
+            user, session, body.message, body.code or session.final_code or "", body.code is not None
+        )
+        self._require_approved(preview, body.approved_context)
         self.coach.check_budget(user)
 
-        code = sanitize_code(body.code or session.final_code or "", self.settings.ai_max_code_chars)
         if body.code is not None:
             session.final_code = body.code
         message = body.message.strip()
@@ -250,7 +283,6 @@ class InterviewService:
             self.db.rollback()
             raise self._advanced(self._load(user, interview_id)) from None
 
-        ctx = self._context(session, code=code)
         result = self.coach.call_with_fallback(lambda p: p.interview_turn(ctx))
         reply = result.content
         if reply.advance_phase and session.phase is not None:
@@ -259,6 +291,24 @@ class InterviewService:
         self._record(user, session.problem, result)
         self.db.commit()
         return self._to_out(session)
+
+    def message_preview(self, user: User, interview_id: str, body: InterviewMessagePreview) -> CoachPreview:
+        """Exactly what the interviewer would read with this message. No provider call, no budget,
+        nothing stored; an interview past its time isn't closed by a preview (the next read does)."""
+        session = self._load(user, interview_id)
+        self._require_open_for_preview(session)
+        self._require_message_allowed(session, body.after_seq)
+        return self._message_material(
+            user, session, body.message, body.code or session.final_code or "", body.code is not None
+        )[1]
+
+    def feedback_preview(self, user: User, interview_id: str, body: InterviewFeedbackPreview) -> CoachPreview:
+        """Exactly what the end-of-interview feedback would read, on Finish or on End early."""
+        session = self._load(user, interview_id)
+        self._require_open_for_preview(session)
+        self._require_kind(session, PracticeMode.INTERVIEW)
+        code, from_editor = self._ending_code(session, body.ending, body.code)
+        return self._feedback_material(user, session, code, body.ending, from_editor)[1]
 
     def answer_question(self, user: User, interview_id: str, body: RoundAnswer) -> InterviewOut:
         with tracing.round_action("answer") as step:
@@ -371,16 +421,29 @@ class InterviewService:
                 "There are questions left. Answer or skip them, or end the interview early.",
                 code="questions_remaining",
             )
-        if body and body.code is not None:
-            session.final_code = body.code
+        code = body.code if body else None
+        if body and body.approved_context is not None:
+            text, from_editor = self._ending_code(session, "finished", code)
+            self._require_approved(
+                self._feedback_material(user, session, text, "finished", from_editor)[1],
+                body.approved_context,
+            )
+        if code is not None:
+            session.final_code = code
         self._close(user, session, InterviewStatus.COMPLETED, "finished")
         self.db.commit()
         return self._to_out(session)
 
-    def abandon(self, user: User, interview_id: str) -> InterviewOut:
+    def abandon(self, user: User, interview_id: str, body: InterviewAbandon | None = None) -> InterviewOut:
         session = self._load(user, interview_id)
         self._expire_if_due(user, session)
         if session.status == InterviewStatus.IN_PROGRESS:
+            if body and body.approved_context is not None and session.mode == PracticeMode.INTERVIEW:
+                text, from_editor = self._ending_code(session, "abandoned", None)
+                self._require_approved(
+                    self._feedback_material(user, session, text, "abandoned", from_editor)[1],
+                    body.approved_context,
+                )
             self._close(user, session, InterviewStatus.ABANDONED, "abandoned")
             self.db.commit()
         return self._to_out(session)
@@ -460,8 +523,7 @@ class InterviewService:
             session.status = status
             session.ended_at = _now()
             return
-        code = sanitize_code(session.final_code or "", self.settings.ai_max_code_chars)
-        ctx = self._context(session, code=code, end_reason=reason)
+        ctx = self._feedback_material(user, session, session.final_code or "", reason, False)[0]
         try:
             self.coach.check_budget(user)
             result = self.coach.call_with_fallback(lambda p: p.evaluate_interview(ctx))
@@ -481,32 +543,231 @@ class InterviewService:
                 )
             )
 
-    def _context(
-        self, session: PracticeSession, *, code: str, is_opening: bool = False, end_reason: str | None = None
-    ) -> InterviewContext:
+    # --- what the interviewer reads (docs/COACH_CONTEXT.md, "The coding interviewer") ------------
+
+    def _require_message_allowed(self, session: PracticeSession, after_seq: int | None) -> None:
+        self._require_in_progress(session)
+        self._require_kind(session, PracticeMode.INTERVIEW)
+        if after_seq is not None and after_seq != len(session.turns):
+            raise self._advanced(session)
+        candidate_turns = sum(1 for t in session.turns if t.role == TurnRole.CANDIDATE)
+        if candidate_turns >= MAX_CANDIDATE_TURNS:
+            raise AppError(
+                "This interview has reached its message limit. Finish it to get feedback.",
+                code="turn_limit_reached",
+                details={"max_candidate_turns": MAX_CANDIDATE_TURNS},
+            )
+
+    def _require_open_for_preview(self, session: PracticeSession) -> None:
+        self._require_in_progress(session)
+        if session.deadline_at is not None and _now() >= session.deadline_at:
+            raise ConflictError(
+                "This interview's time is up, so there's nothing more to send.",
+                code="interview_closed",
+                details={"status": InterviewStatus.EXPIRED.value},
+            )
+
+    @staticmethod
+    def _require_approved(preview: CoachPreview, approved: str | None) -> None:
+        """Bound to a preview: sent only if what would be read now is exactly what was checked."""
+        if approved is not None and not hmac.compare_digest(preview.context_fingerprint, approved):
+            raise ConflictError(
+                CHANGED, code="context_changed", details={"preview": preview.model_dump(mode="json")}
+            )
+
+    @staticmethod
+    def _ending_code(session: PracticeSession, ending: str, code: str | None) -> tuple[str, bool]:
+        """The code the feedback reads: on Finish the editor's (if sent), otherwise the code last
+        sent with a message, as ending early has always used."""
+        if ending == "finished" and code is not None:
+            return code, True
+        return session.final_code or "", False
+
+    def _conversation_item(self, turns: Sequence[TranscriptTurn], replaced: int, why: str) -> ContextItem:
+        mine = sum(1 for t in turns if t.role == TurnRole.CANDIDATE.value)
+        return ContextItem(
+            key="conversation",
+            label="The conversation so far",
+            source=(
+                f"Every message in this interview, in order: {_plural(mine, 'message')} of yours and "
+                f"{_plural(len(turns) - mine, 'message')} from the interviewer. An interview has at most "
+                f"{MAX_CANDIDATE_TURNS} of yours, each up to 4,000 characters."
+            ),
+            text=transcript_text([transcript_line(t.phase.value, t.role, t.content) for t in turns]),
+            derived=False,
+            required=True,
+            why_required=why,
+            notes=_replaced_note(replaced),
+        )
+
+    @staticmethod
+    def _code_source(from_editor: bool) -> Callable[[int], str]:
+        def source(lines: int) -> str:
+            where = "As in the editor when you checked" if from_editor else "As last sent with a message"
+            return f"{where}: {_plural(lines, 'line')}. Sent with line numbers added."
+
+        return source
+
+    def _message_material(
+        self, user: User, session: PracticeSession, message: str, source_code: str, from_editor: bool
+    ) -> tuple[InterviewContext, CoachPreview]:
+        """The interviewer's next turn: the context it's given and the preview of exactly that."""
         problem = session.problem
         assert problem is not None
         phase = session.phase or InterviewPhase.WRAP_UP
-        turns_in_phase = sum(1 for t in session.turns if t.role == TurnRole.CANDIDATE and t.phase == phase)
-        return InterviewContext(
+        earlier, earlier_replaced = _as_read(session.turns)
+        sent, replaced = redact_secrets_counted(message.strip())
+        in_phase = 1 + sum(1 for t in session.turns if t.role == TurnRole.CANDIDATE and t.phase == phase)
+        code, analysis, code_items = self.coach._code_items(
+            problem,
+            source_code,
+            label="Your code",
+            source=self._code_source(from_editor),
+            why="The interviewer reads your code as it stands with each message.",
+        )
+        if not source_code.strip():
+            code_items[0].notes.append("Your editor is empty: the interviewer is told so.")
+        items = [
+            ContextItem(
+                key="message",
+                label="Your message",
+                source=f"As you wrote it: {_plural(len(message.strip()), 'character')}.",
+                text=sent,
+                derived=False,
+                required=True,
+                why_required="It's what the interviewer answers.",
+                notes=_replaced_note(replaced),
+            ),
+            self._conversation_item(
+                earlier, earlier_replaced, "The interviewer answers in the context of what's been said."
+            ),
+            *code_items,
+            ContextItem(
+                key="phase",
+                label="Where the interview is",
+                source="Worked out by CodeCoach from this interview. The time left isn't sent with a message.",
+                text=interview_phase_text(phase.value, PHASE_GUIDE[phase], in_phase),
+                derived=True,
+                required=True,
+                why_required="The interviewer's next question depends on the phase.",
+            ),
+        ]
+        mine = sum(1 for t in session.turns if t.role == TurnRole.CANDIDATE) + 1
+        preview = self.coach._preview(
+            user,
+            "interview_message",
+            items,
+            [],
+            [self._public_problem(problem)],
+            self._fingerprint(session, "message", items),
+            about=[f"Your message {mine} of the {MAX_CANDIDATE_TURNS} an interview allows."],
+            reader="interviewer",
+            fallback=BUILT_IN_FALLBACK,
+        )
+        ctx = InterviewContext(
             problem=problem_context(problem),
             phase=phase,
-            transcript=[
-                TranscriptTurn(role=t.role.value, phase=t.phase or InterviewPhase.WRAP_UP, content=t.content)
-                for t in session.turns
-            ],
+            transcript=[*earlier, TranscriptTurn(role=TurnRole.CANDIDATE.value, phase=phase, content=sent)],
             code=code,
+            analysis=analysis,
+            candidate_turns_in_phase=in_phase,
+            seconds_remaining=self._seconds_remaining(session),
+        )
+        return ctx, preview
+
+    def _feedback_material(
+        self, user: User, session: PracticeSession, source_code: str, ending: str, from_editor: bool
+    ) -> tuple[InterviewContext, CoachPreview]:
+        """The end-of-interview feedback: the context it's given and the preview of exactly that.
+        Built the same way however the interview ends (finished, ended early, out of time)."""
+        problem = session.problem
+        assert problem is not None
+        phase = session.phase or InterviewPhase.WRAP_UP
+        turns, replaced = _as_read(session.turns)
+        code, analysis, code_items = self.coach._code_items(
+            problem,
+            source_code,
+            label="Your code",
+            source=self._code_source(from_editor),
+            why="The feedback covers your code as well as the conversation.",
+        )
+        if not source_code.strip():
+            code_items[0].notes.append("No code: the feedback is told none was written.")
+        items = [
+            self._conversation_item(turns, replaced, "The feedback is on the whole interview."),
+            *code_items,
+            ContextItem(
+                key="ending",
+                label="How it ended",
+                source="Worked out by CodeCoach from how you're ending it.",
+                text=ending_text(ending),
+                derived=True,
+                required=True,
+                why_required="Feedback on an interview ended early takes that into account.",
+            ),
+        ]
+        preview = self.coach._preview(
+            user,
+            "interview_feedback",
+            items,
+            [],
+            [self._public_problem(problem)],
+            self._fingerprint(session, f"feedback:{ending}", items),
+            about=[
+                "Feedback on the whole interview, scored on the rubric's dimensions.",
+                "With no coaching requests left today, the built-in interviewer scores it from this same "
+                "material, free.",
+            ],
+            reader="interviewer",
+            fallback=BUILT_IN_FALLBACK,
+        )
+        ctx = InterviewContext(
+            problem=problem_context(problem),
+            phase=phase,
+            transcript=turns,
+            code=code,
+            analysis=analysis,
+            candidate_turns_in_phase=sum(
+                1 for t in session.turns if t.role == TurnRole.CANDIDATE and t.phase == phase
+            ),
+            seconds_remaining=self._seconds_remaining(session),
+            end_reason=ending,
+        )
+        return ctx, preview
+
+    @staticmethod
+    def _public_problem(problem: Problem) -> str:
+        return (
+            f"The problem “{problem.title}”: its statement, constraints, method signature and expected "
+            "complexity. Public, the same for everyone, and needed to interview you on it."
+        )
+
+    @staticmethod
+    def _fingerprint(session: PracticeSession, operation: str, items: Sequence[ContextItem]) -> str:
+        return request_keys.fingerprint(
+            "ai.interview.context",
+            {"interview": session.id, "operation": operation, "sent": [[i.key, i.text] for i in items]},
+        )
+
+    def _opening_context(self, session: PracticeSession) -> InterviewContext:
+        """The opening turn: the problem and the time available, nothing of the learner's yet."""
+        problem = session.problem
+        assert problem is not None
+        return InterviewContext(
+            problem=problem_context(problem),
+            phase=session.phase or InterviewPhase.WRAP_UP,
+            transcript=[],
+            code="",
             analysis=analyze(
-                code,
+                "",
                 signature=problem.signature,
                 starter_code=problem.starter_code,
                 expected_time=(problem.expected_complexity or {}).get("time"),
                 constraints=list(problem.constraints),
             ),
-            candidate_turns_in_phase=turns_in_phase,
+            candidate_turns_in_phase=0,
             seconds_remaining=self._seconds_remaining(session),
-            is_opening=is_opening,
-            end_reason=end_reason,
+            is_opening=True,
         )
 
     def _add_turn(

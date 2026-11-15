@@ -20070,6 +20070,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/InterviewAbandon"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Body"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -20077,6 +20094,220 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/InterviewOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interviews/{interview_id}/message/preview": {
+      "post": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "What the interviewer would read with this message (free: no coach call, no budget, nothing stored)",
+        "operationId": "message_preview_api_v1_interviews__interview_id__message_preview_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InterviewMessagePreview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachPreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/interviews/{interview_id}/feedback/preview": {
+      "post": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "What the end-of-interview feedback would read, on Finish or End early (free, nothing stored)",
+        "operationId": "feedback_preview_api_v1_interviews__interview_id__feedback_preview_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InterviewFeedbackPreview"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoachPreview"
                 }
               }
             }
@@ -27236,7 +27467,9 @@
             "enum": [
               "code_review",
               "hint",
-              "failure_explanation"
+              "failure_explanation",
+              "interview_message",
+              "interview_feedback"
             ],
             "title": "Operation",
             "default": "code_review"
@@ -27337,7 +27570,7 @@
           "context_fingerprint"
         ],
         "title": "CoachPreview",
-        "description": "What a coaching request would send (a code review, a hint or a failure explanation), built the\nway the request builds it, with no provider call and no use of the daily budget\n(docs/COACH_CONTEXT.md)."
+        "description": "What a coaching request would send (a code review, a hint, a failure explanation, a coding\ninterview message or its feedback), built the way the request builds it, with no provider call\nand no use of the daily budget (docs/COACH_CONTEXT.md)."
       },
       "CodeReview": {
         "properties": {
@@ -28562,7 +28795,11 @@
               "level",
               "counts",
               "compile_output",
-              "failing_test"
+              "failing_test",
+              "message",
+              "conversation",
+              "phase",
+              "ending"
             ],
             "title": "Key"
           },
@@ -32923,6 +33160,25 @@
         ],
         "title": "Improvement"
       },
+      "InterviewAbandon": {
+        "properties": {
+          "approved_context": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Context",
+            "description": "The `context_fingerprint` of the feedback's preview with ending `abandoned`, as for finish"
+          }
+        },
+        "type": "object",
+        "title": "InterviewAbandon"
+      },
       "InterviewCounts": {
         "properties": {
           "completed": {
@@ -33011,6 +33267,35 @@
         "title": "InterviewEvaluation",
         "description": "End-of-interview feedback. Schema for the AI provider."
       },
+      "InterviewFeedbackPreview": {
+        "properties": {
+          "ending": {
+            "type": "string",
+            "enum": [
+              "finished",
+              "abandoned"
+            ],
+            "title": "Ending",
+            "default": "finished"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code",
+            "description": "Finish only: the editor's code"
+          }
+        },
+        "type": "object",
+        "title": "InterviewFeedbackPreview",
+        "description": "What the end-of-interview feedback would read: on Finish (with the editor's code) or on End\nearly (with the code last sent, as ending early always has)."
+      },
       "InterviewFinish": {
         "properties": {
           "code": {
@@ -33024,6 +33309,19 @@
               }
             ],
             "title": "Code"
+          },
+          "approved_context": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Context",
+            "description": "The `context_fingerprint` of the feedback's preview (POST .../feedback/preview with ending `finished`): the feedback is asked for only if what it reads is still exactly that; otherwise 409 `context_changed` with a fresh preview, and the interview stays open"
           }
         },
         "type": "object",
@@ -33087,6 +33385,19 @@
             ],
             "title": "After Seq",
             "description": "How many turns the transcript had when this was written. If the interview has moved on since (another tab or device), the message is refused with 409 interview_advanced, not appended"
+          },
+          "approved_context": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 128
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Context",
+            "description": "The `context_fingerprint` of this message's preview (POST .../message/preview): it's sent only if what the interviewer would read is still exactly that; otherwise 409 `context_changed` with a fresh preview, and nothing is stored or spent"
           }
         },
         "type": "object",
@@ -33094,6 +33405,47 @@
           "message"
         ],
         "title": "InterviewMessage"
+      },
+      "InterviewMessagePreview": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "maxLength": 4000,
+            "minLength": 1,
+            "title": "Message"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code",
+            "description": "Current editor contents"
+          },
+          "after_seq": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "After Seq"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message"
+        ],
+        "title": "InterviewMessagePreview",
+        "description": "The next message as it would be sent (docs/COACH_CONTEXT.md, \"The coding interviewer\")."
       },
       "InterviewOut": {
         "properties": {

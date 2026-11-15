@@ -292,7 +292,7 @@ function useInterviewMutation<V>(fn: (vars: V) => Promise<Interview>) {
 
 export const useStartInterview = () => useInterviewMutation((body: InterviewStart) => api.startInterview(body));
 export const useInterviewMessage = (id: string) =>
-  useInterviewMutation((body: { message: string; code?: string | null; source?: AnswerSource; after_seq?: number; client_request_id?: string }) =>
+  useInterviewMutation((body: { message: string; code?: string | null; source?: AnswerSource; after_seq?: number; client_request_id?: string; approved_context?: string }) =>
     api.interviewMessage(id, body));
 /** Round actions carry the W3C trace context of the learner's action (lib/trace.ts). */
 export const useAnswerRoundQuestion = (id: string) =>
@@ -300,9 +300,11 @@ export const useAnswerRoundQuestion = (id: string) =>
     api.answerRoundQuestion(id, body, traceparent));
 export const useSkipRoundQuestion = (id: string) =>
   useInterviewMutation(({ index, traceparent }: { index: number; traceparent?: string }) => api.skipRoundQuestion(id, index, traceparent));
+/** Finish and End early take the feedback preview's fingerprint when the learner checked it first. */
 export const useFinishInterview = (id: string) =>
-  useInterviewMutation((code: string | null) => api.finishInterview(id, code));
-export const useAbandonInterview = (id: string) => useInterviewMutation((_: void) => api.abandonInterview(id));
+  useInterviewMutation((arg: string | null | { code: string | null; approved_context?: string }) =>
+    arg !== null && typeof arg === "object" ? api.finishInterview(id, arg.code, arg.approved_context) : api.finishInterview(id, arg));
+export const useAbandonInterview = (id: string) => useInterviewMutation((approved?: string | void) => api.abandonInterview(id, approved ?? undefined));
 
 export function useActivity(filters: ActivityFilters) {
   return useQuery({

@@ -53,7 +53,7 @@ this browser's localStorage only.
 | Onboarding | server | a pending "finish the tour" flag | yes | — | last write wins | one per account |
 | Scenarios | server | — | yes | "Your place is saved on the server…" | stale step: 409 | resumes the attempt in progress |
 | Self-reviews | server | in memory until sent | yes | — | last write wins | one per answer |
-| Preferences (display, editor, voice, reflect-first, drill delivery) | **browser** | all of it | **no** | "Saved in this browser." | — | — |
+| Preferences (display, editor, voice, reflect-first, drill delivery, checking every interview message) | **browser** | all of it | **no** | "Saved in this browser." | — | — |
 
 ## What "Saved" means (Volume 7, prompt 4)
 

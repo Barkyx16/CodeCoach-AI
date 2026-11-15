@@ -14,13 +14,13 @@ const CHOICE_LABEL: Record<ChoiceKey, string> = {
 const isChoice = (key: string): key is ChoiceKey => key in CHOICE_LABEL;
 
 /**
- * What the coach will read (docs/COACH_CONTEXT.md), for a code review, a hint or a failure
- * explanation: each private item exactly as it's sent, after secret-looking strings are replaced
- * and long input cut, with where it comes from and whether it can be left out. Shown as text:
- * anything written inside it is never followed or rendered. The coach's fixed instructions are one
- * sentence here, not a prompt viewer.
+ * What the coach will read (docs/COACH_CONTEXT.md), for a code review, a hint, a failure
+ * explanation, a coding interview message or its feedback: each private item exactly as it's
+ * sent, after secret-looking strings are replaced and long input cut, with where it comes from
+ * and whether it can be left out. Shown as text: anything written inside it is never followed or
+ * rendered. The coach's fixed instructions are one sentence here, not a prompt viewer.
  */
-export function CoachContext({ preview, choices, onChoose, stale, changed, busy, blocked = false, sendLabel, onSend, onCancel, onCheckAgain }: {
+export function CoachContext({ preview, choices, onChoose, stale, changed, busy, blocked = false, sendLabel, onSend, onCancel, onCheckAgain, title = "What the coach will read", costNote, budgetBlocks = true }: {
   preview: CoachPreview;
   /** What's chosen for each optional item (sent or not). */
   choices: Partial<Record<ChoiceKey, boolean>>;
@@ -36,6 +36,12 @@ export function CoachContext({ preview, choices, onChoose, stale, changed, busy,
   onSend(): void;
   onCancel(): void;
   onCheckAgain(): void;
+  /** The heading: "What the interviewer reads" for the coding interviewer. */
+  title?: string;
+  /** What sending costs, when it isn't simply one of today's requests (the interview's feedback). */
+  costNote?: string;
+  /** Whether no requests left today stops the send (the interview's feedback is scored free instead). */
+  budgetBlocks?: boolean;
 }) {
   const ids = useId();
   const choice = (key: ChoiceKey) => (
@@ -47,7 +53,7 @@ export function CoachContext({ preview, choices, onChoose, stale, changed, busy,
   const answered = preview.already_answered ?? null;
   return (
     <section className="coach-context stack-sm" aria-labelledby={`${ids}-title`}>
-      <h3 className="section-title" id={`${ids}-title`}>What the coach will read</h3>
+      <h3 className="section-title" id={`${ids}-title`}>{title}</h3>
       {changed && <p className="banner banner--warning" role="alert">{changed}</p>}
       {(preview.about ?? []).length > 0 && (
         <ul className="mini-list coach-context__about">{(preview.about ?? []).map((a) => <li key={a}>{a}</li>)}</ul>
@@ -83,7 +89,7 @@ export function CoachContext({ preview, choices, onChoose, stale, changed, busy,
       {preview.required_public.map((p) => <p key={p}><strong>Also sent:</strong> {p}</p>)}
       <p className="subtle">{preview.instructions}</p>
       <p className="subtle">
-        {answered ? "Checking this is free, and so is showing what was kept: nothing is sent." : (
+        {answered ? "Checking this is free, and so is showing what was kept: nothing is sent." : costNote ?? (
           <>Checking this is free. Sending uses one of the {preview.remaining_today} coaching request{preview.remaining_today === 1 ? "" : "s"} you
           have left today.</>
         )}
@@ -95,7 +101,7 @@ export function CoachContext({ preview, choices, onChoose, stale, changed, busy,
         </p>
       )}
       <div className="row">
-        <Button variant="primary" loading={busy} disabled={blocked || stale !== null || (!answered && preview.remaining_today === 0)} onClick={onSend}>{sendLabel}</Button>
+        <Button variant="primary" loading={busy} disabled={blocked || stale !== null || (budgetBlocks && !answered && preview.remaining_today === 0)} onClick={onSend}>{sendLabel}</Button>
         <Button variant="ghost" disabled={busy} onClick={onCancel}>Cancel</Button>
       </div>
     </section>

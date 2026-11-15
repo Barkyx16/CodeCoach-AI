@@ -167,6 +167,13 @@ class InterviewMessage(APIModel):
         description="How many turns the transcript had when this was written. If the interview has moved on "
         "since (another tab or device), the message is refused with 409 interview_advanced, not appended",
     )
+    approved_context: str | None = Field(
+        default=None,
+        max_length=128,
+        description="The `context_fingerprint` of this message's preview (POST .../message/preview): it's "
+        "sent only if what the interviewer would read is still exactly that; otherwise 409 "
+        "`context_changed` with a fresh preview, and nothing is stored or spent",
+    )
 
     @field_validator("message")
     @classmethod
@@ -178,6 +185,44 @@ class InterviewMessage(APIModel):
 
 class InterviewFinish(APIModel):
     code: str | None = Field(default=None, max_length=20_000)
+    approved_context: str | None = Field(
+        default=None,
+        max_length=128,
+        description="The `context_fingerprint` of the feedback's preview (POST .../feedback/preview with "
+        "ending `finished`): the feedback is asked for only if what it reads is still exactly that; "
+        "otherwise 409 `context_changed` with a fresh preview, and the interview stays open",
+    )
+
+
+class InterviewAbandon(APIModel):
+    approved_context: str | None = Field(
+        default=None,
+        max_length=128,
+        description="The `context_fingerprint` of the feedback's preview with ending `abandoned`, as for finish",
+    )
+
+
+class InterviewMessagePreview(APIModel):
+    """The next message as it would be sent (docs/COACH_CONTEXT.md, "The coding interviewer")."""
+
+    message: str = Field(min_length=1, max_length=4000)
+    code: str | None = Field(default=None, max_length=20_000, description="Current editor contents")
+    after_seq: int | None = Field(default=None, ge=0)
+
+    @field_validator("message")
+    @classmethod
+    def _message_not_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("message must not be blank")
+        return v
+
+
+class InterviewFeedbackPreview(APIModel):
+    """What the end-of-interview feedback would read: on Finish (with the editor's code) or on End
+    early (with the code last sent, as ending early always has)."""
+
+    ending: Literal["finished", "abandoned"] = "finished"
+    code: str | None = Field(default=None, max_length=20_000, description="Finish only: the editor's code")
 
 
 class InterviewerReply(BaseModel):

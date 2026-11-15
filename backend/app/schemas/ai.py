@@ -113,7 +113,19 @@ class ReviewPreviewRequest(APIModel):
 class ContextItem(APIModel):
     """One piece of your private material, exactly as the coach would read it."""
 
-    key: Literal["code", "checks", "verdict", "level", "counts", "compile_output", "failing_test"]
+    key: Literal[
+        "code",
+        "checks",
+        "verdict",
+        "level",
+        "counts",
+        "compile_output",
+        "failing_test",
+        "message",
+        "conversation",
+        "phase",
+        "ending",
+    ]
     label: str = Field(description="What it is, in plain words")
     source: str = Field(description="Where it comes from and as of when")
     text: str = Field(
@@ -136,11 +148,13 @@ class LeftOut(APIModel):
 
 
 class CoachPreview(APIModel):
-    """What a coaching request would send (a code review, a hint or a failure explanation), built the
-    way the request builds it, with no provider call and no use of the daily budget
-    (docs/COACH_CONTEXT.md)."""
+    """What a coaching request would send (a code review, a hint, a failure explanation, a coding
+    interview message or its feedback), built the way the request builds it, with no provider call
+    and no use of the daily budget (docs/COACH_CONTEXT.md)."""
 
-    operation: Literal["code_review", "hint", "failure_explanation"] = "code_review"
+    operation: Literal[
+        "code_review", "hint", "failure_explanation", "interview_message", "interview_feedback"
+    ] = "code_review"
     about: list[str] = Field(
         default_factory=list,
         description="What the request is for: the hint level asked for and the levels already seen, or "

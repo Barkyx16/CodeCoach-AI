@@ -51,6 +51,8 @@ import type {
   ExperienceInput,
   CoachPreview,
   ExplainFailurePreviewRequest,
+  InterviewFeedbackPreviewRequest,
+  InterviewMessagePreviewRequest,
   ExplainFailureRequest,
   ExplainFailureResponse,
   HintPreviewRequest,
@@ -500,10 +502,15 @@ export const api = {
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}`, { signal }),
   interviews: (query: { page?: number; page_size?: number } = {}) =>
     apiRequest<Page<InterviewSummary>>("/api/v1/interviews", { query }),
-  interviewMessage: (id: string, body: { message: string; code?: string | null; source?: AnswerSource; after_seq?: number; client_request_id?: string }) =>
+  interviewMessage: (id: string, body: { message: string; code?: string | null; source?: AnswerSource; after_seq?: number; client_request_id?: string; approved_context?: string }) =>
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/messages`, { method: "POST", body }),
-  finishInterview: (id: string, code?: string | null) =>
-    apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/finish`, { method: "POST", body: { code: code ?? null } }),
+  finishInterview: (id: string, code?: string | null, approved_context?: string) =>
+    apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/finish`, { method: "POST", body: { code: code ?? null, ...(approved_context ? { approved_context } : {}) } }),
+  // What the coding interviewer reads (docs/COACH_CONTEXT.md, "The coding interviewer").
+  interviewMessagePreview: (id: string, body: InterviewMessagePreviewRequest) =>
+    apiRequest<CoachPreview>(`/api/v1/interviews/${encodeURIComponent(id)}/message/preview`, { method: "POST", body }),
+  interviewFeedbackPreview: (id: string, body: InterviewFeedbackPreviewRequest) =>
+    apiRequest<CoachPreview>(`/api/v1/interviews/${encodeURIComponent(id)}/feedback/preview`, { method: "POST", body }),
   answerRoundQuestion: (id: string, body: { question_index: number; answer: string; source: AnswerSource }, traceparent?: string) =>
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/answers`, { method: "POST", body, traceparent }),
   skipRoundQuestion: (id: string, question_index: number, traceparent?: string) =>
@@ -514,8 +521,8 @@ export const api = {
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/followup`, { method: "POST", body, traceparent }),
   skipFollowup: (id: string, traceparent?: string) =>
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/followup/skip`, { method: "POST", traceparent }),
-  abandonInterview: (id: string) =>
-    apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/abandon`, { method: "POST" }),
+  abandonInterview: (id: string, approved_context?: string) =>
+    apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/abandon`, { method: "POST", ...(approved_context ? { body: { approved_context } } : {}) }),
 
   // explorer, bookmarks, collections
   explore: (track: string, filters: ExploreFilters, signal?: AbortSignal) =>

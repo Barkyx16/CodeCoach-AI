@@ -242,9 +242,11 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | POST | `/api/v1/interviews` | 🔒 | Start a timed mock interview |
 | GET | `/api/v1/interviews` | 🔒 | Interview history |
 | GET | `/api/v1/interviews/{id}` | 🔒 | State, transcript, evaluation |
-| POST | `/api/v1/interviews/{id}/messages` | 🔒 | Candidate answer → interviewer reply |
-| POST | `/api/v1/interviews/{id}/finish` | 🔒 | End + rubric feedback (idempotent) |
-| POST | `/api/v1/interviews/{id}/abandon` | 🔒 | End early (still evaluated) |
+| POST | `/api/v1/interviews/{id}/messages` | 🔒 | Candidate answer → interviewer reply (`approved_context` binds it to a preview) |
+| POST | `/api/v1/interviews/{id}/finish` | 🔒 | End + rubric feedback (idempotent; `approved_context` binds it to a preview) |
+| POST | `/api/v1/interviews/{id}/abandon` | 🔒 | End early (still evaluated; optional `{approved_context}`) |
+| POST | `/api/v1/interviews/{id}/message/preview` | 🔒 | What the interviewer would read with `{message, code?, after_seq?}`: a `CoachPreview` (free, nothing stored; docs/COACH_CONTEXT.md) |
+| POST | `/api/v1/interviews/{id}/feedback/preview` | 🔒 | What the feedback would read with `{ending: finished\|abandoned, code?}` (free, nothing stored) |
 | GET | `/api/v1/me/progress` | 🔒 | Dashboard analytics |
 | GET | `/api/v1/me/recommendations` | 🔒 | Personalized next problems |
 | GET | `/metrics` | – | Prometheus metrics (operators; not in OpenAPI) |

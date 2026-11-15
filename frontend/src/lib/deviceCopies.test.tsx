@@ -118,6 +118,7 @@ it("every file that writes to this browser's storage directly is a known one (dr
     "features/dashboard/shortcuts.ts", // the dashboard's shortcuts: page ids only, per account
     "features/display/DisplayProvider.tsx", // display settings
     "features/drills/DrillPage.tsx", // the delivery setting; the answer itself uses useStoredDraft
+    "features/interview/interviewerCheck.ts", // the "check every interview message first" setting
     "features/onboarding/finishIntent.ts", // a tour step to finish
     "features/plan/PlanChanges.tsx", // the plan version last seen
     "features/plan/todayMinutes.ts", // minutes set for today

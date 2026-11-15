@@ -191,6 +191,22 @@ checked at phone width by their own specs.
 The changed-code and another-account branches don't need the judge and run in every e2e run; the
 resubmission branch skips without it.
 
+### Its record
+
+CI run 325 (`a11cd22`, the sandbox job, with the real judge; the `engineer-journey-record` artifact
+and the job's `[journey-record]` lines): **10 passed**, nothing flaky or skipped.
+
+| Run | Steps | Baseline (judged in the sandbox) | Resubmission (judged in the sandbox) | Compared |
+|---|---|---|---|---|
+| Desktop, first | 13 of 13 passed | FAILED, 2/7 (hidden 0/4), 0 ms in the method; verdict 3.6 s after the request | PASSED, 7/7 (hidden 4/4), 1 ms; 3.5 s | "Partly comparable: the in-app help differed: before the earlier one, hint shown; before the later one, none recorded. The counts are from the same tests, so both are shown. (Comparison rules v1)" |
+| Desktop, second | 13 of 13 passed | FAILED, 2/7 (hidden 0/4), 1 ms; 3.5 s | PASSED, 7/7 (hidden 4/4), 1 ms; 3.6 s | the same words |
+| Phone size, first | 6 of 6 passed | FAILED, 2/7 (hidden 0/4); 3.2 s | PASSED, 7/7 (hidden 4/4), "No in-app help recorded"; 3.4 s | (not on the phone path) |
+| Phone size, second | 6 of 6 passed | FAILED, 2/7 (hidden 0/4); 3.3 s | PASSED, 7/7 (hidden 4/4); 3.3 s | (not on the phone path) |
+
+The three branches passed in both repeats. Each run was a fresh account with its own ids (in the
+record); the built-in coach answered the hint and the review, and `/capabilities` said the judge was
+"ready" each time.
+
 ### What's real and what's substituted
 
 - **The judge**: real. The API's worker sends each submission to the runner, which runs it in the

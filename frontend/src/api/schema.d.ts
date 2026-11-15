@@ -3814,6 +3814,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/interviews/{interview_id}/message/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What the interviewer would read with this message (free: no coach call, no budget, nothing stored) */
+        post: operations["message_preview_api_v1_interviews__interview_id__message_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/interviews/{interview_id}/feedback/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** What the end-of-interview feedback would read, on Finish or End early (free, nothing stored) */
+        post: operations["feedback_preview_api_v1_interviews__interview_id__feedback_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/progress": {
         parameters: {
             query?: never;
@@ -5919,9 +5953,9 @@ export interface components {
         };
         /**
          * CoachPreview
-         * @description What a coaching request would send (a code review, a hint or a failure explanation), built the
-         *     way the request builds it, with no provider call and no use of the daily budget
-         *     (docs/COACH_CONTEXT.md).
+         * @description What a coaching request would send (a code review, a hint, a failure explanation, a coding
+         *     interview message or its feedback), built the way the request builds it, with no provider call
+         *     and no use of the daily budget (docs/COACH_CONTEXT.md).
          */
         CoachPreview: {
             /**
@@ -5929,7 +5963,7 @@ export interface components {
              * @default code_review
              * @enum {string}
              */
-            operation: "code_review" | "hint" | "failure_explanation";
+            operation: "code_review" | "hint" | "failure_explanation" | "interview_message" | "interview_feedback";
             /**
              * About
              * @description What the request is for: the hint level asked for and the levels already seen, or which submission an explanation is about
@@ -6488,7 +6522,7 @@ export interface components {
              * Key
              * @enum {string}
              */
-            key: "code" | "checks" | "verdict" | "level" | "counts" | "compile_output" | "failing_test";
+            key: "code" | "checks" | "verdict" | "level" | "counts" | "compile_output" | "failing_test" | "message" | "conversation" | "phase" | "ending";
             /**
              * Label
              * @description What it is, in plain words
@@ -8414,6 +8448,14 @@ export interface components {
              */
             action_id?: string | null;
         };
+        /** InterviewAbandon */
+        InterviewAbandon: {
+            /**
+             * Approved Context
+             * @description The `context_fingerprint` of the feedback's preview with ending `abandoned`, as for finish
+             */
+            approved_context?: string | null;
+        };
         /** InterviewCounts */
         InterviewCounts: {
             /** Completed */
@@ -8452,10 +8494,33 @@ export interface components {
              */
             confidence: "low" | "medium" | "high";
         };
+        /**
+         * InterviewFeedbackPreview
+         * @description What the end-of-interview feedback would read: on Finish (with the editor's code) or on End
+         *     early (with the code last sent, as ending early always has).
+         */
+        InterviewFeedbackPreview: {
+            /**
+             * Ending
+             * @default finished
+             * @enum {string}
+             */
+            ending: "finished" | "abandoned";
+            /**
+             * Code
+             * @description Finish only: the editor's code
+             */
+            code?: string | null;
+        };
         /** InterviewFinish */
         InterviewFinish: {
             /** Code */
             code?: string | null;
+            /**
+             * Approved Context
+             * @description The `context_fingerprint` of the feedback's preview (POST .../feedback/preview with ending `finished`): the feedback is asked for only if what it reads is still exactly that; otherwise 409 `context_changed` with a fresh preview, and the interview stays open
+             */
+            approved_context?: string | null;
         };
         /** InterviewMessage */
         InterviewMessage: {
@@ -8482,6 +8547,26 @@ export interface components {
              * After Seq
              * @description How many turns the transcript had when this was written. If the interview has moved on since (another tab or device), the message is refused with 409 interview_advanced, not appended
              */
+            after_seq?: number | null;
+            /**
+             * Approved Context
+             * @description The `context_fingerprint` of this message's preview (POST .../message/preview): it's sent only if what the interviewer would read is still exactly that; otherwise 409 `context_changed` with a fresh preview, and nothing is stored or spent
+             */
+            approved_context?: string | null;
+        };
+        /**
+         * InterviewMessagePreview
+         * @description The next message as it would be sent (docs/COACH_CONTEXT.md, "The coding interviewer").
+         */
+        InterviewMessagePreview: {
+            /** Message */
+            message: string;
+            /**
+             * Code
+             * @description Current editor contents
+             */
+            code?: string | null;
+            /** After Seq */
             after_seq?: number | null;
         };
         /** InterviewOut */
@@ -29630,7 +29715,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["InterviewAbandon"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -29639,6 +29728,166 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InterviewOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    message_preview_api_v1_interviews__interview_id__message_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InterviewMessagePreview"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachPreview"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    feedback_preview_api_v1_interviews__interview_id__feedback_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InterviewFeedbackPreview"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoachPreview"];
                 };
             };
             /** @description Bad request */
