@@ -28,7 +28,10 @@ test("a lesson read first is the help before the next drill and scenario attempt
   await page.getByRole("button", { name: "Get feedback" }).click();
   fb = page.getByRole("region", { name: /Feedback on your attempt/ });
   await expect(fb.locator(".attempt-conditions")).toContainText("In-app help before this attempt: No in-app help recorded");
-  await expect(fb).toContainText("The in-app help differed: before the earlier one, hint shown; before this one, none recorded.");
+  // Said once, by the one comparison contract (Volume 15, prompt 4): the attempt's own "differed"
+  // line gives way to it, so the help difference isn't stated twice.
+  await expect(fb).toContainText("Partly comparable: the in-app help differed: before the earlier one, hint shown; before the later one, none recorded.");
+  await expect(fb).not.toContainText("before this one, none recorded");
   await expect(page.locator(".drill-history")).toContainText("In-app help: Hint shown");
 
   // A scenario: the run started after the lesson says so; its row in your attempts too.
