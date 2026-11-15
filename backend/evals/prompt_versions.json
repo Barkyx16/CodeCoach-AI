@@ -1,6 +1,6 @@
 {
   "_doc": "Each coach prompt version and the fingerprint of the prompts and request settings it names (evals/meta.py:request_fingerprint). tests/test_eval_harness.py fails when the prompts change without a new version here.",
-  "current": "coach-2026-11-14",
+  "current": "coach-2026-11-15",
   "versions": {
     "coach-2026-11-03": {
       "fingerprint": "f7a9c11481d697f2564299101984818644836f905a7094a304890a53c9de1586",
@@ -26,6 +26,11 @@
       "fingerprint": "d585b042635c32f8447c9f4820cd1552659025fe2900c05efd1a5840bbe8a383",
       "recorded": "2026-11-14",
       "notes": "One wording change in what's asked: a code review with no judge verdict now reads 'Judge verdict: none given (this code may not have been judged)' instead of 'not judged yet (code execution is not available)', which was wrong whenever code execution was available, and is how a verdict the learner leaves out reads too (Volume 12 prompt 2, docs/COACH_CONTEXT.md). The static-analysis block's words moved to context_text.analysis_text, shared with the review preview, byte for byte as before. No schema, setting or system prompt changed."
+    },
+    "coach-2026-11-15": {
+      "fingerprint": "e5fb5d9dee6f22cc7a1b95353f6a5963c91687949f6227602a2758aea955b922",
+      "recorded": "2026-11-15",
+      "notes": "No wording changed in what's asked: a hint's requested level and a failure explanation's verdict, pass counts and failing public test moved to context_text (hint_level_text, failure_verdict_text, failure_counts_text, failing_test_text), shared with their previews, byte for byte as before, and are now part of this fingerprint. What can be asked changed: a failure explanation is sent without the compiler output or the failing public test when the learner leaves them out in the preview, and both a hint and an explanation are sent only as previewed (Volume 13 prompt 2, docs/COACH_CONTEXT.md). No schema, setting or system prompt changed."
     }
   }
 }

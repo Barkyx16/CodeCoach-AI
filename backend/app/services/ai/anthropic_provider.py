@@ -56,7 +56,7 @@ MIN_ATTEMPT_S = 5.0  # no point starting a request with less time than this left
 _RETRY_STATUS = frozenset({408, 409})
 # Change with any prompt, prompt builder, token limit, effort or output schema; evaluation reports
 # record it, and evals/prompt_versions.json holds the fingerprint each version was recorded with.
-PROMPT_VERSION = "coach-2026-11-14"
+PROMPT_VERSION = "coach-2026-11-15"
 T = TypeVar("T", bound=BaseModel)
 Effort = Literal["low", "medium", "high"]
 

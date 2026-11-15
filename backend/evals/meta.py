@@ -69,7 +69,17 @@ def request_fingerprint() -> str:
             for f in (ap._transcript_block, ap._problem_block, ap._analysis_block, ap._numbered)
         ),
         # The learner's material as the coach reads it, shared with the preview (docs/COACH_CONTEXT.md).
-        *(inspect.getsource(f) for f in (ct.analysis_text, ct.verdict_text)),
+        *(
+            inspect.getsource(f)
+            for f in (
+                ct.analysis_text,
+                ct.verdict_text,
+                ct.hint_level_text,
+                ct.failure_verdict_text,
+                ct.failure_counts_text,
+                ct.failing_test_text,
+            )
+        ),
         ct.NO_VERDICT,
         *(
             inspect.getsource(getattr(ap.AnthropicCoach, m))
