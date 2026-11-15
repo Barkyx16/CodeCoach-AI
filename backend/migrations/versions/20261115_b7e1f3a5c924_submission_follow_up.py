@@ -28,7 +28,11 @@ def upgrade() -> None:
     with op.batch_alter_table("submissions") as batch:
         batch.add_column(sa.Column("follows_up_submission_id", sa.String(length=36), nullable=True))
         batch.create_foreign_key(
-            "fk_submissions_follows_up", "submissions", ["follows_up_submission_id"], ["id"], ondelete="SET NULL"
+            "fk_submissions_follows_up",
+            "submissions",
+            ["follows_up_submission_id"],
+            ["id"],
+            ondelete="SET NULL",
         )
         batch.create_index("ix_submissions_follows_up_submission_id", ["follows_up_submission_id"])
 
