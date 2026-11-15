@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import Field
 
 from app.schemas.common import APIModel
+from app.schemas.conditions import AttemptConditions
 from app.schemas.learn import ReferenceOut, ReviewOut
 
 Quality = Literal["strong", "acceptable", "risky"]
@@ -198,6 +199,10 @@ class ScenarioAttemptOut(APIModel):
     created_at: datetime
     updated_at: datetime
     completed_at: datetime | None
+    conditions: AttemptConditions | None = Field(
+        default=None,
+        description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)",
+    )
 
 
 class ScenarioAttemptSummary(APIModel):
@@ -211,6 +216,10 @@ class ScenarioAttemptSummary(APIModel):
     retired: bool
     created_at: datetime
     completed_at: datetime | None
+    conditions: AttemptConditions | None = Field(
+        default=None,
+        description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)",
+    )
 
 
 class StartIn(APIModel):

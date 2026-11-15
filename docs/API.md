@@ -232,7 +232,7 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | GET | `/api/v1/me/submissions` | 🔒 | Attempt history |
 | GET | `/api/v1/careers/{slug}/questions/{question_id}/follow-up` | 🔒 | A reviewed follow-up question after repeated practice (docs/FOLLOW_UPS.md) |
 | GET | `/api/v1/me/careers/{slug}/analytics/attempts?since=&until=&offset=&limit≤100` | 🔒 | Every answer in an analytics range: in the trend or why not, each with its comparison with the answer before it (docs/COMPARING_ATTEMPTS.md) |
-| POST | `/api/v1/me/attempt-conditions` | 🔒 | The in-app help shown before each of up to 50 submissions and answers (docs/ATTEMPT_CONDITIONS.md) |
+| POST | `/api/v1/me/attempt-conditions` | 🔒 | The in-app help shown before each of up to 50 submissions, answers, drill attempts, scenario runs and whiteboard attempts (docs/ATTEMPT_CONDITIONS.md) |
 | POST | `/api/v1/ai/hint` | 🔒 | Progressive hint |
 | POST | `/api/v1/ai/review/preview` | 🔒 | What a review would send, exactly (no coach call, no budget) |
 | POST | `/api/v1/ai/review` | 🔒 | Structured code review |

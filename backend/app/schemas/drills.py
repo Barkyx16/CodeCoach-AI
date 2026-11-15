@@ -6,6 +6,7 @@ from typing import Literal
 from pydantic import Field
 
 from app.schemas.common import APIModel, OptionalKey
+from app.schemas.conditions import AttemptConditions
 
 
 class DrillOut(APIModel):
@@ -42,3 +43,7 @@ class DrillAttemptOut(APIModel):
         description="What changed since your previous attempt at this drill"
     )
     created_at: datetime
+    conditions: AttemptConditions | None = Field(
+        default=None,
+        description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)",
+    )

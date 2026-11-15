@@ -6,7 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db
-from app.models import PracticeAnswer, Submission, User
+from app.models import DrillAttempt, PracticeAnswer, ScenarioAttempt, Submission, User, WhiteboardAttempt
 from app.schemas.common import error_responses
 from app.schemas.conditions import ConditionsOut, ConditionsQuery
 from app.services.conditions import Conditions
@@ -42,4 +42,16 @@ def attempt_conditions(
         if body.answer_ids
         else []
     )
-    return ConditionsOut(submissions=finder.for_submissions(subs), answers=finder.for_answers(answers))
+
+    def mine(model, ids: list[str]) -> list:
+        if not ids:
+            return []
+        return list(db.scalars(select(model).where(model.user_id == user.id, model.id.in_(set(ids)))).all())
+
+    return ConditionsOut(
+        submissions=finder.for_submissions(subs),
+        answers=finder.for_answers(answers),
+        drill_attempts=finder.for_drills(mine(DrillAttempt, body.drill_attempt_ids)),
+        scenario_attempts=finder.for_scenarios(mine(ScenarioAttempt, body.scenario_attempt_ids)),
+        whiteboard_attempts=finder.for_whiteboards(mine(WhiteboardAttempt, body.whiteboard_attempt_ids)),
+    )

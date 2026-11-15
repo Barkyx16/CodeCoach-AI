@@ -9,6 +9,7 @@ import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { conditionsSummary } from "@/features/conditions/summary";
 import { Icon } from "@/components/Icon";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
 import { UnavailableState } from "@/components/Unavailable";
@@ -165,7 +166,7 @@ export function ScenarioBriefing() {
                 {attempts.data.map((a) => (
                   <li key={a.id}>
                     <Link to={`/scenarios/attempts/${a.id}`}>{a.status === "completed" ? a.outcome : "In progress"}</Link>
-                    <span className="subtle"> · {a.mode === "exploration" ? "exploration · " : ""}v{a.version}{a.retired ? " (older version)" : ""} · {timeAgo(a.created_at)}</span>
+                    <span className="subtle"> · {a.mode === "exploration" ? "exploration · " : ""}v{a.version}{a.retired ? " (older version)" : ""} · {timeAgo(a.created_at)}{a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}</span>
                   </li>
                 ))}
               </ul>

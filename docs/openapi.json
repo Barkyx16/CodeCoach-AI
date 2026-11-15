@@ -28615,6 +28615,27 @@
             },
             "type": "object",
             "title": "Answers"
+          },
+          "drill_attempts": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AttemptConditions"
+            },
+            "type": "object",
+            "title": "Drill Attempts"
+          },
+          "scenario_attempts": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AttemptConditions"
+            },
+            "type": "object",
+            "title": "Scenario Attempts"
+          },
+          "whiteboard_attempts": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AttemptConditions"
+            },
+            "type": "object",
+            "title": "Whiteboard Attempts"
           }
         },
         "type": "object",
@@ -28641,6 +28662,30 @@
             "type": "array",
             "maxItems": 50,
             "title": "Answer Ids"
+          },
+          "drill_attempt_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Drill Attempt Ids"
+          },
+          "scenario_attempt_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Scenario Attempt Ids"
+          },
+          "whiteboard_attempt_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Whiteboard Attempt Ids"
           }
         },
         "type": "object",
@@ -29889,6 +29934,17 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
           }
         },
         "type": "object",
@@ -44359,6 +44415,17 @@
               }
             ],
             "title": "Completed At"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
           }
         },
         "type": "object",
@@ -44444,6 +44511,17 @@
               }
             ],
             "title": "Completed At"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
           }
         },
         "type": "object",
@@ -50411,6 +50489,17 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
           }
         },
         "type": "object",
@@ -50457,6 +50546,17 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
           }
         },
         "type": "object",

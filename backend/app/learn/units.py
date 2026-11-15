@@ -497,6 +497,7 @@ STAR = Unit(
     review=_NURSE_REVIEW,
     scope_note=_NURSE_SCOPE,
     question_ids=("e-time-0",),
+    prepares=("drill:example",),
 )
 
 SBAR = Unit(
@@ -598,6 +599,7 @@ SBAR = Unit(
     review=_NURSE_REVIEW,
     scope_note=_NURSE_SCOPE,
     question_ids=("e-steps-7", "e-good-7", "e-time-7"),
+    prepares=("scenario:rn-two-patients",),
 )
 
 PRIORITIZE = Unit(
@@ -709,6 +711,7 @@ PRIORITIZE = Unit(
     review=_NURSE_REVIEW,
     scope_note=_NURSE_SCOPE,
     question_ids=("m-walk-0",),
+    prepares=("scenario:rn-two-patients",),
 )
 
 UNITS: tuple[Unit, ...] = (HASH_MAP, SLIDING_WINDOW, DEBUGGING, STAR, SBAR, PRIORITIZE)

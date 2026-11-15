@@ -6447,6 +6447,18 @@ export interface components {
             answers: {
                 [key: string]: components["schemas"]["AttemptConditions"];
             };
+            /** Drill Attempts */
+            drill_attempts?: {
+                [key: string]: components["schemas"]["AttemptConditions"];
+            };
+            /** Scenario Attempts */
+            scenario_attempts?: {
+                [key: string]: components["schemas"]["AttemptConditions"];
+            };
+            /** Whiteboard Attempts */
+            whiteboard_attempts?: {
+                [key: string]: components["schemas"]["AttemptConditions"];
+            };
         };
         /**
          * ConditionsQuery
@@ -6458,6 +6470,12 @@ export interface components {
             submission_ids?: string[];
             /** Answer Ids */
             answer_ids?: string[];
+            /** Drill Attempt Ids */
+            drill_attempt_ids?: string[];
+            /** Scenario Attempt Ids */
+            scenario_attempt_ids?: string[];
+            /** Whiteboard Attempt Ids */
+            whiteboard_attempt_ids?: string[];
         };
         /** ContentChange */
         ContentChange: {
@@ -6985,6 +7003,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /** DrillOut */
         DrillOut: {
@@ -12905,6 +12925,8 @@ export interface components {
             updated_at: string;
             /** Completed At */
             completed_at: string | null;
+            /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /** ScenarioAttemptSummary */
         ScenarioAttemptSummary: {
@@ -12937,6 +12959,8 @@ export interface components {
             created_at: string;
             /** Completed At */
             completed_at: string | null;
+            /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /** ScenarioCatalog */
         ScenarioCatalog: {
@@ -15277,6 +15301,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /** WhiteboardAttemptSummary */
         WhiteboardAttemptSummary: {
@@ -15297,6 +15323,8 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+            /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /** WhiteboardDiagram */
         WhiteboardDiagram: {

@@ -112,6 +112,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
     scenario_attempts = db.scalars(
         select(ScenarioAttempt).where(ScenarioAttempt.user_id == user.id).order_by(ScenarioAttempt.created_at)
     ).all()
+    scenario_conditions = Conditions(db, user).for_scenarios(scenario_attempts)
     notes = db.scalars(
         select(Note).where(Note.user_id == user.id, Note.deleted_at.is_(None)).order_by(Note.created_at)
     ).all()
@@ -573,6 +574,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         ],
         "scenario_attempts": [
             {
+                "id": a.id,
                 "scenario": a.scenario_id,
                 "version": a.version,
                 "mode": a.mode,
@@ -580,6 +582,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 "steps": a.steps,
                 "created_at": iso(a.created_at),
                 "completed_at": iso(a.completed_at),
+                "conditions": scenario_conditions[a.id].model_dump(mode="json"),
             }
             for a in scenario_attempts
         ],

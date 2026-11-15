@@ -95,6 +95,8 @@ class Unit:
     review: Review
     scope_note: str | None = None  # regulated careers: scope and jurisdiction, shown prominently
     question_ids: tuple[str, ...] = field(default=())  # questions this unit prepares for
+    # Other practice it prepares for (docs/ATTEMPT_CONDITIONS.md): "scenario:<id>" or "drill:<id>".
+    prepares: tuple[str, ...] = field(default=())
 
 
 PASS_RULE = "Every answer in the check is right."

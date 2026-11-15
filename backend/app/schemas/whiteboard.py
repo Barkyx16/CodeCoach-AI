@@ -5,6 +5,7 @@ from datetime import datetime
 from pydantic import Field
 
 from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
+from app.schemas.conditions import AttemptConditions
 from app.whiteboard.diagram import Diagram
 
 
@@ -63,6 +64,10 @@ class WhiteboardAttemptOut(APIModel):
     explanation: str
     feedback: dict
     created_at: datetime
+    conditions: AttemptConditions | None = Field(
+        default=None,
+        description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)",
+    )
 
 
 class WhiteboardAttemptSummary(APIModel):
@@ -73,3 +78,7 @@ class WhiteboardAttemptSummary(APIModel):
     addressed: int
     total: int
     created_at: datetime
+    conditions: AttemptConditions | None = Field(
+        default=None,
+        description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)",
+    )

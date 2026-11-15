@@ -10,6 +10,7 @@ import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { PrivateUnavailable } from "@/components/Unavailable";
 import { isGone } from "@/lib/errors";
@@ -101,6 +102,7 @@ function Player({ attempt: a }: { attempt: ScenarioAttempt }) {
             <span className="subtle">Version {a.version}</span>
             {a.scenario.regulated && <Badge tone="warning">Fictional, not clinically validated</Badge>}
           </p>
+          <AttemptConditionsView conditions={a.conditions} />
         </div>
       </div>
       {a.retired && (

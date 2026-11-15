@@ -3,7 +3,22 @@
 Each coding attempt and each career written answer says which in-app help was shown before it
 (Volume 12, prompt 3). It's worked out when read from records the app already keeps; there's no
 separate help log. An answer given in an interview round records it when the answer is saved, with
-the round's format (Volume 13, prompt 3; below).
+the round's format (Volume 13, prompt 3; below). Drill attempts, scenario runs and whiteboard
+attempts say it too, from 15 Nov 2026 (Volume 14, prompt 4; below).
+
+## Every format, and what it records
+
+| Format | The help it can show | Recorded from | Worked out from |
+|---|---|---|---|
+| Coding submissions (and runs) | Hints for the problem (levels 1-3: "Hint shown"; level 4: "Solution revealed") | 14 Nov 2026 | the saved hints, by the problem's version |
+| Career written answers | Learn lessons that prepare the question | 14 Nov 2026 | lesson reads, by the question's version |
+| Interview-round answers | The same lessons, plus the round's format (never help) | 15 Nov 2026 | stored with the answer when it's saved |
+| Communication drills | Learn lessons that prepare the drill (the STAR lesson prepares "Answer with a concrete example") | 15 Nov 2026 | lesson reads, by the drill's version (its rubric's) |
+| Branching scenarios | Learn lessons that prepare the scenario (the prioritizing and SBAR lessons prepare "Two call lights at once") | 15 Nov 2026 | lesson reads, by the scenario's version; assessed runs and "try another approach" explorations counted apart |
+| Whiteboards | None: no lesson prepares a system-design prompt, and the prompt's points are shown to everyone with it | 15 Nov 2026 | (nothing to find: "No in-app help recorded") |
+
+Code-review exercises, sample-answer comparisons, work samples, debugging exercises, offer
+comparisons and story help don't record conditions yet (below).
 
 ## The labels
 
@@ -74,6 +89,32 @@ deleted) can change them. With them, each answer carries the round's format, whi
   question: nothing was recorded for it."
 - Another account's lesson reads never count; conditions change no score, verdict or count.
 
+## Drills, scenarios and whiteboards
+
+The only in-app help these formats have is a Learn lesson that prepares them: a lesson lists what
+it prepares (`prepares` in `app/learn/units.py`, checked by a test to name things that exist), and
+each read of it records, from 15 Nov 2026, the version of each thing it prepares at that moment
+(`learn_events.detail`, no new column). An attempt's help is then worked out when read, by the rule
+every format uses:
+
+- **The first attempt after it.** A lesson read counts for the first attempt at what it prepares made
+  after it (a scenario's assessed runs and its explorations each count their own), so the next
+  attempt shows none. A lesson is recorded as read once per lesson version, as Learn always has.
+- **The same version.** A read recorded at another version of the drill or scenario doesn't count. A
+  read from before versions were recorded counts only for something that has never had another
+  version; otherwise the attempt is **Not recorded**.
+- **Before recording.** An attempt made before 15 Nov 2026 with nothing found is **Not recorded**
+  (with the date), never "No in-app help recorded".
+- **Where it shows**: each attempt's page (a drill's feedback, a scenario run's header, a whiteboard
+  attempt's feedback) and its row in that format's list of your attempts ("In-app help: Hint shown");
+  `POST /api/v1/me/attempt-conditions` takes `drill_attempt_ids`, `scenario_attempt_ids` and
+  `whiteboard_attempt_ids` (50 of each; another account's are left out); the export gives each drill
+  attempt, scenario run and whiteboard attempt its `id` and `conditions`.
+- **Comparisons read them.** A drill repeat's comparison with the attempt before it adds "The in-app
+  help differed: before the earlier one, hint shown; before this one, none recorded." (or that one
+  of them wasn't recorded), in the comparison contract's words; nothing else in it changes.
+- Feedback, outcomes and debriefs are exactly as before; the conditions change no score or verdict.
+
 ## Not observed
 
 - Help outside the app: other sites, books, people, AI tools. It's unknown and never inferred.
@@ -85,9 +126,9 @@ deleted) can change them. With them, each answer carries the round's format, whi
 
 ## Not covered yet
 
-Coding attempts, career written answers and interview rounds. Next, each with what it would use:
-whiteboard attempts, code-review exercises (`after_reveal` is already kept), sample-answer
-comparisons (`revealed_early`), work samples, drills, scenarios and the coding interviewer.
+Covered: coding attempts, career written answers, interview rounds, drills, scenarios and
+whiteboards. Next, each with what it would use: code-review exercises (`after_reveal` is already
+kept), sample-answer comparisons (`revealed_early`), work samples and the coding interviewer.
 
 ## Checked by tests (interview rounds)
 
@@ -100,3 +141,19 @@ covers the results page. Negative controls (each caught): worked out again when 
 saved; an old round's help guessed; another account's reads counted; the follow-up left out of the
 format; an unreached question not said; the differing condition not named; and on the page, no
 conditions, no format line, no unreached note, "Not recorded" without its date.
+
+## Checked by tests (drills, scenarios and whiteboards)
+
+`backend/tests/test_practice_conditions.py` (SQLite and PostgreSQL): every lesson link names something
+that exists; a lesson read before a scenario run marks that run only, and its list row says the same;
+an exploration counts its own; a read recorded at another version doesn't count, and one from before
+versions were recorded is "Not recorded" on a revised scenario; attempts from before 15 Nov 2026 are
+"Not recorded" for all three formats; a drill's lesson shows once and its comparison names the help
+that differed; a whiteboard attempt has none to show even after every lesson; another account's reads
+and attempts never count; the export carries each attempt's conditions by id; a read records what the
+lesson prepares. `frontend/src/test/integration/practiceConditions.test.tsx` covers the pages and
+`frontend/e2e/practice-conditions.spec.ts` a drill and a scenario against the real API. Negative
+controls (each caught): help counted for every later attempt (backend and in the browser), across
+content versions, a read of unknown version taken as help, modes counted together, the date ignored, a
+read recording no version, the drill comparison ignoring the help; on the pages, a drill's, scenario
+run's or whiteboard attempt's conditions or a row's left out.

@@ -10,6 +10,8 @@ import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
+import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
+import { conditionsSummary } from "@/features/conditions/summary";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { SaveControls } from "@/features/saved/SaveControls";
 import { ScheduleLink } from "@/features/schedule/ScheduleLink";
@@ -151,7 +153,7 @@ export function DrillPage() {
                 {attempts.data!.map((a) => (
                   <li key={a.id}>
                     <button type="button" className="link-button" aria-current={result?.id === a.id ? "true" : undefined} onClick={() => show(a)}>{formatDateTime(a.created_at)}</button>
-                    <span className="subtle"> · {a.source === "voice" ? "spoken" : "typed"} · {pointsThere(a)} of {(a.feedback.observations as unknown[]).length} points</span>
+                    <span className="subtle"> · {a.source === "voice" ? "spoken" : "typed"} · {pointsThere(a)} of {(a.feedback.observations as unknown[]).length} points{a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}</span>
                   </li>
                 ))}
               </ol>
@@ -182,6 +184,7 @@ function Feedback({ a, delivery }: { a: DrillAttempt; delivery: boolean }) {
         <figcaption className="subtle">What you sent ({a.source === "voice" ? "spoken, then checked by you" : "typed"})</figcaption>
         <blockquote>{a.text}</blockquote>
       </figure>
+      <AttemptConditionsView conditions={a.conditions} />
       <ul className="drill-observations">
         {fb.observations.map((o) => (
           <li key={o.point}><Badge tone={o.present ? "success" : "neutral"}>{o.present ? "There" : "Not found"}</Badge> {o.point} <span className="subtle">({o.detail})</span></li>

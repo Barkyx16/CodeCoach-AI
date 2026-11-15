@@ -12,6 +12,8 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { CopyWork } from "@/components/CopyWork";
+import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
+import { conditionsSummary } from "@/features/conditions/summary";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { VersionConflict } from "@/components/VersionConflict";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
@@ -292,7 +294,7 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
             {attempts.data.map((a) => (
               <li key={a.id}>
                 <button type="button" className="link-button" onClick={async () => setAttempt(await api.whiteboardAttemptById(a.id))}>{formatDateTime(a.created_at)}</button>
-                <span className="subtle"> · {a.addressed} of {a.total} points addressed · prompt v{a.prompt_version}, rubric v{a.rubric_version}</span>
+                <span className="subtle"> · {a.addressed} of {a.total} points addressed · prompt v{a.prompt_version}, rubric v{a.rubric_version}{a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}</span>
               </li>
             ))}
           </ul>
@@ -389,6 +391,7 @@ function Feedback({ attempt, changed, onRefs }: { attempt: WhiteboardAttempt; ch
     <section className="card stack-sm wb-feedback" aria-labelledby="wb-fb-title">
       <h2 className="section-title" id="wb-fb-title">Feedback on the attempt from {formatDateTime(attempt.created_at)}</h2>
       {changed && <p className="banner banner--info">Your diagram has changed since this attempt. This feedback is about the version you sent.</p>}
+      <AttemptConditionsView conditions={attempt.conditions} />
       <h3 className="section-title">Checks of the diagram itself</h3>
       <ul className="mini-list">{fb.checks.map((c) => (
         <li key={c.message}>{c.ok ? "✓" : "•"} {c.message}{c.refs.length > 0 && <> <button type="button" className="link-button" onClick={() => onRefs(c.refs)}>Show on the diagram</button></>}</li>

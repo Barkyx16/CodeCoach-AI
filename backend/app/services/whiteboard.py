@@ -24,6 +24,7 @@ from app.schemas.whiteboard import (
     WhiteboardPromptRequirement,
 )
 from app.services import update_receipts
+from app.services.conditions import Conditions
 from app.whiteboard import BY_ID, PROMPTS, RUBRIC_VERSION, Prompt, prompts_for
 from app.whiteboard.diagram import Diagram, digest, evaluate
 
@@ -189,6 +190,7 @@ class Whiteboard:
 
     def _out(self, a: WhiteboardAttempt) -> WhiteboardAttemptOut:
         return WhiteboardAttemptOut(
+            conditions=Conditions(self.db, self.user).for_whiteboards([a]).get(a.id),
             id=a.id,
             prompt_id=a.prompt_id,
             prompt_version=a.prompt_version,
@@ -207,8 +209,10 @@ class Whiteboard:
             .where(WhiteboardAttempt.user_id == self.user.id, WhiteboardAttempt.prompt_id == prompt_id)
             .order_by(WhiteboardAttempt.created_at.desc())
         ).all()
+        found = Conditions(self.db, self.user).for_whiteboards(rows)
         return [
             WhiteboardAttemptSummary(
+                conditions=found.get(a.id),
                 id=a.id,
                 prompt_version=a.prompt_version,
                 rubric_version=a.rubric_version,
@@ -227,6 +231,10 @@ class Whiteboard:
         return self._out(a)
 
     def export(self) -> dict:
+        rows = self.db.scalars(
+            select(WhiteboardAttempt).where(WhiteboardAttempt.user_id == self.user.id)
+        ).all()
+        found = Conditions(self.db, self.user).for_whiteboards(rows)
         return {
             "drafts": [
                 {
@@ -241,6 +249,7 @@ class Whiteboard:
             ],
             "attempts": [
                 {
+                    "id": a.id,
                     "prompt": a.prompt_id,
                     "prompt_version": a.prompt_version,
                     "rubric_version": a.rubric_version,
@@ -248,9 +257,8 @@ class Whiteboard:
                     "explanation": a.explanation,
                     "feedback": a.feedback,
                     "created_at": a.created_at.isoformat(),
+                    "conditions": found[a.id].model_dump(mode="json"),
                 }
-                for a in self.db.scalars(
-                    select(WhiteboardAttempt).where(WhiteboardAttempt.user_id == self.user.id)
-                )
+                for a in rows
             ],
         }

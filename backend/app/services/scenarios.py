@@ -29,6 +29,7 @@ from app.scenarios import (
     order_check,
     scenarios_for,
 )
+from app.schemas.conditions import AttemptConditions
 from app.schemas.learn import ReferenceOut, ReviewOut
 from app.schemas.scenarios import (
     Alternative,
@@ -52,13 +53,13 @@ from app.schemas.scenarios import (
     Violation,
     WrittenOut,
 )
+from app.services.conditions import Conditions
 
 FEEDBACK_SOURCE = "All feedback here is the scenario's authored decision rules and rubric points. No AI commentary was generated."
 DISCLAIMER = (
     "Outcomes are simulated consequences of a fictional case. They don't predict what would happen at work or how "
     "an employer would judge you."
 )
-
 
 MIN_REASONING_WORDS = 5
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -329,7 +330,9 @@ class Scenarios:
         if scenario_id:
             q = q.where(ScenarioAttempt.scenario_id == scenario_id)
         out = []
-        for a in self.db.scalars(q.order_by(ScenarioAttempt.created_at.desc())).all():
+        rows = self.db.scalars(q.order_by(ScenarioAttempt.created_at.desc())).all()
+        found = Conditions(self.db, user).for_scenarios(rows)
+        for a in rows:
             s = get_scenario(a.scenario_id)
             end = next((st for st in a.steps or [] if st["kind"] == "ending"), None)
             out.append(
@@ -344,6 +347,7 @@ class Scenarios:
                     retired=s is None or s.version != a.version,
                     created_at=a.created_at,
                     completed_at=a.completed_at,
+                    conditions=found.get(a.id),
                 )
             )
         return out
@@ -401,7 +405,12 @@ class Scenarios:
             created_at=a.created_at,
             updated_at=a.updated_at,
             completed_at=a.completed_at,
+            conditions=self._conditions(a),
         )
+
+    def _conditions(self, a: ScenarioAttempt) -> AttemptConditions | None:
+        user = self.db.get(User, a.user_id)
+        return Conditions(self.db, user).for_scenarios([a]).get(a.id) if user is not None else None
 
     def _debrief(self, s: Scenario, a: ScenarioAttempt) -> Debrief:
         steps = a.steps or []

@@ -54,8 +54,14 @@ class ConditionsQuery(APIModel):
 
     submission_ids: list[str] = Field(default_factory=list, max_length=50)
     answer_ids: list[str] = Field(default_factory=list, max_length=50)
+    drill_attempt_ids: list[str] = Field(default_factory=list, max_length=50)
+    scenario_attempt_ids: list[str] = Field(default_factory=list, max_length=50)
+    whiteboard_attempt_ids: list[str] = Field(default_factory=list, max_length=50)
 
 
 class ConditionsOut(APIModel):
     submissions: dict[str, AttemptConditions]
     answers: dict[str, AttemptConditions]
+    drill_attempts: dict[str, AttemptConditions] = Field(default_factory=dict)
+    scenario_attempts: dict[str, AttemptConditions] = Field(default_factory=dict)
+    whiteboard_attempts: dict[str, AttemptConditions] = Field(default_factory=dict)

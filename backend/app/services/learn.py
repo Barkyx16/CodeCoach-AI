@@ -43,6 +43,7 @@ from app.schemas.learn import (
     UnitProgress,
     UnitSummary,
 )
+from app.services.conditions import prepared_versions
 
 ONCE_PER_VERSION = ("started", "read", "check_passed", "practiced")
 
@@ -269,7 +270,12 @@ class Learn:
         self._current(u, version)
         if kind == "read":
             self._record(user, u, "started", version)  # reading implies it was opened
-        self._record(user, u, kind, version)
+            # What it prepares, at the version it's at now, so a later attempt can tell whether
+            # this read was help for that version (docs/ATTEMPT_CONDITIONS.md).
+            prepared = prepared_versions(u)
+            self._record(user, u, kind, version, {"prepares": prepared} if prepared else None)
+        else:
+            self._record(user, u, kind, version)
         return self.progress(user, u.id)
 
     def check(self, user: User, unit_id: str, body: CheckIn) -> CheckResult:
