@@ -241,15 +241,25 @@ def test_history_compares_a_page_of_submissions_in_a_fixed_number_of_statements(
             user = db.scalar(select(User).order_by(User.created_at.desc()))
             pid = db.scalar(select(Problem.id).where(Problem.slug == "two-sum"))
             start = datetime.now(UTC)
-            rows = [Submission(user_id=user.id, problem_id=pid, source_code=CODE, content_version=1,
-                               created_at=start + timedelta(seconds=i)) for i in range(n)]
+            rows = [
+                Submission(
+                    user_id=user.id,
+                    problem_id=pid,
+                    source_code=CODE,
+                    content_version=1,
+                    created_at=start + timedelta(seconds=i),
+                )
+                for i in range(n)
+            ]
             db.add_all(rows)
             db.commit()
             ids = [r.id for r in rows]
         for i, sid in enumerate(ids):
             judge(client, sid, SubmissionStatus.FAILED if i % 2 else SubmissionStatus.PASSED, 3)
         with statements(client) as seen:
-            r = client.get("/api/v1/me/activity", headers=h, params={"type": "code_submission", "page_size": 20})
+            r = client.get(
+                "/api/v1/me/activity", headers=h, params={"type": "code_submission", "page_size": 20}
+            )
         assert r.status_code == 200 and len(r.json()["items"]) == n
         return len(seen)
 
