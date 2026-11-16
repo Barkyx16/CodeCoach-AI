@@ -5,8 +5,9 @@ import { API_URL } from "./ports";
 
 /**
  * Move chosen items to another collection (Volume 17, prompt 6) against the real API: two of three
- * questions, one marked done in its queue, moved through a lost reply ("Send again" changes nothing
- * twice: both read "Already there"); the form said what the other collection has, what leaves and what
+ * questions, one marked done in its queue, moved through a lost reply ("Send again" carries the first
+ * request's key, so the server gives back what it did, "2 moved", and nothing is done twice: Volume 18,
+ * prompt 5); the form said what the other collection has, what leaves and what
  * the queue will skip; axe finds nothing on the form in both themes. After a reload, both collections
  * read as the server holds them: the two at the end of the other one in this one's order, at the
  * versions they were added at, the queue mark left behind. Synthetic account.
@@ -67,8 +68,9 @@ test("move two items through a lost reply: each arrives once, as it was, and bot
   await expect(alert).toContainText("Sending the same ones again is safe");
   await alert.getByRole("button", { name: "Send again" }).click();
   const outcomes = page.getByRole("region", { name: "What happened: moving to “Week 2”" });
-  await expect(outcomes.getByRole("status")).toHaveText("2 already there. Nothing needs attention.");
-  await expect(page.getByText(/This was sent again after no reply came/)).toBeVisible();
+  await expect(outcomes.getByRole("status")).toHaveText("2 moved. Nothing needs attention.");
+  await expect(page.getByText(/This was sent again after no reply came/)).toContainText(
+    "these are what the first request did, and nothing was done twice.");
   await expect(page.getByRole("link", { name: "“Week 2”" })).toHaveAttribute("href", `/saved/collections/${week2}`);
 
   // After a reload: what's left here, and the other collection with the two at its end, in this order.
