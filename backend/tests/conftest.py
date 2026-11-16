@@ -262,9 +262,9 @@ def make_settings(database_url) -> Callable[..., Settings]:
 def _seeded_sqlite_template(tmp_path_factory) -> str | None:
     """One SQLite database made by the app's own startup (tables, row-level security where it
     applies, the seeded problem bank), once per session. A test's own database starts as a copy of
-    it, and the app then runs its whole startup on that copy as before: every test still has a
-    database of its own, it's only made 0.5 s faster (docs/CI.md, "Suite time and memory").
-    PostgreSQL runs keep making theirs from scratch."""
+    it, and the app on that copy doesn't redo the startup's database steps (make_client): every test
+    still has a database of its own (docs/CI.md, "Suite time and memory" and "The SQLite suite's
+    set-up"). PostgreSQL copies its own template (_seeded_postgres_template)."""
     if TEST_DATABASE_URL:
         return None
     path = tmp_path_factory.mktemp("seeded-template") / "seeded.db"
@@ -302,6 +302,9 @@ def make_client(
             settings = make_settings(**overrides, auto_migrate=False)
         # The test's own SQLite file, not made yet, with the app making its tables: start from the
         # seeded copy. Any other database (made by the test, overridden, PostgreSQL) is left alone.
+        # As on PostgreSQL, the copy is what the startup made, so the app on it doesn't redo the
+        # startup's database steps (about 250 ms a test, the seeding's reads; docs/CI.md, "The
+        # SQLite suite's set-up"). A test that sets auto_migrate itself is left as it asked.
         own = database_url.removeprefix("sqlite:///")
         if (
             _seeded_sqlite_template
@@ -310,6 +313,8 @@ def make_client(
             and not os.path.exists(own)
         ):
             shutil.copyfile(_seeded_sqlite_template, own)
+            if "auto_migrate" not in overrides:
+                settings = make_settings(**overrides, auto_migrate=False)
         app = create_app(settings)
         client = TestClient(app)
         client.__enter__()  # runs startup: create tables + seed

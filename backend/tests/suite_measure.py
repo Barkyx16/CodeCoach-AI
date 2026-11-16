@@ -186,6 +186,8 @@ class SuiteMeasure:
             self.current.setup_seconds += report.duration
         if report.when == "call" or (report.when == "setup" and report.outcome != "passed"):
             outcome = "xfailed" if hasattr(report, "wasxfail") and report.skipped else report.outcome
+            if report.when == "setup" and outcome == "failed":
+                outcome = "error"  # pytest's own word for a test that couldn't be set up
             self.current.outcomes[outcome] = self.current.outcomes.get(outcome, 0) + 1
 
     def pytest_sessionfinish(self, session, exitstatus) -> None:

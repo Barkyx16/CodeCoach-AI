@@ -301,8 +301,8 @@ table, a sequence or a seeded row a test changed.
 **The startup doesn't redo it.** A test's app on that copy starts with `auto_migrate` off (a test
 setting; no app code changes): the template is what that very startup made, on the same models, seed
 and policies, so running it again would change nothing and cost about a second. A test that sets
-`auto_migrate` itself, or uses another database, gets what it asks for. SQLite is unchanged: each
-test's database is a copy of a seeded file, and its app runs the whole startup on it, as before.
+`auto_migrate` itself, or uses another database, gets what it asks for. SQLite now does the same
+(Volume 16, prompt 1: "The SQLite suite's set-up" below).
 
 It needs a role that may create databases: CI's PostgreSQL job already gives the suite one
 (`TEST_DATABASE_ADMIN_URL`, the service's superuser, for the storage rehearsals). Without it the
@@ -337,10 +337,77 @@ run inside `test_suite_measure.py` made and then dropped it, and the 99 tests af
 couldn't be set up (and the test database was left dropped). Each session now names its own
 template and makes a missing test database again; the run above is after that fix.
 
-**In CI** the PostgreSQL step's time varies a lot between runs on the same fixture: 60 min 57 s
+**In CI** the PostgreSQL step's time varied a lot between runs on the old fixture: 60 min 57 s
 (run 332), 73 min 5 s (run 331), 77 min 10 s (run 342), 47 min 51 s (run 343). The first run with
-this change is recorded in the next commit; one run against that spread proves less than the
-same-machine pair above.
+this change, run 345 (`bb0d396`): **PostgreSQL tests 18 min 26 s**, 3,218 passed, 389 skipped (388 in
+`test_judge_sandbox.py`, which runs in the sandbox job, and one SQLite-only), 2 xfailed; the whole
+run took 21 minutes, down from 79. One run against that spread proves less than the same-machine pair
+above, but it's below the old fixture's fastest run by more than half.
+
+## The SQLite suite's set-up
+
+Volume 16, prompt 1. After the PostgreSQL change, SQLite was the slower backend job (19 min 26 s of
+tests in run 345). Its test databases were already copies of one seeded file (Volume 13, prompt 9),
+but each test's app still ran its whole startup on the copy.
+
+### Where the set-up went
+
+Measured on this machine (`sqlite_setup_phases`, median of ten tests, each on a fresh copy of the
+seeded file; each step timed on its own, and the app's start timed whole):
+
+| Step, per test | Time |
+|---|---|
+| Copying the seeded file | 1.0 ms |
+| `create_all` (the tables are already there) | 7.0 ms |
+| `add_missing_columns` | 19.7 ms |
+| `rls.apply` (nothing to do on SQLite) | 0.1 ms |
+| `seed_problems` (reads only: one query per problem and its tests) | 335.6 ms |
+| **The startup's database steps** | **362.2 ms** |
+| The whole app start, `auto_migrate` on | 296.5 ms |
+| The whole app start, `auto_migrate` off | 9.4 ms |
+
+(An earlier run the same way: 251 ms of database steps, 231 of them seeding; the
+app start 255 ms on and 8 ms off.) So nearly all of a test's set-up was the startup redoing, on a
+copy, what the copy already holds: mostly the seeding's reads.
+
+### What it does now
+
+A test's app on its fresh copy of the seeded file starts with `auto_migrate` off (`make_client` in
+`tests/conftest.py`; a test setting, no app code changes), as on PostgreSQL: the file is what that
+very startup made, on the same models and seed, so running it again changes nothing. A test that
+sets `auto_migrate` itself, or brings its own database, gets what it asks for, and every test still
+has a database of its own: a new file, copied before it starts. Negative controls (each caught): one
+database file shared by every test (`test_database_isolation.py` finds the first test's account and
+changed problem in the second); a template that was never seeded, with the startup skipped on its
+copy (the tests that need the problem bank fail).
+
+### Before and after
+
+Both on this machine, one after the other, on the same tree (`bb0d396` and that tree with this
+change), with the measuring plugin, every file but `test_judge_sandbox.py`:
+
+| | Before (startup on each copy) | After (copy only) |
+|---|---|---|
+| Set-up time inside the tests | 570 s (0.18 s per test) | 88 s (0.03 s per test) |
+| Time inside the tests | 1,800 s | 1,267 s |
+| Wall time | 36 min 51 s | 27 min 46 s |
+| Peak resident memory | 914 MB | 914 MB |
+| Exit after the summary | 11.7 s | 9.9 s |
+| Results | 3,171 passed, 48 skipped, 2 xfailed | 3,173 passed, 48 skipped, 2 xfailed (the two new `test_suite_table.py` tests) |
+
+Neither ran on an idle machine (the "before" run shared it with other test runs, the "after" run with
+fewer, at a lower priority), so the set-up time, measured inside each test, is the comparison to
+trust, and CI's step time is the wall time. The first CI run with this change is recorded in the next
+commit.
+
+### The measurement's own fault, fixed
+
+`scripts/suite_table.py` printed its counts from pytest's summary line, and passing it `-q` (it
+already runs pytest with `-q`) hid that line, so the PostgreSQL "before" run in Volume 15 recorded no
+counts. It now drops an extra `-q` and says so, and if the summary is missing it counts the outcomes
+its plugin recorded per test (saying which it used, `counts_from`); a test whose set-up fails is
+counted as an error, as pytest does. `tests/test_suite_table.py` runs it on a file with a pass, a skip
+and a set-up error.
 
 ## Recording CI evidence without churn
 

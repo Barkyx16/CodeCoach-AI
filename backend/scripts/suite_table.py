@@ -24,6 +24,7 @@ from pathlib import Path
 BACKEND = Path(__file__).resolve().parents[1]
 # Pytest's last line, with or without its ===== frame (-q drops it): "3373 passed, 46 skipped in 2836.30s".
 SUMMARY = re.compile(r"\b\d+ (passed|failed|errors?)\b.* in ([\d.]+)s")
+QUIET = {"-q", "--quiet", "-qq", "-qqq"}
 COUNTS = re.compile(r"(\d+) (passed|failed|skipped|xfailed|xpassed|errors?|deselected)")
 
 
@@ -67,6 +68,14 @@ def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--out", default="suite-run.json", help="where to write the run's record")
     known, pytest_args = parser.parse_known_args(argv)
+    # It already runs pytest with -q; one more would hide pytest's summary line, and with it the
+    # counts and the exit delay (Volume 16, prompt 1). Dropped, and said.
+    quiet = [a for a in pytest_args if a in QUIET]
+    pytest_args = [a for a in pytest_args if a not in QUIET]
+    if quiet:
+        print(
+            f"suite_table runs pytest with -q already; ignoring {' '.join(quiet)} (it would hide the summary line)"
+        )
     measure = Path(tempfile.mkstemp(suffix=".json")[1])
     stacks = Path(tempfile.mkstemp(suffix=".txt")[1])
     env = {**os.environ, "SUITE_MEASURE_OUT": str(measure), "SUITE_MEASURE_EXIT_STACKS": str(stacks)}
@@ -104,6 +113,12 @@ def main(argv: list[str]) -> int:
     measure.unlink(missing_ok=True)
     exit_stacks = stacks.read_text(errors="replace") if stacks.exists() else ""
     stacks.unlink(missing_ok=True)
+    counts_from = "summary"
+    if not counts:  # no summary line (an interrupted run): the plugin's own per-file outcomes
+        counts_from = "plugin"
+        for f in data.get("files", []):
+            for kind, n in (f.get("outcomes") or {}).items():
+                counts[kind] = counts.get(kind, 0) + n
     record = {
         "wall_seconds": round(ended - started, 1),
         "exit_delay_seconds": round(ended - summary_at, 1) if summary_at else None,
@@ -117,6 +132,7 @@ def main(argv: list[str]) -> int:
         # before the first). The first and last are kept: what it began with and what it ended on.
         "exit_stacks": _first_and_last(exit_stacks),
         "counts": counts,
+        "counts_from": counts_from,
         "database": "postgresql" if os.environ.get("TEST_DATABASE_URL") else "sqlite",
         "files": data.get("files", []),
     }
