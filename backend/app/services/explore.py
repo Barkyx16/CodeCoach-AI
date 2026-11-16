@@ -35,6 +35,7 @@ from app.models import (
     PracticeAnswer,
     PracticeCollection,
     Problem,
+    SourceReview,
     Submission,
     SubmissionMode,
     User,
@@ -69,6 +70,23 @@ from app.services.note_freshness import Holder, SourceFreshness, SourceRef, forg
 
 MAX_COLLECTIONS = 50
 MAX_ITEMS = 200
+COPY = " (copy)"
+
+
+def collection_name_key(name: str) -> str:
+    """A collection's name as compared with the others': spacing and letter case don't count."""
+    return " ".join(name.split()).casefold()
+
+
+def copy_name(original: str, taken: set[str]) -> str:
+    """“X (copy)”, or “X (copy 2)”, “X (copy 3)”… when that's taken, within the 80-character limit."""
+    for n in range(1, MAX_COLLECTIONS + 2):
+        suffix = COPY if n == 1 else f" (copy {n})"
+        name = original.strip()[: 80 - len(suffix)].rstrip() + suffix
+        if collection_name_key(name) not in taken:
+            return name
+    raise AssertionError("more copies than collections")  # pragma: no cover: the limit comes first
+
 
 # Saved items and collections hold a versioned source the same way a note does: one rule
 # (app/services/note_freshness.py), their own words and their own reviews.
@@ -657,6 +675,111 @@ class Explorer:
         self.db.commit()
         return self.get(user, c.id)
 
+    def duplicate(
+        self, user: User, cid: str, name: str | None, key: str | None
+    ) -> tuple[CollectionOut, bool]:
+        """A new collection from this one (Volume 16, prompt 8): the same items in the same order,
+        each at the version it was added at, with its "Mark reviewed" copied as the copy's own record;
+        the queue starts fresh; the original is unchanged. Returns (the copy, made now): sent again
+        with the same key, it's the copy that key made. Another account's collection is "not found",
+        before anything else is looked at."""
+        src = self._collection(user, cid)
+        if key is not None:
+            made = self._copy_for(user, cid, key)
+            if made is not None:
+                return self.get(user, made.id), False
+        rows = self.db.execute(
+            select(PracticeCollection.name).where(PracticeCollection.user_id == user.id)
+        ).all()
+        if len(rows) >= MAX_COLLECTIONS:
+            raise AppError(
+                f"You can keep up to {MAX_COLLECTIONS} collections, and you have {len(rows)}: delete one to "
+                "make room for a copy.",
+                code="too_many_collections",
+                details={"limit": MAX_COLLECTIONS, "count": len(rows)},
+            )
+        taken = {collection_name_key(n) for (n,) in rows}
+        if name is not None and name.strip():
+            final = " ".join(name.split())
+            if collection_name_key(final) in taken:
+                raise ConflictError(
+                    f"You already have a collection called “{final}” (names are compared in any letter "
+                    "case). Choose another name.",
+                    code="name_taken",
+                )
+        else:
+            final = copy_name(src.name, taken)
+        copy = PracticeCollection(
+            user_id=user.id, name=final, queue_position=0, copied_from_id=src.id, client_request_id=key
+        )
+        items = sorted(src.items, key=lambda i: i.position)
+        made_items = [
+            CollectionItem(
+                item_type=i.item_type,
+                track=i.track,
+                ref_id=i.ref_id,
+                position=pos,
+                # What each item was added at, kept: its version (and when, so "practiced since added"
+                # reads the same). An item no longer in the library is carried as it is: the copy shows
+                # it unavailable exactly as the original does, never swapped or dropped.
+                content_version=i.content_version,
+                added_at=i.added_at,
+                queue_done_at=None,  # the queue starts fresh
+            )
+            for pos, i in enumerate(items)
+        ]
+        copy.items.extend(made_items)
+        self.db.add(copy)
+        try:
+            self.db.flush()
+        except IntegrityError:
+            # The same key from another tab at the same moment: that request's copy is the one.
+            self.db.rollback()
+            made = self._copy_for(user, cid, key) if key is not None else None
+            if made is None:
+                raise
+            return self.get(user, made.id), False
+        # Each "Mark reviewed" as the copy's own record (its own holder): reviewing in one collection
+        # never changes the other, and the original's history stays where it is.
+        old_ids = {i.id: new.id for i, new in zip(items, made_items, strict=True)}
+        if old_ids:
+            for r in self.db.scalars(
+                select(SourceReview).where(
+                    SourceReview.user_id == user.id,
+                    SourceReview.holder_kind == IN_COLLECTION.kind,
+                    SourceReview.holder_id.in_(list(old_ids)),
+                )
+            ).all():
+                self.db.add(
+                    SourceReview(
+                        user_id=user.id,
+                        holder_kind=IN_COLLECTION.kind,
+                        holder_id=old_ids[r.holder_id],
+                        source_kind=r.source_kind,
+                        source_id=r.source_id,
+                        from_revision=r.from_revision,
+                        to_revision=r.to_revision,
+                        to_digest=r.to_digest,
+                        decision=r.decision,
+                        created_at=r.created_at,
+                    )
+                )
+        self.db.commit()
+        return self.get(user, copy.id), True
+
+    def _copy_for(self, user: User, cid: str, key: str) -> PracticeCollection | None:
+        """The copy a key already made, or None. A key used for a copy of another collection is refused."""
+        made = self.db.scalar(
+            select(PracticeCollection).where(
+                PracticeCollection.user_id == user.id, PracticeCollection.client_request_id == key
+            )
+        )
+        if made is not None and made.copied_from_id != cid:
+            raise ConflictError(
+                "That request key was already used for another copy.", code="idempotency_key_reused"
+            )
+        return made
+
     def rename(self, user: User, cid: str, name: str) -> CollectionOut:
         c = self._collection(user, cid)
         c.name = name.strip() or c.name
@@ -910,5 +1033,8 @@ class Explorer:
                 )
             )
         return CollectionOut(
-            **self._summary(c).model_dump(), item_list=out, queue_done=sum(x.queue_done for x in out)
+            **self._summary(c).model_dump(),
+            item_list=out,
+            queue_done=sum(x.queue_done for x in out),
+            copied_from_id=c.copied_from_id,
         )

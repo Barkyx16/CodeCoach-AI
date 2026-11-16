@@ -16,6 +16,7 @@ from app.schemas.explore import (
     BookmarkOut,
     CollectionBatchIn,
     CollectionBatchOut,
+    CollectionDuplicateIn,
     CollectionIn,
     CollectionItemIn,
     CollectionOut,
@@ -213,6 +214,31 @@ def create_collection(
     body: CollectionIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> CollectionOut:
     return Explorer(db).create(user, body.name)
+
+
+@router.post(
+    "/me/collections/{collection_id}/duplicate",
+    response_model=CollectionOut,
+    status_code=201,
+    responses=error_responses(400, 401, 404, 409, 422),
+    summary="Duplicate a collection: its items in order, at their versions, with their reviews; a fresh queue",
+    description="A new collection named “… (copy)” (or the name given, which mustn't be one you already "
+    "have, in any letter case) with the same items in the same order, each at the version it was added at "
+    "and with its “Mark reviewed” copied as the copy's own; its queue starts fresh and the original is "
+    "unchanged. 400 `too_many_collections` at the limit. Sent again with the same `client_request_id`, it "
+    "returns the copy that request made (200), not another (docs/BULK_ACTIONS.md).",
+)
+def duplicate_collection(
+    collection_id: str,
+    body: CollectionDuplicateIn,
+    response: Response,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CollectionOut:
+    copy, made = Explorer(db).duplicate(user, collection_id, body.name, body.client_request_id)
+    if not made:
+        response.status_code = 200
+    return copy
 
 
 @router.get(

@@ -583,6 +583,10 @@ export const api = {
     apiRequest<CollectionSummary[]>("/api/v1/me/collections", { query: ref ? { item_type: ref.item_type, track: ref.track ?? "", ref_id: ref.ref_id } : {} }),
   collection: (id: string) => apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}`),
   createCollection: (name: string) => apiRequest<Collection>("/api/v1/me/collections", { method: "POST", body: { name } }),
+  /** A copy: the same items in order, at their versions, with their reviews; a fresh queue. The same
+   * `client_request_id` again returns the copy that request made (Volume 16, prompt 8). */
+  duplicateCollection: (id: string, body: { name?: string | null; client_request_id: string }) =>
+    apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}/duplicate`, { method: "POST", body }),
   renameCollection: (id: string, name: string) =>
     apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}`, { method: "PATCH", body: { name } }),
   deleteCollection: (id: string) => apiRequest<void>(`/api/v1/me/collections/${encodeURIComponent(id)}`, { method: "DELETE" }),

@@ -4424,6 +4424,104 @@
         }
       }
     },
+    "/api/v1/me/collections/{collection_id}/duplicate": {
+      "post": {
+        "tags": [
+          "explore"
+        ],
+        "summary": "Duplicate a collection: its items in order, at their versions, with their reviews; a fresh queue",
+        "description": "A new collection named \u201c\u2026 (copy)\u201d (or the name given, which mustn't be one you already have, in any letter case) with the same items in the same order, each at the version it was added at and with its \u201cMark reviewed\u201d copied as the copy's own; its queue starts fresh and the original is unchanged. 400 `too_many_collections` at the limit. Sent again with the same `client_request_id`, it returns the copy that request made (200), not another (docs/BULK_ACTIONS.md).",
+        "operationId": "duplicate_collection_api_v1_me_collections__collection_id__duplicate_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Collection Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionDuplicateIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/collections/{collection_id}": {
       "get": {
         "tags": [
@@ -29669,6 +29767,41 @@
         ],
         "title": "CollectionBatchOut"
       },
+      "CollectionDuplicateIn": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "The copy's name; default: the original's with \u201c (copy)\u201d, numbered when that's taken"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "A key for this request: sent again (a retry after a lost reply), it returns the copy it made, not another"
+          }
+        },
+        "type": "object",
+        "title": "CollectionDuplicateIn",
+        "description": "Duplicate a collection (Volume 16, prompt 8; docs/BULK_ACTIONS.md, \"Duplicate a collection\")."
+      },
       "CollectionIn": {
         "properties": {
           "name": {
@@ -29871,6 +30004,18 @@
           "queue_done": {
             "type": "integer",
             "title": "Queue Done"
+          },
+          "copied_from_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Copied From Id",
+            "description": "The collection this one was duplicated from (it may have been deleted since)"
           }
         },
         "type": "object",

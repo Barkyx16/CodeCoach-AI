@@ -1,25 +1,28 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
-import { useCollection, useCollectionMutation, useDeleteCollection } from "@/api/queries";
+import { useCollection, useCollectionMutation, useCollections, useDeleteCollection } from "@/api/queries";
 import type { CollectionItem } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
+import { useRequestKey } from "@/lib/requestKey";
 
 import { BulkOutcomes, NoReply, SelectBox } from "./bulk";
 import { type BulkResult, isDone, useSelection } from "./bulkSelection";
 import { useItemKind } from "./labels";
+import { MAX_COLLECTIONS } from "./limits";
 import { SavedFreshness } from "./SavedFreshness";
 
 /** One collection: rename, reorder (buttons, keyboard-friendly), remove items, start the practice queue. */
 export function CollectionPage() {
   const { id = "" } = useParams();
   const navigate = useNavigate();
+  const made = (useLocation().state as { copied?: string } | null)?.copied;
   const collection = useCollection(id);
   const rename = useCollectionMutation((name: string) => api.renameCollection(id, name));
   const reorder = useCollectionMutation((ids: string[]) => api.reorderCollection(id, ids));
@@ -27,6 +30,25 @@ export function CollectionPage() {
   const reviewItem = useCollectionMutation(({ itemId, version }: { itemId: string; version: number }) => api.reviewCollectionItem(id, itemId, version));
   const start = useCollectionMutation((position: number) => api.setQueuePosition(id, position));
   const destroy = useDeleteCollection();
+  // Duplicate (Volume 16, prompt 8): one key per exact request, so a retry after a lost reply makes one copy.
+  const all = useCollections();
+  const copies = useQueryClient();
+  const requestKey = useRequestKey();
+  const [duplicating, setDuplicating] = useState(false);
+  const [copyName, setCopyName] = useState("");
+  const [copyLost, setCopyLost] = useState(false);
+  const duplicate = useMutation({
+    mutationFn: (name: string) => api.duplicateCollection(id, { name: name || null, client_request_id: requestKey.keyFor({ id, name }) }),
+    onSuccess: (copy) => {
+      requestKey.done();
+      copies.setQueryData(["me", "collection", copy.id], copy);
+      void copies.invalidateQueries({ queryKey: ["me", "collections"] });
+      setDuplicating(false);
+      setCopyLost(false);
+      navigate(`/saved/collections/${copy.id}`, { state: { copied: copy.name } });
+    },
+    onError: (e) => setCopyLost(e instanceof ApiError && (e.code === "network_error" || e.status >= 500)),
+  });
   const itemKind = useItemKind();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("");
@@ -139,6 +161,15 @@ export function CollectionPage() {
     if (done) setEditing(false);
   }
 
+  const count = all.data?.length;
+  const atLimit = count !== undefined && count >= MAX_COLLECTIONS;
+  const original = c.copied_from_id ? all.data?.find((x) => x.id === c.copied_from_id) : undefined;
+
+  function onDuplicate(e: FormEvent) {
+    e.preventDefault();
+    if (!atLimit) duplicate.mutate(copyName.trim());
+  }
+
   async function onStart() {
     const position = c.queue_started ? c.queue_position : 0;
     const done = await start.mutateAsync(position).catch(() => null);
@@ -171,6 +202,7 @@ export function CollectionPage() {
         </div>
         <div className="row">
           {!editing && <Button size="sm" variant="ghost" onClick={() => { setName(c.name); setEditing(true); }}>Rename</Button>}
+          <Button size="sm" variant="ghost" id="duplicate-collection" aria-expanded={duplicating} onClick={() => setDuplicating((v) => !v)}>Duplicate</Button>
           <Button size="sm" variant="ghost" id="delete-collection" aria-expanded={confirming} onClick={() => setConfirming(true)}>Delete</Button>
           {items.length > 0 && (
             <Button variant="primary" loading={start.isPending} onClick={() => void onStart()}>
@@ -180,6 +212,39 @@ export function CollectionPage() {
         </div>
       </div>
       <InlineError error={start.error} />
+      {made && made === c.name && <p className="banner banner--success" role="status">Made “{made}”: the same items in the same order, its queue at the beginning.</p>}
+      {c.copied_from_id && (
+        <p className="subtle">
+          A copy of {original ? <Link to={`/saved/collections/${original.id}`}>“{original.name}”</Link> : "a collection you've since deleted"}.
+          {" "}Its queue and its “Mark reviewed” are its own: nothing you do here changes the other.
+        </p>
+      )}
+
+      {duplicating && (
+        <form className="banner banner--info stack-sm" aria-labelledby="duplicate-title" onSubmit={onDuplicate}
+          onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setDuplicating(false); document.getElementById("duplicate-collection")?.focus(); } }}>
+          <strong id="duplicate-title">Duplicate “{c.name}”</strong>
+          <p>The copy has the same {c.items === 1 ? "item" : `${c.items} items`} in the same order, each at the version it was added at and with its “Mark reviewed”. Its queue starts at the beginning, and this collection doesn't change. Your saved items aren't touched.</p>
+          {count !== undefined && (atLimit
+            ? <p className="banner banner--warning" role="status">You have {count} of {MAX_COLLECTIONS} collections: delete one to make room for a copy.</p>
+            : count >= MAX_COLLECTIONS - 5 && <p className="subtle">You have {count} of {MAX_COLLECTIONS} collections; the copy would make {count + 1}.</p>)}
+          <label className="field">
+            <span className="field__label">Name for the copy</span>
+            <input className="input" value={copyName} maxLength={80} placeholder={`${c.name} (copy)`} autoFocus onChange={(e) => setCopyName(e.target.value)} />
+          </label>
+          <p className="subtle">Leave it empty for “{c.name} (copy)”, numbered if you already have one. A name you already use, in any letter case, isn't taken twice.</p>
+          <span className="row">
+            <Button type="submit" size="sm" variant="primary" loading={duplicate.isPending} disabled={atLimit}>Make the copy</Button>
+            <Button size="sm" variant="ghost" onClick={() => setDuplicating(false)}>Cancel</Button>
+          </span>
+          {copyLost ? (
+            <div className="banner banner--warning stack-sm" role="alert">
+              <p>No reply came, so it isn't known whether the copy was made. Sending it again is safe: it makes one copy, not two.</p>
+              <span className="row"><Button size="sm" loading={duplicate.isPending} onClick={() => duplicate.mutate(copyName.trim())}>Send again</Button></span>
+            </div>
+          ) : <InlineError error={duplicate.error} />}
+        </form>
+      )}
 
       {confirming && (
         <div className="banner banner--warning stack-sm" role="alertdialog" aria-labelledby="delete-title" aria-describedby="delete-desc"

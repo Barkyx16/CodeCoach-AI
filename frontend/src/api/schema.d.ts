@@ -967,6 +967,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/collections/{collection_id}/duplicate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Duplicate a collection: its items in order, at their versions, with their reviews; a fresh queue
+         * @description A new collection named “… (copy)” (or the name given, which mustn't be one you already have, in any letter case) with the same items in the same order, each at the version it was added at and with its “Mark reviewed” copied as the copy's own; its queue starts fresh and the original is unchanged. 400 `too_many_collections` at the limit. Sent again with the same `client_request_id`, it returns the copy that request made (200), not another (docs/BULK_ACTIONS.md).
+         */
+        post: operations["duplicate_collection_api_v1_me_collections__collection_id__duplicate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/collections/{collection_id}": {
         parameters: {
             query?: never;
@@ -6510,6 +6530,22 @@ export interface components {
              */
             results: components["schemas"]["BatchResult"][];
         };
+        /**
+         * CollectionDuplicateIn
+         * @description Duplicate a collection (Volume 16, prompt 8; docs/BULK_ACTIONS.md, "Duplicate a collection").
+         */
+        CollectionDuplicateIn: {
+            /**
+             * Name
+             * @description The copy's name; default: the original's with “ (copy)”, numbered when that's taken
+             */
+            name?: string | null;
+            /**
+             * Client Request Id
+             * @description A key for this request: sent again (a retry after a lost reply), it returns the copy it made, not another
+             */
+            client_request_id?: string | null;
+        };
         /** CollectionIn */
         CollectionIn: {
             /** Name */
@@ -6597,6 +6633,11 @@ export interface components {
             item_list: components["schemas"]["CollectionItemOut"][];
             /** Queue Done */
             queue_done: number;
+            /**
+             * Copied From Id
+             * @description The collection this one was duplicated from (it may have been deleted since)
+             */
+            copied_from_id?: string | null;
         };
         /**
          * CollectionReviewBatchIn
@@ -19864,6 +19905,77 @@ export interface operations {
             };
             /** @description Missing, invalid, expired or revoked access token */
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    duplicate_collection_api_v1_me_collections__collection_id__duplicate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionDuplicateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

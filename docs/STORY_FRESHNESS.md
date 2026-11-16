@@ -167,7 +167,11 @@ source, with its own words and its own reviews. There is no second rule.
   Collections come back from a version 2 file too (Volume 15, prompt 6; docs/BACKUP_FORMAT.md):
   each item with the version it was added at, by the same rule (only a version the source has had,
   otherwise "not known"), and its reviews, so a restored collection's badges read as they did.
-  There's no way to share or copy a collection.
+- **Copies.** A duplicated collection (Volume 16, prompt 8; docs/BULK_ACTIONS.md, "Duplicate a
+  collection") carries each item at the version it was added at, as stored (never the version now),
+  and each of its reviews as the copy's own row, holder and all, so the copy's badges read exactly
+  as the original's did; from then on each collection's reviews are its own, and a change to the
+  source asks in both until each is reviewed. Collections still can't be shared.
 - **Limits.** A lesson's minor mark is reviewed content: a person marks it, and the content gate
   refuses one on version 1, beyond the lesson's version, or without a change note
   (`tests/test_minor_changes.py`; 6 negative controls, all caught). No lesson has a minor version

@@ -110,6 +110,24 @@ class CollectionIn(APIModel):
     name: str = Field(min_length=1, max_length=80)
 
 
+class CollectionDuplicateIn(APIModel):
+    """Duplicate a collection (Volume 16, prompt 8; docs/BULK_ACTIONS.md, "Duplicate a collection")."""
+
+    name: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=80,
+        description="The copy's name; default: the original's with “ (copy)”, numbered when that's taken",
+    )
+    client_request_id: str | None = Field(
+        default=None,
+        min_length=8,
+        max_length=64,
+        description="A key for this request: sent again (a retry after a lost reply), it returns the copy it "
+        "made, not another",
+    )
+
+
 class CollectionItemIn(APIModel):
     item_type: ItemType
     track: str = Field(default="", max_length=64)
@@ -240,3 +258,7 @@ class CollectionSummary(APIModel):
 class CollectionOut(CollectionSummary):
     item_list: list[CollectionItemOut]
     queue_done: int
+    copied_from_id: str | None = Field(
+        default=None,
+        description="The collection this one was duplicated from (it may have been deleted since)",
+    )

@@ -397,8 +397,11 @@ change), with the measuring plugin, every file but `test_judge_sandbox.py`:
 
 Neither ran on an idle machine (the "before" run shared it with other test runs, the "after" run with
 fewer, at a lower priority), so the set-up time, measured inside each test, is the comparison to
-trust, and CI's step time is the wall time. The first CI run with this change is recorded in the next
-commit.
+trust, and CI's step time is the wall time.
+
+In CI, the **Tests (SQLite)** step since this change: 14 min 2 s (run 346, `ff93d23`) and 16 min 31 s
+(run 347, `0e7e0eb`), against 24 min 7 s (run 343) and 19 min 26 s (run 345) just before it. The step
+varies between runs (shared runners), so the range is the honest figure: about 5 to 8 minutes less.
 
 ### The measurement's own fault, fixed
 

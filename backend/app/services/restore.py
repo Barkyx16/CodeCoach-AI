@@ -69,7 +69,7 @@ from app.schemas.restore import RestoreBatch, RestoreCategory, RestorePreview, R
 from app.schemas.stories import StoryCreate
 from app.services.applications import MAX_APPLICATIONS
 from app.services.dismissals import parse as parse_suggestion
-from app.services.explore import IN_COLLECTION, MAX_COLLECTIONS, MAX_ITEMS, SAVED
+from app.services.explore import IN_COLLECTION, MAX_COLLECTIONS, MAX_ITEMS, SAVED, collection_name_key
 from app.services.listed_names import MAX_NAMES
 from app.services.listed_names import clean as clean_name
 from app.services.listed_names import fold as fold_name
@@ -220,10 +220,6 @@ def story_full(e: ExperienceEntry) -> str:
 
 def bookmark_identity(item_type: str, track: str, ref_id: str) -> str:
     return _sha(["bookmark", item_type, track, ref_id])
-
-
-def collection_name_key(name: str) -> str:
-    return " ".join(name.split()).casefold()
 
 
 def collection_full(c: PracticeCollection, reviews: list[tuple[str, int]]) -> str:

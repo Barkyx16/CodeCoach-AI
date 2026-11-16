@@ -836,7 +836,10 @@ All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a
   unavailable | invalid_version | not_there | repeated` (docs/BULK_ACTIONS.md).
 - Collections 🔒, private to the owner (another user's id is a 404): `GET|POST
   /api/v1/me/collections` (`GET` with `item_type, track, ref_id` adds `contains` to each),
-  `GET|PATCH|DELETE /me/collections/{id}`, `POST /me/collections/{id}/items` (`409
+  `GET|PATCH|DELETE /me/collections/{id}`, `POST /me/collections/{id}/duplicate {name?,
+  client_request_id?}` (a copy with the items in order, their versions and reviews, a fresh queue;
+  `409 name_taken`, `400 too_many_collections`; the same key returns the same copy, 200;
+  docs/BULK_ACTIONS.md), `POST /me/collections/{id}/items` (`409
   already_in_collection`; the unique constraint also settles races), `DELETE …/items/{item_id}`,
   `PUT …/order {item_ids}` (every id exactly once, else `400 invalid_order`), `PUT …/queue
   {position}` (start or move the practice queue; `409 empty_collection`), `PUT

@@ -947,12 +947,18 @@ class PracticeCollection(Base):
     are separate from mastery: finishing a queue doesn't mean a skill is mastered."""
 
     __tablename__ = "practice_collections"
+    __table_args__ = (UniqueConstraint("user_id", "client_request_id", name="uq_collection_request"),)
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     name: Mapped[str] = mapped_column(String(80))
     queue_position: Mapped[int] = mapped_column(Integer, default=0)
     queue_started_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
+    # A copy (Volume 16, prompt 8; docs/BULK_ACTIONS.md, "Duplicate a collection"): the collection it
+    # was made from (no foreign key: the original can be deleted and the copy stays), and the key of
+    # the request that made it, so a retried request makes one copy.
+    copied_from_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow, onupdate=utcnow)
 

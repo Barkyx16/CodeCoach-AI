@@ -15,6 +15,33 @@ membership; nothing here deletes a bookmark, a question, an answer or a collecti
 Not offered as a bulk action (on purpose): deleting bookmarks, collections or anything else;
 answers, scores, schedules, shares or account settings.
 
+## Duplicate a collection
+
+`POST /api/v1/me/collections/{id}/duplicate {name?, client_request_id?}` (Volume 16, prompt 8), from
+**Duplicate** on a collection's page: a new collection, "… (copy)" by default (numbered, "… (copy
+2)", when that's taken; within the 80-character limit) or the name given, with:
+
+| Carried to the copy | Starts fresh | Never touched |
+|---|---|---|
+| every item, in the same order, as the original shows it (one whose content left the library or was retired is carried as unavailable, never swapped or dropped) | the queue: at the first item, not started, nothing marked done | the original: its items, order, queue, marks and reviews |
+| each item's version as it was added (`content_version`) and when (`added_at`, so "practised since added" reads the same) | | the saved list: no bookmark is added, removed or reviewed |
+| each item's "Mark reviewed", copied as the copy's own record (its own `collection_item` holder in `source_reviews`): reviewing in one never changes the other | | another account's collections: one isn't found (404, the same answer as for an id that never existed) |
+
+- **The name** is checked like a restored collection's: not one you already have, compared with its
+  spacing and letter case ignored (`409 name_taken`: "You already have a collection called “…”
+  (names are compared in any letter case). Choose another name.").
+- **The limit** (50 collections) applies: `400 too_many_collections` with `{limit, count}`. The form
+  says it before it's reached ("You have 47 of 50 collections; the copy would make 48."), and at it
+  says so and doesn't send ("You have 50 of 50 collections: delete one to make room for a copy.").
+- **A retried request makes one copy**: the page sends one `client_request_id` per exact request
+  (`useRequestKey`), and the same key returns the copy it made (200, not 201), also from two tabs at
+  once (the unique `(user_id, client_request_id)` settles a race). A key used for another
+  collection's copy is refused (`409 idempotency_key_reused`). A lost reply says "No reply came, so
+  it isn't known whether the copy was made. Sending it again is safe: it makes one copy, not two."
+- The copy remembers where it came from (`copied_from_id`, migration `e5b1c7d9a248`; no foreign key,
+  so deleting the original leaves the copy) and its page says "A copy of “…”" (or "of a collection
+  you've since deleted"). Removing an item from either collection takes only that item's reviews.
+
 ## Selection scope
 
 - **Only rows on screen.** A checkbox per row ("Select: <title>") and **Select all shown (N)**, which
@@ -92,8 +119,20 @@ leaving the selection; another account signing in starting with nothing selected
 selection, removal with one already gone elsewhere, bookmarks untouched); `e2e/bulk-actions.spec.ts`
 (real API: a lost reply and "Send again", removal by keyboard, bookmarks intact, axe in both themes).
 
+Duplicate: `tests/test_collection_copies.py` (order, versions and reviews kept, a fresh queue, the
+original unchanged; marking done and moving the copy's queue; reviewing and removing in one leaving
+the other and the saved list; a retry making one copy, a key reused for another refused; the name in
+any letter case, numbered defaults, the length limit; the collection limit and its words; retired and
+removed items carried unavailable; the order after a reload and on another device; another account's
+404 with nothing said; on PostgreSQL, row-level security keeping another account's rows unreadable)
+and `src/test/integration/collectionCopy.test.tsx` (what the copy keeps, a lost reply sent again with
+the same key making one copy, the copy saying whose it is, the limit said before and at it, a taken
+name refused in the server's words), and `e2e/collection-copy.spec.ts` (the real API: a lost reply
+sent again making one copy; the order after a reload and in a second browser; axe in both themes).
+
 ## Limits
 
 - Two lists so far (bookmarks → a collection; a collection's items → out). Moving between
-  collections, archiving in bulk and selection across pages aren't built.
+  collections, archiving in bulk and selection across pages aren't built. A collection can be
+  duplicated whole, not in part, and only within the account (never shared).
 - No Undo: the result list says what changed; adding or removing again reverses it.
