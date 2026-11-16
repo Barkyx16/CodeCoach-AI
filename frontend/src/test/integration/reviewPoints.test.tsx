@@ -1,7 +1,8 @@
 /**
  * A question saved for review for several points (Volume 16, prompt 5; docs/DISPUTES.md, "The review
  * queue"): the queue lists every point, one point reads as before, and with several each can be taken
- * off, keeping the question. Synthetic data only.
+ * off, keeping the question; its only point takes the question out, after saying so, with Undo (Volume
+ * 17, prompt 8). Synthetic data only.
  */
 import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
@@ -43,7 +44,42 @@ describe("A question saved for several points", () => {
     await user.click(within(row).getByRole("button", { name: `Remove the point “${B}”` }));
     await waitFor(() => expect(removed).toEqual([B]));
     expect(await within(await screen.findByRole("listitem", { name: "A hard shift" })).findByText(`Saved for “${A}”.`)).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Remove the point/ })).toBeNull(); // the last point stays
+    // The last point can be removed too, but that's the question: it says so first, and nothing is sent.
+    await user.click(screen.getByRole("button", { name: `Remove the point “${A}”` }));
+    expect(screen.getByRole("group", { name: `Remove the point “${A}”` })).toHaveTextContent("so removing it takes the question out of your review queue");
+    await user.click(screen.getByRole("button", { name: "Keep it" }));
+    expect(removed).toEqual([B]);
+  });
+
+  it("its only point takes the question out, after saying so, and Undo puts it back as it was (Volume 17, prompt 8)", async () => {
+    let current = queue([A]);
+    const calls: string[] = [];
+    server.use(
+      http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.json(tokenResponse({ user: nurse }))),
+      http.get(`${API}/api/v1/me/reviews`, () => HttpResponse.json(current)),
+      http.delete(`${API}/api/v1/me/reviews/rv-1`, () => { calls.push("remove"); current = queue([]); current.upcoming = []; return HttpResponse.json(current); }),
+      http.post(`${API}/api/v1/me/reviews/rv-1/restore`, () => { calls.push("restore"); current = queue([A]); return HttpResponse.json(current); }),
+    );
+    const { user } = renderApp("/reviews", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: `Remove the point “${A}”` }));
+    await user.click(screen.getByRole("button", { name: "Take it out of the queue" }));
+    const undo = await screen.findByRole("status");
+    expect(undo).toHaveTextContent("Took “A hard shift” out of your review queue.");
+    expect(screen.queryByRole("listitem", { name: "A hard shift" })).toBeNull();
+    await user.click(within(undo).getByRole("button", { name: "Undo" }));
+    expect(await screen.findByRole("listitem", { name: "A hard shift" })).toBeInTheDocument();
+    expect(calls).toEqual(["remove", "restore"]);
+  });
+
+  it("lists the points taken off, with when, and why a disputed score counts again", async () => {
+    const withHistory = { ...item([A]), removed_points: [{ point: B, removed_at: now }], released: `“${B}” was taken off on Nov 16, so one disputed score on it counts again.` };
+    server.use(
+      http.post(`${API}/api/v1/auth/refresh`, () => HttpResponse.json(tokenResponse({ user: nurse }))),
+      http.get(`${API}/api/v1/me/reviews`, () => HttpResponse.json({ ...queue([]), upcoming: [withHistory] })),
+    );
+    renderApp("/reviews", { signedIn: true });
+    const row = await screen.findByRole("listitem", { name: "A hard shift" });
+    expect(within(row).getByText(new RegExp(`^“${B}” was removed on .+\\. “${B}” was taken off on Nov 16, so one disputed score on it counts again\\.$`))).toBeInTheDocument();
   });
 
   it("an item with one point, or from before this, reads as it did", async () => {
@@ -55,6 +91,6 @@ describe("A question saved for several points", () => {
     renderApp("/reviews", { signedIn: true });
     const row = await screen.findByRole("listitem", { name: "A hard shift" });
     expect(within(row).getByText(`Saved for “${A}”.`)).toBeInTheDocument();
-    expect(within(row).queryByRole("button", { name: /Remove the point/ })).toBeNull();
+    expect(within(row).getByRole("button", { name: `Remove the point “${A}”` })).toBeInTheDocument(); // removable on its own (Volume 17, prompt 8)
   });
 });

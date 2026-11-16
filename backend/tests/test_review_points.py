@@ -73,15 +73,16 @@ def test_a_dispute_on_the_second_point_leaves_that_score_out_and_names_it(client
     f = flag(client, h, a2["id"], second)
     shown = only(queue(client, h))
     assert shown["interval_days"] == 3 and shown["reviews"] == 1
+    # Named with the point it stays for (Volume 17, prompt 8; before, it said "the point it was saved for").
     assert shown["recounted"] == (
-        f"Recounted: one earlier score was disputed (on “{second}”, the point it was saved for), so it's due in "
-        "3 days, not 7."
+        f"Recounted: one earlier score was disputed (on “{second}”, one of the points it's saved for; it stays "
+        f"for “{label}”), so it's due in 3 days, not 7."
     )
-    # Both points disputed, on two answers: each is named.
+    # Both points disputed, on two answers: each is named, in the order disputed (before: alphabetical).
     flag(client, h, a1["id"], label)
     both = only(queue(client, h))
     assert both["recounted"].startswith(
-        f"Recounted: two earlier scores were disputed, on {' and '.join(f'“{p}”' for p in sorted([label, second]))}"
+        f"Recounted: two earlier scores were disputed (on “{second}” and “{label}”, every point it's saved for)"
     )
     assert stored_answers(client) == before  # no answer, score or feedback changed
     reinstate(client, h, a2["id"], f["id"])

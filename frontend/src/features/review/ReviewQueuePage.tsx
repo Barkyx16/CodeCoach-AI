@@ -1,4 +1,5 @@
 import { ScheduleLink } from "@/features/schedule/ScheduleLink";
+import { createContext, useContext, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
@@ -6,10 +7,17 @@ import { useReviewQueue, useReviewQueueMutation } from "@/api/queries";
 import type { ReviewQueueItem } from "@/api/types";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
+import { formatDateTime } from "@/lib/format";
+
+import { RemovePoint, UndoRemoved } from "./RemovePoint";
+
+/** A question that came out of the queue with its last point, for the page's Undo (its row is gone). */
+const Removed = createContext<(item: { id: string; title: string }) => void>(() => undefined);
 
 /** Questions saved for spaced review: what's due, why, and when the rest come back. */
 export function ReviewQueuePage() {
   const queue = useReviewQueue();
+  const [removed, setRemoved] = useState<{ id: string; title: string } | null>(null);
   if (queue.isPending) return <LoadingState label="Loading your review queue…" />;
   if (queue.isError) return <div className="page"><ErrorState error={queue.error} onRetry={() => void queue.refetch()} /></div>;
   const q = queue.data;
@@ -22,6 +30,8 @@ export function ReviewQueuePage() {
           <p className="page__subtitle">{q.note} Gaps follow a fixed ladder: {q.ladder_days.join(", ")} days.</p>
         </div>
       </div>
+      {removed && <UndoRemoved itemId={removed.id} title={removed.title} onDone={() => setRemoved(null)} />}
+      <Removed.Provider value={setRemoved}>
       {q.due.length + q.upcoming.length + (q.disputed ?? []).length === 0 ? (
         <EmptyState title="Nothing saved for review" action={<Link className="btn btn--primary btn--md" to="/history?type=interview">Review an interview</Link>}>
           After an interview, use "Save for later review" on a question to bring it back on a schedule.
@@ -47,6 +57,7 @@ export function ReviewQueuePage() {
           )}
         </>
       )}
+      </Removed.Provider>
     </div>
   );
 }
@@ -97,26 +108,37 @@ function QueueRow({ item }: { item: ReviewQueueItem }) {
   );
 }
 
-/** The points it was saved for (Volume 16, prompt 5): one reads as before; with several, each can be
- * taken off, keeping the question and its other points. */
+/** The points it's saved for (Volume 16, prompt 5), each removable on its own (Volume 17, prompt 8):
+ * with others saved, only that point comes off; its only point takes the question out, after saying so,
+ * with Undo. The points taken off are listed with when, since a recount may name them. */
 function SavedFor({ item }: { item: ReviewQueueItem }) {
   const points = item.points?.length ? item.points : item.criterion ? [item.criterion] : [];
-  const drop = useReviewQueueMutation((point: string) => api.removeReviewPoint(item.id, point));
-  if (points.length === 0) return null;
-  if (points.length === 1) return <p className="subtle">Saved for “{points[0]}”.</p>;
+  const onRemoved = useContext(Removed);
+  const history = item.removed_points ?? [];
+  if (points.length === 0 && history.length === 0) return null;
   return (
     <div className="stack-sm">
-      <p className="subtle">Saved for {points.length} points:</p>
-      <ul className="mini-list" aria-label={`Points “${item.title}” is saved for`}>
-        {points.map((p) => (
-          <li key={p} className="row">
-            <span>“{p}”</span>
-            <Button size="sm" variant="ghost" loading={drop.isPending && drop.variables === p} disabled={drop.isPending}
-              aria-label={`Remove the point “${p}”`} onClick={() => drop.mutate(p)}>Remove this point</Button>
-          </li>
-        ))}
-      </ul>
-      <InlineError error={drop.error} />
+      {points.length === 1 ? (
+        <div className="row">
+          <span className="subtle">Saved for “{points[0]}”.</span>
+          <RemovePoint itemId={item.id} title={item.title} point={points[0]!} points={points} onRemoved={() => onRemoved({ id: item.id, title: item.title })} />
+        </div>
+      ) : points.length > 1 && (
+        <>
+          <p className="subtle">Saved for {points.length} points:</p>
+          <ul className="mini-list" aria-label={`Points “${item.title}” is saved for`}>
+            {points.map((p) => (
+              <li key={p} className="row">
+                <span>“{p}”</span>
+                <RemovePoint itemId={item.id} title={item.title} point={p} points={points} onRemoved={() => onRemoved({ id: item.id, title: item.title })} />
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {history.length > 0 && (
+        <p className="subtle">{history.map((h) => `“${h.point}” was removed on ${formatDateTime(h.removed_at)}.`).join(" ")}{item.released ? ` ${item.released}` : ""}</p>
+      )}
     </div>
   );
 }

@@ -54,7 +54,7 @@ from app.services.onboarding import Onboarding
 from app.services.reflections import Reflections
 from app.services.restore import Restore
 from app.services.review import disputed_point_keys
-from app.services.review_queue import QueueRead, ReviewQueueService, saved_points
+from app.services.review_queue import QueueRead, ReviewQueueService, removed_points, saved_points
 from app.services.roles import requirement_submissions
 from app.services.schedule import Schedule
 from app.services.shares import status_of
@@ -197,6 +197,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
             "saved_for_point": q.criterion,
             # Every point it was saved for (Volume 16, prompt 5); [] for the whole answer.
             "saved_for_points": saved_points(q),
+            # Each point taken off it, with when (Volume 17, prompt 8).
+            "points_removed": [{"point": p, "removed_at": iso(at)} for p, at in removed_points(q)],
             "recounted": bool(ladder and ladder.left_out),
             # Not scheduled: every reason it's in the queue is feedback you disputed.
             "left_out_disputed": bool(read is not None and read.withheld),

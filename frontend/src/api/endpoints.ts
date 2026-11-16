@@ -475,6 +475,8 @@ export const api = {
   snoozeReview: (id: string, days: 1 | 3 | 7) =>
     apiRequest<ReviewQueue>(`/api/v1/me/reviews/${encodeURIComponent(id)}/snooze`, { method: "POST", body: { days } }),
   removeReview: (id: string) => apiRequest<ReviewQueue>(`/api/v1/me/reviews/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  /** Undo a removal: the question back in the queue as it was, its ladder and points (Volume 17, prompt 8). */
+  restoreReview: (id: string) => apiRequest<ReviewQueue>(`/api/v1/me/reviews/${encodeURIComponent(id)}/restore`, { method: "POST" }),
   /** Take one point off a question saved for several (it stays, with its other points). */
   removeReviewPoint: (id: string, point: string) =>
     apiRequest<ReviewQueue>(`/api/v1/me/reviews/${encodeURIComponent(id)}/points?point=${encodeURIComponent(point)}`, { method: "DELETE" }),

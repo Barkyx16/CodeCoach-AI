@@ -74,6 +74,32 @@ lists every point (`review_queue[].saved_for_points`, beside `saved_for_point`, 
 items still aren't restored from a backup file (docs/BACKUP_FORMAT.md), so neither are their points.
 In the interview summary, a question already in the queue offers "Add this point to its review".
 
+**Which point, by name** (Volume 17, prompt 8). With several points saved and one disputed, the
+recount names it and the points the item stays for: "one earlier score was disputed (on “B”, one of
+the points it's saved for; it stays for “A”)"; with every saved point disputed, "(on “B” and “A”,
+every point it's saved for)", the points in the order they were disputed. With one point it reads
+as before, word for word ("(on “A”, the point it was saved for)"). The recount reads the points the
+item has now.
+
+**Removing a point.** From the review queue and from the interview summary ("Remove this point",
+`DELETE /me/reviews/{id}/points?point=…`), one point comes off and the item keeps its ladder (due
+date, step, reviews, last score) and its other points. Its last point is the question's place in
+the queue: the control says so first ("“A” is the only point “…” is saved for, so removing it takes
+the question out of your review queue. Its answers, scores and any disputes stay."), takes it out
+(`DELETE /me/reviews/{id}`; the point endpoint still answers 409 `last_point`), and offers **Undo**
+(`POST /me/reviews/{id}/restore`), which puts it back as it was, ladder and points; refused with 409
+`already_in_queue` once the question was saved again, and 404 for another account's item. There was
+no preview or undo for removing a queue item before this; the queue's own **Remove** is unchanged.
+
+A removed point is kept in the item's history with its date (`review_items.removed_points`,
+`[{point, at}]`, migration `a8c2e4f6b195`; `removed_points` on the queue item: "“B” was removed on
+…"). It no longer holds a date back, and when a dispute on it would have, the item says why its
+score counts again ("“B” was taken off on Nov 16, so one disputed score on it counts again.").
+Saving the point again puts it back, and its history stays. Removing a point never touches an
+answer, its score or its dispute. The export carries the points as they are now and the removed
+ones with their dates (`review_queue[].saved_for_points`, `points_removed`); a backup file still
+doesn't restore the review queue (docs/BACKUP_FORMAT.md), so neither are its points.
+
 Reading stays bounded: the answers to every item's question come from one query (only the columns
 the ladder needs), so a long history doesn't add statements (a test reads an item with a hundred
 answers, half disputed, in the same statements as one). Only this account's answers and disputes

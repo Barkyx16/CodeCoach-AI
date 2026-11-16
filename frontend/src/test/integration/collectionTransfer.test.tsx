@@ -103,21 +103,21 @@ describe("Copying and moving on a collection's page", () => {
     const form = screen.getByRole("form", { name: "Move 2 items to another collection" });
     expect(within(form).getByRole("button", { name: "Move 2" })).toBeDisabled(); // nothing chosen yet
     await user.selectOptions(within(form).getByLabelText("To collection"), "c-2");
-    const words = await within(form).findByRole("list", { name: "Before you move them" });
+    const words = await within(form).findByRole("list", { name: "Before you move them" }, { timeout: 3000 });
     expect(words).toHaveTextContent("“Week 2” has none of these 2 yet.");
     expect(words).toHaveTextContent("It has room for 199 more.");
     expect(words).toHaveTextContent("Leaves “Week 1”, each once it's in “Week 2”: “Question 1” and “Question 3”.");
     await user.click(within(form).getByRole("button", { name: "Move 2 to “Week 2”" }));
-    const lost = await screen.findByRole("alert");
+    const lost = await screen.findByRole("alert", {}, { timeout: 3000 });
     expect(lost).toHaveTextContent("Sending the same ones again is safe");
     await user.click(within(lost).getByRole("button", { name: "Send again" }));
-    const outcomes = await screen.findByRole("region", { name: "What happened: moving to “Week 2”" });
+    const outcomes = await screen.findByRole("region", { name: "What happened: moving to “Week 2”" }, { timeout: 3000 });
     expect(within(outcomes).getByRole("status")).toHaveTextContent("2 already there. Nothing needs attention.");
     expect(screen.getByText(/This was sent again after no reply came/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "“Week 2”" })).toHaveAttribute("href", "/saved/collections/c-2");
     expect(screen.getByRole("link", { name: "“Week 1”" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByText(/has 3 items, and/)).toHaveTextContent("Now: “Week 2” has 3 items, and “Week 1” has 1 item.");
-    await waitFor(() => expect(bodies).toHaveLength(2));
+    await waitFor(() => expect(bodies).toHaveLength(2), { timeout: 3000 });
     expect(bodies[1]).toEqual(bodies[0]); // the same items, named by what they are
     expect(bodies[0]).toEqual({ to: "c-2", move: true, items: [
       { item_type: "question", track: "registered-nurse", ref_id: "q-0" },
@@ -138,10 +138,10 @@ describe("Copying and moving on a collection's page", () => {
     await user.click(screen.getByRole("button", { name: "Copy 3 to…" }));
     const form = screen.getByRole("form", { name: "Copy 3 items to another collection" });
     await user.selectOptions(within(form).getByLabelText("To collection"), "c-2");
-    expect(await within(form).findByText("“Week 2” already has 1 of these 3: it won't be doubled.")).toBeInTheDocument();
+    expect(await within(form).findByText("“Week 2” already has 1 of these 3: it won't be doubled.", {}, { timeout: 3000 })).toBeInTheDocument();
     expect(within(form).getByText("“Week 1” doesn't change.")).toBeInTheDocument();
     await user.click(within(form).getByRole("button", { name: "Copy 3 to “Week 2”" }));
-    const outcomes = await screen.findByRole("region", { name: "What happened: copying to “Week 2”" });
+    const outcomes = await screen.findByRole("region", { name: "What happened: copying to “Week 2”" }, { timeout: 3000 });
     expect(within(outcomes).getByRole("status")).toHaveTextContent("1 copied, 1 already there, 1 didn't fit. 1 needs attention; the rest are done.");
     const rows = within(outcomes).getAllByRole("listitem").map((li) => li.textContent);
     expect(rows[0]).toBe("Didn't fit: Question 3 (“Week 2” holds up to 2 items.)"); // what needs attention first

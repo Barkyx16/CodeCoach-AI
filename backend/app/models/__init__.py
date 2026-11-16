@@ -922,6 +922,9 @@ class ReviewItem(Base):
     # from before, whose one point is `criterion`: it reads the same without a rewrite. `criterion`
     # keeps the first point for older readers.
     points: Mapped[list[str] | None] = mapped_column(JSONType, nullable=True)
+    # Each point taken off it, with when: [{"point", "at"}] (Volume 17, prompt 8), so a later recount
+    # can say why a disputed score on it counts again. Null when none ever was.
+    removed_points: Mapped[list[dict] | None] = mapped_column(JSONType, nullable=True)
     snoozed: Mapped[bool] = mapped_column(Boolean, default=False)
     removed: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)

@@ -807,6 +807,14 @@ Newest first. `response` holds the exact `content` (hints), `review` (reviews) o
   item says why it's due. Nothing is sent anywhere. `POST` takes an optional `criterion`: the one
   feedback point the item is saved for. Each item carries `criterion` and `recounted` (set when a
   dispute changed when it's due; docs/DISPUTES.md, "The review queue").
+  `DELETE /me/reviews/{id}/points?point=…` takes one point off an item saved for several (its ladder
+  and other points stay; `409 last_point` for its only point, which is removing the question).
+  `POST /me/reviews/{id}/restore` undoes a removal: the item back as it was, ladder, points and
+  history (`409 already_in_queue` once the question was saved again, `400 queue_full`, `404` for
+  another account's). Each item also carries `removed_points` (`[{point, removed_at}]`, oldest first)
+  and `released` (why a disputed score counts again after its point was taken off). The interview
+  summary's items carry `review_item_id` and `review_points` (Volume 17, prompt 8;
+  docs/DISPUTES.md, "Which point, by name").
 
 ### Target roles ("Prepare for this role")
 

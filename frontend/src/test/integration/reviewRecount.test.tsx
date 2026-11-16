@@ -77,6 +77,49 @@ describe("Saving a point for review (Volume 15, prompt 9)", () => {
   });
 });
 
+describe("Removing a point from the interview summary (Volume 17, prompt 8)", () => {
+  const OTHER = "Backs it up with a concrete example";
+  const saved = (points: string[]): InterviewReview => {
+    const r = review(true);
+    return { ...r, items: r.items.map((i) => ({ ...i, review_item_id: "rv-1", review_points: points })) };
+  };
+  const emptyQueue = { due: [], upcoming: [], disputed: [], ladder_days: [1, 3, 7, 14, 30], note: "" };
+
+  it("with other points saved, takes only this one off", async () => {
+    const removed: string[] = [];
+    serve(saved([POINT, OTHER]));
+    server.use(http.delete(`${API}/api/v1/me/reviews/rv-1/points`, ({ request }) => {
+      removed.push(new URL(request.url).searchParams.get("point") ?? "");
+      return HttpResponse.json(emptyQueue);
+    }));
+    const { user } = renderApp("/interviews/iv-r", { signedIn: true });
+    expect(await screen.findByText(`Saved for review, for “${POINT}” (and 1 other point): if you dispute that point, it's held back.`)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: `Remove the point “${POINT}”` }));
+    await waitFor(() => expect(removed).toEqual([POINT]));
+    expect(screen.queryByText(/is the only point/)).toBeNull(); // nothing to confirm: the question stays
+  });
+
+  it("its only point: says what removing it does first, then Undo puts the question back", async () => {
+    const calls: string[] = [];
+    serve(saved([POINT]));
+    server.use(
+      http.delete(`${API}/api/v1/me/reviews/rv-1/points`, () => { calls.push("point"); return HttpResponse.json(emptyQueue); }),
+      http.delete(`${API}/api/v1/me/reviews/rv-1`, () => { calls.push("remove"); return HttpResponse.json(emptyQueue); }),
+      http.post(`${API}/api/v1/me/reviews/rv-1/restore`, () => { calls.push("restore"); return HttpResponse.json(emptyQueue); }),
+    );
+    const { user } = renderApp("/interviews/iv-r", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: `Remove the point “${POINT}”` }));
+    const ask = screen.getByRole("group", { name: `Remove the point “${POINT}”` });
+    expect(ask).toHaveTextContent(`“${POINT}” is the only point “A hard shift” is saved for, so removing it takes the question out of your review queue. Its answers, scores and any disputes stay.`);
+    expect(calls).toEqual([]); // nothing sent before it's confirmed
+    await user.click(within(ask).getByRole("button", { name: "Take it out of the queue" }));
+    const undone = (await screen.findByText("Took “A hard shift” out of your review queue.")).closest("[role=status]") as HTMLElement;
+    await user.click(within(undone).getByRole("button", { name: "Undo" }));
+    await waitFor(() => expect(calls).toEqual(["remove", "restore"])); // the question, never "point"
+    expect(await screen.findByRole("button", { name: `Remove the point “${POINT}”` })).toBeInTheDocument();
+  });
+});
+
 describe("The queue says what an item was saved for and what a recount changed", () => {
   it("shows the point and the recount", async () => {
     const recounted = "Recounted: one earlier score was disputed (on “Explains what you personally did”, the point it was saved for), so it's due in 3 days, not 7.";

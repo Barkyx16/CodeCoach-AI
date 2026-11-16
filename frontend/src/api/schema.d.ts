@@ -4642,6 +4642,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/reviews/{item_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Undo a removal: the question back in the queue as it was, its ladder and points (docs/DISPUTES.md) */
+        post: operations["restore_review_api_v1_me_reviews__item_id__restore_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/targets": {
         parameters: {
             query?: never;
@@ -13047,6 +13064,16 @@ export interface components {
             /** Href */
             href: string;
         };
+        /** RemovedPoint */
+        RemovedPoint: {
+            /** Point */
+            point: string;
+            /**
+             * Removed At
+             * Format: date-time
+             */
+            removed_at: string;
+        };
         /** RepeatedArea */
         RepeatedArea: {
             /** Criterion */
@@ -13831,6 +13858,16 @@ export interface components {
             retries: number;
             /** In Review Queue */
             in_review_queue: boolean;
+            /**
+             * Review Item Id
+             * @description Its item in your review queue, when it's there (Volume 17, prompt 8)
+             */
+            review_item_id?: string | null;
+            /**
+             * Review Points
+             * @description The points that item is saved for; empty for the whole answer
+             */
+            review_points?: string[];
             /** Question Id */
             question_id?: string | null;
             /** @description Panel interviews: the simulated role who asked */
@@ -13956,6 +13993,16 @@ export interface components {
              * @description Set when a dispute changed when it's due: the ladder was recounted without the disputed scores, and this says what changed (it's also the last sentence of `why`)
              */
             recounted?: string | null;
+            /**
+             * Removed Points
+             * @description Each point taken off it, with when (Volume 17, prompt 8), oldest first
+             */
+            removed_points?: components["schemas"]["RemovedPoint"][];
+            /**
+             * Released
+             * @description Why a disputed score counts again: the point it was disputed on was taken off
+             */
+            released?: string | null;
         };
         /** ReviewReference */
         ReviewReference: {
@@ -34183,6 +34230,64 @@ export interface operations {
             };
             /** @description Not found (also returned for resources owned by another user) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_review_api_v1_me_reviews__item_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueue"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

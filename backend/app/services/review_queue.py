@@ -21,7 +21,7 @@ with a way back. An item with any other reason keeps its schedule and says which
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from typing import NamedTuple
 
@@ -32,7 +32,7 @@ from app.careers import CATALOG
 from app.careers.questions import get_question
 from app.errors import AppError, ConflictError, NotFoundError
 from app.models import InterviewTurn, PracticeAnswer, PracticeSession, ReviewItem, User
-from app.schemas.review import ReviewAdd, ReviewQueue, ReviewQueueItem
+from app.schemas.review import RemovedPoint, ReviewAdd, ReviewQueue, ReviewQueueItem
 from app.services.disputes import OVERALL, Dispute, Disputes, count_words, covering, note, overall
 
 LADDER = (1, 3, 7, 14, 30)
@@ -63,6 +63,20 @@ def saved_points(row: ReviewItem) -> list[str]:
     if row.points is not None:
         return [p for p in row.points if isinstance(p, str) and p]
     return [row.criterion] if row.criterion else []
+
+
+def removed_points(row: ReviewItem) -> list[tuple[str, datetime]]:
+    """Each point taken off an item, with when (Volume 17, prompt 8), oldest first."""
+    out: list[tuple[str, datetime]] = []
+    for e in row.removed_points or []:
+        if not isinstance(e, dict) or not isinstance(e.get("point"), str):
+            continue
+        try:
+            at = datetime.fromisoformat(str(e.get("at")))
+        except ValueError:
+            continue
+        out.append((e["point"], _aware(at)))
+    return out
 
 
 def _quoted(points: list[str]) -> str:
@@ -154,11 +168,51 @@ class ReviewQueueService:
             raise NotFoundError("It isn't saved for that point.")
         if len(have) == 1:
             raise ConflictError(
-                "It's the only point it's saved for: remove the question from the queue instead.",
+                "It's the only point it's saved for: removing it removes the question from the queue.",
                 code="last_point",
             )
         rest = [p for p in have if p != text]
         row.points, row.criterion = rest, rest[0]
+        # Kept in its history with when (Volume 17, prompt 8): its ladder and other points are untouched.
+        row.removed_points = [*(row.removed_points or []), {"point": text, "at": _now().isoformat()}]
+        self.db.commit()
+        return self.queue(user)
+
+    def restore(self, user: User, item_id: str) -> ReviewQueue:
+        """Undo a removal (Volume 17, prompt 8): the question back as it was, its ladder, points and
+        history. Refused once the question was saved again (it's in the queue as another item) or the
+        queue is full; another account's item is not found."""
+        row = self.db.get(ReviewItem, item_id)
+        if row is None or row.user_id != user.id:
+            raise NotFoundError("Review item not found")
+        if not row.removed:
+            return self.queue(user)
+        again = self.db.scalar(
+            select(ReviewItem.id).where(
+                ReviewItem.user_id == user.id,
+                ReviewItem.track == row.track,
+                ReviewItem.question_id == row.question_id,
+                ReviewItem.removed.is_(False),
+            )
+        )
+        if again is not None:
+            raise ConflictError(
+                "It's back in your review queue already: it was saved again.", code="already_in_queue"
+            )
+        active = (
+            self.db.scalar(
+                select(func.count())
+                .select_from(ReviewItem)
+                .where(ReviewItem.user_id == user.id, ReviewItem.removed.is_(False))
+            )
+            or 0
+        )
+        if active >= MAX_ACTIVE:
+            raise AppError(
+                f"Your review queue holds up to {MAX_ACTIVE} questions. Remove some first.",
+                code="queue_full",
+            )
+        row.removed = False
         self.db.commit()
         return self.queue(user)
 
@@ -331,6 +385,8 @@ class ReviewQueueService:
                 criterion=row.criterion,
                 points=saved_points(row),
                 recounted=recounted,
+                removed_points=[RemovedPoint(point=p, removed_at=at) for p, at in removed_points(row)],
+                released=lad.released_note(),
             )
             if read.withheld:
                 disputed.append(item)
@@ -419,6 +475,20 @@ class Ladder:
     left_out: tuple[Dispute, ...] = ()
     counted_due_at: datetime | None = None
     counted_step: int | None = None
+    # The points it's saved for now (Volume 17, prompt 8), so the recount names them.
+    saved: tuple[str, ...] = ()
+    # Points taken off it whose dispute would have held a score back: (point, when removed, scores).
+    released: tuple[tuple[str, datetime, int], ...] = ()
+
+    def released_note(self) -> str | None:
+        """Why a disputed score counts again: the point it was disputed on was taken off."""
+        if not self.released:
+            return None
+        return " ".join(
+            f"“{p}” was taken off on {_day(at)}, so {count_words(n)} disputed score{'s' if n != 1 else ''} "
+            f"on it count{'s' if n == 1 else ''} again."
+            for p, at, n in self.released
+        )
 
     def recount_note(self, now: datetime) -> str | None:
         """What changed, when a recount moved it: never earlier (or later) without saying why."""
@@ -428,10 +498,22 @@ class Ladder:
         if was == is_:
             return None
         n = len(self.left_out)
-        points = sorted({d.criterion for d in self.left_out if d.criterion != OVERALL})
+        # The disputed points it left out, in the order they were disputed (Volume 17, prompt 8).
+        points: list[str] = []
+        for d in sorted(self.left_out, key=lambda d: (d.disputed_at or self.created_at, d.flag_id)):
+            if d.criterion != OVERALL and d.criterion not in points:
+                points.append(d.criterion)
         what = f"{count_words(n)} earlier score{'s' if n != 1 else ''} {'was' if n == 1 else 'were'} disputed"
-        if len(points) == 1:
+        saved = list(self.saved)
+        if len(points) == 1 and len(saved) <= 1:
             what += f" (on “{points[0]}”, the point it was saved for)"
+        elif points and len(saved) > 1:
+            rest = [p for p in saved if p not in points]
+            if rest:
+                which = "one of the points" if len(points) == 1 else "points"
+                what += f" (on {_quoted(points)}, {which} it's saved for; it stays for {_quoted(rest)})"
+            else:
+                what += f" (on {_quoted(points)}, every point it's saved for)"
         elif points:  # each disputed point it left out (Volume 16, prompt 5)
             what += f", on {_quoted(points)}"
         if is_.startswith("in ") and was.startswith("in "):
@@ -466,6 +548,20 @@ def ladder(row: ReviewItem, answers: list[Answer], disputes: dict[tuple[str, str
     if not disputes:
         return stored
     since = [a for a in answers if a.at > created]
+    saved = tuple(saved_points(row))
+    # A point taken off no longer holds a score back (Volume 17, prompt 8); say so where it would have.
+    released: list[tuple[str, datetime, int]] = []
+    latest_removal: dict[str, datetime] = {}
+    for p, at in removed_points(row):
+        if p not in saved:
+            latest_removal[p] = at
+    for p, at in latest_removal.items():
+        n = sum(
+            1 for a in since if covering(disputes, a.id, p) is not None and held(row, disputes, a.id) is None
+        )
+        if n:
+            released.append((p, at, n))
+    stored = replace(stored, saved=saved, released=tuple(released))
     left_out = tuple(d for a in since if (d := held(row, disputes, a.id)) is not None)
     if not left_out:
         return stored
@@ -488,6 +584,8 @@ def ladder(row: ReviewItem, answers: list[Answer], disputes: dict[tuple[str, str
         left_out=left_out,
         counted_due_at=stored.due_at,
         counted_step=stored.step,
+        saved=saved,
+        released=tuple(released),
     )
 
 

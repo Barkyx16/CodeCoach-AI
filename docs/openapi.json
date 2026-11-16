@@ -24267,6 +24267,83 @@
         }
       }
     },
+    "/api/v1/me/reviews/{item_id}/restore": {
+      "post": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Undo a removal: the question back in the queue as it was, its ladder and points (docs/DISPUTES.md)",
+        "operationId": "restore_review_api_v1_me_reviews__item_id__restore_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Item Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewQueue"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/targets": {
       "get": {
         "tags": [
@@ -45406,6 +45483,25 @@
         "title": "RelatedSubmission",
         "description": "A judged submission of the problem a coding interview's improvement came from, made since it\nwas accepted (a stored link: the interview names its problem). Its own verdict, compared with\nthe submission before it by the one comparison rule; never set beside the interview itself."
       },
+      "RemovedPoint": {
+        "properties": {
+          "point": {
+            "type": "string",
+            "title": "Point"
+          },
+          "removed_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Removed At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "point",
+          "removed_at"
+        ],
+        "title": "RemovedPoint"
+      },
       "RepeatedArea": {
         "properties": {
           "criterion": {
@@ -47349,6 +47445,26 @@
             "type": "boolean",
             "title": "In Review Queue"
           },
+          "review_item_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Review Item Id",
+            "description": "Its item in your review queue, when it's there (Volume 17, prompt 8)"
+          },
+          "review_points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Review Points",
+            "description": "The points that item is saved for; empty for the whole answer"
+          },
           "question_id": {
             "anyOf": [
               {
@@ -47669,6 +47785,26 @@
             ],
             "title": "Recounted",
             "description": "Set when a dispute changed when it's due: the ladder was recounted without the disputed scores, and this says what changed (it's also the last sentence of `why`)"
+          },
+          "removed_points": {
+            "items": {
+              "$ref": "#/components/schemas/RemovedPoint"
+            },
+            "type": "array",
+            "title": "Removed Points",
+            "description": "Each point taken off it, with when (Volume 17, prompt 8), oldest first"
+          },
+          "released": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Released",
+            "description": "Why a disputed score counts again: the point it was disputed on was taken off"
           }
         },
         "type": "object",

@@ -91,6 +91,12 @@ class ReviewItem(APIModel):
     dimensions: list[Dimension]
     retries: int
     in_review_queue: bool
+    review_item_id: str | None = Field(
+        default=None, description="Its item in your review queue, when it's there (Volume 17, prompt 8)"
+    )
+    review_points: list[str] = Field(
+        default_factory=list, description="The points that item is saved for; empty for the whole answer"
+    )
     question_id: str | None = None
     speaker: SpeakerOut | None = Field(
         default=None, description="Panel interviews: the simulated role who asked"
@@ -193,6 +199,11 @@ class SnoozeIn(APIModel):
     days: Literal[1, 3, 7]
 
 
+class RemovedPoint(APIModel):
+    point: str
+    removed_at: datetime
+
+
 class ReviewQueueItem(APIModel):
     id: str
     track: str
@@ -225,6 +236,14 @@ class ReviewQueueItem(APIModel):
         default=None,
         description="Set when a dispute changed when it's due: the ladder was recounted without the disputed "
         "scores, and this says what changed (it's also the last sentence of `why`)",
+    )
+    removed_points: list[RemovedPoint] = Field(
+        default_factory=list,
+        description="Each point taken off it, with when (Volume 17, prompt 8), oldest first",
+    )
+    released: str | None = Field(
+        default=None,
+        description="Why a disputed score counts again: the point it was disputed on was taken off",
     )
 
 

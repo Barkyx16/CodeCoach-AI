@@ -26,6 +26,7 @@ import { NoteCapture } from "@/features/notes/NoteCapture";
 import { AcceptImprovement } from "@/features/actions/AcceptImprovement";
 import { DisputedNote } from "@/features/plan/DisputedNote";
 import { FeedbackReadSection } from "./FeedbackRead";
+import { RemovePoint, UndoRemoved } from "./RemovePoint";
 
 const STATUS_TEXT: Record<ReviewEntry["status"], string> = {
   answered: "Answered", skipped: "Skipped", not_reached: "Not reached", said: "",
@@ -268,7 +269,21 @@ function SavePointForReview({ r, improvementKey, point, retryIndex }: {
   const save = useReviewQueueMutation(() => api.addReview({
     track: r.track ?? "", question_id: item?.question_id ?? "", session_id: r.id, criterion: point,
   }));
+  const [removedItem, setRemovedItem] = useState<string | null>(null);
   if (r.kind !== "questions" || !r.track || !improvementKey.startsWith("point:") || !item?.question_id) return null;
+  if (removedItem) {
+    return <UndoRemoved itemId={removedItem} title={item.title} onDone={() => { setRemovedItem(null); save.reset(); }} />;
+  }
+  // Saved for this point (Volume 17, prompt 8): it can be taken off here, keeping its other points.
+  const points = item.review_points ?? [];
+  if (item.review_item_id && points.includes(point)) {
+    return (
+      <div className="row">
+        <span className="subtle" role="status">{save.data?.saved ?? `Saved for review, for “${point}”${points.length > 1 ? ` (and ${points.length - 1} other ${points.length === 2 ? "point" : "points"})` : ""}: if you dispute that point, it's held back.`}</span>
+        <RemovePoint itemId={item.review_item_id} title={item.title} point={point} points={points} onRemoved={() => setRemovedItem(item.review_item_id ?? null)} />
+      </div>
+    );
+  }
   if (save.isSuccess) {
     // Already in the queue: the point is added to it, or it's saved for the whole answer (Volume 16, prompt 5).
     return <p className="subtle" role="status">{save.data.saved ?? `Saved for review, for “${point}”: if you dispute that point, it's held back.`}</p>;

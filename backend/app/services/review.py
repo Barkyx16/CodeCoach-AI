@@ -186,13 +186,19 @@ class InterviewReviews:
                 select(InterviewRetry.question_index).where(InterviewRetry.session_id == s.id)
             ).all()
         )
-        queued = set(
-            self.db.scalars(
-                select(QueueRow.question_id).where(
+        # The queue's item for each question, with the points it's saved for (Volume 17, prompt 8), so
+        # a point can be taken off from here.
+        from app.services.review_queue import saved_points
+
+        queue_rows = {
+            r.question_id: r
+            for r in self.db.scalars(
+                select(QueueRow).where(
                     QueueRow.user_id == user.id, QueueRow.track == track, QueueRow.removed.is_(False)
                 )
             ).all()
-        )
+        }
+        queued = set(queue_rows)
         items: list[ReviewItem] = []
         for q in questions:
             reply = replies.get(q.index)
@@ -228,6 +234,8 @@ class InterviewReviews:
                     else [],
                     retries=retries.get(q.index, 0),
                     in_review_queue=q.id in queued,
+                    review_item_id=queue_rows[q.id].id if q.id in queue_rows else None,
+                    review_points=saved_points(queue_rows[q.id]) if q.id in queue_rows else [],
                     question_id=q.id,
                     speaker=q.speaker,
                     followup=q.followup,

@@ -167,3 +167,16 @@ def remove_review(
     item_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> ReviewQueue:
     return ReviewQueueService(db).remove(user, item_id)
+
+
+@router.post(
+    "/reviews/{item_id}/restore",
+    response_model=ReviewQueue,
+    responses=error_responses(401, 404, 409),
+    summary="Undo a removal: the question back in the queue as it was, its ladder and points "
+    "(docs/DISPUTES.md)",
+)
+def restore_review(
+    item_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ReviewQueue:
+    return ReviewQueueService(db).restore(user, item_id)
