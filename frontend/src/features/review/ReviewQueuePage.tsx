@@ -11,7 +11,8 @@ import { formatDateTime } from "@/lib/format";
 
 import { RemovePoint, UndoRemoved } from "./RemovePoint";
 
-/** A question that came out of the queue with its last point, for the page's Undo (its row is gone). */
+/** A question that came out of the queue (by Remove or with its last point), for the page's Undo:
+ * its row is gone (Volume 18, prompt 1). */
 const Removed = createContext<(item: { id: string; title: string }) => void>(() => undefined);
 
 /** Questions saved for spaced review: what's due, why, and when the rest come back. */
@@ -64,6 +65,7 @@ export function ReviewQueuePage() {
 
 function DisputedRow({ item }: { item: ReviewQueueItem }) {
   const remove = useReviewQueueMutation(() => api.removeReview(item.id));
+  const onRemoved = useContext(Removed);
   return (
     <li className="card stack queue-row" aria-label={item.title}>
       <div className="row queue-row__head">
@@ -75,7 +77,8 @@ function DisputedRow({ item }: { item: ReviewQueueItem }) {
       <div className="row queue-row__actions">
         {item.dispute && <Link className="btn btn--secondary btn--sm" to={item.dispute.href}>Count it again (see the dispute)</Link>}
         <Link className="btn btn--ghost btn--sm" to={item.href} state={{ from: "/reviews", fromLabel: "Back to the review queue" }}>Answer it anyway</Link>
-        <Button size="sm" variant="ghost" loading={remove.isPending} onClick={() => remove.mutate(undefined)}>Remove</Button>
+        <Button size="sm" variant="ghost" loading={remove.isPending}
+          onClick={() => remove.mutate(undefined, { onSuccess: () => onRemoved({ id: item.id, title: item.title }) })}>Remove</Button>
       </div>
       <InlineError error={remove.error} />
     </li>
@@ -85,6 +88,7 @@ function DisputedRow({ item }: { item: ReviewQueueItem }) {
 function QueueRow({ item }: { item: ReviewQueueItem }) {
   const snooze = useReviewQueueMutation((days: 1 | 3 | 7) => api.snoozeReview(item.id, days));
   const remove = useReviewQueueMutation(() => api.removeReview(item.id));
+  const onRemoved = useContext(Removed);
   return (
     <li className="card stack queue-row" aria-label={item.title}>
       <div className="row queue-row__head">
@@ -100,7 +104,8 @@ function QueueRow({ item }: { item: ReviewQueueItem }) {
             Snooze {d} {d === 1 ? "day" : "days"}
           </Button>
         ))}
-        <Button size="sm" variant="ghost" loading={remove.isPending} onClick={() => remove.mutate(undefined)}>Remove</Button>
+        <Button size="sm" variant="ghost" loading={remove.isPending}
+          onClick={() => remove.mutate(undefined, { onSuccess: () => onRemoved({ id: item.id, title: item.title }) })}>Remove</Button>
         <ScheduleLink kind="review_item" refId={item.id} title={`Review: ${item.title}`} />
       </div>
       <InlineError error={snooze.error ?? remove.error} />

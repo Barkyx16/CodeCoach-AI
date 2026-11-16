@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { api } from "@/api/endpoints";
 import { useReviewQueueMutation } from "@/api/queries";
@@ -50,12 +50,16 @@ export function RemovePoint({ itemId, title, point, points, onRemoved }: {
   );
 }
 
-/** After a question came out of the queue with its last point: say so, and put it back as it was. */
+/** After a question came out of the queue, with its last point or by Remove (Volume 18, prompt 1):
+ * say so, and put it back as it was. The button that took it out has gone with its row, so the
+ * keyboard's place moves to Undo. */
 export function UndoRemoved({ itemId, title, onDone }: { itemId: string; title: string; onDone(): void }) {
   const restore = useReviewQueueMutation(() => api.restoreReview(itemId));
+  const here = useRef<HTMLDivElement>(null);
+  useEffect(() => { here.current?.querySelector("button")?.focus(); }, [itemId]);
   return (
-    <div className="banner banner--info row" role="status">
-      <span>Took “{title}” out of your review queue.</span>
+    <div className="banner banner--info row" role="status" ref={here}>
+      <span>Took “{title}” out of your review queue. Its answers, scores and any disputes stay.</span>
       <Button size="sm" variant="secondary" loading={restore.isPending} onClick={() => restore.mutate(undefined, { onSuccess: onDone })}>Undo</Button>
       <InlineError error={restore.error} />
     </div>

@@ -113,7 +113,8 @@ describe("Removing a point from the interview summary (Volume 17, prompt 8)", ()
     expect(ask).toHaveTextContent(`“${POINT}” is the only point “A hard shift” is saved for, so removing it takes the question out of your review queue. Its answers, scores and any disputes stay.`);
     expect(calls).toEqual([]); // nothing sent before it's confirmed
     await user.click(within(ask).getByRole("button", { name: "Take it out of the queue" }));
-    const undone = (await screen.findByText("Took “A hard shift” out of your review queue.")).closest("[role=status]") as HTMLElement;
+    // The words say the answers, scores and disputes stay (Volume 18, prompt 1).
+    const undone = (await screen.findByText("Took “A hard shift” out of your review queue. Its answers, scores and any disputes stay.")).closest("[role=status]") as HTMLElement;
     await user.click(within(undone).getByRole("button", { name: "Undo" }));
     await waitFor(() => expect(calls).toEqual(["remove", "restore"])); // the question, never "point"
     expect(await screen.findByRole("button", { name: `Remove the point “${POINT}”` })).toBeInTheDocument();

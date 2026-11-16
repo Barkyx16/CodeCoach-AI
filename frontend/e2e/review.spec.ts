@@ -63,6 +63,18 @@ test("review a round, retry one question, compare, queue it, and come back to Hi
   await page.goto("/reviews");
   await expect(page.getByRole("heading", { name: "Review queue" })).toBeVisible();
   await expect(page.getByText(/Last answered .* scoring \d+\/100/)).toBeVisible();
+  // Remove has Undo, against the real API, and Undo puts it back as it was (Volume 18, prompt 1).
+  const row = page.locator(".queue-row").first();
+  const title = (await row.locator("strong").first().textContent()) ?? "";
+  const due = (await row.locator(".queue-row__head .subtle").textContent()) ?? "";
+  await row.getByRole("button", { name: "Remove", exact: true }).click();
+  const undo = page.getByRole("status").filter({ hasText: `Took “${title}” out of your review queue.` });
+  await expect(undo.getByRole("button", { name: "Undo" })).toBeFocused();
+  await expect(page.locator(".queue-row")).toHaveCount(0);
+  await undo.getByRole("button", { name: "Undo" }).click();
+  await expect(page.locator(".queue-row").first().locator(".queue-row__head .subtle")).toHaveText(due);
+  await page.reload();
+  await expect(page.locator(".queue-row").first().locator("strong").first()).toHaveText(title);
 
   // From filtered History, open the interview and return to the same place.
   await page.goto("/history?type=interview");

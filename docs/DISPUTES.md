@@ -88,8 +88,17 @@ the queue: the control says so first ("“A” is the only point “…” is sa
 the question out of your review queue. Its answers, scores and any disputes stay."), takes it out
 (`DELETE /me/reviews/{id}`; the point endpoint still answers 409 `last_point`), and offers **Undo**
 (`POST /me/reviews/{id}/restore`), which puts it back as it was, ladder and points; refused with 409
-`already_in_queue` once the question was saved again, and 404 for another account's item. There was
-no preview or undo for removing a queue item before this; the queue's own **Remove** is unchanged.
+`already_in_queue` once the question was saved again, and 404 for another account's item.
+
+**Undo for every removal** (Volume 18, prompt 1). The queue's own **Remove**, on a scheduled
+question or one there only for disputed feedback, now offers the same Undo: "Took “…” out of your
+review queue. Its answers, scores and any disputes stay." with **Undo**, which puts it back as it
+was. The Remove button goes with its row, so the keyboard's place moves to Undo. A refused Undo
+says why ("It's back in your review queue already: it was saved again.") and changes nothing; a
+second Undo of one already back changes nothing either (the restore answers with the queue as it
+is). The Undo lasts while the page is open; after a reload, saving the question again is the way
+back (its history is kept). Tests: `reviewQueueUndo.test.tsx` (3), the summary's Undo words in
+`reviewRecount.test.tsx`; negative controls 4, all caught.
 
 A removed point is kept in the item's history with its date (`review_items.removed_points`,
 `[{point, at}]`, migration `a8c2e4f6b195`; `removed_points` on the queue item: "“B” was removed on
