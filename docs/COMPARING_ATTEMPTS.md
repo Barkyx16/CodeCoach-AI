@@ -194,14 +194,32 @@ another rubric; a checklist's ticks against other points don't. So:
   Comparable with the one before", or why it isn't compared, the same words on its page ("Not
   compared: the first checked attempt at this drill", "Not compared: no result was stored"; each
   attempt now carries `not_compared` there too, never a blank). Its in-app help comes in History's one
-  request for the rows on screen. It links to the format's page (`/drills/<id>`, `/whiteboard/<prompt>`,
-  `/work-samples/<brief>`), where the attempt is listed. The rows sort and page with every other kind
+  request for the rows on screen. It links to that attempt (since Volume 17, prompt 2): the format's
+  page with `?attempt=<id>` (`/drills/<id>?attempt=…`, `/whiteboard/<prompt>?attempt=…`,
+  `/work-samples/<brief>?attempt=…`), which opens it. The rows sort and page with every other kind
   by when they were made; the type filter and the facet counts include them (a coding-only, skill or
   other-status filter leaves them out: they carry no skills, and an attempt is checked when it's
   saved). One statement counts all three formats and their rows and comparisons are read once per
   format that has some, so reading History doesn't grow with the number of attempts (a test reads it
   with two attempts and with fourteen in the same statements). The rows already there read exactly as
   before. No chart or replay reads these attempts.
+- **History, the other three formats** (Volume 17, prompt 2): each scenario run, code-review exercise
+  and sample-answer comparison is a row too (types `scenario_attempt`, `code_review_attempt`,
+  `comparison_attempt`), in the words its own page's list uses ("In progress · version 1", "1
+  finding · points at 1 of 2 authored defects · version 1", "1 excerpt, 1 matching the explanation ·
+  version 1", with "after reading the authored review" or "after the explanation" where it was), then
+  why it isn't compared: no rule of this contract covers these formats ("Not compared: scenario runs
+  aren't compared with each other" (each run takes its own path), "Not compared: code reviews aren't
+  compared with each other yet", "Not compared: readings of sample answers aren't compared with each
+  other yet"). Each opens that attempt: a run's or a review's own page, or the lesson's page showing
+  that reading (`/compare/<lesson>?attempt=<id>`); one that can't be opened says so. Its in-app help
+  comes in the same one request. A scenario run in progress is "In progress" (the status filter and
+  facet count it so); a code review is a coding problem's (the coding filter shows it, a career's
+  doesn't); a sample-answer lesson is for every career (a career filter leaves it out). The one
+  counting statement covers all six formats, so reading History still doesn't grow with the number of
+  attempts (a test reads it with three attempts and with sixteen in the same statements). Checked in
+  a browser at 412 and 360 pixels wide: the rows wrap, the page doesn't scroll sideways, and each link
+  opens its attempt (`e2e/history-attempts-mobile.spec.ts`).
 - **Never**: a result changed, "improved", "better", an average or a trend, within a format or across
   formats.
 - **Rules version**: still v1. No written answer's or submission's classification changed; these are
@@ -213,6 +231,7 @@ Every list of coding submissions now says how each compares with the one before:
 submission's page and the workspace's result, an improvement's related practice, a requirement, and
 your submissions list (`GET /me/submissions`, `outcome_text`), which the dashboard's "Recent
 attempts" shows, linking to the comparison (the first says it's the first; one still being judged,
-or that the judge couldn't run, says nothing). Scenario runs, code-review exercises and sample-answer comparisons aren't listed in History: they keep
-their own pages and attempts lists. They, and the other formats, keep their own rules for now (docs/SCENARIOS.md, docs/CODE_REVIEWS.md, docs/COMPARE_ANSWERS.md and others) and adopt
+or that the judge couldn't run, says nothing). Scenario runs, code-review exercises and sample-answer
+comparisons are listed in History (Volume 17, prompt 2) but not compared: they, and the other formats,
+keep their own rules for now (docs/SCENARIOS.md, docs/CODE_REVIEWS.md, docs/COMPARE_ANSWERS.md and others) and adopt
 this contract later. Help outside the app isn't known.

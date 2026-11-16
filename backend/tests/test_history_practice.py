@@ -45,8 +45,8 @@ def test_an_attempt_twice_shows_two_rows_the_second_with_its_outcome_as_its_page
     assert older["detail"].endswith(page[first["id"]]["not_compared"])
     assert page[first["id"]]["not_compared"].startswith("Not compared: the first checked attempt at this")
     assert newer["status"] == "completed" and newer["title"]
-    if kind in HREF:
-        assert newer["target"]["href"] == HREF[kind]
+    if kind in HREF:  # the attempt itself, on its format's page (Volume 17, prompt 2)
+        assert newer["target"]["href"] == f"{HREF[kind]}?attempt={second['id']}"
 
 
 def test_filtering_by_format_shows_only_that_format_and_the_facets_agree(client):

@@ -17,6 +17,9 @@ ActivityType = Literal[
     "drill_attempt",
     "whiteboard_attempt",
     "work_sample_attempt",
+    "scenario_attempt",
+    "code_review_attempt",
+    "comparison_attempt",
 ]
 ActivityStatus = Literal[
     "opened",  # a page was opened: activity, not an attempt
@@ -46,7 +49,8 @@ class ActivityTarget(APIModel):
     answer_id: str | None = None
     interview_id: str | None = None
     ai_interaction_id: str | None = None
-    # A drill attempt, a whiteboard design or a work sample (Volume 16, prompt 6).
+    # A drill attempt, a whiteboard design or a work sample (Volume 16, prompt 6); a scenario run, a
+    # code review or a sample-answer comparison (Volume 17, prompt 2). `href` opens that attempt.
     attempt_id: str | None = None
 
 

@@ -5195,7 +5195,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "problem_opened" | "code_submission" | "coaching" | "written_answer" | "interview" | "drill_attempt" | "whiteboard_attempt" | "work_sample_attempt";
+            type: "problem_opened" | "code_submission" | "coaching" | "written_answer" | "interview" | "drill_attempt" | "whiteboard_attempt" | "work_sample_attempt" | "scenario_attempt" | "code_review_attempt" | "comparison_attempt";
             /**
              * Occurred At
              * Format: date-time
@@ -32495,7 +32495,7 @@ export interface operations {
             query?: {
                 /** @description A career slug, or 'coding' */
                 career?: string | null;
-                type?: ("problem_opened" | "code_submission" | "coaching" | "written_answer" | "interview" | "drill_attempt" | "whiteboard_attempt" | "work_sample_attempt") | null;
+                type?: ("problem_opened" | "code_submission" | "coaching" | "written_answer" | "interview" | "drill_attempt" | "whiteboard_attempt" | "work_sample_attempt" | "scenario_attempt" | "code_review_attempt" | "comparison_attempt") | null;
                 /** @description Inclusive (UTC) */
                 since?: string | null;
                 /** @description Inclusive (UTC) */

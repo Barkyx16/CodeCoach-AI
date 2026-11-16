@@ -25,6 +25,9 @@ const TYPE_TONE: Record<ActivityItem["type"], string> = {
   drill_attempt: "success",
   whiteboard_attempt: "success",
   work_sample_attempt: "success",
+  scenario_attempt: "success",
+  code_review_attempt: "info",
+  comparison_attempt: "success",
 };
 const TYPE_SHORT: Record<ActivityItem["type"], string> = {
   problem_opened: "Opened",
@@ -35,6 +38,9 @@ const TYPE_SHORT: Record<ActivityItem["type"], string> = {
   drill_attempt: "Drill",
   whiteboard_attempt: "Whiteboard",
   work_sample_attempt: "Work sample",
+  scenario_attempt: "Scenario",
+  code_review_attempt: "Code review",
+  comparison_attempt: "Samples compared",
 };
 // Older links used ?tab=…; keep them working.
 const LEGACY_TABS: Record<string, string> = { submissions: "code_submission", ai: "coaching", interviews: "interview" };
@@ -63,15 +69,23 @@ export function HistoryPage() {
   const drillIds = attemptsOf("drill_attempt");
   const whiteboardIds = attemptsOf("whiteboard_attempt");
   const workSampleIds = attemptsOf("work_sample_attempt");
+  // Scenario runs, code reviews and sample-answer comparisons (Volume 17, prompt 2).
+  const scenarioIds = attemptsOf("scenario_attempt");
+  const codeReviewIds = attemptsOf("code_review_attempt");
+  const comparisonIds = attemptsOf("comparison_attempt");
   const practiceIds = {
     ...(drillIds.length ? { drill_attempt_ids: drillIds } : {}),
     ...(whiteboardIds.length ? { whiteboard_attempt_ids: whiteboardIds } : {}),
     ...(workSampleIds.length ? { work_sample_attempt_ids: workSampleIds } : {}),
+    ...(scenarioIds.length ? { scenario_attempt_ids: scenarioIds } : {}),
+    ...(codeReviewIds.length ? { code_review_attempt_ids: codeReviewIds } : {}),
+    ...(comparisonIds.length ? { comparison_attempt_ids: comparisonIds } : {}),
   };
+  const practiceCount = Object.values(practiceIds).reduce((n, ids) => n + ids.length, 0);
   const conditions = useQuery({
     queryKey: ["me", "attempt-conditions", submissionIds, answerIds, interviewIds, practiceIds],
     queryFn: () => api.attemptConditions({ submission_ids: submissionIds, answer_ids: answerIds, interview_ids: interviewIds, ...practiceIds }),
-    enabled: submissionIds.length + answerIds.length + interviewIds.length + drillIds.length + whiteboardIds.length + workSampleIds.length > 0,
+    enabled: submissionIds.length + answerIds.length + interviewIds.length + practiceCount > 0,
   });
   // Back from an item: the same scroll position, and focus on the item it came back from.
   useScrollMemory(Boolean(activity.data) && !activity.isPlaceholderData && !activity.isFetching);
@@ -191,7 +205,10 @@ function labelsFor(found: ConditionsOut, item: ActivityItem): string | null {
       : item.type === "interview" ? found.interviews?.[item.target.interview_id ?? ""]
         : item.type === "drill_attempt" ? found.drill_attempts?.[item.target.attempt_id ?? ""]
           : item.type === "whiteboard_attempt" ? found.whiteboard_attempts?.[item.target.attempt_id ?? ""]
-            : item.type === "work_sample_attempt" ? found.work_sample_attempts?.[item.target.attempt_id ?? ""] : undefined;
+            : item.type === "work_sample_attempt" ? found.work_sample_attempts?.[item.target.attempt_id ?? ""]
+              : item.type === "scenario_attempt" ? found.scenario_attempts?.[item.target.attempt_id ?? ""]
+                : item.type === "code_review_attempt" ? found.code_review_attempts?.[item.target.attempt_id ?? ""]
+                  : item.type === "comparison_attempt" ? found.comparison_attempts?.[item.target.attempt_id ?? ""] : undefined;
   return conditionsSummary(c);
 }
 

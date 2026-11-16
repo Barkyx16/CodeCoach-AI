@@ -7,6 +7,7 @@ import { api } from "@/api/endpoints";
 import { useWhiteboardAttempts, useWhiteboardDraft, useWhiteboardPrompts } from "@/api/queries";
 import type { WhiteboardAttempt, WhiteboardDraft, WhiteboardPrompt } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
+import { LINKED_MISSING, useLinkedAttempt } from "@/hooks/useLinkedAttempt";
 import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -80,6 +81,8 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
   const [highlight, setHighlight] = useState<Set<string>>(new Set());
   const [exporting, setExporting] = useState(false);
   const attempts = useWhiteboardAttempts(prompt.id);
+  // A History row opens one attempt (Volume 17, prompt 2).
+  const linked = useLinkedAttempt(api.whiteboardAttemptById, setAttempt, "wb-fb-title");
   const fileRef = useRef<HTMLInputElement>(null);
   const d = h.present;
   const dirty = fingerprint(d) !== fingerprint(saved.diagram) || explanation.trim() !== saved.explanation.trim();
@@ -287,6 +290,7 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
       )}
       <InlineError error={error} />
 
+      {linked === "missing" && <p className="banner banner--warning" role="status">{LINKED_MISSING}</p>}
       {attempt && <Feedback attempt={attempt} changed={lastDigestDiffers} onRefs={(refs) => setHighlight(new Set(refs))} />}
       {attempts.data && attempts.data.length > 0 && (
         <Card className="stack-sm">
@@ -390,7 +394,7 @@ function Feedback({ attempt, changed, onRefs }: { attempt: WhiteboardAttempt; ch
   };
   return (
     <section className="card stack-sm wb-feedback" aria-labelledby="wb-fb-title">
-      <h2 className="section-title" id="wb-fb-title">Feedback on the attempt from {formatDateTime(attempt.created_at)}</h2>
+      <h2 className="section-title" id="wb-fb-title" tabIndex={-1}>Feedback on the attempt from {formatDateTime(attempt.created_at)}</h2>
       {changed && <p className="banner banner--info">Your diagram has changed since this attempt. This feedback is about the version you sent.</p>}
       <AttemptConditionsView conditions={attempt.conditions} />
       {attempt.compared && <PracticeCompared compared={attempt.compared} />}

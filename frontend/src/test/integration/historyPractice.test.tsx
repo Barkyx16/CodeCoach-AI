@@ -48,4 +48,35 @@ describe("Drills, whiteboard designs and work samples in History", () => {
     expect(screen.getByText(/Not compared: the first checked attempt at this prompt/).closest("a")).toHaveTextContent("Whiteboard");
     expect(asked).toEqual([{ submission_ids: [], answer_ids: [], interview_ids: [], drill_attempt_ids: ["d-2", "d-1"], whiteboard_attempt_ids: ["w-1"] }]);
   });
+
+  it("lists scenario runs, code reviews and sample-answer comparisons, each opening its attempt, with its help (Volume 17, prompt 2)", async () => {
+    const asked: unknown[] = [];
+    const more = [
+      { ...row("s-1", "scenario_attempt", "Two patients at once", "In progress · version 1 · Not compared: scenario runs aren't compared with each other", "/scenarios/attempts/s-1"), status: "in_progress" as const, status_label: "In progress" },
+      { ...row("r-1", "code_review_attempt", "Second largest", "1 finding · points at 1 of 2 authored defects · version 1 · Not compared: code reviews aren't compared with each other yet", "/code-reviews/attempts/r-1"), career: "coding", career_title: "Coding problems" },
+      { ...row("c-1", "comparison_attempt", "Specific evidence or general claims?", "1 excerpt, 1 matching the explanation · version 1 · Not compared: readings of sample answers aren't compared with each other yet", "/compare/cmp-specific-evidence?attempt=c-1"), career: "", career_title: "" },
+    ];
+    server.use(
+      http.get(`${API}/api/v1/me/activity`, () => HttpResponse.json({ items: more, total: more.length, page: 1, page_size: 20 })),
+      http.post(`${API}/api/v1/me/attempt-conditions`, async ({ request }) => {
+        asked.push(await request.json());
+        return HttpResponse.json({ submissions: {}, answers: {}, scenario_attempts: { "s-1": hinted }, code_review_attempts: {}, comparison_attempts: { "c-1": hinted } });
+      }),
+    );
+    renderApp("/history", { signedIn: true });
+    const scenario = (await screen.findByText(/scenario runs aren't compared/)).closest("a")!;
+    expect(scenario).toHaveAttribute("href", "/scenarios/attempts/s-1");
+    expect(scenario).toHaveTextContent("Scenario");
+    expect(scenario).toHaveTextContent("In progress");
+    await waitFor(() => expect(scenario).toHaveTextContent("In-app help: Hint shown"));
+    const review = screen.getByText(/code reviews aren't compared/).closest("a")!;
+    expect(review).toHaveAttribute("href", "/code-reviews/attempts/r-1");
+    expect(review).toHaveTextContent("Code review");
+    expect(review.textContent).not.toMatch(/In-app help/);
+    const reading = screen.getByText(/readings of sample answers/).closest("a")!;
+    expect(reading).toHaveAttribute("href", "/compare/cmp-specific-evidence?attempt=c-1");
+    expect(reading).toHaveTextContent("Samples compared");
+    expect(reading).toHaveTextContent("In-app help: Hint shown");
+    expect(asked).toEqual([{ submission_ids: [], answer_ids: [], interview_ids: [], scenario_attempt_ids: ["s-1"], code_review_attempt_ids: ["r-1"], comparison_attempt_ids: ["c-1"] }]);
+  });
 });

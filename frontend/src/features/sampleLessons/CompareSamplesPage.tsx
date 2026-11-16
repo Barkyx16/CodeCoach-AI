@@ -10,6 +10,7 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
+import { LINKED_MISSING, useLinkedAttempt } from "@/hooks/useLinkedAttempt";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { formatDateTime } from "@/lib/format";
 import { dropCopy, useCopySince, writeCopy } from "@/lib/deviceCopies";
@@ -55,6 +56,8 @@ function Compare({ lesson }: { lesson: ComparisonLesson }) {
   const [open, setOpen] = useState<string>(lesson.samples[0]?.id ?? ""); // narrow screens: one sample at a time
   const wide = useMediaQuery("(min-width: 900px)");
   const readings = useSampleReadings(lesson.id);
+  // A History row opens one reading (Volume 17, prompt 2).
+  const linked = useLinkedAttempt(api.sampleReading, setResult, "cmp-result");
   const focusAfter = useRef<string | null>(null);
   const marked = Object.entries(marks);
   useLeaveWarning(marked.length > 0 && !result);
@@ -203,6 +206,7 @@ function Compare({ lesson }: { lesson: ComparisonLesson }) {
         ) : <p><Button size="sm" variant="ghost" onClick={() => setAsking(true)}>Show the explanation now</Button></p>)}
       </section>
 
+      {linked === "missing" && <p className="banner banner--warning" role="status">{LINKED_MISSING}</p>}
       {result && (
         <section className="card stack" aria-labelledby="cmp-result">
           <h2 className="section-title" id="cmp-result" tabIndex={-1}>Your reading and the explanation</h2>

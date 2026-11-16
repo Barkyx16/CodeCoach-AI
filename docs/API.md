@@ -1312,8 +1312,12 @@ interview sessions), so nothing is back-filled or counted twice. All scoped to t
   returns `Page[ActivityItem]`: `{id ("<type>:<source id>"), type, occurred_at, career,
   career_title, title, detail, skills, status, status_label, score, session_id, target: {href,
   …ids}}`. `type` is `problem_opened | code_submission | coaching | written_answer | interview |
-  drill_attempt | whiteboard_attempt | work_sample_attempt` (the last three since Volume 16, prompt 6,
-  with `target.attempt_id` and their result and comparison in `detail`);
+  drill_attempt | whiteboard_attempt | work_sample_attempt | scenario_attempt | code_review_attempt |
+  comparison_attempt` (drills, whiteboards and work samples since Volume 16, prompt 6; scenario runs,
+  code reviews and sample-answer comparisons since Volume 17, prompt 2), each with `target.attempt_id`,
+  its result and its comparison (or why it has none) in `detail`, and `target.href` opening that one
+  attempt (`/scenarios/attempts/<id>`, `/code-reviews/attempts/<id>`, or the format's page with
+  `?attempt=<id>`); a scenario run can be `in_progress`;
   `status` is one of `opened, saved_not_judged, awaiting_judge, passed, failed,
   evaluation_unavailable, scored, completed, in_progress, expired, abandoned`. A submission is
   `saved_not_judged` when the deployment has no judge. A skill filter leaves interviews out (they

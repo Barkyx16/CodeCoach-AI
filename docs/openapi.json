@@ -22037,7 +22037,10 @@
                     "interview",
                     "drill_attempt",
                     "whiteboard_attempt",
-                    "work_sample_attempt"
+                    "work_sample_attempt",
+                    "scenario_attempt",
+                    "code_review_attempt",
+                    "comparison_attempt"
                   ],
                   "type": "string"
                 },
@@ -26503,7 +26506,10 @@
               "interview",
               "drill_attempt",
               "whiteboard_attempt",
-              "work_sample_attempt"
+              "work_sample_attempt",
+              "scenario_attempt",
+              "code_review_attempt",
+              "comparison_attempt"
             ],
             "title": "Type"
           },

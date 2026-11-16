@@ -13,6 +13,7 @@ import { CopyWork } from "@/components/CopyWork";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { VersionConflict } from "@/components/VersionConflict";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
+import { LINKED_MISSING, useLinkedAttempt } from "@/hooks/useLinkedAttempt";
 import { recoveredSave, savedVersion } from "@/lib/conflict";
 import { formatDateTime, timeAgo } from "@/lib/format";
 import { useCopySince, writeCopy } from "@/lib/deviceCopies";
@@ -62,6 +63,8 @@ function Writer({ brief, initial }: { brief: WorkSampleBrief; initial: WorkSampl
   const [preview, setPreview] = useState(false);
   const [shown, setShown] = useState<WorkSampleAttempt | null>(null);
   const attempts = useWorkSampleAttempts(brief.id);
+  // A History row opens one attempt (Volume 17, prompt 2).
+  const linked = useLinkedAttempt(api.workSampleAttempt, setShown, "ws-feedback");
   const saveKey = useRequestKey();
   const focusAfter = useRef<string | null>(null);
   const dirty = fp(sections) !== saved.fp;
@@ -224,6 +227,7 @@ function Writer({ brief, initial }: { brief: WorkSampleBrief; initial: WorkSampl
         </section>
       </div>
 
+      {linked === "missing" && <p className="banner banner--warning" role="status">{LINKED_MISSING}</p>}
       {shown && (
         <section className="stack" aria-labelledby="ws-feedback">
           <h2 className="section-title" id="ws-feedback" tabIndex={-1}>Feedback on {formatDateTime(shown.created_at)}{shown.revision_of ? " (a revision)" : ""}</h2>
