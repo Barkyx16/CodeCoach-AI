@@ -1,6 +1,6 @@
 {
   "_doc": "Each coach prompt version and the fingerprint of the prompts and request settings it names (evals/meta.py:request_fingerprint). tests/test_eval_harness.py fails when the prompts change without a new version here.",
-  "current": "coach-2026-11-15b",
+  "current": "coach-2026-11-16",
   "versions": {
     "coach-2026-11-03": {
       "fingerprint": "f7a9c11481d697f2564299101984818644836f905a7094a304890a53c9de1586",
@@ -36,6 +36,11 @@
       "fingerprint": "973bb92548263f66bf27c6a3240d3eecbc595a0cfedcc6dfac14748fce51cdfd",
       "recorded": "2026-11-15",
       "notes": "No wording changed in what's asked: the coding interviewer's transcript lines, its 'no messages yet', its phase line and the feedback's 'How it ended' moved to context_text (transcript_line, transcript_text, NO_MESSAGES, interview_phase_text, ending_text), shared with the interviewer's preview, byte for byte as before, and are now part of this fingerprint. What can be asked changed: the interviewer and the interview's feedback are sent the conversation with every turn redacted as the preview shows it, and, when the learner checks before each message, only the code and messages they approved (Volume 14 prompt 3, docs/COACH_CONTEXT.md, 'The coding interviewer'). No schema, setting or system prompt changed."
+    },
+    "coach-2026-11-16": {
+      "fingerprint": "1ea54f896ee55bf68a66e6dd1d783bd2cfbb18a85c55f94263a03668d802e3d0",
+      "recorded": "2026-11-16",
+      "notes": "One addition to what's asked: the coding interview's feedback is told the hints asked for in the interview's own hint panel. 'How it ended' (context_text.ending_text, already part of this fingerprint) gains 'Hints the candidate asked for during it: level 1 (nudge).' when any were asked, the same words its preview shows (Volume 17 prompt 4, docs/COACH_CONTEXT.md, 'Hints inside the interview'). Without hints it reads as before, byte for byte. No schema, setting or system prompt changed."
     }
   }
 }
