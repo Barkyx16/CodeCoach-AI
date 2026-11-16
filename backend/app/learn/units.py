@@ -718,4 +718,112 @@ PRIORITIZE = Unit(
     prepares=("scenario:rn-two-patients",),
 )
 
-UNITS: tuple[Unit, ...] = (HASH_MAP, SLIDING_WINDOW, DEBUGGING, STAR, SBAR, PRIORITIZE)
+FAILING_TEST = Unit(
+    id="se-failing-test",
+    track="software-engineer",
+    version=1,
+    changes=("First version.",),
+    title="Fixing code from a failing test",
+    skill=None,
+    topics=(),
+    minutes=7,
+    objective="Find and fix a bug starting from the one test that fails, changing as little as you can.",
+    prerequisites=(),
+    explanation=(
+        "A failing test is the best clue you'll get: it names an input, the result it expected and the "
+        "result it got. Read all three before you read the code.",
+        "Compare it with the tests that pass. Whatever is different about the failing input (empty, a "
+        "single value, repeated values, very large numbers, a special date) is usually where the bug lives.",
+        "Say one hypothesis out loud (“the total is divided as whole numbers”) and find the line it "
+        "points to. If the hypothesis is wrong, the next test you run will tell you.",
+        "Change one thing, then run every test again, the ones that passed too. A fix that breaks another "
+        "case isn't a fix yet.",
+    ),
+    example=Example(
+        title="Integer division, found from the failing case",
+        intro="`average(nums)` should return the mean. `[2, 4]` passes; `[1, 2]` fails: expected 1.5, got "
+        "1.0.",
+        walkthrough=(
+            "The failing case's mean isn't a whole number; the passing case's is.",
+            "Hypothesis: the sum is divided as whole numbers before it becomes a decimal. The line reads "
+            "`return sum / nums.length;` with `sum` an `int`.",
+            "Change only that line: `return (double) sum / nums.length;`.",
+            "Run every test again: both cases pass, and so does a single value.",
+        ),
+    ),
+    mistakes=(
+        "Rewriting the whole method instead of finding the one wrong line.",
+        "Changing several things at once, so you can't tell which one fixed it.",
+        "Running only the test that failed, and missing a case the change broke.",
+    ),
+    exercise=Exercise(
+        prompt="`isLeapYear(year)` should follow the calendar rule. 2024 and 2023 pass, but a test fails: for "
+        "1900 it expected false and got true. Write how you'd find the bug, in 3–5 sentences.",
+        draft_label="Your plan",
+        think="What is different about 1900 compared with 2024?",
+        concept="Century years: a year divisible by 100 is a leap year only if it's also divisible by 400.",
+        example="“1900 is divisible by 100 but not by 400. If the method only checks divisibility by 4, it will "
+        "say yes.”",
+        explanation="A strong plan reads the failing input against the passing ones, names the difference (a "
+        "century year), forms one hypothesis about the missing rule, changes one thing (add the 100 and 400 "
+        "checks) and reruns every test, adding 2000 and 2100.",
+        solution="“I'd compare 1900 with the years that pass: it's the only century year. My guess is the "
+        "method checks only whether the year divides by 4. I'd find that condition, add the rule that a year "
+        "divisible by 100 must also divide by 400, and rerun all the tests, adding 2000 (a leap year) and 2100 "
+        "(not one).”",
+    ),
+    check=(
+        CheckQuestion(
+            id="q1",
+            prompt="A test fails. What do you look at first?",
+            options=(
+                "The whole method, to rewrite it more cleanly",
+                "The failing input, the result it expected and the result it got",
+                "The logging, to add more of it everywhere",
+            ),
+            answer=1,
+            explanation="Those three tell you what's wrong before you read a line of code.",
+        ),
+        CheckQuestion(
+            id="q2",
+            prompt="Two tests pass and one fails. What helps most?",
+            options=(
+                "Finding what's different about the failing test's input",
+                "Deleting the failing test",
+                "Changing every line that looks suspicious at once",
+            ),
+            answer=0,
+            explanation="The difference points at the case the code doesn't handle.",
+        ),
+        CheckQuestion(
+            id="q3",
+            prompt="You changed one line and the failing test now passes. What next?",
+            options=(
+                "Stop: it's fixed",
+                "Run every test again, including the ones that passed before",
+                "Change a few more lines while you're there",
+            ),
+            answer=1,
+            explanation="A change can fix one case and break another; only the whole set tells you.",
+        ),
+    ),
+    practice=Practice(kind="problem", ref_id="debug-coldest-day", label="Fix “Coldest Reading”"),
+    references=(
+        Reference(
+            title="Debugging exercises and their tests",
+            publisher="CodeCoach repository",
+            kind="repository",
+            note="backend/app/seed/debugging: each exercise's public tests and intended behaviour",
+        ),
+        Reference(
+            title="git-bisect: use binary search to find the commit that introduced a bug",
+            publisher="Git documentation",
+            url="https://git-scm.com/docs/git-bisect",
+        ),
+    ),
+    review=_AUTHOR_REVIEW,
+    # The debugging exercises it prepares (Volume 17, prompt 5; docs/ATTEMPT_CONDITIONS.md).
+    prepares=("debug:debug-coldest-day", "debug:debug-count-at-most", "debug:debug-palindrome-sentence"),
+)
+
+UNITS: tuple[Unit, ...] = (HASH_MAP, SLIDING_WINDOW, DEBUGGING, FAILING_TEST, STAR, SBAR, PRIORITIZE)

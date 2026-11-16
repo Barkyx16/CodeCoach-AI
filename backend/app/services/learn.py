@@ -344,6 +344,8 @@ def related(
         out = [
             u
             for u in UNIT_INDEX.values()
-            if (u.practice.kind == "problem" and u.practice.ref_id == problem_slug) or topics & set(u.topics)
+            if (u.practice.kind == "problem" and u.practice.ref_id == problem_slug)
+            or topics & set(u.topics)
+            or f"debug:{problem_slug}" in u.prepares  # a debugging exercise it prepares (Volume 17, prompt 5)
         ]
     return [UnitLink(id=u.id, title=u.title) for u in out]

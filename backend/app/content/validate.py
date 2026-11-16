@@ -35,6 +35,7 @@ from app.careers.questions import CORRECTABLE_FIELDS, LEVELS, PER_LEVEL, generat
 from app.learn import UNIT_INDEX
 from app.models import ContentCheck, ContentStatus, ContentVersion, Problem
 from app.scenarios import SCENARIO_INDEX, ScenarioError, validate
+from app.services.conditions import practice_version
 
 BACKEND_DIR = Path(__file__).resolve().parents[2]
 PROBLEMS_DIR = BACKEND_DIR / "app" / "seed" / "problems"
@@ -140,6 +141,9 @@ def _learn(report: Report, retired: set[tuple[str, str]], seed_slugs: set[str]) 
                 report.errors.append(f"{where}: version {v} is marked minor but isn't a later version")
             elif len(unit.changes) < v or not unit.changes[v - 1].strip():
                 report.errors.append(f"{where}: version {v} is marked minor without a change note")
+        for ref in unit.prepares:  # each thing it prepares exists (Volume 17, prompt 5)
+            if practice_version(ref) is None:
+                report.errors.append(f"{where}: it prepares {ref!r}, which doesn't exist")
         target = unit.practice
         if target.kind == "question" and get_question(unit.track, target.ref_id) is None:
             report.errors.append(f"{where}: practice question {target.ref_id!r} doesn't exist")

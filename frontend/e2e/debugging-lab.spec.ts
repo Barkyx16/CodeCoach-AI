@@ -28,6 +28,8 @@ test("from the library to a saved attempt, without a judge: the brief, the revea
   await page.getByRole("link", { name: "Debugging lab: fix programs with a known bug" }).click();
   await expect(page.getByRole("heading", { name: "Fix a broken program", level: 1 })).toBeVisible();
   await page.getByRole("link", { name: "Fix: Count Within a Limit" }).click();
+  // The lesson that prepares the exercises is offered on it (Volume 17, prompt 5).
+  await expect(page.getByRole("region", { name: "Learn first" }).getByRole("link", { name: "Fixing code from a failing test" })).toBeVisible();
 
   const brief = page.getByRole("region", { name: "Fix the bug" });
   await expect(brief).toContainText("nums = [4, 8, 3], limit = 5 should give 2");

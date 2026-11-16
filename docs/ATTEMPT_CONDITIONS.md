@@ -22,7 +22,7 @@ now says what in-app help came before it.
 | Code-review exercises | The exercise's authored review, shown before the review was written ("Solution revealed"); Learn lessons that prepare the exercise (none yet) | 15 Nov 2026 (the authored review shown first: always kept) | the attempt's own `after_reveal`; lesson reads, by the exercise's version |
 | Sample-answer comparisons | The comparison's explanation, opened before the reading was sent ("Solution revealed"); Learn lessons that prepare it (the STAR lesson prepares "Specific evidence or general claims?") | 15 Nov 2026 (the explanation opened first: always kept) | the attempt's own `revealed_early`, as the page reported it when sending; lesson reads, by the comparison's version |
 | Work samples | None: no lesson prepares a brief yet, and each section's hint is shown to everyone with the brief | 15 Nov 2026 | (nothing to find: "No in-app help recorded") |
-| Debugging exercises | Hints for the exercise (as for any coding problem); its explanation and repair, opened before the attempt ("Solution revealed"); Learn lessons that prepare it (none yet) | hints 14 Nov 2026; the explanation opened, 16 Nov 2026 | the saved hints; `lab_reveals`, by the exercise's version; lesson reads (`debug:<slug>`) |
+| Debugging exercises | Hints for the exercise (as for any coding problem); its explanation and repair, opened before the attempt ("Solution revealed"); Learn lessons that prepare it (“Fixing code from a failing test” prepares all three, since Volume 17, prompt 5) | hints 14 Nov 2026; the explanation opened, 16 Nov 2026 | the saved hints; `lab_reveals`, by the exercise's version; lesson reads (`debug:<slug>`) |
 | Coding interviews | Hints for the interview's problem, before or during it; plus its format (never help): the time limit, how it ended, each message and the feedback checked before it left CodeCoach | hints 14 Nov 2026; checked messages 16 Nov 2026 | the saved hints, by the problem's version when it started; what the interview stores |
 
 Offer comparisons and story help aren't practice attempts, so they have no conditions (below).
@@ -190,7 +190,11 @@ attempt at that version says "Solution revealed: The exercise's explanation and 
 (version 1)", with the time; an attempt after that, unless it's opened again, doesn't. Opening it
 again before the next attempt is the same opening (no second row). An opening at another version of
 the exercise doesn't count. A Learn lesson that prepares an exercise (`prepares: "debug:<slug>"`)
-counts by the lesson rule; none does yet. An attempt from before 16 Nov 2026 says "Opening the
+counts by the lesson rule: since Volume 17, prompt 5, **Fixing code from a failing test**
+(`se-failing-test`, version 1, author-reviewed) prepares all three exercises, is offered under
+"Learn first" on each, and its read is help for the first attempt after it (reading it after an
+attempt is the next one's). The content gate refuses a `prepares` link to something that doesn't
+exist, and a test checks the lesson gives none of the exercises' answers away. An attempt from before 16 Nov 2026 says "Opening the
 exercise's explanation and repair wasn't recorded before 16 Nov 2026, so whether it was opened before
 this attempt isn't known", beside any hints it did record, and with nothing else found it's "Not
 recorded".

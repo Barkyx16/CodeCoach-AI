@@ -73,7 +73,7 @@ def test_catalog_states_coverage_honestly(client):
     assert [u["id"] for u in r["units"]] == ["rn-star-answers", "rn-sbar-handoff", "rn-prioritization"]
     assert {c["track"]: c["units"] for c in r["careers_with_units"]} == {
         "registered-nurse": 3,
-        "software-engineer": 3,
+        "software-engineer": 4,  # "Fixing code from a failing test" since Volume 17, prompt 5
     }
     prio = r["units"][2]
     assert prio["prerequisites"] == [{"id": "rn-sbar-handoff", "title": "SBAR for handoffs and escalation"}]
