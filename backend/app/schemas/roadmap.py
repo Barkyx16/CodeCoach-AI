@@ -150,7 +150,13 @@ class SkillNews(APIModel):
     """What's new for one skill and what it would move in the next version, in one sentence."""
 
     skill: str | None = Field(
-        description="The skill; none for what all of what's new moves together, when it can't be put on one"
+        description="The skill; none for what all of what's new moves together, when it can't be put on one, "
+        "and for the skills past the preview's bound, said together"
+    )
+    skills: list[str] = Field(
+        default_factory=list,
+        description="For the line past the preview's bound: the skills said together on it, each with new "
+        "evidence; empty otherwise",
     )
     count: int = Field(description="How many of the new pieces of evidence are for this skill")
     text: str = Field(

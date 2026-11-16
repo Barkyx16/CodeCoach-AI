@@ -97,6 +97,52 @@ def _streaks(days: set[date], today: date) -> tuple[int, int]:
     return current, longest
 
 
+@dataclass
+class FactRows:
+    """The rows problem facts are built from, read once (`ProgressService.fact_rows`)."""
+
+    problems: list[Problem]
+    submissions: list[Submission]
+    coaching: list[AIInteraction]
+    events: list[ProgressEvent]
+
+
+def build_facts(
+    rows: FactRows, leave_out: set[str] | None = None, *, plan: bool = False
+) -> dict[int, _ProblemFacts]:
+    """Problem facts from rows already read, leaving out the submissions named (in memory)."""
+    facts = {p.id: _ProblemFacts(problem=p) for p in rows.problems}
+    for sub in rows.submissions:
+        f = facts.get(sub.problem_id)
+        if f is None or (leave_out and sub.id in leave_out):
+            continue
+        if plan and (
+            sub.status == SubmissionStatus.INTERNAL_ERROR
+            or (f.problem.kind == "debug" and not sub.status.is_terminal)
+        ):
+            continue  # no verdict on the learner's code (yet): not evidence for the plan
+        f.submissions += 1
+        f.last_status = sub.status
+        f.last_activity = _aware(sub.created_at)
+        if sub.status == SubmissionStatus.PASSED:
+            f.solved = True
+    for ai in rows.coaching:
+        f = facts.get(ai.problem_id)
+        if f is None or f.problem.kind != "problem":
+            continue
+        if ai.action == AIAction.HINT:
+            f.hints += 1
+        elif ai.action == AIAction.REVIEW:
+            f.reviews += 1
+        ts = _aware(ai.created_at)
+        f.last_activity = max(f.last_activity or ts, ts)
+    for ev in rows.events:
+        f = facts.get(ev.problem_id)
+        if f is not None and f.problem.kind == "problem":
+            f.opened = True
+    return facts
+
+
 class ProgressService:
     def __init__(self, db: Session):
         self.db = db
@@ -111,48 +157,31 @@ class ProgressService:
         the judge failed to run (INTERNAL_ERROR: the judge's problem, not the learner's code) isn't
         read, and debugging exercises are read too, by their judged submissions only, as evidence for
         the topics they name (never recommended themselves: `recommend`)."""
+        return build_facts(self.fact_rows(user, plan=plan), leave_out, plan=plan)
+
+    def fact_rows(self, user: User, *, plan: bool = False) -> FactRows:
+        """Everything `_facts` reads, read once (Volume 17, prompt 9): the plan's preview then builds
+        the facts for each skill's leave-out in memory, so its statements don't grow with the skills."""
         # Debugging exercises (kind "debug") are in History, not in problem progress or recommendations.
         kinds = ("problem", "debug") if plan else ("problem",)
-        problems = self.db.scalars(
-            select(Problem).where(Problem.kind.in_(kinds)).order_by(Problem.order_index)
-        ).all()
-        facts = {p.id: _ProblemFacts(problem=p) for p in problems}
-
-        for sub in self.db.scalars(
-            select(Submission)
-            .where(Submission.user_id == user.id, Submission.mode == SubmissionMode.SUBMIT)
-            .order_by(Submission.created_at)
-        ):
-            f = facts.get(sub.problem_id)
-            if f is None or (leave_out and sub.id in leave_out):
-                continue
-            if plan and (
-                sub.status == SubmissionStatus.INTERNAL_ERROR
-                or (f.problem.kind == "debug" and not sub.status.is_terminal)
-            ):
-                continue  # no verdict on the learner's code (yet): not evidence for the plan
-            f.submissions += 1
-            f.last_status = sub.status
-            f.last_activity = _aware(sub.created_at)
-            if sub.status == SubmissionStatus.PASSED:
-                f.solved = True
-
-        for ai in self.db.scalars(select(AIInteraction).where(AIInteraction.user_id == user.id)):
-            f = facts.get(ai.problem_id)
-            if f is None or f.problem.kind != "problem":
-                continue
-            if ai.action == AIAction.HINT:
-                f.hints += 1
-            elif ai.action == AIAction.REVIEW:
-                f.reviews += 1
-            ts = _aware(ai.created_at)
-            f.last_activity = max(f.last_activity or ts, ts)
-
-        for ev in self.db.scalars(select(ProgressEvent).where(ProgressEvent.user_id == user.id)):
-            f = facts.get(ev.problem_id)
-            if f is not None and f.problem.kind == "problem":
-                f.opened = True
-        return facts
+        return FactRows(
+            problems=list(
+                self.db.scalars(
+                    select(Problem).where(Problem.kind.in_(kinds)).order_by(Problem.order_index)
+                ).all()
+            ),
+            submissions=list(
+                self.db.scalars(
+                    select(Submission)
+                    .where(Submission.user_id == user.id, Submission.mode == SubmissionMode.SUBMIT)
+                    .order_by(Submission.created_at)
+                ).all()
+            ),
+            coaching=list(
+                self.db.scalars(select(AIInteraction).where(AIInteraction.user_id == user.id)).all()
+            ),
+            events=list(self.db.scalars(select(ProgressEvent).where(ProgressEvent.user_id == user.id)).all()),
+        )
 
     def progress(self, user: User, *, now: datetime | None = None) -> ProgressOut:
         now = now or datetime.now(UTC)

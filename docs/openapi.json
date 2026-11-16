@@ -50227,7 +50227,15 @@
               }
             ],
             "title": "Skill",
-            "description": "The skill; none for what all of what's new moves together, when it can't be put on one"
+            "description": "The skill; none for what all of what's new moves together, when it can't be put on one, and for the skills past the preview's bound, said together"
+          },
+          "skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skills",
+            "description": "For the line past the preview's bound: the skills said together on it, each with new evidence; empty otherwise"
           },
           "count": {
             "type": "integer",

@@ -15032,9 +15032,14 @@ export interface components {
         SkillNews: {
             /**
              * Skill
-             * @description The skill; none for what all of what's new moves together, when it can't be put on one
+             * @description The skill; none for what all of what's new moves together, when it can't be put on one, and for the skills past the preview's bound, said together
              */
             skill: string | null;
+            /**
+             * Skills
+             * @description For the line past the preview's bound: the skills said together on it, each with new evidence; empty otherwise
+             */
+            skills?: string[];
             /**
              * Count
              * @description How many of the new pieces of evidence are for this skill

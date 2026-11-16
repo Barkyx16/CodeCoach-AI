@@ -90,17 +90,46 @@ suggesting because of it.
 > Arrays: “Contains Duplicate” passed, which counts as solved, so the next version would suggest
 > “Solve: First Unique Character” and not “Solve: Find Largest Number”.
 >
-> Strings: “Valid Parentheses” didn't pass (compile error), which counts as tried, not solved, so
-> the next version would suggest “Solve: Valid Parentheses”.
+> Hash-sets: “Contains Duplicate” passed, which counts as solved, so the next version would suggest
+> “Solve: First Unique Character” and not “Solve: Find Largest Number”.
 
-A skill is a question's skill, a problem's first topic (as the plan's coding activities are
-labelled), an exercise's first topic after "debugging", or the kind of round ("Interview practice",
-"Baseline"). The planner is asked once with and without all of what's new (as before); an activity
-that differs is put on the skill whose evidence is on its problem or question, else on its own
-skill, else on a topic the new code practises. With one skill, everything that moves is its. What
-can't be put on one is said once: "From all of it together, the next version would also suggest
-…". A skill whose evidence moves nothing on its own says so ("…; on its own that changes nothing
-the plan chooses."). No more planner runs: the attribution reads the two plans already made.
+A skill is a question's skill, each of a problem's topics, each of an exercise's topics after
+"debugging", a lesson's skill, or the kind of round ("Interview practice", "Baseline").
+
+**Each skill on its own** (Volume 17, prompt 9). For each skill with new evidence, the planner is
+asked once more without that skill's new evidence, and that plan is compared with the plan with all
+of it: what differs is the skill's line. So a problem with two topics moves both topics' lines (it's
+evidence for each, as the planner reads it), and a line says only what that skill's evidence would
+move by itself. Before this, the planner was asked twice (with and without all of what's new) and
+each difference was put on a skill by what it was for, so a problem counted for its first topic only.
+
+- **What only skills together move** is said once, as before: "From all of it together, the next
+  version also wouldn't suggest “Solve: Find Largest Number”." With Contains Duplicate passed and
+  Valid Parentheses failing to compile, leaving out either alone still leaves the other taking Find
+  Largest Number's place; only without both does it come back.
+- **A skill whose own evidence moves nothing** says so, in the same words: "Arrays: “Contains
+  Duplicate” passed, which counts as solved; on its own that changes nothing the plan chooses."
+- **The bound** is the plan's own limit on items, `MAX_ITEMS` (8: `SKILLS_ASKED_ALONE`). Past it, the
+  remaining skills are asked about together, in one more plan, and said together, with how many:
+  "The other 6 skills together (dynamic-programming, …): …" (`skills` lists them; `skill` is
+  null). Nine skills are all asked about alone: the "rest" would be that one skill. At most 11 plans
+  are made (with and without all of it, eight alone, the rest).
+- **Made in memory.** The evidence's rows (answers' ids and scores, finished rounds, spoken turns,
+  passed lessons) and the code's facts (problems, submissions, coaching, progress events) are read
+  once; each plan is built from them. The preview's plans don't read a weak answer's feedback: it
+  words an item (what it missed) and never chooses one, so the plans choose exactly what the full
+  plan would (a test compares them). With 14 skills new, the plan request now runs 31 statements on
+  SQLite and 34 on PostgreSQL, against 41 and 44 before (two plans then, eleven now); the number
+  doesn't change with how many skills are asked about (a test asks with the bound at 1 and at 8).
+- **The plan an update applies** is the same as before: only the preview's lines changed.
+
+**Time**, measured on the whole `GET /me/plan` with 14 skills new (eight weak answers, three passed
+problems on six topics), the test client in one process, the same machine, the commit before and
+this one alternated: SQLite, median of 25 requests, three rounds: 55.0, 56.8 and 62.0 ms before,
+68.9, 66.9 and 68.4 ms after (planning in memory costs more than SQLite's in-process statements
+save); PostgreSQL, two rounds: 103.3 and 103.3 ms before, 90.4 and 92.6 ms after (ten fewer round
+trips). **Budget:** no more than 1.25 times the median before on either database: 1.17 on SQLite and
+0.88 on PostgreSQL. With fewer skills new, fewer plans are made.
 
 ## Whether it changes anything
 

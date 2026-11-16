@@ -1338,7 +1338,9 @@ Deterministic rules over recorded evidence (`app/services/roadmap.py` documents 
   they're never removed or cancelled for it (docs/DISPUTES.md). `news` (or null) is practice the
   version doesn't use that would change it: counts, `entries` (each with `skill`, and for a
   submission `verdict`, `verdict_detail` and `exercise`), `not_counted`, `by_skill` (`[{skill,
-  count, text}]`, one sentence each) and `rule` (how a verdict counts, when code is among it);
+  skills, count, text}]`, one sentence each: what that skill's new evidence alone would move, the
+  planner asked per skill; past the bound of 8, one line with `skill` null and `skills` naming the
+  rest, said together; Volume 17, prompt 9) and `rule` (how a verdict counts, when code is among it);
   `read_submissions` lists the submissions the update that made this version read (null for other
   versions), and `read_lessons` the lesson checks it read (`[{unit_id, version, title, href}]`, the
   same way; Volume 17, prompt 3); `news.lessons` counts lesson checks passed since the version and an

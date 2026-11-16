@@ -110,13 +110,16 @@ def test_a_passed_submission_after_the_version_is_named_and_moves_its_skill(clie
         "skill": "arrays",
         "href": f"/history/submissions/{sid}",
     }
+    # Contains Duplicate practises arrays and hash sets: it counts for each (Volume 17, prompt 9).
     assert news["by_skill"] == [
         {
-            "skill": "arrays",
+            "skill": topic,
+            "skills": [],
             "count": 1,
-            "text": "Arrays: “Contains Duplicate” passed, which counts as solved, so the next version would "
+            "text": f"{head}: “Contains Duplicate” passed, which counts as solved, so the next version would "
             "suggest “Solve: First Unique Character” and not “Solve: Find Largest Number”.",
         }
+        for topic, head in (("arrays", "Arrays"), ("hash-sets", "Hash-sets"))
     ]
     assert news["rule"] == roadmap.CODE_RULE
     assert "/100" not in str(news["by_skill"]) and "score" not in news["rule"].replace("a score", "")
@@ -130,16 +133,27 @@ def test_each_skill_gets_one_sentence_and_a_failed_verdict_is_said_in_the_judges
     news = plan(client, h)["news"]
     assert news["text"] == "2 submissions (1 not passed) since this plan."
     assert [e["verdict_detail"] for e in news["entries"]] == ["passed", "compile error"]
+    # Each skill is asked about on its own (Volume 17, prompt 9): without Contains Duplicate alone,
+    # Valid Parentheses still takes the place Find Largest Number had, so arrays and hash sets move
+    # nothing on their own; dropping Find Largest Number takes both, said once, together.
+    moved_by_strings = (
+        "didn't pass (compile error), which counts as tried, not solved, so the next version would "
+        "suggest “Solve: Valid Parentheses” and not “Solve: First Unique Character”."
+    )
     assert [(g["skill"], g["text"]) for g in news["by_skill"]] == [
         (
             "arrays",
-            "Arrays: “Contains Duplicate” passed, which counts as solved, so the next version wouldn't "
-            "suggest “Solve: Find Largest Number”.",
+            "Arrays: “Contains Duplicate” passed, which counts as solved; on its own that changes nothing the plan chooses.",
         ),
         (
-            "strings",
-            "Strings: “Valid Parentheses” didn't pass (compile error), which counts as tried, not solved, "
-            "so the next version would suggest “Solve: Valid Parentheses”.",
+            "hash-sets",
+            "Hash-sets: “Contains Duplicate” passed, which counts as solved; on its own that changes nothing the plan chooses.",
+        ),
+        ("strings", f"Strings: “Valid Parentheses” {moved_by_strings}"),
+        ("stacks", f"Stacks: “Valid Parentheses” {moved_by_strings}"),
+        (
+            None,
+            "From all of it together, the next version also wouldn't suggest “Solve: Find Largest Number”.",
         ),
     ]
     assert all(g["text"].count(".") == 1 for g in news["by_skill"])  # one sentence each
@@ -192,11 +206,12 @@ def test_an_exercise_passed_after_the_version_counts_as_solved(client):
     # Arrays is weak: the exercise failed.
     assert "Solve: Contains Duplicate" in [i["title"] for i in v1["items"]]
     judged(client, h, LAB, SubmissionStatus.PASSED)
-    [group] = plan(client, h)["news"]["by_skill"]
-    assert group["text"] == (
-        f"Arrays: the debugging exercise “{LAB_TITLE}” passed, which counts as solved, so the next version "
+    # The exercise names arrays and edge cases after debugging: it counts for each (Volume 17, prompt 9).
+    assert [g["text"] for g in plan(client, h)["news"]["by_skill"]] == [
+        f"{head}: the debugging exercise “{LAB_TITLE}” passed, which counts as solved, so the next version "
         "would suggest “Solve: Valid Palindrome” and not “Solve: Contains Duplicate”."
-    )
+        for head in ("Arrays", "Edge-cases")
+    ]
 
 
 def test_a_submission_the_judge_couldnt_run_isnt_counted_and_is_said(client):

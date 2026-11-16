@@ -87,7 +87,7 @@ from app.schemas.roadmap import (
 from app.services.disputes import OVERALL, Dispute, Disputes, covering, first_disputed
 from app.services.disputes import note as dispute_note
 from app.services.learn import Learn
-from app.services.progress import ProgressService
+from app.services.progress import ProgressService, build_facts
 
 DEFAULT_TRACK = "software-engineer"
 DEFAULT_WEEKLY_MINUTES = 60
@@ -169,10 +169,16 @@ def _plural(n: int, one: str, many: str) -> str:
 
 
 def _code_skill(problem: Problem) -> str:
-    """The skill a submission is evidence for: a problem's first topic (as the plan's coding
+    """The skill a submission is labelled with: a problem's first topic (as the plan's coding
     activities are labelled), a debugging exercise's first topic after "debugging" itself."""
+    return _code_skills(problem)[0]
+
+
+def _code_skills(problem: Problem) -> list[str]:
+    """Every skill a submission is evidence for (Volume 17, prompt 9): each of its problem's topics,
+    as the planner reads them; a debugging exercise's after "debugging" itself."""
     topics = [t for t in problem.topics or [] if not (problem.kind == "debug" and t == "debugging")]
-    return topics[0] if topics else ("debugging" if problem.kind == "debug" else "problem solving")
+    return list(dict.fromkeys(topics)) or ["debugging" if problem.kind == "debug" else "problem solving"]
 
 
 def _and(parts: list[str]) -> str:
@@ -185,6 +191,7 @@ class _Piece:
 
     kind: str  # answer | round | submission | lesson
     title: str
+    ref: str = ""  # the evidence's id: one submission is a piece of each of its topics' skills
     score: int | None = None
     passed: bool | None = None
     verdict: str | None = None
@@ -205,7 +212,9 @@ def _moves(came_in: list[Spec], left: list[Spec], also: bool = False) -> str | N
     return None
 
 
-def _skill_sentence(skill: str, pieces: list[_Piece], came_in: list[Spec], left: list[Spec]) -> str:
+def _skill_sentence(
+    skill: str, pieces: list[_Piece], came_in: list[Spec], left: list[Spec], alone: str = "on its own"
+) -> str:
     """One sentence: what's new for the skill, what it counts as, and what it moves (or that it
     moves nothing on its own). Verdicts are said as verdicts; scores only for answers."""
     phrases: list[str] = []
@@ -256,8 +265,17 @@ def _skill_sentence(skill: str, pieces: list[_Piece], came_in: list[Spec], left:
     moved = _moves(came_in, left)
     head = skill[:1].upper() + skill[1:]
     if moved is None:
-        return f"{head}: {what}{meaning}; on its own that changes nothing the plan chooses."
+        return f"{head}: {what}{meaning}; {alone} that changes nothing the plan chooses."
     return f"{head}: {what}{meaning}, so {moved}."
+
+
+# Each skill with new evidence is asked about on its own up to this many (Volume 17, prompt 9): the
+# plan's own limit on items. Past it, the rest are asked about together, in one more plan.
+SKILLS_ASKED_ALONE = MAX_ITEMS
+
+
+def _together(names: list[str]) -> str:
+    return f"the other {len(names)} skills together ({_and(names)})"
 
 
 def _submissions_text(submissions: int, not_passed: int) -> str:
@@ -363,6 +381,12 @@ class Evidence:
     withheld: list[dict[str, str]] = field(default_factory=list)  # filled while generating
     # Submissions to read as if they didn't exist (the plan without what's new: Roadmap._news).
     left_out_submissions: set[str] = field(default_factory=set)
+    # The problem facts to plan coding from, built in memory from rows read once (Volume 17,
+    # prompt 9); None: read them (the planner's own reading, as before).
+    code_facts: dict[int, Any] | None = None
+    # Planned only to compare what it chooses (the preview's plans): a weak answer's feedback words
+    # an item and is never what chooses one, so it isn't read (Volume 17, prompt 9).
+    choosing_only: bool = False
 
 
 def _read_lessons(track: str, plan: PracticePlan) -> list[ReadLesson] | None:
@@ -383,6 +407,82 @@ def _read_lessons(track: str, plan: PracticePlan) -> list[ReadLesson] | None:
             )
         )
     return out
+
+
+@dataclass
+class _EvidenceRows:
+    """The rows a plan's evidence is built from (`Roadmap._evidence_rows`)."""
+
+    answers: list[tuple[Any, ...]]  # (id, question_id, score, level, words), oldest first
+    sessions: list[PracticeSession]
+    voice_turns: list[tuple[Any, ...]]  # (created_at, meta, session_id, answer_id)
+    learn_passed: set[str]
+
+
+def _evidence_from(
+    rows: _EvidenceRows,
+    disputes: dict[tuple[str, str], Dispute] | None = None,
+    leave_out: _Used | None = None,
+) -> Evidence:
+    """The plan's evidence from rows already read, leaving out what's named (in memory)."""
+    answers = rows.answers
+    if leave_out is not None:
+        answers = [r for r in answers if r[0] not in leave_out.answers]
+    disputes = disputes or {}
+    best: dict[str, int] = {}
+    best_answer: dict[str, str] = {}
+    best_all: dict[str, int] = {}
+    latest: dict[str, str] = {}
+    answered: set[str] = set()
+    answered_all: set[str] = set()
+    disputed_question: dict[str, Dispute] = {}
+    for answer_id, question_id, score, level, words in answers:
+        answered_all.add(question_id)
+        scored = eligibility(level, words) == "scored"
+        if scored:
+            best_all[question_id] = max(best_all.get(question_id, 0), score)
+        overall = disputes.get((answer_id, OVERALL))
+        if overall is not None:
+            # Its feedback as a whole is disputed: it doesn't shape the plan (its score stays).
+            disputed_question.setdefault(question_id, overall)
+            continue
+        answered.add(question_id)
+        if scored and score > best.get(question_id, -1):
+            best[question_id], best_answer[question_id] = score, answer_id
+        latest[question_id] = answer_id
+    sessions = rows.sessions
+    if leave_out is not None:
+        sessions = [s for s in sessions if s.id not in leave_out.sessions]
+    completed = [s for s in sessions if s.status == InterviewStatus.COMPLETED]
+    mocks = [
+        _aware(s.started_at)
+        for s in completed
+        if (s.plan or {}).get("purpose", "practice") == "practice"
+        and len((s.plan or {}).get("question_ids", [])) >= 5
+    ]
+    spoken = [
+        _aware(at)
+        for at, meta, sid, aid in rows.voice_turns
+        if (meta or {}).get("source") in ("voice", "mixed")
+        and (leave_out is None or (sid not in leave_out.sessions and aid not in leave_out.answers))
+    ]
+    return Evidence(
+        best=best,
+        latest=latest,
+        answers=len(answers),
+        baseline_done=any((s.plan or {}).get("purpose") == "baseline" for s in completed),
+        last_mock=max(mocks) if mocks else None,
+        last_voice=max(spoken) if spoken else None,
+        # A check passed since the plan, left out to ask what it alone would move (prompt 3).
+        learn_passed=rows.learn_passed - (leave_out.lessons if leave_out else set()),
+        answered=answered,
+        disputes=disputes,
+        best_answer=best_answer,
+        best_all=best_all,
+        answered_all=answered_all,
+        disputed_question=disputed_question,
+        left_out_submissions=set(leave_out.submissions) if leave_out is not None else set(),
+    )
 
 
 class Roadmap:
@@ -466,40 +566,21 @@ class Roadmap:
     ) -> Evidence:
         """`leave_out`: answers and rounds to read as if they didn't exist (the plan's evidence
         without what's new since a version, to see whether that changes anything: `_news`)."""
+        return _evidence_from(self._evidence_rows(user, track), disputes, leave_out)
+
+    def _evidence_rows(self, user: User, track: str) -> _EvidenceRows:
+        """Everything the plan's evidence is read from, read once (Volume 17, prompt 9): the preview
+        builds each skill's leave-out from these in memory."""
         # Ids and scores only: the plan needs one answer's feedback (at most two, for weak
         # questions), loaded by id below. Loading every whole row decoded all their feedback JSON
         # (docs/PERFORMANCE.md, "Real journeys").
-        rows = self.db.execute(
+        answers = self.db.execute(
             select(
                 PracticeAnswer.id, PracticeAnswer.question_id, PracticeAnswer.score, *eligibility_columns()
             )
             .where(PracticeAnswer.user_id == user.id, PracticeAnswer.track == track)
             .order_by(PracticeAnswer.created_at)
         ).all()
-        if leave_out is not None:
-            rows = [r for r in rows if r[0] not in leave_out.answers]
-        disputes = disputes or {}
-        best: dict[str, int] = {}
-        best_answer: dict[str, str] = {}
-        best_all: dict[str, int] = {}
-        latest: dict[str, str] = {}
-        answered: set[str] = set()
-        answered_all: set[str] = set()
-        disputed_question: dict[str, Dispute] = {}
-        for answer_id, question_id, score, level, words in rows:
-            answered_all.add(question_id)
-            scored = eligibility(level, words) == "scored"
-            if scored:
-                best_all[question_id] = max(best_all.get(question_id, 0), score)
-            overall = disputes.get((answer_id, OVERALL))
-            if overall is not None:
-                # Its feedback as a whole is disputed: it doesn't shape the plan (its score stays).
-                disputed_question.setdefault(question_id, overall)
-                continue
-            answered.add(question_id)
-            if scored and score > best.get(question_id, -1):
-                best[question_id], best_answer[question_id] = score, answer_id
-            latest[question_id] = answer_id
         sessions = self.db.scalars(
             select(PracticeSession).where(
                 PracticeSession.user_id == user.id,
@@ -507,15 +588,6 @@ class Roadmap:
                 PracticeSession.track == track,
             )
         ).all()
-        if leave_out is not None:
-            sessions = [s for s in sessions if s.id not in leave_out.sessions]
-        completed = [s for s in sessions if s.status == InterviewStatus.COMPLETED]
-        mocks = [
-            _aware(s.started_at)
-            for s in completed
-            if (s.plan or {}).get("purpose", "practice") == "practice"
-            and len((s.plan or {}).get("question_ids", [])) >= 5
-        ]
         voice_turns = self.db.execute(
             select(
                 InterviewTurn.created_at,
@@ -530,28 +602,11 @@ class Roadmap:
                 InterviewTurn.role == TurnRole.CANDIDATE,
             )
         ).all()
-        spoken = [
-            _aware(at)
-            for at, meta, sid, aid in voice_turns
-            if (meta or {}).get("source") in ("voice", "mixed")
-            and (leave_out is None or (sid not in leave_out.sessions and aid not in leave_out.answers))
-        ]
-        return Evidence(
-            best=best,
-            latest=latest,
-            answers=len(rows),
-            baseline_done=any((s.plan or {}).get("purpose") == "baseline" for s in completed),
-            last_mock=max(mocks) if mocks else None,
-            last_voice=max(spoken) if spoken else None,
-            # A check passed since the plan, left out to ask what it alone would move (prompt 3).
-            learn_passed=Learn(self.db).passed_units(user) - (leave_out.lessons if leave_out else set()),
-            answered=answered,
-            disputes=disputes,
-            best_answer=best_answer,
-            best_all=best_all,
-            answered_all=answered_all,
-            disputed_question=disputed_question,
-            left_out_submissions=set(leave_out.submissions) if leave_out is not None else set(),
+        return _EvidenceRows(
+            answers=[tuple(r) for r in answers],
+            sessions=list(sessions),
+            voice_turns=[tuple(r) for r in voice_turns],
+            learn_passed=set(Learn(self.db).passed_units(user)),
         )
 
     # --- generation -------------------------------------------------------------------------
@@ -622,22 +677,23 @@ class Roadmap:
         for score, qid in weak:
             q = get_question(track, qid)
             last_id = ev.latest.get(qid)
-            last = self.db.get(PracticeAnswer, last_id) if last_id else None
-            if q is None or last is None:
+            last = self.db.get(PracticeAnswer, last_id) if last_id and not ev.choosing_only else None
+            if q is None or last_id is None or (last is None and not ev.choosing_only):
                 continue
-            labels = [p["label"] for p in (last.feedback or {}).get("points", []) if not p.get("covered")]
+            feedback = (last.feedback or {}) if last is not None else {}
+            labels = [p["label"] for p in feedback.get("points", []) if not p.get("covered")]
             # A point the learner disputes isn't cited (nor used to choose anything); the next ones are.
             for label in labels[:2]:
-                hit = covering(ev.disputes, last.id, label)
+                hit = covering(ev.disputes, last_id, label)
                 if hit is not None:
                     ev.withheld.append(
                         _withheld(
                             f"adding “{label}” to “{q.title}”", hit, f"you disputed this point {hit.when}"
                         )
                     )
-            cited = [lb for lb in labels if covering(ev.disputes, last.id, lb) is None][:2]
+            cited = [lb for lb in labels if covering(ev.disputes, last_id, lb) is None][:2]
             missed = [lb.lower() for lb in cited]
-            basis = [{"answer_id": ev.best_answer.get(qid) or last.id, "criterion": OVERALL}]
+            basis = [{"answer_id": ev.best_answer.get(qid) or last_id, "criterion": OVERALL}]
             skill = question_skills(q)[0]
             if not reviews:
                 reviews.append(
@@ -653,8 +709,8 @@ class Roadmap:
                         + " Read what a strong answer includes before trying again.",
                         "Open your feedback and mark it reviewed. This one is self-reported.",
                         4,
-                        {"question_id": qid, "answer_id": last.id},
-                        [{"answer_id": last.id, "criterion": OVERALL}],
+                        {"question_id": qid, "answer_id": last_id},
+                        [{"answer_id": last_id, "criterion": OVERALL}],
                     )
                 )
             retries.append(
@@ -671,7 +727,7 @@ class Roadmap:
                     "Submit a new answer to this question. Your earlier answers stay saved.",
                     6,
                     {"question_id": qid},
-                    [*basis, *({"answer_id": last.id, "criterion": lb} for lb in cited)],
+                    [*basis, *({"answer_id": last_id, "criterion": lb} for lb in cited)],
                 )
             )
             used.add(qid)
@@ -777,7 +833,7 @@ class Roadmap:
                 else "Submit an attempt. This server can't run code, so it's saved without a verdict."
             )
             for rec in ProgressService(self.db).recommend(
-                user, limit=2, leave_out=ev.left_out_submissions, plan=True
+                user, limit=2, facts=ev.code_facts, leave_out=ev.left_out_submissions, plan=True
             ):
                 if rec.slug in used:
                     continue
@@ -1184,6 +1240,7 @@ class Roadmap:
         ev: Evidence,
         read: list[str] | None = None,
         read_lessons: list[dict[str, Any]] | None = None,
+        evidence_rows: _EvidenceRows | None = None,
     ) -> PlanNews | None:
         """What's new since this version that would change it (docs/PLAN_UPDATES.md), or None.
         `read`, when given, gets the ids of the judged submissions it counted (for the version an
@@ -1194,6 +1251,11 @@ class Roadmap:
         as a whole is disputed (the planner doesn't use either). Whether it would change anything
         is the planner's own answer: it plans twice, from the evidence with and without what's
         new, and the update is offered only when what's chosen differs. Reading never saves.
+
+        Each skill's line (Volume 17, prompt 9) is the planner's answer too: it plans once more per
+        skill without that skill's new evidence, up to SKILLS_ASKED_ALONE skills, and once for the
+        rest together. `evidence_rows` are the evidence's rows, already read for `ev`; every plan here is
+        made in memory from them and from the code's facts, read once.
         """
         since = _aware(plan.created_at)
         used = self._used_evidence(plan)
@@ -1274,22 +1336,36 @@ class Roadmap:
             {sub.id for sub, _ in subs},
             {unit.id for _, unit in checks},
         )
-        with_new = self._generate(user, track, goal, replace(ev, withheld=[]), avoid)
-        without = self._generate(user, track, goal, self._evidence(user, track, disputes, leave_out), avoid)
+        ev_rows = evidence_rows if evidence_rows is not None else self._evidence_rows(user, track)
+        code_rows = ProgressService(self.db).fact_rows(user, plan=True) if CATALOG[track].has_coding else None
+
+        def ask(leave: _Used | None) -> list[Spec]:
+            """The planner's choice from the evidence leaving out what's named, made in memory."""
+            e = replace(ev) if leave is None else _evidence_from(ev_rows, disputes, leave)
+            e.withheld, e.choosing_only = [], True
+            if code_rows is not None:
+                e.code_facts = build_facts(code_rows, leave.submissions if leave else None, plan=True)
+            return self._generate(user, track, goal, e, avoid)
+
+        with_new = ask(None)
+        without = ask(leave_out)
         if {s.key for s in with_new} == {s.key for s in without}:
             return None  # nothing the planner chooses would change: the plan stays, unoffered
         entries: list[NewEvidence] = []
-        # Grouped by skill for the preview (Volume 16, prompt 7), oldest first within each kind.
+        # Grouped by skill for the preview (Volume 16, prompt 7), oldest first within each kind, with
+        # what each skill's own new evidence is, to plan without it (Volume 17, prompt 9).
         groups: dict[str, list[_Piece]] = {}
-        by_question: dict[str, str] = {}
-        by_problem: dict[str, str] = {}
-        topics: dict[str, set[str]] = defaultdict(set)
+        own: dict[str, _Used] = {}
+
+        def put(skill: str, piece: _Piece) -> _Used:
+            groups.setdefault(skill, []).append(piece)
+            return own.setdefault(skill, _Used(set(), set()))
+
         for answer_id, qid, score, retry in fresh:
             q = get_question(track, qid)
             title = q.title if q else "A question no longer in the bank"
             skill = question_skills(q)[0] if q else "Other questions"
-            groups.setdefault(skill, []).append(_Piece("answer", title, score=score))
-            by_question[qid] = skill
+            put(skill, _Piece("answer", title, ref=answer_id, score=score)).answers.add(answer_id)
             entries.append(
                 NewEvidence(
                     kind="retry" if retry else "answer",
@@ -1306,7 +1382,7 @@ class Roadmap:
                 "Baseline check" if baseline else f"Practice round ({_plural(n, 'question', 'questions')})"
             )
             skill = "Baseline" if baseline else "Interview practice"  # the skill of the activity it ends
-            groups.setdefault(skill, []).append(_Piece("round", title))
+            put(skill, _Piece("round", title, ref=r.id)).sessions.add(r.id)
             entries.append(
                 NewEvidence(kind="round", title=title, score=None, skill=skill, href=f"/interviews/{r.id}")
             )
@@ -1314,14 +1390,16 @@ class Roadmap:
             passed = sub.status == SubmissionStatus.PASSED
             skill = _code_skill(problem)
             exercise = problem.kind == "debug"
-            groups.setdefault(skill, []).append(
-                _Piece(
-                    "submission", problem.title, passed=passed, verdict=VERDICT[sub.status], exercise=exercise
+            for topic in _code_skills(problem):  # each topic the planner reads it for
+                piece = _Piece(
+                    "submission",
+                    problem.title,
+                    ref=sub.id,
+                    passed=passed,
+                    verdict=VERDICT[sub.status],
+                    exercise=exercise,
                 )
-            )
-            topics[skill].update(problem.topics or [])
-            if not exercise:
-                by_problem[problem.slug] = skill
+                put(topic, piece).submissions.add(sub.id)
             entries.append(
                 NewEvidence(
                     kind="submission",
@@ -1336,13 +1414,35 @@ class Roadmap:
             )
         for _check, unit in checks:
             skill = unit.skill or "Lessons"
-            groups.setdefault(skill, []).append(_Piece("lesson", unit.title))
+            put(skill, _Piece("lesson", unit.title, ref=unit.id)).lessons.add(unit.id)
             entries.append(
                 NewEvidence(
                     kind="lesson", title=unit.title, score=None, skill=skill, href=f"/learn/{unit.id}"
                 )
             )
-        by_skill = self._by_skill(groups, by_question, by_problem, topics, with_new, without)
+        names = list(groups)
+        if len(names) == 1:
+            alone = {names[0]: without}  # its own new evidence is all of it: no plan to make again
+            past: list[str] = []
+        else:
+            # One more than the bound is asked about alone: the rest together would be that one.
+            cut = SKILLS_ASKED_ALONE if len(names) > SKILLS_ASKED_ALONE + 1 else len(names)
+            alone = {name: ask(own[name]) for name in names[:cut]}
+            past = names[cut:]
+        rest = None
+        if past:
+            rest_out = _Used(set(), set())
+            for name in past:
+                for mine, theirs in (
+                    (rest_out.answers, own[name].answers),
+                    (rest_out.sessions, own[name].sessions),
+                    (rest_out.submissions, own[name].submissions),
+                    (rest_out.lessons, own[name].lessons),
+                ):
+                    mine |= theirs
+            rest = (past, ask(rest_out))
+        total = len(fresh) + len(rounds) + len(subs) + len(checks)
+        by_skill = self._by_skill(groups, with_new, without, alone, rest, total)
         if read is not None:
             read.extend(sub.id for sub, _ in subs)
         if read_lessons is not None:
@@ -1389,59 +1489,59 @@ class Roadmap:
     @staticmethod
     def _by_skill(
         groups: dict[str, list[_Piece]],
-        by_question: dict[str, str],
-        by_problem: dict[str, str],
-        topics: dict[str, set[str]],
         with_new: list[Spec],
         without: list[Spec],
+        alone: dict[str, list[Spec]],
+        rest: tuple[list[str], list[Spec]] | None,
+        total: int,
     ) -> list[SkillNews]:
         """One sentence per skill: what the next version would suggest, or stop suggesting, because of
-        that skill's new evidence. The planner was asked once, with and without all of what's new; an
-        activity is put on a skill by what it's for (the problem or question the evidence is on, else
-        its skill, else a topic the new code practises). With one skill, everything that moves is its;
-        what can't be put on one is said once, for all of it together."""
-        keys_with, keys_without = {s.key for s in with_new}, {s.key for s in without}
-        came_in = [s for s in with_new if s.key not in keys_without]
-        left = [s for s in without if s.key not in keys_with]
+        that skill's new evidence alone (Volume 17, prompt 9): the plan with all of what's new,
+        compared with the plan without that skill's (`alone`). Past the bound, the remaining skills
+        are said together (`rest`). What no single skill moves, but all of it together does, is said
+        once, for all of it together."""
+        keys_with = {s.key for s in with_new}
 
-        def owner(s: Spec) -> str | None:
-            if len(groups) == 1:
-                return next(iter(groups))
-            t = s.target or {}
-            if s.kind == "coding" and t.get("problem_slug") in by_problem:
-                return by_problem[t["problem_slug"]]
-            if t.get("question_id") in by_question:
-                return by_question[t["question_id"]]
-            if s.skill in groups:
-                return s.skill
-            if s.kind == "coding":
-                return next((g for g, ts in topics.items() if s.skill in ts), None)
-            return None
-
-        out = [
-            SkillNews(
-                skill=skill,
-                count=len(pieces),
-                text=_skill_sentence(
-                    skill,
-                    pieces,
-                    [s for s in came_in if owner(s) == skill],
-                    [s for s in left if owner(s) == skill],
-                ),
+        def moved(other: list[Spec]) -> tuple[list[Spec], list[Spec]]:
+            keys_other = {s.key for s in other}
+            return (
+                [s for s in with_new if s.key not in keys_other],
+                [s for s in other if s.key not in keys_with],
             )
-            for skill, pieces in groups.items()
-        ]
-        rest = _moves(
-            [s for s in came_in if owner(s) is None], [s for s in left if owner(s) is None], also=True
-        )
-        if rest:
+
+        explained: set[tuple[str, str]] = set()
+        out: list[SkillNews] = []
+        for skill, plan in alone.items():
+            came_in, left = moved(plan)
+            explained.update(s.key for s in [*came_in, *left])
+            out.append(
+                SkillNews(
+                    skill=skill,
+                    count=len(groups[skill]),
+                    text=_skill_sentence(skill, groups[skill], came_in, left),
+                )
+            )
+        if rest is not None:
+            names, plan = rest
+            came_in, left = moved(plan)
+            explained.update(s.key for s in [*came_in, *left])
+            pieces = list({(p.kind, p.ref): p for n in names for p in groups[n]}.values())
             out.append(
                 SkillNews(
                     skill=None,
-                    count=sum(len(p) for p in groups.values()),
-                    text=f"From all of it together, {rest}.",
+                    skills=names,
+                    count=len(pieces),
+                    text=_skill_sentence(_together(names), pieces, came_in, left, alone="together"),
                 )
             )
+        came_in, left = moved(without)
+        together = _moves(
+            [s for s in came_in if s.key not in explained],
+            [s for s in left if s.key not in explained],
+            also=True,
+        )
+        if together:
+            out.append(SkillNews(skill=None, count=total, text=f"From all of it together, {together}."))
         return out
 
     def update(self, user: User, track: str | None, seen: int, minutes: int) -> PlanOut:
@@ -1456,7 +1556,8 @@ class Roadmap:
         disputes = Disputes(self.db, user.id).active(t)
         read: list[str] = []
         read_lessons: list[dict[str, Any]] = []
-        news = self._news(user, t, plan, disputes, self._evidence(user, t, disputes), read, read_lessons)
+        rows = self._evidence_rows(user, t)
+        news = self._news(user, t, plan, disputes, _evidence_from(rows, disputes), read, read_lessons, rows)
         if news is None and not done:
             # Nothing new changes it (anymore): the same version, unchanged.
             self.db.commit()
@@ -1782,8 +1883,9 @@ class Roadmap:
                 PlanItem.resolved_at >= week,
             )
         ).all()
-        ev = self._evidence(user, track, disputes)
-        news = self._news(user, track, plan, disputes, ev)
+        rows = self._evidence_rows(user, track)
+        ev = _evidence_from(rows, disputes)
+        news = self._news(user, track, plan, disputes, ev, evidence_rows=rows)
         days = (goal.target_date - _now().date()).days if goal and goal.target_date else None
         return PlanOut(
             track=track,
