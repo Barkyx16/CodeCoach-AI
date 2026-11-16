@@ -28,6 +28,7 @@ const TYPE_TONE: Record<ActivityItem["type"], string> = {
   scenario_attempt: "success",
   code_review_attempt: "info",
   comparison_attempt: "success",
+  test_design_run: "info",
 };
 const TYPE_SHORT: Record<ActivityItem["type"], string> = {
   problem_opened: "Opened",
@@ -41,6 +42,7 @@ const TYPE_SHORT: Record<ActivityItem["type"], string> = {
   scenario_attempt: "Scenario",
   code_review_attempt: "Code review",
   comparison_attempt: "Samples compared",
+  test_design_run: "Test design",
 };
 // Older links used ?tab=…; keep them working.
 const LEGACY_TABS: Record<string, string> = { submissions: "code_submission", ai: "coaching", interviews: "interview" };

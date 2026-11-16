@@ -98,4 +98,7 @@ class TestDesignRunSummary(APIModel):
     cases: int
     caught: int | None
     total: int | None
+    outcome_text: str = Field(
+        description="What the run's list and its History row say of it, in the same words (Volume 18, prompt 10)"
+    )
     created_at: datetime

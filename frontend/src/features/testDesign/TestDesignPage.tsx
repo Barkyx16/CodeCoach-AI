@@ -12,6 +12,7 @@ import { BackLink } from "@/components/BackLink";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { LINKED_MISSING, useLinkedAttempt } from "@/hooks/useLinkedAttempt";
 import { formatArgs, formatDateTime, formatValue } from "@/lib/format";
 import { useCopySince, writeCopy } from "@/lib/deviceCopies";
 import { useRequestKey } from "@/lib/requestKey";
@@ -55,6 +56,16 @@ function Designer({ ex }: { ex: TestDesignExercise }) {
   const runs = useTestRuns(ex.slug);
   const sendKey = useRequestKey();
   const focusAfter = useRef<string | null>(null);
+  // A History row opens one run (`?attempt=<id>`, Volume 18, prompt 10): its report, if it's this
+  // exercise's and yours; otherwise the page says it couldn't be opened.
+  const linked = useLinkedAttempt(
+    async (id: string) => {
+      const found = await api.testRun(id);
+      if (found.slug !== ex.slug) throw new Error("another exercise's run");
+      return found;
+    },
+    (found) => { setRunId(found.id); focusAfter.current = "td-result"; },
+  );
 
   // Cases not yet run are kept on this device, so a reload or a closed tab loses nothing.
   useEffect(() => {
@@ -62,7 +73,9 @@ function Designer({ ex }: { ex: TestDesignExercise }) {
   }, [rows, key, since]);
   useEffect(() => {
     if (!focusAfter.current) return;
-    document.getElementById(focusAfter.current)?.focus();
+    const el = document.getElementById(focusAfter.current);
+    if (!el) return; // not shown yet (a run's report is still loading): try again on the next render
+    el.focus();
     focusAfter.current = null;
   });
   const finished = run.data && !["queued", "running"].includes(run.data.status);
@@ -224,6 +237,7 @@ function Designer({ ex }: { ex: TestDesignExercise }) {
         </section>
       </div>
 
+      {linked === "missing" && <p className="banner banner--warning" role="status">{LINKED_MISSING}</p>}
       {run.data && (
         <section className="card stack" aria-labelledby="td-result">
           <h2 className="section-title" id="td-result" tabIndex={-1}>Report</h2>
@@ -256,8 +270,8 @@ function Designer({ ex }: { ex: TestDesignExercise }) {
           <ul className="mini-list">
             {runs.data.map((r) => (
               <li key={r.id} className="row">
-                <span>{formatDateTime(r.created_at)} · {r.cases} case{r.cases === 1 ? "" : "s"} ·{" "}
-                  {r.status === "done" ? `told apart ${r.caught} of ${r.total}` : r.status === "not_run" ? "not run" : r.status} · version {r.exercise_version}</span>
+                {/* The server's words, which History uses too (Volume 18, prompt 10). */}
+                <span>{formatDateTime(r.created_at)} · {r.outcome_text}</span>
                 <Button size="sm" variant="ghost" onClick={() => { setRunId(r.id); focusAfter.current = "td-result"; }}>Show its report</Button>
                 <Button size="sm" variant="ghost" onClick={async () => {
                   const full = await api.testRun(r.id).catch(() => null);

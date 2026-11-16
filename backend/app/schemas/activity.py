@@ -20,6 +20,7 @@ ActivityType = Literal[
     "scenario_attempt",
     "code_review_attempt",
     "comparison_attempt",
+    "test_design_run",  # Volume 18, prompt 10
 ]
 ActivityStatus = Literal[
     "opened",  # a page was opened: activity, not an attempt

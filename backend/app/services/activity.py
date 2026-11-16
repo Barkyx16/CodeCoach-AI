@@ -53,6 +53,7 @@ from app.models import (
     Submission,
     SubmissionMode,
     SubmissionStatus,
+    TestDesignRun,
     TurnRole,
     User,
     WhiteboardAttempt,
@@ -104,6 +105,7 @@ TYPE_LABELS: dict[str, str] = {
     "scenario_attempt": "Scenario run",
     "code_review_attempt": "Code review exercise",
     "comparison_attempt": "Sample answers compared",
+    "test_design_run": "Test design run",
 }
 # A code submission's row: how it compares with the previous judged one of the same problem.
 
@@ -155,7 +157,19 @@ OTHERS: dict[str, tuple[str, Any, Any]] = {
     "scenario_attempt": ("scenario", ScenarioAttempt, ScenarioAttempt.scenario_id),
     "code_review_attempt": ("code_review", CodeReviewAttempt, CodeReviewAttempt.exercise_slug),
     "comparison_attempt": ("comparison", ComparisonAttempt, ComparisonAttempt.lesson_id),
+    # Test-design runs (Volume 18, prompt 10): judged like a submission, so a run can be waiting.
+    "test_design_run": ("test_design", TestDesignRun, TestDesignRun.exercise_slug),
 }
+# History's status for a test-design run's, and back (Volume 18, prompt 10).
+TEST_DESIGN_STATUS = {
+    "queued": "awaiting_judge",
+    "running": "awaiting_judge",
+    "done": "completed",
+    "not_run": "saved_not_judged",
+    "failed": "evaluation_unavailable",
+}
+# Formats whose items are coding problems: History's "Coding problems" career.
+CODING_KINDS = ("code_review", "test_design")
 ALL_PRACTICE: dict[str, tuple[str, Any, Any]] = {**PRACTICE, **OTHERS}
 HREF = {"drill": "/drills", "whiteboard": "/whiteboard", "work_sample": "/work-samples"}
 GONE = {
@@ -165,10 +179,12 @@ GONE = {
     "scenario": "A scenario that's no longer offered",
     "code_review": "A code review exercise that's no longer offered",
     "comparison": "A sample-answer lesson that's no longer offered",
+    "test_design": "A test-design exercise that's no longer offered",
 }
 NOT_COMPARED = {
     "scenario": "Not compared: scenario runs aren't compared with each other",
     "comparison": "Not compared: readings of sample answers aren't compared with each other yet",
+    "test_design": "Not compared: test-design runs aren't compared with each other yet",
 }
 # Where the content's careers come from: the attempt (a drill), the content (these), the coding
 # problems (a code review), or none (a sample-answer lesson is for every career).
@@ -184,6 +200,8 @@ def attempt_href(kind: str, item: str, attempt_id: str) -> str:
         return f"/code-reviews/attempts/{attempt_id}"
     if kind == "comparison":
         return f"/compare/{item}?attempt={attempt_id}"
+    if kind == "test_design":
+        return f"/test-design/{item}?attempt={attempt_id}"
     return f"{HREF[kind]}/{item}?attempt={attempt_id}"
 
 
@@ -201,6 +219,10 @@ def other_detail(kind: str, r: Any, outcome: str | None = None) -> str:
         if r.mode == "exploration":
             text += " · exploration"
         text += f" · version {r.version}"
+    elif kind == "test_design":
+        from app.services.test_design import run_words
+
+        text = run_words(r)
     elif kind == "code_review":
         fb = r.feedback or {}
         total, raised = int(fb.get("defects_total", 0) or 0), int(fb.get("defects_raised", 0) or 0)
@@ -672,6 +694,10 @@ class ActivityService:
             from app.reviews import BY_SLUG
 
             return {k: (e.title, (CODING,)) for k, e in BY_SLUG.items()}
+        if kind == "test_design":
+            from app.testdesign import BY_SLUG as TEST_DESIGNS
+
+            return {k: (e.title, (CODING,)) for k, e in TEST_DESIGNS.items()}
         if kind == "comparison":
             from app.comparisons import BY_ID as LESSONS
 
@@ -690,16 +716,26 @@ class ActivityService:
         for type_, (kind, model, col) in ALL_PRACTICE.items():
             if f.type and f.type != type_:
                 continue
-            statuses = ("completed", "in_progress") if kind == "scenario" else ("completed",)
+            statuses: tuple[str, ...] = (
+                ("completed", "in_progress")
+                if kind == "scenario"
+                else tuple(sorted(set(TEST_DESIGN_STATUS.values())))
+                if kind == "test_design"
+                else ("completed",)
+            )
             if f.status and f.status not in statuses:
                 continue
-            if (f.career == CODING) != (kind == "code_review") and f.career is not None:
-                continue  # coding problems: only code reviews; a career: never code reviews
+            if (f.career == CODING) != (kind in CODING_KINDS) and f.career is not None:
+                continue  # coding problems: only these; a career: never these
             if f.career and kind == "comparison":
                 continue  # a sample-answer lesson is for no one career
             conds: list[Any] = [model.user_id == user.id, *self._date_filter(f, model.created_at)]
             if kind == "scenario" and f.status:
                 conds.append(ScenarioAttempt.status == f.status)
+            if kind == "test_design" and f.status:
+                conds.append(
+                    TestDesignRun.status.in_([k for k, v in TEST_DESIGN_STATUS.items() if v == f.status])
+                )
             content = self._practice_content(kind)
             by_content = f.career and kind in CAREERS_FROM_CONTENT
             if q or by_content:
@@ -751,11 +787,16 @@ class ActivityService:
                 title, careers = content.get(item, ("", ()))
                 if kind == "drill":
                     career = r.track
-                elif kind == "code_review":
+                elif kind in CODING_KINDS:
                     career = CODING
                 else:
                     career = careers[0] if careers else ""
-                status = "in_progress" if getattr(r, "status", "completed") == "in_progress" else "completed"
+                if kind == "test_design":
+                    status = TEST_DESIGN_STATUS.get(r.status, "awaiting_judge")
+                else:
+                    status = (
+                        "in_progress" if getattr(r, "status", "completed") == "in_progress" else "completed"
+                    )
                 if type_ in PRACTICE:
                     outcome = (
                         COMPARED_SHORT[compared[r.id].comparison.outcome]
@@ -809,8 +850,16 @@ class ActivityService:
                     .where(model.user_id == user.id)
                     .group_by(col)
                     for t, (kind, model, col) in ALL_PRACTICE.items()
-                    if kind not in ("drill", "scenario")
+                    if kind not in ("drill", "scenario", "test_design")
                 ],
+                select(
+                    literal("test_design_run"),
+                    TestDesignRun.exercise_slug,
+                    TestDesignRun.status,
+                    func.count(),
+                )
+                .where(TestDesignRun.user_id == user.id)
+                .group_by(TestDesignRun.exercise_slug, TestDesignRun.status),
                 select(
                     literal("scenario_attempt"),
                     ScenarioAttempt.scenario_id,
@@ -827,10 +876,13 @@ class ActivityService:
         content = {t: self._practice_content(kind) for t, (kind, _m, _c) in ALL_PRACTICE.items()}
         for t, key, status, n in rows:
             types[t] += int(n)
-            statuses["in_progress" if status == "in_progress" else "completed"] += int(n)
+            if t == "test_design_run":
+                statuses[TEST_DESIGN_STATUS.get(status, "awaiting_judge")] += int(n)
+            else:
+                statuses["in_progress" if status == "in_progress" else "completed"] += int(n)
             if t == "drill_attempt":
                 careers[key or ""] += int(n)
-            elif t == "code_review_attempt":
+            elif t in ("code_review_attempt", "test_design_run"):
                 careers[CODING] += int(n)
             else:
                 tracks = content[t].get(key, ("", ()))[1]

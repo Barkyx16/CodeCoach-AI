@@ -22234,7 +22234,8 @@
                     "work_sample_attempt",
                     "scenario_attempt",
                     "code_review_attempt",
-                    "comparison_attempt"
+                    "comparison_attempt",
+                    "test_design_run"
                   ],
                   "type": "string"
                 },
@@ -26802,7 +26803,8 @@
               "work_sample_attempt",
               "scenario_attempt",
               "code_review_attempt",
-              "comparison_attempt"
+              "comparison_attempt",
+              "test_design_run"
             ],
             "title": "Type"
           },
@@ -53567,6 +53569,11 @@
             ],
             "title": "Total"
           },
+          "outcome_text": {
+            "type": "string",
+            "title": "Outcome Text",
+            "description": "What the run's list and its History row say of it, in the same words (Volume 18, prompt 10)"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -53581,6 +53588,7 @@
           "cases",
           "caught",
           "total",
+          "outcome_text",
           "created_at"
         ],
         "title": "TestDesignRunSummary"

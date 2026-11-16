@@ -223,6 +223,17 @@ another rubric; a checklist's ticks against other points don't. So:
   attempts (a test reads it with three attempts and with sixteen in the same statements). Checked in
   a browser at 412 and 360 pixels wide: the rows wrap, the page doesn't scroll sideways, and each link
   opens its attempt (`e2e/history-attempts-mobile.spec.ts`).
+- **History, test-design runs** (Volume 18, prompt 10): the one practice format History had left
+  out. Each run is a row (type `test_design_run`) in the words the exercise page's "Your earlier
+  runs" list uses, served once for both (`outcome_text`, one rule): "2 cases · told apart 2 of 4
+  faulty versions · version 1", or "not run: this server can't run code", "waiting for the judge",
+  "the judge couldn't run it"; then "Not compared: test-design runs aren't compared with each other
+  yet". Its status is History's: completed, waiting for the judge, saved but not judged, or
+  evaluation unavailable, and the status filter and facets count it so. It's a coding problem's (the
+  coding filter shows it), and it opens that run's report on the exercise page
+  (`/test-design/<slug>?attempt=<id>`, focus on the report); a run of another exercise, or not
+  yours, says it couldn't be opened. No in-app help is recorded for test design, so none is asked
+  for. Reading History still doesn't grow with the number of runs.
 - **Never**: a result changed, "improved", "better", an average or a trend, within a format or across
   formats.
 - **Rules version**: still v1. No written answer's or submission's classification changed; these are
@@ -258,7 +269,8 @@ Every list of coding submissions now says how each compares with the one before:
 submission's page and the workspace's result, an improvement's related practice, a requirement, and
 your submissions list (`GET /me/submissions`, `outcome_text`), which the dashboard's "Recent
 attempts" shows, linking to the comparison (the first says it's the first; one still being judged,
-or that the judge couldn't run, says nothing). Code reviews are compared since Volume 18, prompt 4 (above). Scenario runs and sample-answer
-comparisons are listed in History (Volume 17, prompt 2) but not compared: they, and the other formats,
+or that the judge couldn't run, says nothing). Code reviews are compared since Volume 18, prompt 4 (above). Scenario runs, sample-answer
+comparisons and test-design runs are listed in History (Volume 17, prompt 2; Volume 18, prompt 10)
+but not compared: they, and the other formats,
 keep their own rules for now (docs/SCENARIOS.md, docs/CODE_REVIEWS.md, docs/COMPARE_ANSWERS.md and others) and adopt
 this contract later. Help outside the app isn't known.

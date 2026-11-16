@@ -66,7 +66,7 @@ function serve({ enabled = true, first = run({ status: "queued", report: null })
     }),
     http.post(`${API}/api/v1/me/test-design/${SLUG}/runs`, async ({ request }) => { posted.push(await request.json()); return HttpResponse.json(first, { status: 202 }); }),
     http.get(`${API}/api/v1/me/test-design/runs/:id`, () => { polls += 1; return HttpResponse.json(polls > 1 ? later : first); }),
-    http.get(`${API}/api/v1/me/test-design/${SLUG}/runs`, () => HttpResponse.json(posted.length ? [{ id: "run-1", exercise_version: 1, status: "done", cases: 2, caught: 2, total: 4, created_at: "2026-11-09T10:00:00Z" }] : [])),
+    http.get(`${API}/api/v1/me/test-design/${SLUG}/runs`, () => HttpResponse.json(posted.length ? [{ id: "run-1", exercise_version: 1, status: "done", cases: 2, caught: 2, total: 4, outcome_text: "2 cases · told apart 2 of 4 faulty versions · version 1", created_at: "2026-11-09T10:00:00Z" }] : [])),
   );
 }
 
@@ -152,6 +152,35 @@ describe("test design", () => {
     await waitFor(() => expect(screen.getAllByLabelText(/^nums/)).toHaveLength(2));
     expect(screen.getAllByLabelText(/^nums/)[0]).toHaveValue("3, 7");
     expect(screen.getAllByLabelText("What it covers (optional)")[0]).toHaveValue("hi itself");
+  });
+
+  it("an earlier run is listed in the server's words, the ones History uses", async () => {
+    serve();
+    const { user } = renderApp(`/test-design/${SLUG}`, { signedIn: true });
+    await fillCase(user, 0, "3, 7", "1", "7", "2");
+    await user.click(screen.getByRole("button", { name: "Run my cases" }));
+    const earlier = await screen.findByRole("region", { name: "Your earlier runs" });
+    expect(earlier).toHaveTextContent("2 cases · told apart 2 of 4 faulty versions · version 1");
+  });
+
+  it("a History link opens that run's report and moves focus to it", async () => {
+    serve({ first: run({}) });
+    renderApp(`/test-design/${SLUG}?attempt=run-1`, { signedIn: true });
+    const heading = await screen.findByRole("heading", { name: "Report" });
+    await waitFor(() => expect(heading).toHaveFocus());
+    expect(screen.getByText(/Your cases tell 2 of the 4 authored faulty versions apart/)).toBeInTheDocument();
+  });
+
+  it("a link to a run that isn't this exercise's, or isn't yours, says it couldn't be opened", async () => {
+    serve({ first: run({ slug: "tests-longest-run" }) });
+    const one = renderApp(`/test-design/${SLUG}?attempt=run-1`, { signedIn: true });
+    expect(await screen.findByText(/That attempt couldn't be opened/)).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Report" })).toBeNull();
+    one.unmount();
+    serve();
+    server.use(http.get(`${API}/api/v1/me/test-design/runs/:id`, () => HttpResponse.json({ error: { code: "not_found", message: "Run not found", request_id: "r", details: null } }, { status: 404 })));
+    renderApp(`/test-design/${SLUG}?attempt=run-9`, { signedIn: true });
+    expect(await screen.findByText(/That attempt couldn't be opened/)).toBeInTheDocument();
   });
 
   it("the faulty versions are shown only after a confirmed ask", async () => {

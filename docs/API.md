@@ -1375,8 +1375,9 @@ interview sessions), so nothing is back-filled or counted twice. All scoped to t
   career_title, title, detail, skills, status, status_label, score, session_id, target: {href,
   …ids}}`. `type` is `problem_opened | code_submission | coaching | written_answer | interview |
   drill_attempt | whiteboard_attempt | work_sample_attempt | scenario_attempt | code_review_attempt |
-  comparison_attempt` (drills, whiteboards and work samples since Volume 16, prompt 6; scenario runs,
-  code reviews and sample-answer comparisons since Volume 17, prompt 2), each with `target.attempt_id`,
+  comparison_attempt | test_design_run` (drills, whiteboards and work samples since Volume 16, prompt 6; scenario runs,
+  code reviews and sample-answer comparisons since Volume 17, prompt 2; test-design runs since Volume
+  18, prompt 10, in the words of `GET /me/test-design/<slug>/runs`'s new `outcome_text`), each with `target.attempt_id`,
   its result and its comparison (or why it has none) in `detail`, and `target.href` opening that one
   attempt (`/scenarios/attempts/<id>`, `/code-reviews/attempts/<id>`, or the format's page with
   `?attempt=<id>`); a scenario run can be `in_progress`;

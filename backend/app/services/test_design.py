@@ -52,6 +52,24 @@ class CaseErrors(AppError):
     code = "invalid_cases"
 
 
+def run_words(r: TestDesignRun) -> str:
+    """What a run's list on its page and its History row say of it (Volume 18, prompt 10): the cases,
+    and what the run found, or why it found nothing."""
+    n = len(r.cases or [])
+    text = f"{n} case{'' if n == 1 else 's'}"
+    report = r.report or {}
+    if r.status == "done":
+        caught, total = report.get("caught"), report.get("total")
+        text += f" · told apart {caught} of {total} faulty version{'' if total == 1 else 's'}"
+    elif r.status == "not_run":
+        text += " · not run: this server can't run code"
+    elif r.status == "failed":
+        text += " · the judge couldn't run it"
+    else:
+        text += " · waiting for the judge"
+    return f"{text} · version {r.exercise_version}"
+
+
 def _now() -> datetime:
     return datetime.now(UTC)
 
@@ -264,6 +282,7 @@ class TestDesign:
                 cases=len(r.cases),
                 caught=(r.report or {}).get("caught"),
                 total=(r.report or {}).get("total"),
+                outcome_text=run_words(r),
                 created_at=r.created_at,
             )
             for r in rows
