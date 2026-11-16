@@ -4896,6 +4896,93 @@
         }
       }
     },
+    "/api/v1/me/collections/{collection_id}/items/transfer": {
+      "post": {
+        "tags": [
+          "explore"
+        ],
+        "summary": "Copy or move chosen items to another of your collections, with an outcome for each (docs/BULK_ACTIONS.md)",
+        "operationId": "transfer_collection_items_api_v1_me_collections__collection_id__items_transfer_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Collection Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionTransferIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CollectionTransferOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/collections/{collection_id}/items/{item_id}": {
       "delete": {
         "tags": [
@@ -30296,6 +30383,62 @@
         ],
         "title": "CollectionSummary"
       },
+      "CollectionTransferIn": {
+        "properties": {
+          "to": {
+            "type": "string",
+            "title": "To",
+            "description": "The collection they go to (yours, and not this one)"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/CollectionItemIn"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Items"
+          },
+          "move": {
+            "type": "boolean",
+            "title": "Move",
+            "description": "Take them out of this collection once they're in the other",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "to",
+          "items"
+        ],
+        "title": "CollectionTransferIn",
+        "description": "Copy or move chosen items to another of your collections (Volume 17, prompt 6;\ndocs/BULK_ACTIONS.md, \"Copy or move items\"). Items are named by what they are, not by row, so the\nsame request sent again after a lost reply changes nothing twice."
+      },
+      "CollectionTransferOut": {
+        "properties": {
+          "source": {
+            "$ref": "#/components/schemas/CollectionOut"
+          },
+          "destination": {
+            "$ref": "#/components/schemas/CollectionOut"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/TransferResult"
+            },
+            "type": "array",
+            "title": "Results",
+            "description": "One per item sent, in the order sent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source",
+          "destination",
+          "results"
+        ],
+        "title": "CollectionTransferOut"
+      },
       "ComparedAttempt": {
         "properties": {
           "id": {
@@ -53553,6 +53696,38 @@
           "total_questions"
         ],
         "title": "TrackProgress"
+      },
+      "TransferResult": {
+        "properties": {
+          "key": {
+            "type": "string",
+            "title": "Key",
+            "description": "The item as sent: 'type:track:ref'"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "copied",
+              "moved",
+              "already_there",
+              "not_there",
+              "full",
+              "repeated"
+            ],
+            "title": "Outcome"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "key",
+          "outcome",
+          "message"
+        ],
+        "title": "TransferResult"
       },
       "TrendPoint": {
         "properties": {

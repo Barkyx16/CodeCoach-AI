@@ -15,6 +15,10 @@ export const store = {
   collections: [] as Collection[],
   failBookmarks: false,
   seq: 0,
+  /** The server's MAX_ITEMS per collection, lowered by a test that needs a full one. */
+  itemLimit: 200,
+  /** Apply the next copy or move, then lose its reply (the client sees a network error). */
+  loseTransferReply: false,
 };
 
 export function resetExploreStore() {
@@ -22,6 +26,8 @@ export function resetExploreStore() {
   store.collections = [];
   store.failBookmarks = false;
   store.seq = 0;
+  store.itemLimit = 200;
+  store.loseTransferReply = false;
 }
 
 const err = (status: number, code: string, message: string) =>
@@ -209,6 +215,49 @@ export const exploreHandlers = [
       c.item_list.forEach((i, n) => { i.position = n; });
     }
     return HttpResponse.json({ collection: fresh(c), results });
+  }),
+  // Copy or move chosen items (Volume 17, prompt 6), by the server's rules: each in the source's order,
+  // at the end of the other one; already there is never doubled (a move just takes it out of here);
+  // past the limit, "full"; a queue mark isn't carried.
+  http.post(`${API}/api/v1/me/collections/:id/items/transfer`, async ({ params, request }) => {
+    const src = find(String(params.id));
+    const body = (await request.json()) as { to: string; move: boolean; items: SavedItemRef[] };
+    const dst = find(body.to);
+    if (!src || !dst) return err(404, "not_found", "Collection not found");
+    if (src.id === dst.id) return err(409, "same_collection", "Choose another collection to copy or move them to.");
+    const keyOf = (r: SavedItemRef) => `${r.item_type}:${r.item_type === "question" ? r.track ?? "" : ""}:${r.ref_id}`;
+    const has = (c: Collection, r: SavedItemRef) => c.item_list.some((i) => keyOf(i) === keyOf(r));
+    const sent = body.items.map((r) => keyOf(r));
+    const outcome = new Map<string, { key: string; outcome: string; message: string }>();
+    const chosen = src.item_list.filter((i) => sent.includes(keyOf(i)));
+    for (const i of chosen) {
+      const key = keyOf(i);
+      if (has(dst, i)) {
+        if (body.move) src.item_list = src.item_list.filter((x) => x !== i);
+        outcome.set(key, body.move
+          ? { key, outcome: "moved", message: `Already in “${dst.name}”; taken out of “${src.name}”.` }
+          : { key, outcome: "already_there", message: `Already in “${dst.name}”.` });
+        continue;
+      }
+      if (dst.item_list.length >= store.itemLimit) {
+        outcome.set(key, { key, outcome: "full", message: `“${dst.name}” holds up to ${store.itemLimit} items.` });
+        continue;
+      }
+      dst.item_list.push({ ...structuredClone(i), id: `i-${++store.seq}`, position: dst.item_list.length, queue_done: false });
+      if (body.move) src.item_list = src.item_list.filter((x) => x !== i);
+      outcome.set(key, { key, outcome: body.move ? "moved" : "copied", message: `${body.move ? "Moved" : "Copied"} to “${dst.name}”.` });
+    }
+    const seen = new Set<string>();
+    const results = sent.map((key) => {
+      if (seen.has(key)) return { key, outcome: "repeated", message: "Listed twice; counted once." };
+      seen.add(key);
+      return outcome.get(key) ?? (dst.item_list.some((i) => keyOf(i) === key)
+        ? { key, outcome: "already_there", message: `Already in “${dst.name}”.` }
+        : { key, outcome: "not_there", message: `Not in “${src.name}” (any more).` });
+    });
+    const out = { source: fresh(src), destination: fresh(dst), results };
+    if (store.loseTransferReply) { store.loseTransferReply = false; return HttpResponse.error(); }
+    return HttpResponse.json(out);
   }),
   http.delete(`${API}/api/v1/me/collections/:id/items/:item`, ({ params }) => {
     const c = find(String(params.id));

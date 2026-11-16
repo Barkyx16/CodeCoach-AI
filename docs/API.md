@@ -844,7 +844,13 @@ All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a
   `GET|PATCH|DELETE /me/collections/{id}`, `POST /me/collections/{id}/duplicate {name?,
   client_request_id?}` (a copy with the items in order, their versions and reviews, a fresh queue;
   `409 name_taken`, `400 too_many_collections`; the same key returns the same copy, 200;
-  docs/BULK_ACTIONS.md), `POST /me/collections/{id}/items` (`409
+  docs/BULK_ACTIONS.md), `POST /me/collections/{id}/items/transfer {to, items: [{item_type, track,
+  ref_id}] (1–50), move}` → `{source, destination, results: [{key, outcome, message}]}`, one per item
+  in order: `copied | moved | already_there | full | not_there | repeated` (each at the end of `to`,
+  in the source's order, with its `content_version`, `added_at` and reviews; never its queue mark; a
+  move takes it out only once it's there; `404` for either collection not yours, `409
+  same_collection`; sent again, nothing changes twice; docs/BULK_ACTIONS.md, "Copy or move items"),
+  `POST /me/collections/{id}/items` (`409
   already_in_collection`; the unique constraint also settles races), `DELETE …/items/{item_id}`,
   `PUT …/order {item_ids}` (every id exactly once, else `400 invalid_order`), `PUT …/queue
   {position}` (start or move the practice queue; `409 empty_collection`), `PUT

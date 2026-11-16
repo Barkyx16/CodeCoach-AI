@@ -51,6 +51,8 @@ from app.schemas.explore import (
     CollectionReviewBatchIn,
     CollectionReviewBatchOut,
     CollectionSummary,
+    CollectionTransferIn,
+    CollectionTransferOut,
     ExploreFacets,
     ExploreItem,
     ExploreResult,
@@ -63,6 +65,7 @@ from app.schemas.explore import (
     SavedReviewBatchIn,
     SavedReviewBatchOut,
     SavedReviewIn,
+    TransferResult,
 )
 from app.schemas.notes import NoteFreshness
 from app.services import search
@@ -932,6 +935,164 @@ class Explorer:
             c.updated_at = datetime.now(UTC)
         self.db.commit()
         return CollectionBatchOut(collection=self.get(user, cid), results=results)
+
+    def transfer(self, user: User, cid: str, body: CollectionTransferIn) -> CollectionTransferOut:
+        """See _transfer_once. Another tab sending the same items at the same moment can add one first
+        (uq_collection_item): this request then changes nothing, and is worked out once more against
+        what's now there, so each of those items reads "already_there" and nothing is doubled."""
+        try:
+            return self._transfer_once(user, cid, body)
+        except IntegrityError:
+            self.db.rollback()
+            return self._transfer_once(user, cid, body)
+
+    def _transfer_once(self, user: User, cid: str, body: CollectionTransferIn) -> CollectionTransferOut:
+        """Copy or move chosen items to another of your collections (Volume 17, prompt 6;
+        docs/BULK_ACTIONS.md, "Copy or move items"), each with its own outcome, in one transaction.
+
+        Each item arrives as it was: at the version it was added at, with when it was added and its
+        "Mark reviewed" (moved with it, or copied as the new item's own record), at the end of the
+        other collection in this one's order. Its queue mark stays with the collection it was marked
+        in. A move takes an item out of this collection only once it's in the other one; an item the
+        other collection already has is never doubled ("already_there"; a move then just takes it out
+        of here). Items are named by what they are, so the same request sent again changes nothing
+        twice: a moved item is then "already_there". Both collections must be yours (404 otherwise,
+        before anything is looked at); sending to the same collection is refused."""
+        src = self._collection(user, cid)
+        dst = self._collection(user, body.to)
+        if dst.id == src.id:
+            raise ConflictError("Choose another collection to copy or move them to.", code="same_collection")
+        verb = "Moved" if body.move else "Copied"
+        sent: list[tuple[str, bool]] = []  # each key as sent, and whether it's a repeat
+        first: dict[str, CollectionItem | None] = {}
+        for item in body.items:
+            track = item.track if item.item_type == "question" else ""
+            key = f"{item.item_type}:{track}:{item.ref_id}"
+            if key in first:
+                sent.append((key, True))
+                continue
+            first[key] = next(
+                (
+                    i
+                    for i in src.items
+                    if (i.item_type, i.track, i.ref_id) == (item.item_type, track, item.ref_id)
+                ),
+                None,
+            )
+            sent.append((key, False))
+        found_in_order = sorted(
+            ((k, f) for k, f in first.items() if f is not None), key=lambda kf: kf[1].position
+        )
+        held = {(i.item_type, i.track, i.ref_id) for i in dst.items}
+        made: dict[str, CollectionItem] = {}
+        gone: list[CollectionItem] = []
+        outcome: dict[str, TransferResult] = {}
+        for key, found in found_in_order:  # in this collection's order, whatever order they were sent in
+            ident = (found.item_type, found.track, found.ref_id)
+            if ident in held:
+                if body.move:
+                    gone.append(found)
+                    outcome[key] = TransferResult(
+                        key=key,
+                        outcome="moved",
+                        message=f"Already in “{dst.name}”; taken out of “{src.name}”.",
+                    )
+                else:
+                    outcome[key] = TransferResult(
+                        key=key, outcome="already_there", message=f"Already in “{dst.name}”."
+                    )
+                continue
+            if len(dst.items) + len(made) >= MAX_ITEMS:
+                outcome[key] = TransferResult(
+                    key=key, outcome="full", message=f"“{dst.name}” holds up to {MAX_ITEMS} items."
+                )
+                continue
+            row = CollectionItem(
+                item_type=found.item_type,
+                track=found.track,
+                ref_id=found.ref_id,
+                position=len(dst.items) + len(made),
+                content_version=found.content_version,  # the version it was added at
+                added_at=found.added_at,
+                queue_done_at=None,  # its queue mark stays with the collection it was marked in
+            )
+            made[found.id] = row
+            held.add(ident)
+            if body.move:
+                gone.append(found)
+            outcome[key] = TransferResult(
+                key=key,
+                outcome="moved" if body.move else "copied",
+                message=f"{verb} to “{dst.name}”.",
+            )
+        for row in made.values():
+            dst.items.append(row)
+        self.db.flush()  # the new items exist before anything leaves this collection
+        if made:
+            reviews = self.db.scalars(
+                select(SourceReview).where(
+                    SourceReview.user_id == user.id,
+                    SourceReview.holder_kind == IN_COLLECTION.kind,
+                    SourceReview.holder_id.in_(list(made)),
+                )
+            ).all()
+            for r in reviews:
+                new_id = made[r.holder_id].id
+                if body.move:
+                    r.holder_id = new_id  # moved with it
+                else:
+                    self.db.add(
+                        SourceReview(
+                            user_id=user.id,
+                            holder_kind=IN_COLLECTION.kind,
+                            holder_id=new_id,
+                            source_kind=r.source_kind,
+                            source_id=r.source_id,
+                            from_revision=r.from_revision,
+                            to_revision=r.to_revision,
+                            to_digest=r.to_digest,
+                            decision=r.decision,
+                            created_at=r.created_at,
+                        )
+                    )
+        if gone:
+            moved_reviews = set(made) if body.move else set()
+            for found in gone:
+                idx = src.items.index(found)
+                if found.id not in moved_reviews:
+                    forget(self.db, user.id, IN_COLLECTION.kind, [found.id])
+                src.items.remove(found)
+                if src.queue_position > idx:
+                    src.queue_position -= 1
+            for pos, i in enumerate(src.items):
+                i.position = pos
+            src.queue_position = min(src.queue_position, max(0, len(src.items) - 1))
+        results: list[TransferResult] = []
+        for key, repeat in sent:
+            if repeat:
+                results.append(
+                    TransferResult(key=key, outcome="repeated", message="Listed twice; counted once.")
+                )
+            elif first[key] is not None:
+                results.append(outcome[key])
+            elif tuple(key.split(":", 2)) in held:
+                # Not here but there: what a resend of a move finds (or it was there all along).
+                results.append(
+                    TransferResult(key=key, outcome="already_there", message=f"Already in “{dst.name}”.")
+                )
+            else:
+                results.append(
+                    TransferResult(key=key, outcome="not_there", message=f"Not in “{src.name}” (any more).")
+                )
+        now = datetime.now(UTC)
+        if made:
+            dst.updated_at = now
+        if gone:
+            src.updated_at = now
+        self.db.commit()
+        return CollectionTransferOut(
+            source=self.get(user, cid), destination=self.get(user, dst.id), results=results
+        )
 
     def reorder(self, user: User, cid: str, item_ids: list[str]) -> CollectionOut:
         c = self._collection(user, cid)

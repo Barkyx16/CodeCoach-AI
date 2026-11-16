@@ -23,6 +23,8 @@ from app.schemas.explore import (
     CollectionReviewBatchIn,
     CollectionReviewBatchOut,
     CollectionSummary,
+    CollectionTransferIn,
+    CollectionTransferOut,
     DoneIn,
     ExploreResult,
     ExploreSort,
@@ -309,6 +311,22 @@ def batch_collection_items(
     db: Session = Depends(get_db),
 ) -> CollectionBatchOut:
     return Explorer(db).batch(user, collection_id, body)
+
+
+@router.post(
+    "/me/collections/{collection_id}/items/transfer",
+    response_model=CollectionTransferOut,
+    responses=error_responses(401, 404, 409, 422),
+    summary="Copy or move chosen items to another of your collections, with an outcome for each "
+    "(docs/BULK_ACTIONS.md)",
+)
+def transfer_collection_items(
+    collection_id: str,
+    body: CollectionTransferIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> CollectionTransferOut:
+    return Explorer(db).transfer(user, collection_id, body)
 
 
 @router.delete(

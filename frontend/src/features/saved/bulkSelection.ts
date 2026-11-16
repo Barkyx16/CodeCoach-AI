@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 
-import type { BatchResult, ReviewResult } from "@/api/types";
+import type { BatchResult, ReviewResult, TransferResult } from "@/api/types";
 
 /** The selection and outcome rules behind the bulk actions (docs/BULK_ACTIONS.md); see bulk.tsx. */
 
@@ -24,8 +24,8 @@ export function useSelection(keys: string[]) {
   return { selected, isSelected: (k: string) => picked.has(k) && shown.has(k), toggle, setAll, keep, all: keys.length > 0 && selected.length === keys.length };
 }
 
-/** An outcome of any bulk action: adding, removing or marking reviewed. */
-export type BulkResult = BatchResult | ReviewResult;
+/** An outcome of any bulk action: adding, removing, marking reviewed, copying or moving. */
+export type BulkResult = BatchResult | ReviewResult | TransferResult;
 
 const OUTCOME: Record<BulkResult["outcome"], { label: string; done: boolean }> = {
   added: { label: "Added", done: true },
@@ -41,6 +41,9 @@ const OUTCOME: Record<BulkResult["outcome"], { label: string; done: boolean }> =
   not_versioned: { label: "No versions to review", done: true },
   newer_since: { label: "Still asks: a newer version", done: false },
   invalid_version: { label: "Version not found", done: false },
+  // Copying or moving to another collection (Volume 17, prompt 6): each item as it was.
+  copied: { label: "Copied", done: true },
+  moved: { label: "Moved", done: true },
 };
 
 export const isDone = (r: BulkResult) => OUTCOME[r.outcome].done;

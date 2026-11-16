@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import { useCollection, useCollectionMutation, useCollections, useDeleteCollection } from "@/api/queries";
-import type { CollectionItem } from "@/api/types";
+import type { Collection, CollectionItem } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -14,9 +14,15 @@ import { useRequestKey } from "@/lib/requestKey";
 
 import { BulkOutcomes, NoReply, SelectBox } from "./bulk";
 import { type BulkResult, isDone, useSelection } from "./bulkSelection";
+import { TransferForm } from "./CollectionTransfer";
 import { useItemKind } from "./labels";
 import { MAX_COLLECTIONS } from "./limits";
 import { SavedFreshness } from "./SavedFreshness";
+import { itemKey } from "./transfer";
+
+/** A copy or move whose reply never came: the same items again, named by what they are (the page may
+ * have reloaded without them since). */
+type LostTransfer = { kind: "transfer"; to: Collection; move: boolean; chosen: CollectionItem[] };
 
 /** One collection: rename, reorder (buttons, keyboard-friendly), remove items, start the practice queue. */
 export function CollectionPage() {
@@ -67,7 +73,10 @@ export function CollectionPage() {
   const selection = useSelection(itemIds);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkResults, setBulkResults] = useState<{ verb: string; rows: BulkResult[]; titles: Map<string, string> } | null>(null);
-  const [bulkLost, setBulkLost] = useState<{ kind: "remove" | "review"; ids: string[] } | null>(null);
+  const [bulkLost, setBulkLost] = useState<{ kind: "remove" | "review"; ids: string[] } | LostTransfer | null>(null);
+  // Copy or move the chosen items to another collection (Volume 17, prompt 6).
+  const [transferring, setTransferring] = useState<"copy" | "move" | null>(null);
+  const [transferred, setTransferred] = useState<{ to: Collection; move: boolean; resent: boolean } | null>(null);
   const [bulkError, setBulkError] = useState<unknown>(null);
   const outcomesRef = useRef<HTMLHeadingElement>(null);
   const focusOutcomes = useRef(false);
@@ -101,6 +110,7 @@ export function CollectionPage() {
     setBulkBusy(true);
     setBulkError(null);
     setBulkLost(null);
+    setTransferred(null);
     const titles = new Map(items.filter((i) => ids.includes(i.id)).map((i) => [i.id, i.title]));
     try {
       const out = await api.batchCollection(id, { remove: ids });
@@ -124,6 +134,7 @@ export function CollectionPage() {
     setBulkBusy(true);
     setBulkError(null);
     setBulkLost(null);
+    setTransferred(null);
     const chosen = items.filter((i) => ids.includes(i.id));
     try {
       const out = await api.reviewCollectionItems(id, chosen.map((i) => ({ itemId: i.id, reviewedVersion: i.freshness?.current_version ?? 1 })));
@@ -137,6 +148,42 @@ export function CollectionPage() {
     } finally {
       setBulkBusy(false);
     }
+  }
+
+  // Each item goes as it was (its version, when it was added, its "Mark reviewed"); a move takes it out
+  // of here only once it's in the other collection. Sent again after a lost reply, nothing changes twice:
+  // an item the first request already copied or moved reads "Already there".
+  async function transferSelected(chosen: CollectionItem[], to: Collection, moving: boolean, resent = false) {
+    setBulkBusy(true);
+    setBulkError(null);
+    setBulkLost(null);
+    try {
+      const out = await api.transferCollectionItems(id, {
+        to: to.id, move: moving, items: chosen.map((i) => ({ item_type: i.item_type, track: i.track, ref_id: i.ref_id })),
+      });
+      qc.setQueryData(["me", "collection", id], out.source);
+      qc.setQueryData(["me", "collection", to.id], out.destination);
+      void qc.invalidateQueries({ queryKey: ["me", "collections"] });
+      void qc.invalidateQueries({ queryKey: ["me", "explore"] });
+      setBulkResults({ verb: `${moving ? "moving" : "copying"} to “${out.destination.name}”`, rows: out.results, titles: new Map(chosen.map((i) => [itemKey(i), i.title])) });
+      setTransferred({ to: out.destination, move: moving, resent });
+      const open = new Set(out.results.filter((r) => !isDone(r)).map((r) => r.key));
+      selection.keep(chosen.filter((i) => open.has(itemKey(i))).map((i) => i.id));
+      setTransferring(null);
+      focusOutcomes.current = true;
+    } catch (e) {
+      if (e instanceof ApiError && (e.code === "network_error" || e.status >= 500)) setBulkLost({ kind: "transfer", to, move: moving, chosen });
+      else setBulkError(e);
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  function retryLost() {
+    if (!bulkLost) return;
+    if (bulkLost.kind === "transfer") void transferSelected(bulkLost.chosen, bulkLost.to, bulkLost.move, true);
+    else if (bulkLost.kind === "remove") void removeSelected(bulkLost.ids);
+    else void reviewSelected(bulkLost.ids);
   }
 
   function move(item: CollectionItem, dir: "up" | "down") {
@@ -281,6 +328,12 @@ export function CollectionPage() {
               <Button size="sm" loading={bulkBusy} onClick={() => void reviewSelected(selection.selected)}>
                 Mark {selection.selected.length} reviewed
               </Button>
+              <Button size="sm" variant="secondary" aria-expanded={transferring === "copy"} onClick={() => setTransferring("copy")}>
+                Copy {selection.selected.length} to…
+              </Button>
+              <Button size="sm" variant="secondary" aria-expanded={transferring === "move"} onClick={() => setTransferring("move")}>
+                Move {selection.selected.length} to…
+              </Button>
               <Button size="sm" variant="ghost" onClick={() => selection.setAll(false)}>Clear selection</Button>
             </span>
           )}
@@ -288,9 +341,16 @@ export function CollectionPage() {
         {selection.selected.length > 0 && (
           <p className="subtle">Removing only takes them out of this collection. The questions stay in the library, and your bookmarks and answers aren't touched.</p>
         )}
-        {bulkLost && <NoReply busy={bulkBusy} onRetry={() => void (bulkLost.kind === "remove" ? removeSelected(bulkLost.ids) : reviewSelected(bulkLost.ids))} />}
+        {transferring && selection.selected.length > 0 && (
+          <TransferForm key={transferring} source={c} move={transferring === "move"} busy={bulkBusy}
+            chosen={items.filter((i) => selection.isSelected(i.id))}
+            onSend={(to) => void transferSelected(items.filter((i) => selection.isSelected(i.id)), to, transferring === "move")}
+            onCancel={() => setTransferring(null)} />
+        )}
+        {bulkLost && <NoReply busy={bulkBusy} onRetry={retryLost} />}
         <InlineError error={bulkError} />
         {bulkResults && <BulkOutcomes ref={outcomesRef} level={2} results={bulkResults.rows} verb={bulkResults.verb} titleOf={(k) => bulkResults.titles.get(k) ?? "An item"} />}
+        {transferred && <TransferredLinks source={c} {...transferred} />}
         <ol className="collection-items" aria-label="Items in order">
           {items.map((item, index) => (
             <li key={item.id} className={`card collection-item${item.available ? "" : " collection-item--gone"}`}>
@@ -334,7 +394,22 @@ export function CollectionPage() {
         </div>
       )}
       {items.length === 0 && bulkResults && <BulkOutcomes ref={outcomesRef} level={2} results={bulkResults.rows} verb={bulkResults.verb} titleOf={(k) => bulkResults.titles.get(k) ?? "An item"} />}
+      {items.length === 0 && transferred && <TransferredLinks source={c} {...transferred} />}
+      {items.length === 0 && bulkLost && <NoReply busy={bulkBusy} onRetry={retryLost} />}
       <InlineError error={reorder.error ?? remove.error} />
     </div>
+  );
+}
+
+/** After a copy or move: both collections, as they now are. */
+function TransferredLinks({ source, to, move, resent }: { source: Collection; to: Collection; move: boolean; resent: boolean }) {
+  const count = (c: Collection) => `${c.items} ${c.items === 1 ? "item" : "items"}`;
+  return (
+    <p className="subtle transfer-links">
+      Now: <Link to={`/saved/collections/${to.id}`}>“{to.name}”</Link> has {count(to)}, and{" "}
+      <Link to={`/saved/collections/${source.id}`} aria-current="page">“{source.name}”</Link> has {count(source)}
+      {move ? "." : " (unchanged)."}
+      {resent && " This was sent again after no reply came: an item the first request already did reads “Already there”."}
+    </p>
   );
 }

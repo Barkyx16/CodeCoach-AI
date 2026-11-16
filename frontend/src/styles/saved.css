@@ -71,6 +71,8 @@
 .bulk-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); padding: var(--space-2) 0; }
 .bulk-bar__action { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); }
 .bulk-bar__target .select { min-width: 12rem; max-width: 100%; }
+.transfer-words { margin: 0; padding-left: 1.2em; display: grid; gap: 4px; overflow-wrap: anywhere; }
+.transfer-links { overflow-wrap: anywhere; }
 .bulk-select { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; min-height: 28px; cursor: pointer; }
 .bulk-select input { width: 18px; height: 18px; }
 .saved-list__item--selectable { grid-template-columns: 28px minmax(0, 1fr); }

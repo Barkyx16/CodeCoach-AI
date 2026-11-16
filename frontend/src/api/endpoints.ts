@@ -34,6 +34,8 @@ import type {
   CollectionBatchOut,
   CollectionReviewBatchOut,
   CollectionSummary,
+  CollectionTransferIn,
+  CollectionTransferOut,
   Comparison,
   ComparisonAttempt,
   ComparisonAttemptSummary,
@@ -600,6 +602,10 @@ export const api = {
   // Several adds or several removals, an outcome for each (docs/BULK_ACTIONS.md).
   batchCollection: (id: string, body: CollectionBatchIn) =>
     apiRequest<CollectionBatchOut>(`/api/v1/me/collections/${encodeURIComponent(id)}/items/batch`, { method: "POST", body }),
+  /** Copy or move chosen items to another of your collections, each as it was, an outcome for each
+   * (Volume 17, prompt 6). Items are named by what they are, so sending it again changes nothing twice. */
+  transferCollectionItems: (id: string, body: CollectionTransferIn) =>
+    apiRequest<CollectionTransferOut>(`/api/v1/me/collections/${encodeURIComponent(id)}/items/transfer`, { method: "POST", body }),
   removeFromCollection: (id: string, itemId: string) =>
     apiRequest<Collection>(`/api/v1/me/collections/${encodeURIComponent(id)}/items/${encodeURIComponent(itemId)}`, { method: "DELETE" }),
   reorderCollection: (id: string, itemIds: string[]) =>

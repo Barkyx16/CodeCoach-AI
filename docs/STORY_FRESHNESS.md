@@ -171,7 +171,10 @@ source, with its own words and its own reviews. There is no second rule.
   collection") carries each item at the version it was added at, as stored (never the version now),
   and each of its reviews as the copy's own row, holder and all, so the copy's badges read exactly
   as the original's did; from then on each collection's reviews are its own, and a change to the
-  source asks in both until each is reviewed. Collections still can't be shared.
+  source asks in both until each is reviewed. Collections still can't be shared. Items copied or
+  moved to another collection (Volume 17, prompt 6; docs/BULK_ACTIONS.md, "Copy or move items")
+  arrive the same way, at the version they were added at: a copied item's reviews become the new
+  item's own rows; a moved item's go with it (re-pointed, so none is left behind or doubled).
 - **Limits.** A lesson's minor mark is reviewed content: a person marks it, and the content gate
   refuses one on version 1, beyond the lesson's version, or without a change note
   (`tests/test_minor_changes.py`; 6 negative controls, all caught). No lesson has a minor version

@@ -167,6 +167,33 @@ class CollectionBatchOut(APIModel):
     results: list[BatchResult] = Field(description="One per item sent, in the order sent")
 
 
+class CollectionTransferIn(APIModel):
+    """Copy or move chosen items to another of your collections (Volume 17, prompt 6;
+    docs/BULK_ACTIONS.md, "Copy or move items"). Items are named by what they are, not by row, so the
+    same request sent again after a lost reply changes nothing twice."""
+
+    to: str = Field(description="The collection they go to (yours, and not this one)")
+    items: list[CollectionItemIn] = Field(min_length=1, max_length=BATCH_LIMIT)
+    move: bool = Field(
+        default=False, description="Take them out of this collection once they're in the other"
+    )
+
+
+TransferOutcome = Literal["copied", "moved", "already_there", "not_there", "full", "repeated"]
+
+
+class TransferResult(APIModel):
+    key: str = Field(description="The item as sent: 'type:track:ref'")
+    outcome: TransferOutcome
+    message: str
+
+
+class CollectionTransferOut(APIModel):
+    source: "CollectionOut"
+    destination: "CollectionOut"
+    results: list[TransferResult] = Field(description="One per item sent, in the order sent")
+
+
 ReviewOutcome = Literal[
     "reviewed", "already_reviewed", "newer_since", "not_versioned", "unavailable", "invalid_version",
     "not_there", "repeated",

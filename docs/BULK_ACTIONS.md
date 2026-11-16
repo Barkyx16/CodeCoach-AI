@@ -11,6 +11,7 @@ membership; nothing here deletes a bookmark, a question, an answer or a collecti
 | Saved → Bookmarks | **Add the selected to** a collection you choose | those items join the collection, at the end | the bookmarks stay; nothing about your answers |
 | A collection | **Remove N from "…"** | those items leave this collection; positions close up; the practice queue stays on the item it was on (or the last one) | the questions stay in the library; your bookmarks and answers aren't touched |
 | Saved → Bookmarks, and a collection | **Mark N reviewed** (Volume 15, prompt 6) | a "Mark reviewed" for each, at the version its row shows (docs/STORY_FRESHNESS.md) | the items themselves: nothing is moved, reordered, unsaved or removed; the saved list's reviews and a collection's are each their own |
+| A collection | **Copy N to…** / **Move N to…** another of your collections (Volume 17, prompt 6) | each joins the other at its end, in this collection's order, as it was; a move then takes it out of here | Duplicate; your bookmarks and answers; another account's collections |
 
 Not offered as a bulk action (on purpose): deleting bookmarks, collections or anything else;
 answers, scores, schedules, shares or account settings.
@@ -41,6 +42,39 @@ answers, scores, schedules, shares or account settings.
 - The copy remembers where it came from (`copied_from_id`, migration `e5b1c7d9a248`; no foreign key,
   so deleting the original leaves the copy) and its page says "A copy of “…”" (or "of a collection
   you've since deleted"). Removing an item from either collection takes only that item's reviews.
+
+## Copy or move items
+
+`POST /api/v1/me/collections/{id}/items/transfer {to, items: [{item_type, track, ref_id}], move}`
+(Volume 17, prompt 6), from **Copy N to…** or **Move N to…** on a collection's page with some of its
+items selected, then the collection they go to. Within one account; nothing is shared.
+
+| Arrives with the item | Stays behind | Never happens |
+|---|---|---|
+| the version it was added at (`content_version`) and when (`added_at`) | its queue mark ("Done in queue" belongs to the collection it was marked in; a moved item's goes with nothing, and the form says so) | an item doubled: one the other collection already has reads "Already there" (a move then just takes it out of here: "Already in “…”; taken out of “…”.") |
+| its "Mark reviewed": moved with it, or copied as the new item's own record (reviewing in one collection then never changes the other; docs/STORY_FRESHNESS.md) | for a copy, everything here: this collection doesn't change | a move taking an item out before it's in the other: past the other's limit (200 items) an item reads "Didn't fit" and stays here, review, place and all |
+| its place: at the end of the other collection, in this collection's order, whatever order they were picked in | | a half-done request: it's one transaction, so a failure part way changes neither collection |
+
+- **Outcomes**, one per item in the order sent: `copied | moved | already_there | full | not_there
+  | repeated` ("Copied", "Moved", "Already there", "Didn't fit", "Wasn't there": no longer in this
+  collection, "Listed twice"). The page lists the ones that need attention (didn't fit) first and
+  keeps those selected.
+- **Before sending**, once the other collection is chosen, the form says what it already has ("“Week
+  2” already has 1 of these 3: it won't be doubled.") and its room ("It has room for 47 more.", or
+  how many won't fit, or that it's full); what arrives with each; and for a move, what leaves ("Leaves
+  “Week 1”, each once it's in “Week 2”: “…” and “…”.") and what its queue will skip ("Its queue (at
+  item 2 of 4) will skip 1 not reached yet: “…”."; a done item's mark "isn't carried").
+- **After it**, the page links to both collections with their counts ("Now: “Week 2” has 3 items,
+  and “Week 1” has 1 item.").
+- **Sent again**: the request names each item by what it is (type, track, id) and both collections,
+  and that is its key. Sent again after a lost reply, an item the first request already copied or
+  moved is there and reads "Already there", so nothing changes twice; no separate key is stored, so
+  the second reply says "Already there" rather than repeating "Moved", and the page says so ("This was
+  sent again after no reply came: …"). **Send again** resends the same items even if the page has
+  reloaded without them. Two tabs sending the same items at once: the unique `(collection, item)`
+  settles it, and the request that meets it is worked out once more against what's now there.
+- **Refused**: either collection another account's or missing, `404` before anything is looked at;
+  the same collection on both sides, `409 same_collection`; 1–50 items.
 
 ## Selection scope
 
@@ -130,9 +164,30 @@ the same key making one copy, the copy saying whose it is, the limit said before
 name refused in the server's words), and `e2e/collection-copy.spec.ts` (the real API: a lost reply
 sent again making one copy; the order after a reload and in a second browser; axe in both themes).
 
+Copy or move: `tests/test_collection_transfer.py` (9, on SQLite and on PostgreSQL as the app role: a
+copy keeping each item's version and review in the source's order and leaving the source as it was;
+a move taking the items out with their reviews, the queue mark left behind and positions closed up;
+sent again after a lost reply changing nothing twice; an item already there not doubled; repeated,
+missing and over-the-limit items each with their own outcome; a move taking out only what arrived;
+both collections yours and different; a failure part way changing nothing; another tab's identical
+move committed first, met as the constraint would be and worked out again);
+`src/test/integration/collectionTransfer.test.tsx` (the form's words for a move, a copy, a full or
+nearly full collection and a queue not started; the item's key; a move through a lost reply sent
+again with the same items, both collections linked; a copy with mixed outcomes, the one needing
+attention kept selected; no other collection; a refusal); `e2e/collection-transfer.spec.ts` (the real
+API: two of three moved through a lost reply, the form's words, axe on the form in both themes, both
+collections after a reload, the versions as added). Negative controls, all caught: a move taking an
+item out before it's in the other (the ones that didn't fit too), a copy dropping the review, a move
+leaving it behind, the queue mark carried, the order sent instead of the source's, the version not
+kept, no second pass after a clash, a resent move reading "not there", the same collection allowed;
+on the page, a done item counted as ahead in the queue, what's already there not counted, the room
+ignoring the other's items, a problem's key keeping its track, Send again sending a copy, everything
+left selected, no link to the other collection, sending with none chosen, a lost reply shown as an
+error; in the browser, a move that leaves the items in the source.
+
 ## Limits
 
-- Two lists so far (bookmarks → a collection; a collection's items → out). Moving between
-  collections, archiving in bulk and selection across pages aren't built. A collection can be
-  duplicated whole, not in part, and only within the account (never shared).
+- Bookmarks → a collection; a collection's items out, or copied or moved to another collection
+  (Volume 17, prompt 6). Archiving in bulk and selection across pages aren't built. Copying, moving
+  and duplicating stay within the account (never shared).
 - No Undo: the result list says what changed; adding or removing again reverses it.

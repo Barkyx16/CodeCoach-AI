@@ -1040,6 +1040,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/collections/{collection_id}/items/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy or move chosen items to another of your collections, with an outcome for each (docs/BULK_ACTIONS.md) */
+        post: operations["transfer_collection_items_api_v1_me_collections__collection_id__items_transfer_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/collections/{collection_id}/items/{item_id}": {
         parameters: {
             query?: never;
@@ -6722,6 +6739,37 @@ export interface components {
              * @description Whether it holds the item named in the request (null when none was named)
              */
             contains?: boolean | null;
+        };
+        /**
+         * CollectionTransferIn
+         * @description Copy or move chosen items to another of your collections (Volume 17, prompt 6;
+         *     docs/BULK_ACTIONS.md, "Copy or move items"). Items are named by what they are, not by row, so the
+         *     same request sent again after a lost reply changes nothing twice.
+         */
+        CollectionTransferIn: {
+            /**
+             * To
+             * @description The collection they go to (yours, and not this one)
+             */
+            to: string;
+            /** Items */
+            items: components["schemas"]["CollectionItemIn"][];
+            /**
+             * Move
+             * @description Take them out of this collection once they're in the other
+             * @default false
+             */
+            move: boolean;
+        };
+        /** CollectionTransferOut */
+        CollectionTransferOut: {
+            source: components["schemas"]["CollectionOut"];
+            destination: components["schemas"]["CollectionOut"];
+            /**
+             * Results
+             * @description One per item sent, in the order sent
+             */
+            results: components["schemas"]["TransferResult"][];
         };
         /**
          * ComparedAttempt
@@ -16255,6 +16303,21 @@ export interface components {
              */
             unknown: number;
         };
+        /** TransferResult */
+        TransferResult: {
+            /**
+             * Key
+             * @description The item as sent: 'type:track:ref'
+             */
+            key: string;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "copied" | "moved" | "already_there" | "not_there" | "full" | "repeated";
+            /** Message */
+            message: string;
+        };
         /** TrendPoint */
         TrendPoint: {
             /**
@@ -20418,6 +20481,68 @@ export interface operations {
             };
             /** @description Not found (also returned for resources owned by another user) */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    transfer_collection_items_api_v1_me_collections__collection_id__items_transfer_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionTransferIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionTransferOut"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
