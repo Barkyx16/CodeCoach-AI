@@ -322,6 +322,20 @@ class FeedbackReadItem(APIModel):
     notes: list[str] = Field(default_factory=list, description="What was replaced in it, said")
 
 
+class CheckChange(APIModel):
+    """What changed in one part after the check (Volume 17, prompt 1): for the conversation, how many
+    messages were sent after it; for another part, how many of its lines were added and removed, and
+    the numbers of the added lines in what was read (at most 20; the lines themselves are in your code
+    above, never copied here)."""
+
+    label: str
+    text: str = Field(description='Said in plain words, e.g. "Your code: 3 lines added, 1 line removed"')
+    added: int | None = None
+    removed: int | None = None
+    added_lines: list[int] = Field(default_factory=list, description="1-based, in the part as read")
+    messages_after: int | None = None
+
+
 class ConfirmedCheck(APIModel):
     """The learner's last "I've checked this" before an unchecked ending (a time-out), compared with
     what the feedback then read: part by part, by label (Volume 16, prompt 3)."""
@@ -332,6 +346,10 @@ class ConfirmedCheck(APIModel):
     changed: list[str] = Field(default_factory=list, description="The labels of the parts that changed after")
     code_unsent: bool = Field(
         default=False, description="The code checked was in the editor and hadn't been sent when it was read"
+    )
+    changes: list[CheckChange] = Field(
+        default_factory=list,
+        description="What changed in each changed part (empty for a check kept before this)",
     )
 
 

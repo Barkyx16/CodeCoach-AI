@@ -29291,6 +29291,67 @@
         ],
         "title": "Check"
       },
+      "CheckChange": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "Said in plain words, e.g. \"Your code: 3 lines added, 1 line removed\""
+          },
+          "added": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Added"
+          },
+          "removed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed"
+          },
+          "added_lines": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Added Lines",
+            "description": "1-based, in the part as read"
+          },
+          "messages_after": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Messages After"
+          }
+        },
+        "type": "object",
+        "required": [
+          "label",
+          "text"
+        ],
+        "title": "CheckChange",
+        "description": "What changed in one part after the check (Volume 17, prompt 1): for the conversation, how many\nmessages were sent after it; for another part, how many of its lines were added and removed, and\nthe numbers of the added lines in what was read (at most 20; the lines themselves are in your code\nabove, never copied here)."
+      },
       "CheckIn": {
         "properties": {
           "version": {
@@ -31012,6 +31073,14 @@
             "title": "Code Unsent",
             "description": "The code checked was in the editor and hadn't been sent when it was read",
             "default": false
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/CheckChange"
+            },
+            "type": "array",
+            "title": "Changes",
+            "description": "What changed in each changed part (empty for a check kept before this)"
           }
         },
         "type": "object",

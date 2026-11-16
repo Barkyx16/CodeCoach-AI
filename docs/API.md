@@ -1366,8 +1366,14 @@ status: in_progress → completed (finish) | expired (deadline passed) | abandon
 - **One active interview per user.** Starting another returns `409 interview_in_progress` with
   `details.interview_id`, so the UI can offer "Resume".
 - **Server-side clock.** `deadline_at` is authoritative. When it passes, the next read or write
-  closes the interview as `expired` and evaluates it. Clients show a countdown from
-  `deadline_at` and re-fetch at zero.
+  closes the interview as `expired` and evaluates it, and so does housekeeping within about a
+  minute if nobody reads it (Volume 17, prompt 1; docs/COACH_CONTEXT.md, "When time runs out"), so
+  an export or History taken later shows it ended. Clients show a countdown from `deadline_at` and
+  re-fetch at zero.
+- **What changed after a check.** `feedback_read.confirmed.changes` lists each part that changed
+  after "I've checked this": `text` in plain words, `messages_after` for the conversation, and for
+  another part `added`, `removed` and `added_lines` (1-based numbers in what was read, at most 20;
+  the lines are in `final_code`, never copied). Empty for a check kept before this.
 - **Phases only move forward.** The interviewer advances when the candidate covers the phase,
   and a phase auto-advances after 3 answers so a session can't get stuck.
 - **Cost.** Each interviewer reply (including the opening) uses one request from the daily AI

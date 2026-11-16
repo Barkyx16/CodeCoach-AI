@@ -7,6 +7,8 @@ code judge, so it runs whether or not EXECUTION_ENABLED is set.
 
 Each loop (every `interval` seconds):
 - retries due emails;
+- every minute, closes interviews whose time ran out that nobody has read since (Volume 17,
+  prompt 1: `interviews.close_overdue`, exactly as a read would close them);
 - every 10 minutes, deletes rate-limit counters no limiter reads any more;
 - once a day, deletes inactive guest accounts (GUEST_RETENTION_DAYS) and email jobs that
   finished over a week ago.
@@ -26,21 +28,31 @@ from sqlalchemy.orm import Session
 from app.config import Settings
 from app.db import rls
 from app.services import create_intents, lifecycle, outbox, update_receipts
+from app.services.ai.base import CoachProvider
 from app.services.email import EmailSender
 from app.services.rate_limit import purge_expired
 from app.services.retention import prune_inactive_guests, purge_expired_tokens
 
 logger = logging.getLogger("codecoach.jobs")
 
+INTERVIEWS_EVERY_S = 60.0
 COUNTERS_EVERY_S = 600.0
 DAILY_S = 24 * 3600.0
 
 
 def housekeeping(
-    session_factory: Callable[[], Session], settings: Settings, *, daily: bool = True
+    session_factory: Callable[[], Session],
+    settings: Settings,
+    *,
+    daily: bool = True,
+    interviews: bool = True,
+    provider: CoachProvider | None = None,
 ) -> dict[str, int]:
-    """One pass. Each step runs in its own transaction, and one failing doesn't stop the others."""
+    """One pass. Each step runs in its own transaction, and one failing doesn't stop the others.
+    `interviews=False` leaves out closing overdue interviews (the jobs runner does that every minute)."""
     done: dict[str, int] = {}
+    if interviews:
+        done |= close_interviews(session_factory, settings, provider)
 
     def step(name: str, fn: Callable[[Session], int]) -> None:
         try:
@@ -61,6 +73,25 @@ def housekeeping(
     return done
 
 
+def close_interviews(
+    session_factory: Callable[[], Session], settings: Settings, provider: CoachProvider | None = None
+) -> dict[str, int]:
+    """The interviews_expired step: each interview past its deadline closed in its learner's own
+    session (services/interviews.py, `close_overdue`), one failing not stopping the others."""
+    from app.services.ai.service import build_provider
+    from app.services.interviews import close_overdue
+
+    try:
+        return {
+            "interviews_expired": close_overdue(
+                session_factory, settings, provider or build_provider(settings)
+            )
+        }
+    except Exception:  # noqa: BLE001 - housekeeping must never take anything else down
+        logger.exception("housekeeping step failed", extra={"step": "interviews_expired"})
+        return {}
+
+
 def _prune_guests(db: Session, days: int) -> int:
     # Reads each guest's latest activity time across learners (progress events), so it needs the
     # maintenance read. The deletes are of users (not covered by RLS); their rows go by cascade.
@@ -76,6 +107,7 @@ class JobsRunner:
         sender: EmailSender,
         interval: float = 5.0,
         clock: Callable[[], float] = time.monotonic,
+        provider: CoachProvider | None = None,
     ):
         # Worker scope: no learner's rows (emails and counters don't need any); the one step that
         # reads across learners asks for it by name (`rls.maintenance`).
@@ -85,6 +117,8 @@ class JobsRunner:
         self.interval = interval
         self._clock = clock
         self._stop = threading.Event()
+        self.provider = provider  # the app's coach, for scoring an interview whose time ran out
+        self._last_interviews = float("-inf")
         self._last_counters = float("-inf")
         self._last_daily = float("-inf")
         self.thread: threading.Thread | None = None
@@ -97,9 +131,12 @@ class JobsRunner:
         except Exception:  # noqa: BLE001
             logger.exception("email retries failed")
         now = self._clock()
+        if now - self._last_interviews >= INTERVIEWS_EVERY_S:
+            done |= close_interviews(self.session_factory, self.settings, self.provider)
+            self._last_interviews = now
         if now - self._last_counters >= COUNTERS_EVERY_S:
             daily = now - self._last_daily >= DAILY_S
-            done |= housekeeping(self.session_factory, self.settings, daily=daily)
+            done |= housekeeping(self.session_factory, self.settings, daily=daily, interviews=False)
             self._last_counters = now
             if daily:
                 self._last_daily = now

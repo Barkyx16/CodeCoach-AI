@@ -34,8 +34,10 @@ deadline and one-active-interview rules; they have no phases and make no AI call
 
 from __future__ import annotations
 
+import difflib
 import hashlib
 import hmac
+import logging
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -48,6 +50,7 @@ from app import tracing
 from app.careers import CATALOG
 from app.careers.formats import FORMATS, KIND_LABEL, MAX_FOLLOWUPS, PANEL_ORDER, availability, panel_roles
 from app.config import Settings
+from app.db import rls
 from app.errors import AppError, ConflictError, NotFoundError, RateLimitedError
 from app.models import (
     AIAction,
@@ -67,6 +70,7 @@ from app.schemas.common import Page
 from app.schemas.conditions import AttemptConditions
 from app.schemas.interview import (
     PHASE_GUIDE,
+    CheckChange,
     ConfirmedCheck,
     Engagement,
     FeedbackCheckOut,
@@ -103,6 +107,8 @@ from app.services.listed_names import names_for, names_note, replace_names
 from app.services.progress import ProgressService
 from app.services.question_rounds import ROUND, QuestionRounds
 
+logger = logging.getLogger("codecoach.interviews")
+
 MAX_CANDIDATE_TURNS = 30
 # How long before time runs out the page offers to check what the feedback will read (Volume 15,
 # prompt 8; docs/COACH_CONTEXT.md, "What the feedback read"). Checking doesn't stop the clock.
@@ -132,6 +138,34 @@ def _digest(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:32]
 
 
+# What changed after a check, line by line (Volume 17, prompt 1): each line's short digest is kept
+# with the check, never the line; the review shows the lines added from the code the interview
+# already keeps, and counts the ones removed.
+CHECK_LINES = 2000
+SHOWN_LINES = 20
+
+
+def _line_digests(text: str) -> list[str]:
+    return [hashlib.sha256(line.encode("utf-8")).hexdigest()[:12] for line in text.split("\n")[:CHECK_LINES]]
+
+
+def _plural_of(n: int, one: str, many: str) -> str:
+    return f"{n} {one if n == 1 else many}"
+
+
+def change_text(change: dict[str, Any]) -> str:
+    """One changed part, said: "Your code: 3 lines added, 1 line removed"."""
+    if change.get("messages_after") is not None:
+        n = change["messages_after"]
+        return f"{change['label']}: {_plural_of(n, 'message', 'messages')} sent after your check"
+    said = [
+        f"{_plural_of(change[k], 'line', 'lines')} {word}"
+        for k, word in (("added", "added"), ("removed", "removed"))
+        if change.get(k)
+    ]
+    return f"{change['label']}: {', '.join(said) or f'changed after its first {CHECK_LINES:,} lines'}"
+
+
 def confirmed_text(ending: str | None, confirmed: dict[str, Any]) -> str:
     """What the review says about a check confirmed before an unchecked ending."""
     when = "before time ran out" if ending == "time_expired" else "before it was scored"
@@ -141,6 +175,39 @@ def confirmed_text(ending: str | None, confirmed: dict[str, Any]) -> str:
     if confirmed.get("code_unsent"):
         text += " The code you checked was still in your editor, not sent, so it read the code last sent."
     return text
+
+
+def _check_changes(
+    session: PracticeSession, check: dict[str, Any], preview: CoachPreview, changed: list[str]
+) -> list[dict[str, Any]]:
+    """What changed in each changed part since the check (Volume 17, prompt 1): for the
+    conversation, how many messages were sent after it; for any other part, which lines of what
+    was read are new (by number, at most SHOWN_LINES) and how many of the checked ones are gone.
+    Only line digests were kept with the check, so a check from before this says nothing more."""
+    kept = {p["label"]: p for p in check.get("parts") or [] if isinstance(p.get("lines"), list)}
+    out: list[dict[str, Any]] = []
+    for item in preview.items:
+        if item.label not in changed or item.label not in kept:
+            continue
+        if item.key == "conversation" and isinstance(check.get("turns"), int):
+            out.append({"label": item.label, "messages_after": max(len(session.turns) - check["turns"], 0)})
+            continue
+        ops = difflib.SequenceMatcher(
+            a=kept[item.label]["lines"], b=_line_digests(item.text), autojunk=False
+        ).get_opcodes()
+        added = [
+            n + 1 for tag, _i1, _i2, j1, j2 in ops if tag in ("insert", "replace") for n in range(j1, j2)
+        ]
+        removed = sum(i2 - i1 for tag, i1, i2, _j1, _j2 in ops if tag in ("delete", "replace"))
+        out.append(
+            {
+                "label": item.label,
+                "added": len(added),
+                "removed": removed,
+                "added_lines": added[:SHOWN_LINES],
+            }
+        )
+    return out
 
 
 def _plural(n: int, word: str) -> str:
@@ -372,10 +439,20 @@ class InterviewService:
         session.plan = {
             **(session.plan or {}),
             "feedback_check": {
-                "v": 1,
+                "v": 2,
                 "fingerprint": preview.context_fingerprint,
                 "at": at.isoformat(),
-                "parts": [{"label": i.label, "digest": _digest(i.text)} for i in parts],
+                # Each part's digest, and each line's (Volume 17, prompt 1): never the text.
+                "parts": [
+                    {
+                        "key": i.key,
+                        "label": i.label,
+                        "digest": _digest(i.text),
+                        "lines": _line_digests(i.text),
+                    }
+                    for i in parts
+                ],
+                "turns": len(session.turns),
                 # The code checked was the code last sent: if not, a time-out reads the code last sent.
                 "code_sent": code == (session.final_code or ""),
             },
@@ -402,6 +479,7 @@ class InterviewService:
             "matched": not changed,
             "changed": changed,
             "code_unsent": "Your code" in changed and not check.get("code_sent", True),
+            "changes": _check_changes(session, check, preview, changed),
         }
 
     def feedback_preview(self, user: User, interview_id: str, body: InterviewFeedbackPreview) -> CoachPreview:
@@ -598,14 +676,17 @@ class InterviewService:
                 details={"status": session.status.value},
             )
 
-    def _expire_if_due(self, user: User, session: PracticeSession) -> None:
+    def _expire_if_due(self, user: User, session: PracticeSession) -> bool:
+        """Close it if its time has run out; True if this call closed it (a read, or housekeeping)."""
         if (
             session.status == InterviewStatus.IN_PROGRESS
             and session.deadline_at is not None
             and _now() >= session.deadline_at
         ):
-            self._close(user, session, InterviewStatus.EXPIRED, "time_expired")
+            closed = self._close(user, session, InterviewStatus.EXPIRED, "time_expired")
             self.db.commit()
+            return closed
+        return False
 
     @staticmethod
     def _remember_read(session: PracticeSession, record: dict[str, Any]) -> None:
@@ -641,7 +722,16 @@ class InterviewService:
             items=[FeedbackReadItem(**i) for i in rec.get("items") or []],
             fingerprint=rec.get("fingerprint"),
             read_by=rec.get("read_by"),
-            confirmed=ConfirmedCheck(**confirmed) if confirmed is not None else None,
+            confirmed=ConfirmedCheck(
+                **{
+                    **confirmed,
+                    "changes": [
+                        CheckChange(**c, text=change_text(c)) for c in confirmed.get("changes") or []
+                    ],
+                }
+            )
+            if confirmed is not None
+            else None,
             text=text,
         )
 
@@ -666,9 +756,10 @@ class InterviewService:
         status: InterviewStatus,
         reason: str,
         checked: bool = False,
-    ) -> None:
+    ) -> bool:
+        """End it once; False if another request (or housekeeping) ended it first."""
         if not self._claim_close(session, status):
-            return
+            return False
         if session.mode == PracticeMode.QUESTIONS:
             # Each answer was graded as it came in; there's no AI evaluation to run. What the round's
             # summary read is recorded all the same (labels and sizes; the answers stay where they are).
@@ -688,7 +779,7 @@ class InterviewService:
             )
             session.status = status
             session.ended_at = _now()
-            return
+            return True
         ctx, preview = self._feedback_material(user, session, session.final_code or "", reason, False)
         read_by = preview.recipient
         try:
@@ -727,6 +818,7 @@ class InterviewService:
                     event_type=ProgressEventType.INTERVIEW_COMPLETED,
                 )
             )
+        return True
 
     # --- what the interviewer reads (docs/COACH_CONTEXT.md, "The coding interviewer") ------------
 
@@ -1143,3 +1235,51 @@ def format_options(track: str, difficulty: str) -> list[FormatOption]:
             )
         )
     return out
+
+
+# --- closing interviews whose time ran out, without waiting for a read (Volume 17, prompt 1) ---------
+
+OVERDUE_PER_PASS = 50
+
+
+def close_overdue(
+    session_factory: Callable[[], Session],
+    settings: Settings,
+    provider: CoachProvider,
+    *,
+    limit: int = OVERDUE_PER_PASS,
+) -> int:
+    """Housekeeping's interviews_expired step (docs/COACH_CONTEXT.md, "When time runs out"): close
+    each in-progress interview past its deadline exactly as a read would (`_expire_if_due`: the same
+    reason, the same feedback-read record, a coding interview scored with the learner's own coaching
+    budget and the built-in interviewer when none is left), oldest deadline first, at most `limit` a
+    pass; the next pass takes the rest. Finding them reads across learners (ids and owners only, by
+    the maintenance read); each is then closed in its own session bound to its learner, so one
+    failing doesn't stop the others. A read racing this closes it once: the claim decides. Returns
+    how many this pass closed."""
+    with session_factory() as db, rls.maintenance(db, "interviews past their deadline: ids and owners"):
+        due = db.execute(
+            select(PracticeSession.id, PracticeSession.user_id)
+            .where(
+                PracticeSession.status == InterviewStatus.IN_PROGRESS,
+                PracticeSession.mode.in_(INTERVIEW_MODES),
+                PracticeSession.deadline_at.is_not(None),
+                PracticeSession.deadline_at <= _now(),
+            )
+            .order_by(PracticeSession.deadline_at, PracticeSession.id)
+            .limit(limit)
+        ).all()
+    closed = 0
+    for interview_id, user_id in due:
+        try:
+            with session_factory() as db:
+                rls.bind_user(db, user_id)  # the one learner whose interview this is
+                user = db.get(User, user_id)
+                session = db.get(PracticeSession, interview_id)
+                if user is None or session is None:
+                    continue
+                if InterviewService(db, settings, provider)._expire_if_due(user, session):
+                    closed += 1
+        except Exception:  # noqa: BLE001 - one interview failing must not stop the others
+            logger.exception("closing an overdue interview failed", extra={"interview_id": interview_id})
+    return closed

@@ -42,3 +42,18 @@
 .queue-row__actions { flex-wrap: wrap; gap: 6px; }
 @media (max-width: 960px) { .review__layout, .comparison__grid { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { .timeline-item { grid-template-columns: 24px minmax(0, 1fr); } .timeline-item__status { grid-column: 2; } }
+
+/* What changed after a check (Volume 17, prompt 1): the added lines, scrolled within their box at
+   phone width rather than widening the page. */
+.feedback-read__lines {
+  margin: 0.35rem 0 0;
+  padding: 0.5rem 0.65rem;
+  max-width: 100%;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  background: var(--color-surface-sunken);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  white-space: pre;
+}

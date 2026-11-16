@@ -6294,6 +6294,33 @@ export interface components {
              */
             kind: "deterministic";
         };
+        /**
+         * CheckChange
+         * @description What changed in one part after the check (Volume 17, prompt 1): for the conversation, how many
+         *     messages were sent after it; for another part, how many of its lines were added and removed, and
+         *     the numbers of the added lines in what was read (at most 20; the lines themselves are in your code
+         *     above, never copied here).
+         */
+        CheckChange: {
+            /** Label */
+            label: string;
+            /**
+             * Text
+             * @description Said in plain words, e.g. "Your code: 3 lines added, 1 line removed"
+             */
+            text: string;
+            /** Added */
+            added?: number | null;
+            /** Removed */
+            removed?: number | null;
+            /**
+             * Added Lines
+             * @description 1-based, in the part as read
+             */
+            added_lines?: number[];
+            /** Messages After */
+            messages_after?: number | null;
+        };
         /** CheckIn */
         CheckIn: {
             /** Version */
@@ -7061,6 +7088,11 @@ export interface components {
              * @default false
              */
             code_unsent: boolean;
+            /**
+             * Changes
+             * @description What changed in each changed part (empty for a check kept before this)
+             */
+            changes?: components["schemas"]["CheckChange"][];
         };
         /** ContentChange */
         ContentChange: {

@@ -63,7 +63,7 @@ engine (`app/services/interviews.py`, `question_rounds.py`) and the shared start
 | A lost response doesn't double | `client_request_id` on `POST /messages`, kept in the turn's meta | the same message twice: one reply, no second AI call |
 | One evaluation per interview | `_claim_close`: `UPDATE … WHERE status = 'in_progress'`. The loser refreshes and returns the winner's result | two Finishes at once: both 200, the same evaluation, **one AI call**, one completion event |
 | Resume context | `InterviewSummary` gains `progress_done`, `progress_total`, `seconds_remaining`, `last_activity_at` (in progress only), also carried in the Start 409's `details.interview` | the list and the 409 carry them |
-| Expiry | applied lazily on the next read or write (as before), now through the same compare-and-set | an expired round: 409 `interview_closed` on answer, results on read, no Resume card, a new Start works |
+| Expiry | applied on the next read or write (as before), now through the same compare-and-set; and by housekeeping within about a minute if nobody reads it (Volume 17, prompt 1) | an expired round: 409 `interview_closed` on answer, results on read, no Resume card, a new Start works |
 | Ownership | `_load` by owner (as before) | another account: 404 on read, answer and abandon; its own Start is unaffected |
 
 Negative controls were run locally:

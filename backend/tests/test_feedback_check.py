@@ -142,7 +142,8 @@ def test_confirming_sends_nothing_scores_nothing_and_keeps_the_clock(client):
     # Never the text: only labels, digests, the fingerprint and the time.
     stored = json.dumps(plan["feedback_check"])
     assert "twoSum" not in stored and "hash map" not in stored
-    assert set(plan["feedback_check"]) == {"v", "fingerprint", "at", "parts", "code_sent"}
+    # (Since Volume 17, prompt 1, also how many turns there were, and each part's line digests.)
+    assert set(plan["feedback_check"]) == {"v", "fingerprint", "at", "parts", "code_sent", "turns"}
 
 
 def test_another_account_cant_confirm_or_read_a_check(client):

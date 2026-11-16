@@ -94,4 +94,42 @@ describe("A check before time ran out", () => {
       confirmed: { ...base.confirmed!, matched: false, changed: ["The conversation so far"] } }} />);
     expect(screen.getByRole("region", { name: "What the feedback read" })).toHaveTextContent("it changed after: The conversation so far.");
   });
+
+  it("says what changed in each part after the check, with the added lines read from the kept code (Volume 17, prompt 1)", () => {
+    const code = ["class Solution {", "  int[] twoSum(int[] nums, int target) {", "    var seen = new java.util.HashMap<Integer, Integer>();", "    return null;", "  }", "}"].join("\n");
+    const read: FeedbackRead = {
+      recorded: true, ending: "time_expired", checked: false, fingerprint: "v1:read", read_by: null, items: [],
+      text: "You checked an earlier version before time ran out; it changed after: The conversation so far, Your code.",
+      confirmed: {
+        at: "2026-11-16T09:13:00Z", fingerprint: "v1:first", matched: false, changed: ["The conversation so far", "Your code"], code_unsent: false,
+        changes: [
+          { label: "The conversation so far", text: "The conversation so far: 2 messages sent after your check", messages_after: 2, added: null, removed: null, added_lines: [] },
+          { label: "Your code", text: "Your code: 1 line added, 2 lines removed", added: 1, removed: 2, added_lines: [3], messages_after: null },
+        ],
+      },
+    };
+    render(<FeedbackReadSection read={read} code={code} />);
+    const list = screen.getByRole("list", { name: "What changed after your check" });
+    expect(within(list).getAllByRole("listitem").map((li) => li.textContent?.split("\n")[0])).toEqual([
+      "The conversation so far: 2 messages sent after your check.",
+      expect.stringContaining("Your code: 1 line added, 2 lines removed."),
+    ]);
+    const lines = within(list).getByLabelText("Lines added to Your code after your check");
+    expect(lines).toHaveTextContent("3 var seen = new java.util.HashMap<Integer, Integer>();");
+    expect(lines).not.toHaveTextContent("return null");
+  });
+
+  it("a check kept before this says only the labels, and without the code no lines are shown", () => {
+    const read: FeedbackRead = {
+      recorded: true, ending: "time_expired", checked: false, fingerprint: "v1:read", read_by: null, items: [],
+      text: "You checked an earlier version before time ran out; it changed after: Your code.",
+      confirmed: { at: "2026-11-16T09:13:00Z", fingerprint: "v1:first", matched: false, changed: ["Your code"], code_unsent: false, changes: [] },
+    };
+    const { unmount } = render(<FeedbackReadSection read={read} code="int x;" />);
+    expect(screen.queryByRole("list", { name: "What changed after your check" })).not.toBeInTheDocument();
+    unmount();
+    render(<FeedbackReadSection read={{ ...read, confirmed: { ...read.confirmed!, changes: [{ label: "Your code", text: "Your code: 1 line added", added: 1, removed: 0, added_lines: [1], messages_after: null }] } }} />);
+    expect(screen.getByRole("list", { name: "What changed after your check" })).toHaveTextContent("Your code: 1 line added.");
+    expect(screen.queryByLabelText("Lines added to Your code after your check")).not.toBeInTheDocument();
+  });
 });

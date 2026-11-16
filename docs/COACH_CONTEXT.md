@@ -130,7 +130,8 @@ interviews"; never help).
 The interviewer's questions, phases, timing and the 30-message limit are unchanged. Previews share
 the 60-a-minute limit with the others, call nothing, spend nothing and store nothing; only the
 fingerprint travels. A preview of an interview whose time is up says so and doesn't close it (the
-next read does, with its feedback). An interview that runs out of time is scored without a preview:
+next read does, with its feedback, or housekeeping within about a minute: "When time runs out",
+below). An interview that runs out of time is scored without a preview:
 there's no request to check, and it reads exactly what the feedback preview lists, with "How it
 ended: time_expired." The review then says what it read and that it wasn't checked ("What the feedback
 read", below). Without `approved_context` (an older page, or the API used directly) a message or a finish
@@ -188,6 +189,31 @@ theirs leaves CodeCoach. The export carries the check's time, fingerprint and la
 (`interviews[].feedback_check`) and the comparison (`interviews[].feedback_read.confirmed`), never the
 text nor the digests.
 
+**What changed, shown (Volume 17, prompt 1).** A check now also keeps a short digest of each line of
+each part (never a line) and how many turns there were. When the interview is scored, each part that
+changed after the check says how, under the sentence above: **"The conversation so far: 2 messages
+sent after your check"**, or **"Your code: 4 lines added, 3 lines removed"**, with the added lines
+shown by number from the code the interview keeps (the first 20; the review's code view has the
+rest). The lines are matched in order (a line moved counts as removed and added). Only numbers and
+counts are recorded with the feedback (`confirmed.changes`), so the export carries them and no line
+of text. A check kept before this has no line digests: it names the parts, as it did.
+
+## When time runs out (Volume 17, prompt 1)
+
+An interview past its deadline used to close only when someone next read it, so an export, History
+or the dashboard read before that showed it still running. Now housekeeping's **interviews_expired**
+step (`interviews.close_overdue`, run every minute by the jobs thread and by `python -m app.cli
+housekeeping`) closes each in-progress interview past its deadline exactly as a read would: the same
+`_expire_if_due`, the same reason (`time_expired`), the same feedback-read record. A coding interview
+is scored as it would be on read, with the learner's own coaching budget (the built-in interviewer
+when none is left that day); a career round is closed by CodeCoach's own rules, nothing sent.
+
+- **Bounded.** At most 50 a pass, oldest deadline first; the next pass takes the rest.
+- **Once.** A read and the step racing close it once: the existing claim (`_claim_close`) decides.
+- **Across accounts, narrowly.** Finding them reads ids and owners across learners through the
+  maintenance read, with its reason logged; each is then closed in its own session bound to its
+  learner, so row-level security applies to the close, and one failing doesn't stop the others.
+- **Nothing else changes:** how long an interview lasts, its scores, and a kept check.
 ## Checked by tests
 
 `backend/tests/test_coach_context.py` captures what a provider receives (the Claude adapter over a
@@ -243,6 +269,16 @@ server sending a stale request, a message's secret not replaced, changed code st
 meaningful control: leaving the conversation out of the approval, because the phase item counts your
 messages in the phase, so any message sent in between changes the approval anyway.
 
+When time runs out (Volume 17, prompt 1): `backend/tests/test_interview_time_runs_out.py` (one pass
+closes an interview past its time and it reads the same as one closed on read; one not yet due is
+untouched; a read and a pass close it once, scored once; a pass is bounded, oldest deadline first; a
+career round is closed without the coach; an export after a pass shows it ended; housekeeping runs
+the step and the jobs thread every minute; a changed code part says which lines were added, by
+number, and how many removed, and the conversation how many messages came after; only line digests
+are kept with the check, never a line; a check kept before this says what it said), on SQLite and
+PostgreSQL as the app's role, and `feedbackCheck.test.tsx` (+2: each changed part said, the added
+lines read from the kept code; an older check names the parts only).
+
 A check before time ran out: `backend/tests/test_feedback_check.py` (a check then a time-out is
 recorded as checked, with its time, and the interview's conditions say so; a check, a message, a
 time-out names "The conversation so far"; no check is unchanged; code checked in the editor but never
@@ -257,8 +293,14 @@ refusal from another tab, the review's wording with the time).
 
 - Every coaching operation is previewed: the code review, hints, failure explanations and the coding
   interviewer (its messages and its feedback). An interview that runs out of time is scored without a
-  preview, from the material listed above; a check confirmed before it is compared part by part, and
-  a part's change is named by its label, not shown.
+  preview, from the material listed above; a check confirmed before it is compared part by part,
+  and each changed part says how (lines added and removed, messages sent after), the added code
+  lines shown from the kept code. Lines are matched in order, so a moved line counts as removed and
+  added; only the first 20 added lines are listed. A check kept before Volume 17 names the parts
+  only.
+- An interview past its time is closed by housekeeping within about a minute (the jobs thread's
+  pace), or sooner by a read; a deployment that runs no jobs thread (`BACKGROUND_JOBS_IN_API` off
+  and no worker) closes it on read only, as before.
 - An explanation's choices apply to the first one asked for: one is kept per submission, so asking
   again with more (or less) shows the kept one.
 - The preview shows what CodeCoach sends. What an outside service does with it is governed by

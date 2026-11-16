@@ -239,7 +239,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             worker = _start_embedded_worker(settings, session_factory, app.state.traces, app.state.metrics)
         jobs = None
         if settings.background_jobs_in_api:
-            jobs = JobsRunner(session_factory, settings, app.state.email_sender).start()
+            jobs = JobsRunner(
+                session_factory, settings, app.state.email_sender, provider=app.state.ai_provider
+            ).start()
         logger.info("startup complete")
         yield
         if jobs is not None:

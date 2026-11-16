@@ -127,6 +127,8 @@ The gaps that were real (each was reproduced or verified before it was fixed):
 - **`app/jobs.JobsRunner`** runs in every API process (`BACKGROUND_JOBS_IN_API`) and in
   `python -m app.worker`, which now runs jobs-only when the judge is off. It:
   - retries due emails;
+  - every minute, closes interviews whose time ran out that nobody has read since (Volume 17,
+    prompt 1; docs/COACH_CONTEXT.md, "When time runs out"), each in its learner's own session;
   - purges expired rate-limit counters every 10 minutes;
   - once a day, deletes inactive guests and email jobs finished over a week ago.
 

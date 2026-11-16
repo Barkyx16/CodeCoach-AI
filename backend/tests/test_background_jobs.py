@@ -212,8 +212,10 @@ def test_the_jobs_runner_retries_on_its_own_and_its_housekeeping_is_paced(mail_c
     assert (
         first["emails_accepted"] == 1 and "rate_limit_counters_purged" in first and "guests_deleted" in first
     )
-    now[0] += 60  # a minute later: emails only; housekeeping waits its turn
+    now[0] += 30  # half a minute later: emails only; housekeeping waits its turn
     assert runner.run_once() == {}
+    now[0] += 30  # a minute: overdue interviews are looked for (none here); the rest waits its turn
+    assert runner.run_once() == {"interviews_expired": 0}
     now[0] += 600
     assert "rate_limit_counters_purged" in runner.run_once() and "guests_deleted" not in runner.run_once()
 

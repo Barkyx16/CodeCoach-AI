@@ -116,7 +116,7 @@ function Review({ iv, r }: { iv: Interview; r: InterviewReview }) {
         </div>
       )}
 
-      {iv.feedback_read && <FeedbackReadSection read={iv.feedback_read} />}
+      {iv.feedback_read && <FeedbackReadSection read={iv.feedback_read} code={r.final_code} />}
 
       {iv.conditions && (
         <Card className="stack-sm" aria-label="In-app help before this interview">
