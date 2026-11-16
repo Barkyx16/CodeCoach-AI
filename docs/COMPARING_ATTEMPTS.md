@@ -161,9 +161,20 @@ another rubric; a checklist's ticks against other points don't. So:
   each attempt and each row: `previous`, `result`, `comparison`) and the export
   (`drill_attempts[].comparison`, `whiteboard.attempts[].comparison`, `work_samples.attempts[].comparison`,
   by id). A drill's point-by-point changes ("Now there: …") are shown only when the points compare.
-- **History**: the History feed doesn't list drills, whiteboard designs or work samples (it never
-  has; its five sources are in docs/API.md, `GET /me/activity`), so there's no History row to carry the outcome. Each
-  format's own attempts list carries it in one line instead. No chart or replay reads these attempts.
+- **History** (Volume 16, prompt 6): each drill attempt, whiteboard design and work sample is a row
+  (types `drill_attempt`, `whiteboard_attempt`, `work_sample_attempt`), with its date, the format,
+  what was practised, its result and the outcome in its own page's words: "3 of 4 points there ·
+  Comparable with the one before", or why it isn't compared, the same words on its page ("Not
+  compared: the first checked attempt at this drill", "Not compared: no result was stored"; each
+  attempt now carries `not_compared` there too, never a blank). Its in-app help comes in History's one
+  request for the rows on screen. It links to the format's page (`/drills/<id>`, `/whiteboard/<prompt>`,
+  `/work-samples/<brief>`), where the attempt is listed. The rows sort and page with every other kind
+  by when they were made; the type filter and the facet counts include them (a coding-only, skill or
+  other-status filter leaves them out: they carry no skills, and an attempt is checked when it's
+  saved). One statement counts all three formats and their rows and comparisons are read once per
+  format that has some, so reading History doesn't grow with the number of attempts (a test reads it
+  with two attempts and with fourteen in the same statements). The rows already there read exactly as
+  before. No chart or replay reads these attempts.
 - **Never**: a result changed, "improved", "better", an average or a trend, within a format or across
   formats.
 - **Rules version**: still v1. No written answer's or submission's classification changed; these are
@@ -171,6 +182,6 @@ another rubric; a checklist's ticks against other points don't. So:
 
 ## Not covered yet
 
-Scenario runs, code-review exercises, sample-answer comparisons and the other formats keep their own
-rules for now (docs/SCENARIOS.md, docs/CODE_REVIEWS.md, docs/COMPARE_ANSWERS.md and others) and adopt
+Scenario runs, code-review exercises and sample-answer comparisons aren't listed in History: they keep
+their own pages and attempts lists. They, and the other formats, keep their own rules for now (docs/SCENARIOS.md, docs/CODE_REVIEWS.md, docs/COMPARE_ANSWERS.md and others) and adopt
 this contract later. Help outside the app isn't known.

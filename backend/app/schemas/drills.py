@@ -53,3 +53,7 @@ class DrillAttemptOut(APIModel):
         description="Beside the previous assessed attempt at the same drill, by the one comparison contract "
         "(docs/COMPARING_ATTEMPTS.md); null when there's none",
     )
+    not_compared: str | None = Field(
+        default=None,
+        description="Why it isn't compared, in the words History uses too (Volume 16, prompt 6); null when it is",
+    )

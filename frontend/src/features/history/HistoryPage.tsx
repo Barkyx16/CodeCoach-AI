@@ -22,6 +22,9 @@ const TYPE_TONE: Record<ActivityItem["type"], string> = {
   coaching: "info",
   written_answer: "success",
   interview: "warning",
+  drill_attempt: "success",
+  whiteboard_attempt: "success",
+  work_sample_attempt: "success",
 };
 const TYPE_SHORT: Record<ActivityItem["type"], string> = {
   problem_opened: "Opened",
@@ -29,6 +32,9 @@ const TYPE_SHORT: Record<ActivityItem["type"], string> = {
   coaching: "Coaching",
   written_answer: "Answer",
   interview: "Interview",
+  drill_attempt: "Drill",
+  whiteboard_attempt: "Whiteboard",
+  work_sample_attempt: "Work sample",
 };
 // Older links used ?tab=…; keep them working.
 const LEGACY_TABS: Record<string, string> = { submissions: "code_submission", ai: "coaching", interviews: "interview" };
@@ -52,10 +58,20 @@ export function HistoryPage() {
   const answerIds = items.flatMap((i) => (i.type === "written_answer" && i.target.answer_id ? [i.target.answer_id] : []));
   // Coding interviews: a career interview isn't described as a whole (its answers are), so it's absent.
   const interviewIds = items.flatMap((i) => (i.type === "interview" && i.target.interview_id ? [i.target.interview_id] : []));
+  // Drills, whiteboard designs and work samples (Volume 16, prompt 6): only asked for when on the page.
+  const attemptsOf = (type: ActivityItem["type"]) => items.flatMap((i) => (i.type === type && i.target.attempt_id ? [i.target.attempt_id] : []));
+  const drillIds = attemptsOf("drill_attempt");
+  const whiteboardIds = attemptsOf("whiteboard_attempt");
+  const workSampleIds = attemptsOf("work_sample_attempt");
+  const practiceIds = {
+    ...(drillIds.length ? { drill_attempt_ids: drillIds } : {}),
+    ...(whiteboardIds.length ? { whiteboard_attempt_ids: whiteboardIds } : {}),
+    ...(workSampleIds.length ? { work_sample_attempt_ids: workSampleIds } : {}),
+  };
   const conditions = useQuery({
-    queryKey: ["me", "attempt-conditions", submissionIds, answerIds, interviewIds],
-    queryFn: () => api.attemptConditions({ submission_ids: submissionIds, answer_ids: answerIds, interview_ids: interviewIds }),
-    enabled: submissionIds.length + answerIds.length + interviewIds.length > 0,
+    queryKey: ["me", "attempt-conditions", submissionIds, answerIds, interviewIds, practiceIds],
+    queryFn: () => api.attemptConditions({ submission_ids: submissionIds, answer_ids: answerIds, interview_ids: interviewIds, ...practiceIds }),
+    enabled: submissionIds.length + answerIds.length + interviewIds.length + drillIds.length + whiteboardIds.length + workSampleIds.length > 0,
   });
   // Back from an item: the same scroll position, and focus on the item it came back from.
   useScrollMemory(Boolean(activity.data) && !activity.isPlaceholderData && !activity.isFetching);
@@ -172,7 +188,10 @@ export function HistoryPage() {
 function labelsFor(found: ConditionsOut, item: ActivityItem): string | null {
   const c = item.type === "code_submission" ? found.submissions[item.target.submission_id ?? ""]
     : item.type === "written_answer" ? found.answers[item.target.answer_id ?? ""]
-      : item.type === "interview" ? found.interviews?.[item.target.interview_id ?? ""] : undefined;
+      : item.type === "interview" ? found.interviews?.[item.target.interview_id ?? ""]
+        : item.type === "drill_attempt" ? found.drill_attempts?.[item.target.attempt_id ?? ""]
+          : item.type === "whiteboard_attempt" ? found.whiteboard_attempts?.[item.target.attempt_id ?? ""]
+            : item.type === "work_sample_attempt" ? found.work_sample_attempts?.[item.target.attempt_id ?? ""] : undefined;
   return conditionsSummary(c);
 }
 

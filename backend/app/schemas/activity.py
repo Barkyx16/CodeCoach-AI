@@ -8,7 +8,16 @@ from pydantic import Field
 from app.schemas.careers import AttemptComparison
 from app.schemas.common import APIModel
 
-ActivityType = Literal["problem_opened", "code_submission", "coaching", "written_answer", "interview"]
+ActivityType = Literal[
+    "problem_opened",
+    "code_submission",
+    "coaching",
+    "written_answer",
+    "interview",
+    "drill_attempt",
+    "whiteboard_attempt",
+    "work_sample_attempt",
+]
 ActivityStatus = Literal[
     "opened",  # a page was opened: activity, not an attempt
     "saved_not_judged",  # a code submission saved where the judge isn't available
@@ -37,6 +46,8 @@ class ActivityTarget(APIModel):
     answer_id: str | None = None
     interview_id: str | None = None
     ai_interaction_id: str | None = None
+    # A drill attempt, a whiteboard design or a work sample (Volume 16, prompt 6).
+    attempt_id: str | None = None
 
 
 class ActivityItem(APIModel):

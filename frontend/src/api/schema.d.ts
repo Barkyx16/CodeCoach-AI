@@ -5175,7 +5175,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "problem_opened" | "code_submission" | "coaching" | "written_answer" | "interview";
+            type: "problem_opened" | "code_submission" | "coaching" | "written_answer" | "interview" | "drill_attempt" | "whiteboard_attempt" | "work_sample_attempt";
             /**
              * Occurred At
              * Format: date-time
@@ -5237,6 +5237,8 @@ export interface components {
             interview_id?: string | null;
             /** Ai Interaction Id */
             ai_interaction_id?: string | null;
+            /** Attempt Id */
+            attempt_id?: string | null;
         };
         /** AdminReport */
         AdminReport: {
@@ -7636,6 +7638,11 @@ export interface components {
             conditions?: components["schemas"]["AttemptConditions"] | null;
             /** @description Beside the previous assessed attempt at the same drill, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none */
             compared?: components["schemas"]["PracticeComparison"] | null;
+            /**
+             * Not Compared
+             * @description Why it isn't compared, in the words History uses too (Volume 16, prompt 6); null when it is
+             */
+            not_compared?: string | null;
         };
         /** DrillOut */
         DrillOut: {
@@ -16443,6 +16450,11 @@ export interface components {
             conditions?: components["schemas"]["AttemptConditions"] | null;
             /** @description Beside the previous assessed attempt at the same prompt, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none */
             compared?: components["schemas"]["PracticeComparison"] | null;
+            /**
+             * Not Compared
+             * @description Why it isn't compared, in the words History uses too (Volume 16, prompt 6); null when it is
+             */
+            not_compared?: string | null;
         };
         /** WhiteboardAttemptSummary */
         WhiteboardAttemptSummary: {
@@ -16467,6 +16479,11 @@ export interface components {
             conditions?: components["schemas"]["AttemptConditions"] | null;
             /** @description Beside the previous assessed attempt at the same prompt, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none */
             compared?: components["schemas"]["PracticeComparison"] | null;
+            /**
+             * Not Compared
+             * @description Why it isn't compared, in the words History uses too (Volume 16, prompt 6); null when it is
+             */
+            not_compared?: string | null;
         };
         /** WhiteboardDiagram */
         WhiteboardDiagram: {
@@ -16686,6 +16703,11 @@ export interface components {
             conditions?: components["schemas"]["AttemptConditions"] | null;
             /** @description Beside the previous assessed attempt at the same brief, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none */
             compared?: components["schemas"]["PracticeComparison"] | null;
+            /**
+             * Not Compared
+             * @description Why it isn't compared, in the words History uses too (Volume 16, prompt 6); null when it is
+             */
+            not_compared?: string | null;
         };
         /** WorkSampleAttemptSummary */
         WorkSampleAttemptSummary: {
@@ -16708,6 +16730,11 @@ export interface components {
             conditions?: components["schemas"]["AttemptConditions"] | null;
             /** @description Beside the previous assessed attempt at the same brief, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none */
             compared?: components["schemas"]["PracticeComparison"] | null;
+            /**
+             * Not Compared
+             * @description Why it isn't compared, in the words History uses too (Volume 16, prompt 6); null when it is
+             */
+            not_compared?: string | null;
         };
         /**
          * WorkSampleBrief
@@ -32218,7 +32245,7 @@ export interface operations {
             query?: {
                 /** @description A career slug, or 'coding' */
                 career?: string | null;
-                type?: ("problem_opened" | "code_submission" | "coaching" | "written_answer" | "interview") | null;
+                type?: ("problem_opened" | "code_submission" | "coaching" | "written_answer" | "interview" | "drill_attempt" | "whiteboard_attempt" | "work_sample_attempt") | null;
                 /** @description Inclusive (UTC) */
                 since?: string | null;
                 /** @description Inclusive (UTC) */

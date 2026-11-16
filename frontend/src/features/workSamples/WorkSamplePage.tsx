@@ -245,7 +245,7 @@ function Writer({ brief, initial }: { brief: WorkSampleBrief; initial: WorkSampl
                 <button type="button" className="link-button" onClick={async () => { const full = await api.workSampleAttempt(a.id).catch(() => null); if (full) { setShown(full); focusAfter.current = "ws-feedback"; } }}>
                   {formatDateTime(a.created_at)}
                 </button>
-                <span className="subtle"> · covers {a.covered} of {a.total} points{a.revision_of ? " · a revision" : ""} · version {a.brief_version}{a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}{a.compared ? ` · ${COMPARED_SHORT[a.compared.comparison.outcome]}` : ""}</span>
+                <span className="subtle"> · covers {a.covered} of {a.total} points{a.revision_of ? " · a revision" : ""} · version {a.brief_version}{a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}{a.compared ? ` · ${COMPARED_SHORT[a.compared.comparison.outcome]}` : a.not_compared ? ` · ${a.not_compared}` : ""}</span>
               </li>
             ))}
           </ul>

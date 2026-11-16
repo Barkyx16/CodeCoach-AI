@@ -30,7 +30,7 @@ from app.schemas.work_samples import (
     WorkSampleSummary,
 )
 from app.services import update_receipts
-from app.services.attempt_comparisons import AttemptComparisons
+from app.services.attempt_comparisons import AttemptComparisons, not_compared
 from app.services.conditions import Conditions
 from app.worksamples import BRIEFS, BY_ID, Brief
 from app.worksamples.feedback import evaluate, words
@@ -228,7 +228,8 @@ class WorkSamples:
             revision_of=a.revision_of,
             created_at=a.created_at,
             conditions=found[a.id],
-            compared=self._compared(mine).get(a.id),
+            compared=(by := self._compared(mine)).get(a.id),
+            not_compared=not_compared("work_sample", a, by),
         )
 
     def attempts(self, brief_id: str) -> list[WorkSampleAttemptSummary]:
@@ -250,6 +251,7 @@ class WorkSamples:
                 created_at=a.created_at,
                 conditions=found[a.id],
                 compared=compared.get(a.id),
+                not_compared=not_compared("work_sample", a, compared),
             )
             for a in rows
         ]

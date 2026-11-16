@@ -295,7 +295,7 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
             {attempts.data.map((a) => (
               <li key={a.id}>
                 <button type="button" className="link-button" onClick={async () => setAttempt(await api.whiteboardAttemptById(a.id))}>{formatDateTime(a.created_at)}</button>
-                <span className="subtle"> · {a.addressed} of {a.total} points addressed · prompt v{a.prompt_version}, rubric v{a.rubric_version}{a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}{a.compared ? ` · ${COMPARED_SHORT[a.compared.comparison.outcome]}` : ""}</span>
+                <span className="subtle"> · {a.addressed} of {a.total} points addressed · prompt v{a.prompt_version}, rubric v{a.rubric_version}{a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}{a.compared ? ` · ${COMPARED_SHORT[a.compared.comparison.outcome]}` : a.not_compared ? ` · ${a.not_compared}` : ""}</span>
               </li>
             ))}
           </ul>

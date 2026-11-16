@@ -16,7 +16,7 @@ from app.schemas.careers import PracticeComparison
 from app.schemas.conditions import AttemptConditions
 from app.schemas.drills import DrillAttemptIn, DrillAttemptOut, DrillOut
 from app.services import request_keys
-from app.services.attempt_comparisons import AttemptComparisons
+from app.services.attempt_comparisons import AttemptComparisons, not_compared
 from app.services.conditions import Conditions, help_changed
 
 _CONTROL = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -89,6 +89,7 @@ class Drills:
             feedback=a.feedback,
             compared_with_previous=compared,
             compared=compared_by.get(a.id),
+            not_compared=not_compared("drill", a, compared_by),
             created_at=a.created_at,
         )
 

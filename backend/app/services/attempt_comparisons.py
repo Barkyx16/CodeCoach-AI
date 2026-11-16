@@ -87,6 +87,19 @@ def checklist_text(kind: Checklist, feedback: dict | None) -> str:
     return f"{got[0]} of {got[1]} points {_FOUND[kind]}" if got else "No result stored"
 
 
+_FIRST = {"drill": "drill", "whiteboard": "prompt", "work_sample": "brief"}
+
+
+def not_compared(kind: Checklist, row: Any, compared: dict[str, Any]) -> str | None:
+    """Why an attempt isn't compared with the one before, in the words its page and History both use
+    (Volume 16, prompt 6); None when it is."""
+    if row.id in compared:
+        return None
+    if checklist_result(kind, row.feedback) is None:
+        return "Not compared: no result was stored"
+    return f"Not compared: the first checked attempt at this {_FIRST[kind]}"
+
+
 def _item(kind: Checklist, row: Any) -> str:
     return row.drill_id if kind == "drill" else row.prompt_id if kind == "whiteboard" else row.brief_id
 

@@ -21936,7 +21936,10 @@
                     "code_submission",
                     "coaching",
                     "written_answer",
-                    "interview"
+                    "interview",
+                    "drill_attempt",
+                    "whiteboard_attempt",
+                    "work_sample_attempt"
                   ],
                   "type": "string"
                 },
@@ -26399,7 +26402,10 @@
               "code_submission",
               "coaching",
               "written_answer",
-              "interview"
+              "interview",
+              "drill_attempt",
+              "whiteboard_attempt",
+              "work_sample_attempt"
             ],
             "title": "Type"
           },
@@ -26590,6 +26596,17 @@
               }
             ],
             "title": "Ai Interaction Id"
+          },
+          "attempt_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attempt Id"
           }
         },
         "type": "object",
@@ -32307,6 +32324,18 @@
               }
             ],
             "description": "Beside the previous assessed attempt at the same drill, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none"
+          },
+          "not_compared": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Not Compared",
+            "description": "Why it isn't compared, in the words History uses too (Volume 16, prompt 6); null when it is"
           }
         },
         "type": "object",
@@ -53937,6 +53966,18 @@
               }
             ],
             "description": "Beside the previous assessed attempt at the same prompt, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none"
+          },
+          "not_compared": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Not Compared",
+            "description": "Why it isn't compared, in the words History uses too (Volume 16, prompt 6); null when it is"
           }
         },
         "type": "object",
@@ -54005,6 +54046,18 @@
               }
             ],
             "description": "Beside the previous assessed attempt at the same prompt, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none"
+          },
+          "not_compared": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Not Compared",
+            "description": "Why it isn't compared, in the words History uses too (Volume 16, prompt 6); null when it is"
           }
         },
         "type": "object",
@@ -54510,6 +54563,18 @@
               }
             ],
             "description": "Beside the previous assessed attempt at the same brief, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none"
+          },
+          "not_compared": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Not Compared",
+            "description": "Why it isn't compared, in the words History uses too (Volume 16, prompt 6); null when it is"
           }
         },
         "type": "object",
@@ -54584,6 +54649,18 @@
               }
             ],
             "description": "Beside the previous assessed attempt at the same brief, by the one comparison contract (docs/COMPARING_ATTEMPTS.md); null when there's none"
+          },
+          "not_compared": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Not Compared",
+            "description": "Why it isn't compared, in the words History uses too (Volume 16, prompt 6); null when it is"
           }
         },
         "type": "object",

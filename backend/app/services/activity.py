@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from typing import Any
 
-from sqlalchemy import Select, and_, case, false, func, or_, select
+from sqlalchemy import Select, and_, case, false, func, literal, or_, select, union_all
 from sqlalchemy.orm import Session, selectinload
 
 from app.careers import CATALOG
@@ -38,6 +38,7 @@ from app.careers.skills import career_skills, question_skills, questions_by_skil
 from app.models import (
     AIAction,
     AIInteraction,
+    DrillAttempt,
     InterviewStatus,
     InterviewTurn,
     PracticeAnswer,
@@ -51,6 +52,8 @@ from app.models import (
     SubmissionStatus,
     TurnRole,
     User,
+    WhiteboardAttempt,
+    WorkSampleAttempt,
 )
 from app.schemas.activity import (
     CODING,
@@ -78,7 +81,10 @@ from app.schemas.common import Page
 from app.services.attempt_comparisons import (
     WRITTEN_SCALE,
     AttemptComparisons,
+    Checklist,
+    checklist_text,
     comparison_out,
+    not_compared,
     recorded_rubric,
 )
 
@@ -88,6 +94,9 @@ TYPE_LABELS: dict[str, str] = {
     "coaching": "Coaching",
     "written_answer": "Written answer",
     "interview": "Mock interview",
+    "drill_attempt": "Drill",
+    "whiteboard_attempt": "Whiteboard design",
+    "work_sample_attempt": "Work sample",
 }
 # A code submission's row: how it compares with the previous judged one of the same problem.
 COMPARED_SHORT: dict[str, str] = {
@@ -132,6 +141,18 @@ INTERVIEW_STATUS = {
     InterviewStatus.ABANDONED: "abandoned",
 }
 CODING_TITLE = "Coding problems"
+# Drills, whiteboard designs and work samples in History (Volume 16, prompt 6).
+PRACTICE: dict[str, tuple[Checklist, Any, Any]] = {
+    "drill_attempt": ("drill", DrillAttempt, DrillAttempt.drill_id),
+    "whiteboard_attempt": ("whiteboard", WhiteboardAttempt, WhiteboardAttempt.prompt_id),
+    "work_sample_attempt": ("work_sample", WorkSampleAttempt, WorkSampleAttempt.brief_id),
+}
+HREF = {"drill": "/drills", "whiteboard": "/whiteboard", "work_sample": "/work-samples"}
+GONE = {
+    "drill": "A drill that's no longer offered",
+    "whiteboard": "A whiteboard prompt that's no longer offered",
+    "work_sample": "A work sample brief that's no longer offered",
+}
 
 
 def chart_facts(row) -> AttemptFacts:
@@ -186,7 +207,14 @@ class ActivityService:
         limit = page * page_size
         items: list[ActivityItem] = []
         total = 0
-        for source in (self._opened, self._submissions, self._coaching, self._answers, self._interviews):
+        for source in (
+            self._opened,
+            self._submissions,
+            self._coaching,
+            self._answers,
+            self._interviews,
+            self._practice,
+        ):
             count, rows = source(user, f, limit)
             total += count
             items.extend(rows)
@@ -555,6 +583,135 @@ class ActivityService:
             )
         return count, out
 
+    # --- drills, whiteboard designs and work samples (Volume 16, prompt 6) --------------------
+
+    @staticmethod
+    def _practice_content(kind: str) -> dict[str, tuple[str, tuple[str, ...]]]:
+        """Each item of a format: its title and the careers it's for (a drill names its career on
+        the attempt, so it has none here)."""
+        if kind == "drill":
+            from app.drills import BY_ID as DRILLS
+
+            return {k: (d.title, ()) for k, d in DRILLS.items()}
+        if kind == "whiteboard":
+            from app.whiteboard import BY_ID as PROMPTS
+
+            return {k: (p.title, tuple(p.tracks)) for k, p in PROMPTS.items()}
+        from app.worksamples import BY_ID as BRIEFS
+
+        return {k: (b.title, tuple(b.careers)) for k, b in BRIEFS.items()}
+
+    def _practice_queries(
+        self, user: User, f: ActivityFilters
+    ) -> dict[str, tuple[Checklist, Any, Any, list[Any]]]:
+        """The three formats' attempts matching the filters: type → (kind, model, item column, where)."""
+        if f.skill or (f.type and f.type not in PRACTICE) or (f.status and f.status != "completed"):
+            return {}  # no skills or other statuses: an attempt is checked when it's saved
+        if f.career == CODING:
+            return {}  # coding problems only
+        out: dict[str, tuple[Checklist, Any, Any, list[Any]]] = {}
+        q = (f.q or "").strip().lower()
+        for type_, (kind, model, col) in PRACTICE.items():
+            if f.type and f.type != type_:
+                continue
+            conds: list[Any] = [model.user_id == user.id, *self._date_filter(f, model.created_at)]
+            content = self._practice_content(kind)
+            if q or (f.career and kind != "drill"):
+                ids = {
+                    k
+                    for k, (title, careers) in content.items()
+                    if (not q or q in title.lower())
+                    and (not f.career or kind == "drill" or f.career in careers)
+                }
+                if not ids:
+                    continue
+                conds.append(col.in_(ids))
+            if f.career and kind == "drill":
+                conds.append(DrillAttempt.track == f.career)
+            out[type_] = (kind, model, col, conds)
+        return out
+
+    def _practice(self, user: User, f: ActivityFilters, limit: int) -> tuple[int, list[ActivityItem]]:
+        """Each attempt with its date, format, what was practised, its result and its comparison with
+        the one before, in the words its own page uses. One statement counts all three; rows and
+        comparisons are read only for a format that has some, so long histories stay bounded."""
+        queries = self._practice_queries(user, f)
+        if not queries:
+            return 0, []
+        counted = union_all(
+            *[
+                select(literal(t).label("t"), func.count().label("n")).select_from(m).where(*c)
+                for t, (_k, m, _col, c) in queries.items()
+            ]
+        )
+        counts = {t: int(n) for t, n in self.db.execute(counted).all()}
+        out: list[ActivityItem] = []
+        for type_, (kind, model, col, conds) in queries.items():
+            if not counts.get(type_):
+                continue
+            rows = list(
+                self.db.scalars(select(model).where(*conds).order_by(model.created_at.desc()).limit(limit))
+            )
+            comparisons = AttemptComparisons(self.db, user)
+            compared = comparisons.checklist_compared(
+                kind, comparisons.all_attempts(kind, {getattr(r, col.key) for r in rows})
+            )
+            content = self._practice_content(kind)
+            for r in rows:
+                item = getattr(r, col.key)
+                title, careers = content.get(item, ("", ()))
+                career = r.track if kind == "drill" else (careers[0] if careers else "")
+                outcome = (
+                    COMPARED_SHORT[compared[r.id].comparison.outcome]
+                    if r.id in compared
+                    else not_compared(kind, r, compared)
+                )
+                out.append(
+                    ActivityItem(
+                        id=f"{type_}:{r.id}",
+                        type=type_,
+                        occurred_at=r.created_at,
+                        career=career,
+                        career_title=career_title(career) if career else "",
+                        title=title or GONE[kind],
+                        detail=f"{checklist_text(kind, r.feedback)} · {outcome}",
+                        skills=[],
+                        status="completed",
+                        status_label=STATUS_LABELS["completed"],
+                        score=None,
+                        session_id=None,
+                        target=ActivityTarget(href=f"{HREF[kind]}/{item}", attempt_id=r.id),
+                    )
+                )
+        return sum(counts.values()), out
+
+    def _practice_facets(self, user: User) -> tuple[dict[str, int], Counter[str]]:
+        """The three formats' counts by type and by career, in one statement."""
+        rows = self.db.execute(
+            union_all(
+                select(literal("drill_attempt").label("t"), DrillAttempt.track.label("k"), func.count())
+                .where(DrillAttempt.user_id == user.id)
+                .group_by(DrillAttempt.track),
+                select(literal("whiteboard_attempt"), WhiteboardAttempt.prompt_id, func.count())
+                .where(WhiteboardAttempt.user_id == user.id)
+                .group_by(WhiteboardAttempt.prompt_id),
+                select(literal("work_sample_attempt"), WorkSampleAttempt.brief_id, func.count())
+                .where(WorkSampleAttempt.user_id == user.id)
+                .group_by(WorkSampleAttempt.brief_id),
+            )
+        ).all()
+        types: Counter[str] = Counter({t: 0 for t in PRACTICE})
+        careers: Counter[str] = Counter()
+        content = {t: self._practice_content(kind) for t, (kind, _m, _c) in PRACTICE.items()}
+        for t, key, n in rows:
+            types[t] += int(n)
+            if t == "drill_attempt":
+                careers[key or ""] += int(n)
+            else:
+                tracks = content[t].get(key, ("", ()))[1]
+                careers[tracks[0] if tracks else ""] += int(n)
+        return dict(types), careers
+
     # --- facets -----------------------------------------------------------------------------
 
     def facets(self, user: User, career: str | None) -> ActivityFacets:
@@ -617,12 +774,17 @@ class ActivityService:
             careers[CODING if mode == PracticeMode.INTERVIEW else (session_track or "")] += c
             statuses[INTERVIEW_STATUS[iv_status]] += c
             interviews += c
+        practice, practice_careers = self._practice_facets(user)
+        careers.update(practice_careers)
+        careers.pop("", None)
+        statuses["completed"] += sum(practice.values())
         types = {
             "problem_opened": opened,
             "code_submission": sum(subs.values()),
             "coaching": coaching,
             "written_answer": sum(answers.values()),
             "interview": interviews,
+            **practice,
         }
         skills: list[FacetOption] = []
         if career == CODING:

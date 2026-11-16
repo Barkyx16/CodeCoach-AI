@@ -22,8 +22,12 @@ JOURNEYS = [
     ("search", "GET", f"/api/v1/careers/{TRACK}/questions?q=patient&page_size=20", 4),
     ("career progress", "GET", f"/api/v1/careers/{TRACK}/progress", 4),
     ("career analytics", "GET", f"/api/v1/me/careers/{TRACK}/analytics", 5),
-    ("history", "GET", "/api/v1/me/activity?page=1&page_size=20", 10),
-    ("history facets", "GET", "/api/v1/me/activity/facets", 8),
+    # +1 (Volume 16, prompt 6): drills, whiteboard designs and work samples, counted in one statement
+    # for the three (the same with any history); docs/COMPARING_ATTEMPTS.md. 11 on PostgreSQL today
+    # (9 on SQLite, which has no row-level security settings to send).
+    ("history", "GET", "/api/v1/me/activity?page=1&page_size=20", 11),
+    # +1 (Volume 16, prompt 6): the three formats' counts, in one statement. 9 on PostgreSQL today.
+    ("history facets", "GET", "/api/v1/me/activity/facets", 9),
     # +2 (Volume 13, prompt 1): the plan looks for practice since its version (answers, rounds);
     # docs/PLAN_UPDATES.md. 25 on PostgreSQL today.
     ("plan", "GET", "/api/v1/me/plan", 26),

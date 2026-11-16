@@ -1295,7 +1295,9 @@ interview sessions), so nothing is back-filled or counted twice. All scoped to t
 - `GET /api/v1/me/activity` 🔒 `?career=<slug|coding>&type=&status=&skill=&since=&until=&q=&page=&page_size=`
   returns `Page[ActivityItem]`: `{id ("<type>:<source id>"), type, occurred_at, career,
   career_title, title, detail, skills, status, status_label, score, session_id, target: {href,
-  …ids}}`. `type` is `problem_opened | code_submission | coaching | written_answer | interview`;
+  …ids}}`. `type` is `problem_opened | code_submission | coaching | written_answer | interview |
+  drill_attempt | whiteboard_attempt | work_sample_attempt` (the last three since Volume 16, prompt 6,
+  with `target.attempt_id` and their result and comparison in `detail`);
   `status` is one of `opened, saved_not_judged, awaiting_judge, passed, failed,
   evaluation_unavailable, scored, completed, in_progress, expired, abandoned`. A submission is
   `saved_not_judged` when the deployment has no judge. A skill filter leaves interviews out (they

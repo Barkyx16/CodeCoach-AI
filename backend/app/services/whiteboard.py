@@ -24,7 +24,7 @@ from app.schemas.whiteboard import (
     WhiteboardPromptRequirement,
 )
 from app.services import update_receipts
-from app.services.attempt_comparisons import AttemptComparisons
+from app.services.attempt_comparisons import AttemptComparisons, not_compared
 from app.services.conditions import Conditions
 from app.whiteboard import BY_ID, PROMPTS, RUBRIC_VERSION, Prompt, prompts_for
 from app.whiteboard.diagram import Diagram, digest, evaluate
@@ -196,7 +196,8 @@ class Whiteboard:
         mine = AttemptComparisons(self.db, self.user).all_attempts("whiteboard", {a.prompt_id})
         return WhiteboardAttemptOut(
             conditions=Conditions(self.db, self.user).for_whiteboards([a]).get(a.id),
-            compared=self._compared(mine).get(a.id),
+            compared=(by := self._compared(mine)).get(a.id),
+            not_compared=not_compared("whiteboard", a, by),
             id=a.id,
             prompt_id=a.prompt_id,
             prompt_version=a.prompt_version,
@@ -221,6 +222,7 @@ class Whiteboard:
             WhiteboardAttemptSummary(
                 conditions=found.get(a.id),
                 compared=compared.get(a.id),
+                not_compared=not_compared("whiteboard", a, compared),
                 id=a.id,
                 prompt_version=a.prompt_version,
                 rubric_version=a.rubric_version,

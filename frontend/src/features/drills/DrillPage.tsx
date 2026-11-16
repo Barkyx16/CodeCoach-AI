@@ -154,7 +154,7 @@ export function DrillPage() {
                 {attempts.data!.map((a) => (
                   <li key={a.id}>
                     <button type="button" className="link-button" aria-current={result?.id === a.id ? "true" : undefined} onClick={() => show(a)}>{formatDateTime(a.created_at)}</button>
-                    <span className="subtle"> · {a.source === "voice" ? "spoken" : "typed"} · {pointsThere(a)} of {(a.feedback.observations as unknown[]).length} points{a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}{a.compared ? ` · ${COMPARED_SHORT[a.compared.comparison.outcome]}` : ""}</span>
+                    <span className="subtle"> · {a.source === "voice" ? "spoken" : "typed"} · {pointsThere(a)} of {(a.feedback.observations as unknown[]).length} points{a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}{a.compared ? ` · ${COMPARED_SHORT[a.compared.comparison.outcome]}` : a.not_compared ? ` · ${a.not_compared}` : ""}</span>
                   </li>
                 ))}
               </ol>
