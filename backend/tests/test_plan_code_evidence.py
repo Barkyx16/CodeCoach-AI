@@ -322,6 +322,18 @@ def test_the_plan_says_which_evidence_it_reads(client):
     )
 
 
+def test_a_problem_tried_twice_is_named_once_with_its_attempts_in_order():
+    p = roadmap._Piece
+    tries = [
+        p("submission", "Two Sum", passed=False, verdict="tests failed"),
+        p("submission", "Two Sum", passed=True),
+    ]
+    assert roadmap._skill_sentence("arrays", tries, [], []) == (
+        "Arrays: “Two Sum” didn't pass (tests failed), then passed: a pass counts as solved, the rest as tried; "
+        "on its own that changes nothing the plan chooses."
+    )
+
+
 def test_the_skill_sentence_counts_many_and_names_few():
     p = roadmap._Piece
     spec = roadmap.Spec("coding", "arrays", "Solve: Two Sum", "", "", 15, {"problem_slug": "two-sum"})

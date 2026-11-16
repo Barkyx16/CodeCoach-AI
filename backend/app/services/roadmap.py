@@ -211,13 +211,19 @@ def _skill_sentence(skill: str, pieces: list[_Piece], came_in: list[Spec], left:
             passed = sum(bool(p.passed) for p in code)
             phrases.append(f"{len(code)} submissions, {passed} of them passed")
         else:
+            # Each problem once, its attempts in order: "“Two Sum” didn't pass (tests failed), then passed".
+            by_title: dict[tuple[str, bool], list[str]] = {}
+            for p in code:
+                by_title.setdefault((p.title, p.exercise), []).append(
+                    "passed" if p.passed else f"didn't pass ({p.verdict})"
+                )
             phrases.append(
                 _and(
                     [
-                        ("the debugging exercise " if p.exercise else "")
-                        + f"“{p.title}” "
-                        + ("passed" if p.passed else f"didn't pass ({p.verdict})")
-                        for p in code
+                        ("the debugging exercise " if exercise else "")
+                        + f"“{title}” "
+                        + ", then ".join(results)
+                        for (title, exercise), results in by_title.items()
                     ]
                 )
             )

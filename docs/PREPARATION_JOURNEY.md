@@ -325,6 +325,65 @@ version the correction made (2, then 3). The whole browser suite on the same tre
 skipped (they need the real judge or are the opt-in controls audit) and one failed because the disk
 filled up (`ENOSPC`); with space freed, that spec passed on its own (8 of 8).
 
+## An engineer on two devices
+
+Volume 16, prompt 10. The two-device journey above proves a nurse's account; the engineer's journey
+proves the real judge on one device. This one does both: code judged for real on a desktop, read on
+a phone signed in to the same account (Chromium emulating a Pixel 7, its own context and sign-in,
+both open to the end), with this volume's kept check (prompt 3) and judged code as plan evidence
+(prompt 7) in it. The record names, for every step, the device that made the change (`made_on`) and
+the ones that read it (`read_on`), with the ids, and the judge's verdicts as it gave them.
+
+- The journey: `frontend/e2e/engineer-devices.ts`, run by `engineer-devices.spec.ts` (the desktop
+  project; it opens the phone context itself).
+- Where it runs: CI's sandbox job, in the step that already runs the engineer's specs twice on fresh
+  accounts with the real judge (`E2E_JUDGE=1`, `--repeat-each=2`); its record is in the step's
+  `[journey-record]` lines and the `engineer-journey-record` artifact. No new job. Without the real
+  judge it skips, saying why; with `E2E_JUDGE=1` but no ready judge it stops at its first step with
+  the judge's state, never recording a verdict nobody judged.
+
+| # | Step | Made on → read on | What it checks |
+|---|---|---|---|
+| 1 | The judge is ready | | `/capabilities`: code execution on, the judge "ready", the built-in coach |
+| 2 | The plan to start from | desktop | Version 1, nothing new; the page says the plan reads the judge's verdicts on submitted code (not runs) |
+| 3 | A hint, then a baseline judged for real | desktop | A level 1 hint from its preview; Two Sum's baseline judged in the sandbox (failed), recorded as judged |
+| 4 | A resubmission judged for real, compared by the contract | desktop | Passed in the sandbox; compared with the baseline by the one contract, the sentence kept; never "improved" |
+| 5 | Both read on the phone, the comparison word for word | desktop → phone | By id, the phone's own sign-in reads both verdicts as judged; the phone's comparison is the desktop's, word for word |
+| 6 | The plan offers the judged code, accepted on the phone | phone | "2 submissions (1 not passed) since this plan.", by skill ("Arrays: “Two Sum” didn't pass (tests failed), then passed: …"), the rule; "Update my plan" makes version 2, which records both submissions it read, by id |
+| 7 | The update seen on the desktop after a reload | phone → desktop | Version 2, "Code this update read as new evidence" linking both by id, nothing left to update |
+| 8 | A coding interview checked on the phone, left to time out | phone | Started on the phone, code (with the phone's canary) sent with a message; with 75 seconds left "Check what the feedback will read" and "I've checked this", kept at its time; the clock runs out on the server, the page open |
+| 9 | Recorded as checked, with the time, on both devices | phone → phone, desktop | "You checked this before time ran out." with the check's time, on the phone and the desktop (and by the API) |
+| 10 | Nothing typed reached the API's log | | Neither the desktop's code canary nor the phone's is in the API's log |
+
+Every phone step checks the page doesn't scroll sideways at the phone's width.
+
+**What isn't checked from the page, and what is instead.** Ids aren't on the page, so they're read
+by the API (step 5 with the phone's own sign-in). The shortest interview is 10 minutes, too long to
+wait out twice in CI: once the code is sent, the interview's deadline is moved to 75 seconds away in
+the browser suite's own database (`bringDeadlineNear`, the one direct write), then the clock runs out
+for real, on the server, while the phone has the page open. Nothing else is written around the app.
+
+**Negative controls, each caught by this journey with the real judge here:** the confirmed check not
+kept when time runs out (step 9 fails on the review's words) and judged code not offered as plan
+evidence (step 6 finds no offer).
+
+**Found on the way.** The plan's sentence named a problem tried twice twice ("“Two Sum” didn't pass
+(tests failed) and “Two Sum” passed"); it now names each problem once with its attempts in order
+("“Two Sum” didn't pass (tests failed), then passed").
+
+### Its record
+
+**Before CI** (the development check, not the record): this machine, on 16 November 2026, with the
+real judge in gVisor, through the e2e launcher: 10 of 10 steps, every step's device named (2 to 4
+made on the desktop, 5 read on the phone, 6 and 8 made on the phone, 7 and 9 read back on the
+desktop and both). The judge's verdicts as it gave them: the baseline FAILED, 2 of 7 tests (hidden 0
+of 4), 4 ms in the method, 4.1 s from request to verdict; the resubmission PASSED, 7 of 7 (hidden 4
+of 4), 3 ms, 4.1 s. The contract's outcome: partly comparable ("the in-app help differed: before the
+earlier one, hint shown; before the later one, none recorded. The counts are from the same tests, so
+both are shown."). Version 2 read both submissions; the check was kept and the review said "You
+checked this before time ran out." with its time on both devices. The phone was 412 × 839; the run
+took 1.8 minutes. CI's record follows from the first sandbox run with it.
+
 ## Limits
 
 - The nurse's path: one career, a registered nurse. The coach-context step is absent for it (above);
