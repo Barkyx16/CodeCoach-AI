@@ -443,6 +443,14 @@ class CoachService:
                 details={"preview": preview.model_dump(mode="json")},
             )
         self.check_budget(user)
+        # Holding the turn now, look again: a copy of this keyed request may have been answered while
+        # this one waited for it, so the provider is asked once per key (Volume 18, prompt 2).
+        if (
+            done := self._replayed(user, req.client_request_id, AIAction.HINT, problem, req.level, print_)
+        ) is not None:
+            return self._hint_response(
+                problem, req.level, HintContent.model_validate(done.response), done.provider
+            )
         result = self.call_with_fallback(lambda p: p.hint(ctx))
         self.record_interaction(
             user,
@@ -707,6 +715,16 @@ class CoachService:
                 details={"preview": preview.model_dump(mode="json")},
             )
         self.check_budget(user)
+        # Holding the turn, look again (as for hints): asked once per key (Volume 18, prompt 2).
+        if (
+            done := self._replayed(user, req.client_request_id, AIAction.REVIEW, problem, None, print_)
+        ) is not None:
+            return ReviewResponse(
+                review=CodeReview.model_validate(done.response),
+                provider=done.provider,
+                judge_status=judge_status,
+                expected_complexity=Complexity(**expected) if expected else None,
+            )
         result = self.call_with_fallback(lambda p: p.review(ctx))
         self.record_interaction(
             user,

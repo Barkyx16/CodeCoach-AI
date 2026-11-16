@@ -102,6 +102,18 @@ candidate asked for during it: level 1 (nudge)." (shown in the feedback's previe
 sent). A hint asked for after "I've checked this" doesn't count as a change to the check, since how it
 ends is compared apart.
 
+**One request per interview and level** (Volume 18, prompt 2). An interview's hint at a level has one
+request key, made from the interview and the level (`interview-hint_<id>_<level>`), whatever key the
+page sent. And the coach, once it holds the account's AI turn (the PostgreSQL advisory lock that keeps
+one coaching request per account at a time), looks again for the request's key before asking the
+provider: a copy answered while it waited is that answer. So two tabs asking for the same new level
+are one request. The second gets the first's hint, or, while the first is still being answered, is
+told to wait ("Your previous coaching request is still being answered.") and then gets it, and the
+provider is asked once. The same look after the wait applies to every keyed hint and code review. If
+code was sent between the two tabs' checks, the second still gets the hint the interview has for that
+level, not a refusal. The interview records it once. On SQLite, which has no AI turn to hold (local
+runs only), two requests at the very same moment can both reach the provider; one is kept.
+
 During a coding interview, **What the interviewer reads** (under the answer box) shows what your next
 message would send, and **What the feedback reads** what Finish would send, in the same panel as the
 other operations, titled **What the interviewer reads**. It stays out of the way: Send sends straight

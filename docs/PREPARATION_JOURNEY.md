@@ -461,8 +461,24 @@ Both runs: comparable ("the same problem and tests, judged the same way, with th
 help"), the requirement's words the page's, the exercise's conditions naming the lesson read, no
 sideways scroll at 412 or 360 px on any page, and the canary not in the API's log.
 
-**In CI**: pending, the sandbox job of the run on the commit that adds the journey. The next commit
-records that run here.
+**In CI**: run 357 (`ec67388`; the pull request's merge commit `6922f3c`, its runtime inputs
+unchanged from the commit, as the launcher said), the sandbox job's step that runs the engineer's
+specs twice on fresh accounts with the real judge (the `engineer-journey-record` artifact and the
+job's `[journey-record]` lines): **9 of 9 steps, both times**; the step's 14 tests passed in 7.2
+minutes. The judge's verdicts as it gave them, the time inside the method, and from request to
+verdict:
+
+| Run | Failing | Passing | Exercise |
+|---|---|---|---|
+| First | `5af4d493…` FAILED, 6 of 8 (hidden 4 of 5), 1 ms, 2.9 s | `20cfc660…` PASSED, 8 of 8 (hidden 5 of 5), 1 ms, 2.8 s | `9a5471e7…` PASSED, 10 of 10 (hidden 6 of 6), 0 ms, 2.8 s |
+| Second | `4be330e6…` FAILED, 6 of 8 (hidden 4 of 5), 0 ms, 2.8 s | `ce0ea698…` PASSED, 8 of 8 (hidden 5 of 5), 1 ms, 2.8 s | `dbf6a404…` PASSED, 10 of 10 (hidden 6 of 6), 0 ms, 2.9 s |
+
+Both runs, on a 412 × 839 phone: the failed test named (`s = "A man, a plan, a canal: Panama"`,
+expected true, got false); the requirement said "Passed 8 of 8 tests passed (hidden 5 of 5)" and
+"Failed 6 of 8 tests passed (hidden 4 of 5)", and the submission's page the same, word for word; the
+exercise's conditions "In-app help before this attempt: Hint shown" with "Lesson “Fixing code from a
+failing test” read"; no sideways scroll at 412 or 360 px on any of the eight pages; the canary not
+in the API's log.
 
 ## Limits
 

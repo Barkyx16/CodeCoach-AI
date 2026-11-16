@@ -66,7 +66,7 @@ from app.models import (
     TurnRole,
     User,
 )
-from app.schemas.ai import CoachPreview, ContextItem, HintContent, HintRequest
+from app.schemas.ai import CoachPreview, ContextItem, HintContent, HintRequest, HintResponse
 from app.schemas.common import Page
 from app.schemas.conditions import AttemptConditions
 from app.schemas.interview import (
@@ -222,6 +222,12 @@ def hints_during(session: PracticeSession) -> tuple[str, ...]:
         for h in (session.plan or {}).get("hints") or []
         if isinstance(h, dict) and h.get("level")
     )
+
+
+def interview_hint_key(interview_id: str, level: int) -> str:
+    """The request key of an interview's hint at a level (Volume 18, prompt 2): one per interview and
+    level, so every tab's request for it is the same request to the coach."""
+    return f"interview-hint_{interview_id}_{level}"
 
 
 def hint_record(h: dict[str, Any]) -> InterviewHintRecord:
@@ -508,7 +514,11 @@ class InterviewService:
         ladder, budget and fallback), with the code last sent, and recorded with the interview: its
         level, when it was shown and after how many messages. A level already asked for in this
         interview gives that hint again, with no second request. Refused once the interview is over
-        or its time is up."""
+        or its time is up.
+
+        Its request key is the interview's and the level's (Volume 18, prompt 2), whatever key the
+        page sent: two tabs asking for the same new level at once are one request to the coach, which
+        answers it once (the second gets the first's hint, or waits its turn and then gets it)."""
         session = self._load(user, interview_id)
         self._require_kind(session, PracticeMode.INTERVIEW)
         self._require_open_for_preview(session)
@@ -523,29 +533,34 @@ class InterviewService:
                     problem, body.level, HintContent.model_validate(row.response), row.provider
                 )
                 return InterviewHintOut(hint=shown, record=hint_record(again), repeated=True)
-        shown = self.coach.hint(
-            user,
-            HintRequest(
-                problem_slug=problem.slug,
-                source_code=session.final_code or "",
-                level=body.level,
-                approved_context=body.approved_context,
-                client_request_id=body.client_request_id,
-            ),
-        )
-        row = self.db.scalar(
-            select(AIInteraction)
-            .where(
-                AIInteraction.user_id == user.id,
-                AIInteraction.problem_id == problem.id,
-                AIInteraction.action == AIAction.HINT,
-                AIInteraction.hint_level == body.level,
-                AIInteraction.response.is_not(None),
+        key = interview_hint_key(session.id, body.level)
+        answered: HintResponse | None
+        try:
+            answered = self.coach.hint(
+                user,
+                HintRequest(
+                    problem_slug=problem.slug,
+                    source_code=session.final_code or "",
+                    level=body.level,
+                    approved_context=body.approved_context,
+                    client_request_id=key,
+                ),
             )
-            .order_by(AIInteraction.created_at.desc())
-            .limit(1)
+        except ConflictError as e:
+            if e.code != "idempotency_key_reused":
+                raise
+            # The other tab's request for this level was answered from other code or another check
+            # (code sent in between): that's the hint this interview has for the level.
+            answered = None
+        row = self.db.scalar(
+            select(AIInteraction).where(
+                AIInteraction.user_id == user.id, AIInteraction.client_request_id == key
+            )
         )
-        assert row is not None  # the coach just recorded it
+        assert row is not None and row.response is not None  # the coach just recorded it, or had
+        shown = answered or self.coach._hint_response(
+            problem, body.level, HintContent.model_validate(row.response), row.provider
+        )
         self.db.refresh(session)
         kept = [h for h in (session.plan or {}).get("hints") or [] if isinstance(h, dict)]
         shown_at = row.created_at if row.created_at.tzinfo else row.created_at.replace(tzinfo=UTC)
