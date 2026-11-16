@@ -32,6 +32,7 @@ from app.models import (
     Bookmark,
     CollectionItem,
     DrillAttempt,
+    LifecycleReceipt,
     PracticeAnswer,
     PracticeCollection,
     Problem,
@@ -68,7 +69,7 @@ from app.schemas.explore import (
     TransferResult,
 )
 from app.schemas.notes import NoteFreshness
-from app.services import search
+from app.services import request_keys, search
 from app.services.note_freshness import Holder, SourceFreshness, SourceRef, forget, problem_versions
 
 MAX_COLLECTIONS = 50
@@ -153,6 +154,10 @@ def _track(slug: str) -> str:
     if slug not in CATALOG:
         raise NotFoundError(f"Career '{slug}' not found")
     return slug
+
+
+# The receipt a keyed copy or move keeps of its reply (Volume 18, prompt 6), in lifecycle_receipts.
+TRANSFER_RECEIPT = "collection_transfer"
 
 
 class Explorer:
@@ -940,11 +945,52 @@ class Explorer:
         """See _transfer_once. Another tab sending the same items at the same moment can add one first
         (uq_collection_item): this request then changes nothing, and is worked out once more against
         what's now there, so each of those items reads "already_there" and nothing is doubled."""
+        if (done := self._transfer_replay(user, cid, body)) is not None:
+            return done
         try:
             return self._transfer_once(user, cid, body)
         except IntegrityError:
             self.db.rollback()
+            # Two copies of one keyed request at once: the other's receipt is its reply.
+            if (done := self._transfer_replay(user, cid, body)) is not None:
+                return done
             return self._transfer_once(user, cid, body)
+
+    @staticmethod
+    def _transfer_print(cid: str, body: CollectionTransferIn) -> str:
+        items = [[i.item_type, i.track if i.item_type == "question" else "", i.ref_id] for i in body.items]
+        return request_keys.fingerprint(
+            "collection.transfer", {"from": cid, "to": body.to, "move": body.move, "items": items}
+        )
+
+    def _transfer_replay(
+        self, user: User, cid: str, body: CollectionTransferIn
+    ) -> CollectionTransferOut | None:
+        """A keyed copy or move sent again after a lost reply (Volume 18, prompt 6): its first reply's
+        outcomes, exactly ("Moved", not "Already there"), with both collections as they are now. The
+        same key for another request is refused; another account's key finds nothing."""
+        key = body.client_request_id
+        if not key:
+            return None
+        self._collection(user, cid)  # yours, or 404, before anything is said about the key
+        row = self.db.scalar(
+            select(LifecycleReceipt).where(
+                LifecycleReceipt.user_id == user.id, LifecycleReceipt.client_request_id == key
+            )
+        )
+        if row is None:
+            return None
+        kept = row.impact or {}
+        if row.action != TRANSFER_RECEIPT or not request_keys.same(
+            kept.get("fingerprint"), self._transfer_print(cid, body)
+        ):
+            raise request_keys.reused("request")
+        return CollectionTransferOut(
+            source=self.get(user, cid),
+            destination=self.get(user, body.to),
+            results=[TransferResult.model_validate(r) for r in kept.get("results") or []],
+            replayed=True,
+        )
 
     def _transfer_once(self, user: User, cid: str, body: CollectionTransferIn) -> CollectionTransferOut:
         """Copy or move chosen items to another of your collections (Volume 17, prompt 6;
@@ -1089,6 +1135,20 @@ class Explorer:
             dst.updated_at = now
         if gone:
             src.updated_at = now
+        if body.client_request_id:
+            # Its reply, kept with what it did (one transaction), for a resend after a lost reply.
+            self.db.add(
+                LifecycleReceipt(
+                    user_id=user.id,
+                    client_request_id=body.client_request_id,
+                    action=TRANSFER_RECEIPT,
+                    target_id=src.id,
+                    impact={
+                        "fingerprint": self._transfer_print(cid, body),
+                        "results": [r.model_dump(mode="json") for r in results],
+                    },
+                )
+            )
         self.db.commit()
         return CollectionTransferOut(
             source=self.get(user, cid), destination=self.get(user, dst.id), results=results

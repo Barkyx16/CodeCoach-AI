@@ -19,6 +19,8 @@ export const store = {
   itemLimit: 200,
   /** Apply the next copy or move, then lose its reply (the client sees a network error). */
   loseTransferReply: false,
+  /** Each keyed copy or move's first results, as the server keeps them (Volume 18, prompt 6). */
+  transferReplies: new Map<string, unknown[]>(),
 };
 
 export function resetExploreStore() {
@@ -28,6 +30,7 @@ export function resetExploreStore() {
   store.seq = 0;
   store.itemLimit = 200;
   store.loseTransferReply = false;
+  store.transferReplies = new Map();
 }
 
 const err = (status: number, code: string, message: string) =>
@@ -221,9 +224,11 @@ export const exploreHandlers = [
   // past the limit, "full"; a queue mark isn't carried.
   http.post(`${API}/api/v1/me/collections/:id/items/transfer`, async ({ params, request }) => {
     const src = find(String(params.id));
-    const body = (await request.json()) as { to: string; move: boolean; items: SavedItemRef[] };
+    const body = (await request.json()) as { to: string; move: boolean; items: SavedItemRef[]; client_request_id?: string };
     const dst = find(body.to);
     if (!src || !dst) return err(404, "not_found", "Collection not found");
+    const kept = body.client_request_id ? store.transferReplies.get(body.client_request_id) : undefined;
+    if (kept) return HttpResponse.json({ source: fresh(src), destination: fresh(dst), results: kept, replayed: true });
     if (src.id === dst.id) return err(409, "same_collection", "Choose another collection to copy or move them to.");
     const keyOf = (r: SavedItemRef) => `${r.item_type}:${r.item_type === "question" ? r.track ?? "" : ""}:${r.ref_id}`;
     const has = (c: Collection, r: SavedItemRef) => c.item_list.some((i) => keyOf(i) === keyOf(r));
@@ -255,7 +260,8 @@ export const exploreHandlers = [
         ? { key, outcome: "already_there", message: `Already in “${dst.name}”.` }
         : { key, outcome: "not_there", message: `Not in “${src.name}” (any more).` });
     });
-    const out = { source: fresh(src), destination: fresh(dst), results };
+    const out = { source: fresh(src), destination: fresh(dst), results, replayed: false };
+    if (body.client_request_id) store.transferReplies.set(body.client_request_id, results);
     if (store.loseTransferReply) { store.loseTransferReply = false; return HttpResponse.error(); }
     return HttpResponse.json(out);
   }),

@@ -177,6 +177,13 @@ class CollectionTransferIn(APIModel):
     move: bool = Field(
         default=False, description="Take them out of this collection once they're in the other"
     )
+    client_request_id: str | None = Field(
+        default=None,
+        min_length=8,
+        max_length=64,
+        description="A key for this request (Volume 18, prompt 6): sent again after a lost reply, it gets the "
+        "first reply's outcomes back exactly, with both collections as they are now",
+    )
 
 
 TransferOutcome = Literal["copied", "moved", "already_there", "not_there", "full", "repeated"]
@@ -192,6 +199,11 @@ class CollectionTransferOut(APIModel):
     source: "CollectionOut"
     destination: "CollectionOut"
     results: list[TransferResult] = Field(description="One per item sent, in the order sent")
+    replayed: bool = Field(
+        default=False,
+        description="This request was sent before with this key: these are its first reply's outcomes, as they "
+        "were then (the collections are as they are now)",
+    )
 
 
 ReviewOutcome = Literal[

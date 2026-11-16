@@ -68,12 +68,19 @@ items selected, then the collection they go to. Within one account; nothing is s
 - **After it**, the page links to both collections with their counts ("Now: “Week 2” has 3 items,
   and “Week 1” has 1 item.").
 - **Sent again**: the request names each item by what it is (type, track, id) and both collections,
-  and that is its key. Sent again after a lost reply, an item the first request already copied or
-  moved is there and reads "Already there", so nothing changes twice; no separate key is stored, so
-  the second reply says "Already there" rather than repeating "Moved", and the page says so ("This was
-  sent again after no reply came: …"). **Send again** resends the same items even if the page has
-  reloaded without them. Two tabs sending the same items at once: the unique `(collection, item)`
-  settles it, and the request that meets it is worked out once more against what's now there.
+  so nothing changes twice whatever happens. And it carries a request key (Volume 18, prompt 6):
+  the first reply's outcomes are kept with what it did, in the same transaction (a
+  `lifecycle_receipts` row, purged after a week like the others), so the same request sent again
+  after a lost reply gets them back exactly ("Moved", not "Already there"), marked `replayed`, with
+  both collections as they are now, and the page says so ("This was sent again after no reply came:
+  these are what the first request did, and nothing was done twice."). The same key for another
+  request (other items, another collection, a copy instead of a move) is refused, `409
+  idempotency_key_reused`; another account's key is its own. The page keeps the key in memory: after
+  a reload, **Send again** resends the same items with a new key, and an item the first request
+  already did reads "Already there", as before. Two tabs sending the same items at once: the unique `(collection, item)`
+  settles it, and the request that meets it is worked out once more against what's now there; two
+  copies of one keyed request meet the receipt's unique key instead, and the second is given the
+  first's reply.
 - **Refused**: either collection another account's or missing, `404` before anything is looked at;
   the same collection on both sides, `409 same_collection`; 1–50 items.
 

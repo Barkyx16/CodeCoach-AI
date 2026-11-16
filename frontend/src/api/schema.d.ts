@@ -6803,6 +6803,11 @@ export interface components {
              * @default false
              */
             move: boolean;
+            /**
+             * Client Request Id
+             * @description A key for this request (Volume 18, prompt 6): sent again after a lost reply, it gets the first reply's outcomes back exactly, with both collections as they are now
+             */
+            client_request_id?: string | null;
         };
         /** CollectionTransferOut */
         CollectionTransferOut: {
@@ -6813,6 +6818,12 @@ export interface components {
              * @description One per item sent, in the order sent
              */
             results: components["schemas"]["TransferResult"][];
+            /**
+             * Replayed
+             * @description This request was sent before with this key: these are its first reply's outcomes, as they were then (the collections are as they are now)
+             * @default false
+             */
+            replayed: boolean;
         };
         /**
          * ComparedAttempt

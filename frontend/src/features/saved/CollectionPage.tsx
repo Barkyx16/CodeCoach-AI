@@ -41,6 +41,9 @@ export function CollectionPage() {
   const maxCollections = useLimit("collections_per_account");
   const copies = useQueryClient();
   const requestKey = useRequestKey();
+  // One key per copy or move (Volume 18, prompt 6): sent again after a lost reply, the server gives back
+  // what the first request did.
+  const transferKey = useRequestKey();
   const [duplicating, setDuplicating] = useState(false);
   const [copyName, setCopyName] = useState("");
   const [copyLost, setCopyLost] = useState(false);
@@ -78,7 +81,7 @@ export function CollectionPage() {
   const [bulkLost, setBulkLost] = useState<{ kind: "remove" | "review"; ids: string[] } | LostTransfer | null>(null);
   // Copy or move the chosen items to another collection (Volume 17, prompt 6).
   const [transferring, setTransferring] = useState<"copy" | "move" | null>(null);
-  const [transferred, setTransferred] = useState<{ to: Collection; move: boolean; resent: boolean } | null>(null);
+  const [transferred, setTransferred] = useState<{ to: Collection; move: boolean; resent: boolean; replayed: boolean } | null>(null);
   const [bulkError, setBulkError] = useState<unknown>(null);
   const outcomesRef = useRef<HTMLHeadingElement>(null);
   const focusOutcomes = useRef(false);
@@ -161,15 +164,17 @@ export function CollectionPage() {
     setBulkError(null);
     setBulkLost(null);
     try {
+      const items = chosen.map((i) => ({ item_type: i.item_type, track: i.track, ref_id: i.ref_id }));
       const out = await api.transferCollectionItems(id, {
-        to: to.id, move: moving, items: chosen.map((i) => ({ item_type: i.item_type, track: i.track, ref_id: i.ref_id })),
+        to: to.id, move: moving, items, client_request_id: transferKey.keyFor({ id, to: to.id, move: moving, items }),
       });
+      transferKey.done();
       qc.setQueryData(["me", "collection", id], out.source);
       qc.setQueryData(["me", "collection", to.id], out.destination);
       void qc.invalidateQueries({ queryKey: ["me", "collections"] });
       void qc.invalidateQueries({ queryKey: ["me", "explore"] });
       setBulkResults({ verb: `${moving ? "moving" : "copying"} to “${out.destination.name}”`, rows: out.results, titles: new Map(chosen.map((i) => [itemKey(i), i.title])) });
-      setTransferred({ to: out.destination, move: moving, resent });
+      setTransferred({ to: out.destination, move: moving, resent, replayed: Boolean(out.replayed) });
       const open = new Set(out.results.filter((r) => !isDone(r)).map((r) => r.key));
       selection.keep(chosen.filter((i) => open.has(itemKey(i))).map((i) => i.id));
       setTransferring(null);
@@ -406,14 +411,16 @@ export function CollectionPage() {
 }
 
 /** After a copy or move: both collections, as they now are. */
-function TransferredLinks({ source, to, move, resent }: { source: Collection; to: Collection; move: boolean; resent: boolean }) {
+function TransferredLinks({ source, to, move, resent, replayed }: { source: Collection; to: Collection; move: boolean; resent: boolean; replayed: boolean }) {
   const count = (c: Collection) => `${c.items} ${c.items === 1 ? "item" : "items"}`;
   return (
     <p className="subtle transfer-links">
       Now: <Link to={`/saved/collections/${to.id}`}>“{to.name}”</Link> has {count(to)}, and{" "}
       <Link to={`/saved/collections/${source.id}`} aria-current="page">“{source.name}”</Link> has {count(source)}
       {move ? "." : " (unchanged)."}
-      {resent && " This was sent again after no reply came: an item the first request already did reads “Already there”."}
+      {resent && (replayed
+        ? " This was sent again after no reply came: these are what the first request did, and nothing was done twice."
+        : " This was sent again after no reply came: an item the first request already did reads “Already there”.")}
     </p>
   );
 }

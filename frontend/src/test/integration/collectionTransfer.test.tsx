@@ -112,14 +112,16 @@ describe("Copying and moving on a collection's page", () => {
     expect(lost).toHaveTextContent("Sending the same ones again is safe");
     await user.click(within(lost).getByRole("button", { name: "Send again" }));
     const outcomes = await screen.findByRole("region", { name: "What happened: moving to “Week 2”" }, { timeout: 3000 });
-    expect(within(outcomes).getByRole("status")).toHaveTextContent("2 already there. Nothing needs attention.");
-    expect(screen.getByText(/This was sent again after no reply came/)).toBeInTheDocument();
+    // The resend carries the first request's key, so the server gives back what it did (Volume 18, prompt 6).
+    expect(within(outcomes).getByRole("status")).toHaveTextContent("2 moved. Nothing needs attention.");
+    expect(screen.getByText(/This was sent again after no reply came/)).toHaveTextContent(
+      "This was sent again after no reply came: these are what the first request did, and nothing was done twice.");
     expect(screen.getByRole("link", { name: "“Week 2”" })).toHaveAttribute("href", "/saved/collections/c-2");
     expect(screen.getByRole("link", { name: "“Week 1”" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByText(/has 3 items, and/)).toHaveTextContent("Now: “Week 2” has 3 items, and “Week 1” has 1 item.");
     await waitFor(() => expect(bodies).toHaveLength(2), { timeout: 3000 });
-    expect(bodies[1]).toEqual(bodies[0]); // the same items, named by what they are
-    expect(bodies[0]).toEqual({ to: "c-2", move: true, items: [
+    expect(bodies[1]).toEqual(bodies[0]); // the same items, named by what they are, and the same request key
+    expect(bodies[0]).toEqual({ to: "c-2", move: true, client_request_id: expect.stringMatching(/^[A-Za-z0-9_-]{8,64}$/), items: [
       { item_type: "question", track: "registered-nurse", ref_id: "q-0" },
       { item_type: "question", track: "registered-nurse", ref_id: "q-2" },
     ] });

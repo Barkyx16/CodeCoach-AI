@@ -30511,6 +30511,20 @@
             "title": "Move",
             "description": "Take them out of this collection once they're in the other",
             "default": false
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "A key for this request (Volume 18, prompt 6): sent again after a lost reply, it gets the first reply's outcomes back exactly, with both collections as they are now"
           }
         },
         "type": "object",
@@ -30536,6 +30550,12 @@
             "type": "array",
             "title": "Results",
             "description": "One per item sent, in the order sent"
+          },
+          "replayed": {
+            "type": "boolean",
+            "title": "Replayed",
+            "description": "This request was sent before with this key: these are its first reply's outcomes, as they were then (the collections are as they are now)",
+            "default": false
           }
         },
         "type": "object",
