@@ -10403,10 +10403,10 @@ export interface components {
         NewEvidence: {
             /**
              * Kind
-             * @description A written answer, an answer revising an earlier one, a finished question round, or a judged coding submission
+             * @description A written answer, an answer revising an earlier one, a finished question round, a judged coding submission, or a Learn lesson's check passed (Volume 17, prompt 3)
              * @enum {string}
              */
-            kind: "answer" | "retry" | "round" | "submission";
+            kind: "answer" | "retry" | "round" | "submission" | "lesson";
             /** Title */
             title: string;
             /**
@@ -11690,6 +11690,12 @@ export interface components {
              */
             not_passed: number;
             /**
+             * Lessons
+             * @description Lesson checks passed since this version (on the lesson's current version)
+             * @default 0
+             */
+            lessons: number;
+            /**
              * Entries
              * @description Them, oldest first (at most 10)
              */
@@ -11751,6 +11757,11 @@ export interface components {
              * @description The judged submissions the update that made this version read as new evidence, oldest first; none when the version wasn't made by 'Update my plan' (or was made before this was recorded)
              */
             read_submissions?: components["schemas"]["ReadSubmission"][] | null;
+            /**
+             * Read Lessons
+             * @description The lesson checks the update that made this version read as new evidence; none when the version wasn't made by 'Update my plan' (or was made before this was recorded)
+             */
+            read_lessons?: components["schemas"]["ReadLesson"][] | null;
             /**
              * Evidence Read
              * @description Which kinds of evidence this career's plan reads, in a sentence
@@ -12352,6 +12363,23 @@ export interface components {
              * @default
              */
             note: string;
+        };
+        /**
+         * ReadLesson
+         * @description A lesson check an update read as new evidence (Volume 17, prompt 3), by unit and version.
+         */
+        ReadLesson: {
+            /** Unit Id */
+            unit_id: string;
+            /** Version */
+            version: number;
+            /**
+             * Title
+             * @description The lesson; none if it's no longer offered
+             */
+            title: string | null;
+            /** Href */
+            href?: string | null;
         };
         /** ReadSubmission */
         ReadSubmission: {

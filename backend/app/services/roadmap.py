@@ -76,6 +76,7 @@ from app.schemas.roadmap import (
     PlanNews,
     PlanOut,
     PlanProgress,
+    ReadLesson,
     ReadSubmission,
     RoundStart,
     SelfRating,
@@ -100,6 +101,7 @@ class _Used:
     answers: set[str]
     sessions: set[str]
     submissions: set[str] = field(default_factory=set)
+    lessons: set[str] = field(default_factory=set)  # Learn units whose check completed an item
 
 
 # Rounds are matched before single answers, so a round claims the answers inside it.
@@ -134,7 +136,9 @@ CODE_RULE = (
 )
 EVIDENCE_READ = (
     "This plan reads your scored answers to {career} questions, your finished question rounds and the "
-    "lesson checks you've passed{code}. Lessons and accepted improvements don't count as new practice yet."
+    "lesson checks you've passed{code}. A lesson only read, or a check not passed, isn't evidence. "
+    "Improvements you accept are kept beside the plan and don't change what it suggests; the practice "
+    "they lead to does."
 )
 EVIDENCE_READ_CODE = (
     ", and the judge's verdicts on code you submit: to problems, and to debugging exercises for the skills "
@@ -179,7 +183,7 @@ def _and(parts: list[str]) -> str:
 class _Piece:
     """One piece of new evidence, for the preview's sentence about its skill."""
 
-    kind: str  # answer | round | submission
+    kind: str  # answer | round | submission | lesson
     title: str
     score: int | None = None
     passed: bool | None = None
@@ -237,6 +241,9 @@ def _skill_sentence(skill: str, pieces: list[_Piece], came_in: list[Spec], left:
     rounds = [p for p in pieces if p.kind == "round"]
     if rounds:
         phrases.append(_and([f"a finished {p.title[0].lower() + p.title[1:]}" for p in rounds]))
+    lessons = [p for p in pieces if p.kind == "lesson"]
+    if lessons:  # a check graded by its rubric (Volume 17, prompt 3); reading alone never counts
+        phrases.append("the check passed on " + _and([f"the lesson “{p.title}”" for p in lessons]))
     what = "; ".join(phrases)
     meaning = ""
     if code:
@@ -266,7 +273,14 @@ def _submissions_text(submissions: int, not_passed: int) -> str:
 
 
 def news_text(
-    answers: int, retries: int, below: int, rounds: int, since: str, submissions: int = 0, not_passed: int = 0
+    answers: int,
+    retries: int,
+    below: int,
+    rounds: int,
+    since: str,
+    submissions: int = 0,
+    not_passed: int = 0,
+    lessons: int = 0,
 ) -> str:
     """One line for what's new: "2 answers since this plan, one below 70." Counts only: it says
     what was done and how it scored (a submission: passed or not, as judged), never that anything
@@ -285,6 +299,8 @@ def news_text(
         parts.append(_plural(rounds, "finished round", "finished rounds"))
     if submissions:
         parts.append(_submissions_text(submissions, not_passed))
+    if lessons:
+        parts.append(_plural(lessons, "lesson check passed", "lesson checks passed"))
     text = ", ".join(parts[:-1]) + (" and " if len(parts) > 1 else "") + parts[-1] + f" since {since}"
     if below and submissions:
         text += (
@@ -347,6 +363,26 @@ class Evidence:
     withheld: list[dict[str, str]] = field(default_factory=list)  # filled while generating
     # Submissions to read as if they didn't exist (the plan without what's new: Roadmap._news).
     left_out_submissions: set[str] = field(default_factory=set)
+
+
+def _read_lessons(track: str, plan: PracticePlan) -> list[ReadLesson] | None:
+    """The lesson checks the update that made this version read, as it recorded them (no statement:
+    titles come from the catalog). One no longer offered is still listed, by its unit."""
+    if plan.read_lessons is None:
+        return None
+    units = {u.id: u for u in units_for(track)}
+    out = []
+    for rec in plan.read_lessons:
+        unit = units.get(rec.get("unit_id", ""))
+        out.append(
+            ReadLesson(
+                unit_id=rec.get("unit_id", ""),
+                version=int(rec.get("version") or 0),
+                title=unit.title if unit else None,
+                href=f"/learn/{unit.id}" if unit else None,
+            )
+        )
+    return out
 
 
 class Roadmap:
@@ -507,7 +543,8 @@ class Roadmap:
             baseline_done=any((s.plan or {}).get("purpose") == "baseline" for s in completed),
             last_mock=max(mocks) if mocks else None,
             last_voice=max(spoken) if spoken else None,
-            learn_passed=Learn(self.db).passed_units(user),
+            # A check passed since the plan, left out to ask what it alone would move (prompt 3).
+            learn_passed=Learn(self.db).passed_units(user) - (leave_out.lessons if leave_out else set()),
             answered=answered,
             disputes=disputes,
             best_answer=best_answer,
@@ -961,6 +998,8 @@ class Roadmap:
                     legacy.append(ev["session_id"])
             if ev.get("submission_id"):
                 used.submissions.add(ev["submission_id"])
+            if ev.get("unit_id"):
+                used.lessons.add(ev["unit_id"])
         if legacy:
             used.answers.update(self._round_answers(legacy))
         return used
@@ -1104,6 +1143,38 @@ class Roadmap:
 
     # --- new evidence ------------------------------------------------------------------------
 
+    def _new_checks(
+        self, user: User, track: str, since: datetime, used: _Used
+    ) -> tuple[list[tuple[LearnEvent, Any]], int]:
+        """Lesson checks passed since this version (Volume 17, prompt 3): each unit of this career
+        passed on its current version, once, that no activity used and that wasn't already passed
+        before the version (it was evidence then). A pass on a version the lesson has since replaced
+        is counted apart, to be said. Reading, starting or a failed check attempt is never here."""
+        units = {u.id: u for u in units_for(track)}
+        rows = self.db.scalars(
+            select(LearnEvent)
+            .where(
+                LearnEvent.user_id == user.id,
+                LearnEvent.kind == "check_passed",
+                LearnEvent.unit_id.in_(list(units)),
+            )
+            .order_by(LearnEvent.created_at, LearnEvent.id)
+        ).all()
+        before = {e.unit_id for e in rows if _aware(e.created_at) < since}
+        out: list[tuple[LearnEvent, Any]] = []
+        seen: set[str] = set()
+        older = 0
+        for e in rows:
+            if _aware(e.created_at) < since or e.unit_id in used.lessons or e.unit_id in before:
+                continue
+            unit = units[e.unit_id]
+            if e.unit_version != unit.version:
+                older += 1
+            elif e.unit_id not in seen:
+                seen.add(e.unit_id)
+                out.append((e, unit))
+        return out, older
+
     def _news(
         self,
         user: User,
@@ -1112,6 +1183,7 @@ class Roadmap:
         disputes: dict[tuple[str, str], Dispute],
         ev: Evidence,
         read: list[str] | None = None,
+        read_lessons: list[dict[str, Any]] | None = None,
     ) -> PlanNews | None:
         """What's new since this version that would change it (docs/PLAN_UPDATES.md), or None.
         `read`, when given, gets the ids of the judged submissions it counted (for the version an
@@ -1191,11 +1263,17 @@ class Roadmap:
                     broken += 1
                 else:
                     subs.append((sub, problem))
-        if not fresh and not rounds and not subs:
+        checks, older = self._new_checks(user, track, since, used)
+        if not fresh and not rounds and not subs and not checks:
             return None
         goal = self._goal(user, track)
         avoid = self._avoid(user, track)
-        leave_out = _Used({a[0] for a in fresh}, {r.id for r in rounds}, {sub.id for sub, _ in subs})
+        leave_out = _Used(
+            {a[0] for a in fresh},
+            {r.id for r in rounds},
+            {sub.id for sub, _ in subs},
+            {unit.id for _, unit in checks},
+        )
         with_new = self._generate(user, track, goal, replace(ev, withheld=[]), avoid)
         without = self._generate(user, track, goal, self._evidence(user, track, disputes, leave_out), avoid)
         if {s.key for s in with_new} == {s.key for s in without}:
@@ -1256,9 +1334,19 @@ class Roadmap:
                     href=f"/history/submissions/{sub.id}",
                 )
             )
+        for _check, unit in checks:
+            skill = unit.skill or "Lessons"
+            groups.setdefault(skill, []).append(_Piece("lesson", unit.title))
+            entries.append(
+                NewEvidence(
+                    kind="lesson", title=unit.title, score=None, skill=skill, href=f"/learn/{unit.id}"
+                )
+            )
         by_skill = self._by_skill(groups, by_question, by_problem, topics, with_new, without)
         if read is not None:
             read.extend(sub.id for sub, _ in subs)
+        if read_lessons is not None:
+            read_lessons.extend({"unit_id": unit.id, "version": e.unit_version} for e, unit in checks)
         not_passed = sum(sub.status != SubmissionStatus.PASSED for sub, _ in subs)
         retries = sum(a[3] for a in fresh)
         below = sum(a[2] < WEAK for a in fresh)
@@ -1271,19 +1359,27 @@ class Roadmap:
             not_counted.append(
                 f"{_plural(disputed, 'answer', 'answers')} whose feedback you disputed {'isn’t' if disputed == 1 else 'aren’t'} counted."
             )
+        if older:
+            not_counted.append(
+                f"{_plural(older, 'lesson check', 'lesson checks')} passed on a version the lesson has since "
+                f"replaced {'isn’t' if older == 1 else 'aren’t'} counted: pass its current version."
+            )
         if broken:
             not_counted.append(
                 f"{_plural(broken, 'submission', 'submissions')} the judge couldn't run {'isn’t' if broken == 1 else 'aren’t'} "
                 "counted: that was a problem on the judge's side, not your code."
             )
         return PlanNews(
-            text=news_text(len(fresh), retries, below, len(rounds), "this plan", len(subs), not_passed),
+            text=news_text(
+                len(fresh), retries, below, len(rounds), "this plan", len(subs), not_passed, len(checks)
+            ),
             answers=len(fresh),
             retries=retries,
             below=below,
             rounds=len(rounds),
             submissions=len(subs),
             not_passed=not_passed,
+            lessons=len(checks),
             entries=entries[:10],
             not_counted=not_counted,
             by_skill=by_skill,
@@ -1359,7 +1455,8 @@ class Roadmap:
         done = self._sync(user, plan)
         disputes = Disputes(self.db, user.id).active(t)
         read: list[str] = []
-        news = self._news(user, t, plan, disputes, self._evidence(user, t, disputes), read)
+        read_lessons: list[dict[str, Any]] = []
+        news = self._news(user, t, plan, disputes, self._evidence(user, t, disputes), read, read_lessons)
         if news is None and not done:
             # Nothing new changes it (anymore): the same version, unchanged.
             self.db.commit()
@@ -1378,12 +1475,14 @@ class Roadmap:
                     f"version {plan.version}",
                     n.submissions,
                     n.not_passed,
+                    n.lessons,
                 ),
             )
         self.db.flush()
         try:
             new = self._new_version(user, t, plan, why)
             new.read_submissions = read  # the version's own record of what this update read, by id
+            new.read_lessons = read_lessons  # and the lesson checks, by unit and version (prompt 3)
             self.db.commit()
         except IntegrityError:
             # Another request saved this version number first.
@@ -1717,6 +1816,7 @@ class Roadmap:
             days_to_interview=days if days is not None and days >= 0 else None,
             news=news,
             read_submissions=self._read_submissions(user, plan),
+            read_lessons=_read_lessons(track, plan),
             evidence_read=EVIDENCE_READ.format(
                 career=CATALOG[track].title, code=EVIDENCE_READ_CODE if CATALOG[track].has_coding else ""
             ),

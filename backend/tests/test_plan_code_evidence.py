@@ -318,7 +318,9 @@ def test_the_plan_says_which_evidence_it_reads(client):
         "This plan reads your scored answers to Software Engineer questions, your finished question rounds "
         "and the lesson checks you've passed, and the judge's verdicts on code you submit: to problems, and "
         "to debugging exercises for the skills they name (not runs, which check the public tests only). "
-        "Lessons and accepted improvements don't count as new practice yet."
+        # Since Volume 17, prompt 3: what a lesson and an accepted improvement count for.
+        "A lesson only read, or a check not passed, isn't evidence. Improvements you accept are kept beside "
+        "the plan and don't change what it suggests; the practice they lead to does."
     )
 
 

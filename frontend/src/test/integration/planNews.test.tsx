@@ -14,7 +14,7 @@ const asNurse = () => server.use(http.post(`${API}/api/v1/auth/refresh`, () => H
 
 const NEWS: PlanNews = {
   text: "1 answer since this plan, below 70.",
-  answers: 1, retries: 0, below: 1, rounds: 0, submissions: 0, not_passed: 0,
+  answers: 1, retries: 0, below: 1, rounds: 0, submissions: 0, not_passed: 0, lessons: 0,
   entries: [{ kind: "answer", title: "Infection control on a busy ward", score: 52, exercise: false, href: "/careers/registered-nurse/questions/e-infection-1?answer=a1" }],
   not_counted: ["1 answer too short to score isn’t counted."],
 };
@@ -122,7 +122,7 @@ describe("New practice the plan doesn't use yet", () => {
 describe("A judged submission as new evidence (Volume 14, prompt 2)", () => {
   it("is named with its verdict, as judged", async () => {
     const news: PlanNews = {
-      text: "1 submission (not passed) since this plan.", answers: 0, retries: 0, below: 0, rounds: 0, submissions: 1, not_passed: 1,
+      text: "1 submission (not passed) since this plan.", answers: 0, retries: 0, below: 0, rounds: 0, submissions: 1, not_passed: 1, lessons: 0,
       entries: [{ kind: "submission", title: "Two Sum", score: null, verdict: "not passed", exercise: false, href: "/history/submissions/s-1" }], not_counted: [],
     };
     serve(v(1, news));

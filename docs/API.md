@@ -1293,7 +1293,9 @@ Deterministic rules over recorded evidence (`app/services/roadmap.py` documents 
   submission `verdict`, `verdict_detail` and `exercise`), `not_counted`, `by_skill` (`[{skill,
   count, text}]`, one sentence each) and `rule` (how a verdict counts, when code is among it);
   `read_submissions` lists the submissions the update that made this version read (null for other
-  versions); `evidence_read` says which evidence the plan reads (docs/PLAN_UPDATES.md).
+  versions), and `read_lessons` the lesson checks it read (`[{unit_id, version, title, href}]`, the
+  same way; Volume 17, prompt 3); `news.lessons` counts lesson checks passed since the version and an
+  entry of kind `lesson` names each; `evidence_read` says which evidence the plan reads (docs/PLAN_UPDATES.md).
 - `POST /api/v1/me/plan/update` 🔒 `{version, track?}` makes the next version from what's new,
   bound to the version seen (`409 plan_changed` with `details.version` otherwise), and records the
   submissions it read.

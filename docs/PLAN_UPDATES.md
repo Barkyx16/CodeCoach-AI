@@ -40,6 +40,15 @@ Since the version was made, and not used by any activity in it:
   exercise counts for the skills the exercise names (its topics after "debugging" itself), in the
   weak-topic and difficulty-ladder rules exactly as a problem's does. An exercise is never suggested
   itself: the plan's coding activities are problems.
+- **Lesson checks passed** (Volume 17, prompt 3): a Learn lesson of this career whose check
+  (graded by its rubric: every answer right) was passed since the version, on the lesson's current
+  version, once per lesson. It counts for the lesson's skill, named "Lesson check passed: <lesson>"
+  and in the skill's sentence ("the check passed on the lesson “SBAR handoffs”"), never as mastery.
+  The planner already reads passed checks (it doesn't suggest a lesson whose check you've passed);
+  to see what a new one moves, it plans without it as well. A check that completed one of the
+  version's own lesson activities is that activity's, not new (the plan moves on by itself then);
+  one passed before the version was evidence already. Starting or reading a lesson, or a check not
+  passed, never counts.
 
 How code counts, said under the preview whenever code is among what's new: "How code counts: a pass
 counts as solved; failed tests, errors and time or memory limits count as tried, not solved. A
@@ -57,13 +66,20 @@ Not counted, and named as not counted when an update is offered:
   recommender leaves it out (so it never asks to "finish" a problem the judge failed on), and it
   doesn't complete a coding activity.
 
-Not counted at all yet: accepted improvements (they have their own section of the plan page and
-the planner doesn't choose from them), lessons, reflections. The plan page says which evidence the
-plan reads, in a sentence from the server (`evidence_read`): "This plan reads your scored answers to
-Software Engineer questions, your finished question rounds and the lesson checks you've passed, and
-the judge's verdicts on code you submit: to problems, and to debugging exercises for the skills they
-name (not runs, which check the public tests only). Lessons and accepted improvements don't count as
-new practice yet." A career without coding says the first part only.
+A lesson check passed on a version the lesson has since replaced isn't counted, and is said: "1
+lesson check passed on a version the lesson has since replaced isn’t counted: pass its current
+version."
+
+Not counted, by design: **accepted improvements**. They're kept beside the plan, never as steps, and
+don't change what it suggests (docs/ACCEPTED_ACTIONS.md, a deliberate decision); the practice they
+lead to (an answer, a submission) counts like any other. Reflections aren't counted either. The plan
+page says which evidence the plan reads, in a sentence from the server (`evidence_read`): "This plan
+reads your scored answers to Software Engineer questions, your finished question rounds and the
+lesson checks you've passed, and the judge's verdicts on code you submit: to problems, and to
+debugging exercises for the skills they name (not runs, which check the public tests only). A lesson
+only read, or a check not passed, isn't evidence. Improvements you accept are kept beside the plan
+and don't change what it suggests; the practice they lead to does." A career without coding says the
+first part only.
 
 ## What each skill's evidence would move
 
@@ -133,7 +149,11 @@ for every version from before. The plan response lists them (`read_submissions`:
 whether an exercise, link; one statement, only for such a version; one no longer stored is listed
 by id), the "Your plan changed" panel shows "Code this update read as new evidence", and the export
 carries the ids on each version (`practice_plans[].read_submissions`). A version from before reads
-exactly as it did. Not pressing changes nothing: no version, no item, nothing applied later.
+exactly as it did. It records the lesson checks it read the same way (`practice_plans.read_lessons`,
+migration `f7a3c5e9b264`; Volume 17, prompt 3): `[{unit_id, version}]`, listed on the plan
+(`read_lessons`: the lesson's title and link from the catalog, "A lesson that's no longer offered"
+otherwise) under "Lesson checks this update read as new evidence", and in the export. Not pressing
+changes nothing: no version, no item, nothing applied later.
 
 ## Boundaries
 

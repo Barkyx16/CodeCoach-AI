@@ -9,7 +9,8 @@ import { describeError } from "@/lib/errors";
 
 interface Notice { version: number; text: string }
 
-const KIND = { answer: "Answer", retry: "Retry", round: "Round", submission: "Submission" } as const;
+// A lesson's check passed counts too (Volume 17, prompt 3); reading alone never does.
+const KIND = { answer: "Answer", retry: "Retry", round: "Round", submission: "Submission", lesson: "Lesson check passed" } as const;
 const label = (e: News["entries"][number]) => (e.exercise ? "Debugging exercise" : KIND[e.kind]);
 
 /**

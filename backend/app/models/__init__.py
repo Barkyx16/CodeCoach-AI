@@ -661,6 +661,8 @@ class PracticePlan(Base):
     # new evidence (Volume 16, prompt 7; docs/PLAN_UPDATES.md): [] for an update that read none,
     # null for a version made otherwise or before this was recorded.
     read_submissions: Mapped[list | None] = mapped_column(JSONType, nullable=True)
+    # And the lesson checks it read (Volume 17, prompt 3): [{unit_id, version}], the same way.
+    read_lessons: Mapped[list | None] = mapped_column(JSONType, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
     items: Mapped[list[PlanItem]] = relationship(

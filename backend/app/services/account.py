@@ -379,6 +379,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 # The judged submissions an update that made this version read, by id (Volume 16,
                 # prompt 7); null for a version made otherwise or before this was recorded.
                 "read_submissions": p.read_submissions,
+                "read_lessons": p.read_lessons,
             }
             for p in plans
         ],

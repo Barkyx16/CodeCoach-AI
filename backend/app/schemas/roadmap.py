@@ -123,9 +123,9 @@ class PlanProgress(APIModel):
 
 
 class NewEvidence(APIModel):
-    kind: Literal["answer", "retry", "round", "submission"] = Field(
-        description="A written answer, an answer revising an earlier one, a finished question round, or a "
-        "judged coding submission"
+    kind: Literal["answer", "retry", "round", "submission", "lesson"] = Field(
+        description="A written answer, an answer revising an earlier one, a finished question round, a "
+        "judged coding submission, or a Learn lesson's check passed (Volume 17, prompt 3)"
     )
     title: str
     score: int | None = Field(description="An answer's score; none for a round or a submission")
@@ -167,6 +167,15 @@ class ReadSubmission(APIModel):
     href: str | None = None
 
 
+class ReadLesson(APIModel):
+    """A lesson check an update read as new evidence (Volume 17, prompt 3), by unit and version."""
+
+    unit_id: str
+    version: int
+    title: str | None = Field(description="The lesson; none if it's no longer offered")
+    href: str | None = None
+
+
 class PlanNews(APIModel):
     """Practice since this version that would change what the plan suggests (docs/PLAN_UPDATES.md).
     Shown only then; the plan stays as it is until the learner asks for the update."""
@@ -180,6 +189,9 @@ class PlanNews(APIModel):
         default=0, description="Judged coding submissions since this version that no activity used"
     )
     not_passed: int = Field(default=0, description="How many of those didn't pass")
+    lessons: int = Field(
+        default=0, description="Lesson checks passed since this version (on the lesson's current version)"
+    )
     entries: list[NewEvidence] = Field(description="Them, oldest first (at most 10)")
     not_counted: list[str] = Field(
         default_factory=list,
@@ -226,6 +238,11 @@ class PlanOut(APIModel):
         default=None,
         description="The judged submissions the update that made this version read as new evidence, oldest "
         "first; none when the version wasn't made by 'Update my plan' (or was made before this was recorded)",
+    )
+    read_lessons: list[ReadLesson] | None = Field(
+        default=None,
+        description="The lesson checks the update that made this version read as new evidence; none when "
+        "the version wasn't made by 'Update my plan' (or was made before this was recorded)",
     )
     evidence_read: str = Field(
         default="",

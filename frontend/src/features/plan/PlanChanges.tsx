@@ -45,6 +45,20 @@ export function PlanChanges({ plan, always = false }: { plan: Plan; always?: boo
           </ul>
         </>
       )}
+      {(plan.read_lessons ?? []).length > 0 && (
+        // The lesson checks the update read, by unit and version (Volume 17, prompt 3).
+        <>
+          <p className="subtle">Lesson checks this update read as new evidence:</p>
+          <ul className="mini-list" aria-label="Lesson checks this update read">
+            {(plan.read_lessons ?? []).map((r) => (
+              <li key={`${r.unit_id}-${r.version}`}>
+                {r.href && r.title ? <Link to={r.href}>{r.title}</Link> : "A lesson that's no longer offered"}
+                <span className="subtle"> · check passed on version {r.version}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
       {!always && (
         <Button size="sm" variant="ghost" onClick={() => { setGotIt(true); save.mutate(); }}>Got it</Button>
       )}

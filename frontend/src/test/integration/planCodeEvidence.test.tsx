@@ -15,10 +15,10 @@ import { API, server } from "../server";
 const RULE = "How code counts: a pass counts as solved; failed tests, errors and time or memory limits count as tried, not solved. A verdict is never turned into a score.";
 const ARRAYS = "Arrays: the debugging exercise “Fix: Coldest Reading” didn't pass (tests failed), which counts as tried, not solved, so the next version would suggest “Solve: Contains Duplicate” and not “Solve: Valid Palindrome”.";
 const STRINGS = "Strings: “Valid Parentheses” didn't pass (compile error), which counts as tried, not solved, so the next version would suggest “Solve: Valid Parentheses”.";
-const READS = "This plan reads your scored answers to Software Engineer questions, your finished question rounds and the lesson checks you've passed, and the judge's verdicts on code you submit: to problems, and to debugging exercises for the skills they name (not runs, which check the public tests only). Lessons and accepted improvements don't count as new practice yet.";
+const READS = "This plan reads your scored answers to Software Engineer questions, your finished question rounds and the lesson checks you've passed, and the judge's verdicts on code you submit: to problems, and to debugging exercises for the skills they name (not runs, which check the public tests only). A lesson only read, or a check not passed, isn't evidence. Improvements you accept are kept beside the plan and don't change what it suggests; the practice they lead to does.";
 
 const NEWS: PlanNews = {
-  text: "2 submissions (neither passed) since this plan.", answers: 0, retries: 0, below: 0, rounds: 0, submissions: 2, not_passed: 2,
+  text: "2 submissions (neither passed) since this plan.", answers: 0, retries: 0, below: 0, rounds: 0, submissions: 2, not_passed: 2, lessons: 0,
   entries: [
     { kind: "submission", title: "Fix: Coldest Reading", score: null, verdict: "not passed", verdict_detail: "tests failed", exercise: true, skill: "arrays", href: "/history/submissions/s-lab" },
     { kind: "submission", title: "Valid Parentheses", score: null, verdict: "not passed", verdict_detail: "compile error", exercise: false, skill: "strings", href: "/history/submissions/s-vp" },
