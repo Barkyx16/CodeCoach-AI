@@ -118,6 +118,13 @@ function Review({ iv, r }: { iv: Interview; r: InterviewReview }) {
 
       {iv.feedback_read && <FeedbackReadSection read={iv.feedback_read} />}
 
+      {iv.conditions && (
+        <Card className="stack-sm" aria-label="In-app help before this interview">
+          <h2 className="section-title">In-app help before this interview</h2>
+          <AttemptConditionsView conditions={iv.conditions} noun="interview" />
+        </Card>
+      )}
+
       <div className="review__layout">
         <div className="stack">
           {r.improvements.length > 0 && (

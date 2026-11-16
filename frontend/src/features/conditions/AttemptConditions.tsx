@@ -9,14 +9,15 @@ import { formatDateTime } from "@/lib/format";
  */
 export function AttemptConditionsView({ conditions, noun = "attempt", brief = false }: {
   conditions: AttemptConditions | null | undefined;
-  /** "answer" for an answer given in an interview round. */
-  noun?: "attempt" | "answer";
+  /** "answer" for an answer given in an interview round; "interview" for a coding interview. */
+  noun?: "attempt" | "answer" | "interview";
   /** One line (a round's results): the labels and the format, without the details. */
   brief?: boolean;
 }) {
   if (!conditions) return null;
   const notRecorded = conditions.labels.includes("Not recorded");
   const round = conditions.round ?? null;
+  const interview = conditions.interview ?? null;
   const line = (
     <p>
       <strong>In-app help before this {noun}:</strong> {conditions.labels.join(", ")}
@@ -37,11 +38,22 @@ export function AttemptConditionsView({ conditions, noun = "attempt", brief = fa
     <div className="attempt-conditions stack-sm">
       {line}
       {round && <p><strong>How it was given:</strong> {round.text} <span className="subtle">(the format, not help)</span></p>}
+      {interview && <p><strong>How it was given:</strong> {interview.text} <span className="subtle">(the format, not help)</span></p>}
+      {conditions.unrecorded && <p className="subtle">{conditions.unrecorded}</p>}
       {conditions.help.length > 0 && (
         <ul className="mini-list">
           {conditions.help.map((h) => (
             <li key={`${h.at}-${h.detail}`}>
               {h.label}: {h.detail}, <time dateTime={h.at}>{formatDateTime(h.at)}</time>
+            </li>
+          ))}
+        </ul>
+      )}
+      {interview && interview.checks.length > 0 && (
+        <ul className="mini-list" aria-label="Checked before it left CodeCoach">
+          {interview.checks.map((c) => (
+            <li key={`${c.at}-${c.what}`}>
+              {c.what}: {c.detail}, <time dateTime={c.at}>{formatDateTime(c.at)}</time>
             </li>
           ))}
         </ul>

@@ -50,10 +50,12 @@ export function HistoryPage() {
   const items = activity.data?.items ?? [];
   const submissionIds = items.flatMap((i) => (i.type === "code_submission" && i.target.submission_id ? [i.target.submission_id] : []));
   const answerIds = items.flatMap((i) => (i.type === "written_answer" && i.target.answer_id ? [i.target.answer_id] : []));
+  // Coding interviews: a career interview isn't described as a whole (its answers are), so it's absent.
+  const interviewIds = items.flatMap((i) => (i.type === "interview" && i.target.interview_id ? [i.target.interview_id] : []));
   const conditions = useQuery({
-    queryKey: ["me", "attempt-conditions", submissionIds, answerIds],
-    queryFn: () => api.attemptConditions({ submission_ids: submissionIds, answer_ids: answerIds }),
-    enabled: submissionIds.length + answerIds.length > 0,
+    queryKey: ["me", "attempt-conditions", submissionIds, answerIds, interviewIds],
+    queryFn: () => api.attemptConditions({ submission_ids: submissionIds, answer_ids: answerIds, interview_ids: interviewIds }),
+    enabled: submissionIds.length + answerIds.length + interviewIds.length > 0,
   });
   // Back from an item: the same scroll position, and focus on the item it came back from.
   useScrollMemory(Boolean(activity.data) && !activity.isPlaceholderData && !activity.isFetching);
@@ -169,7 +171,8 @@ export function HistoryPage() {
 
 function labelsFor(found: ConditionsOut, item: ActivityItem): string | null {
   const c = item.type === "code_submission" ? found.submissions[item.target.submission_id ?? ""]
-    : item.type === "written_answer" ? found.answers[item.target.answer_id ?? ""] : undefined;
+    : item.type === "written_answer" ? found.answers[item.target.answer_id ?? ""]
+      : item.type === "interview" ? found.interviews?.[item.target.interview_id ?? ""] : undefined;
   return conditionsSummary(c);
 }
 

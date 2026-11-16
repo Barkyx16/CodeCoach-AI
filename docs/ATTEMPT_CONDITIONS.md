@@ -5,7 +5,9 @@ Each coding attempt and each career written answer says which in-app help was sh
 separate help log. An answer given in an interview round records it when the answer is saved, with
 the round's format (Volume 13, prompt 3; below). Drill attempts, scenario runs and whiteboard
 attempts say it too, from 15 Nov 2026 (Volume 14, prompt 4; below), and so do code-review
-exercises, sample-answer comparisons and work samples (Volume 15, prompt 3; below).
+exercises, sample-answer comparisons and work samples (Volume 15, prompt 3; below), debugging
+exercises and coding interviews (Volume 16, prompt 2; below). Every format that's a practice attempt
+now says what in-app help came before it.
 
 ## Every format, and what it records
 
@@ -20,8 +22,10 @@ exercises, sample-answer comparisons and work samples (Volume 15, prompt 3; belo
 | Code-review exercises | The exercise's authored review, shown before the review was written ("Solution revealed"); Learn lessons that prepare the exercise (none yet) | 15 Nov 2026 (the authored review shown first: always kept) | the attempt's own `after_reveal`; lesson reads, by the exercise's version |
 | Sample-answer comparisons | The comparison's explanation, opened before the reading was sent ("Solution revealed"); Learn lessons that prepare it (the STAR lesson prepares "Specific evidence or general claims?") | 15 Nov 2026 (the explanation opened first: always kept) | the attempt's own `revealed_early`, as the page reported it when sending; lesson reads, by the comparison's version |
 | Work samples | None: no lesson prepares a brief yet, and each section's hint is shown to everyone with the brief | 15 Nov 2026 | (nothing to find: "No in-app help recorded") |
+| Debugging exercises | Hints for the exercise (as for any coding problem); its explanation and repair, opened before the attempt ("Solution revealed"); Learn lessons that prepare it (none yet) | hints 14 Nov 2026; the explanation opened, 16 Nov 2026 | the saved hints; `lab_reveals`, by the exercise's version; lesson reads (`debug:<slug>`) |
+| Coding interviews | Hints for the interview's problem, before or during it; plus its format (never help): the time limit, how it ended, each message and the feedback checked before it left CodeCoach | hints 14 Nov 2026; checked messages 16 Nov 2026 | the saved hints, by the problem's version when it started; what the interview stores |
 
-Debugging exercises, offer comparisons and story help don't record conditions yet (below).
+Offer comparisons and story help aren't practice attempts, so they have no conditions (below).
 
 ## The labels
 
@@ -30,7 +34,7 @@ Exactly these, as the server gives them:
 | Label | Means |
 |---|---|
 | **Hint shown** | A hint (levels 1-3) for this coding problem, or a Learn lesson that prepares for this written question, was shown since the previous attempt |
-| **Solution revealed** | The level 4 hint for this coding problem was shown since the previous attempt (the app warns that it explains the full solution); or, for a code-review exercise or a sample-answer comparison, its own answer (the authored review, the explanation) was shown before the attempt |
+| **Solution revealed** | The level 4 hint for this coding problem was shown since the previous attempt (the app warns that it explains the full solution); or, for a code-review exercise or a sample-answer comparison, its own answer (the authored review, the explanation) was shown before the attempt; or a debugging exercise's explanation and repair were opened since the previous attempt |
 | **No in-app help recorded** | Nothing above was recorded for this attempt |
 | **Not recorded** | An attempt from before recording began (14 Nov 2026) with nothing to go on, or one whose earlier help can't be matched to a version. Never "none" |
 
@@ -58,11 +62,15 @@ rubric results are exactly as before.
 
 ## Where it shows
 
-- A coding attempt's page (History → a submission): "In-app help", with each hint and its time.
+- A coding attempt's page (History → a submission): "In-app help", with each hint and its time; a
+  debugging exercise's attempt the same, with the explanation opened.
+- A coding interview's review: "In-app help before this interview", with each hint, its time and
+  whether it came before or during the interview, then how it was given and what was checked.
 - A written answer: in "Your past answers" and beside its feedback.
-- History: each code submission and written answer row, asked for in one bounded request for the
-  rows on screen (`POST /api/v1/me/attempt-conditions`, up to 50 ids of each kind; another
-  account's ids and unknown ids are simply absent), so the list itself costs no more to load.
+- History: each code submission, written answer and coding interview row, asked for in one bounded
+  request for the rows on screen (`POST /api/v1/me/attempt-conditions`, up to 50 ids of each kind;
+  another account's ids, unknown ids, a career interview and one still running are simply absent),
+  so the list itself costs no more to load.
 - The API: `conditions` on `GET /submissions/{id}`, `GET /me/submissions`, and every answer
   response; the data export adds it to submissions and written answers (and each hint's problem
   version). Private to the owner and deleted with the account, like the attempts.
@@ -161,14 +169,55 @@ conditions left out.
   text size, contrast and reduced motion are never inputs here, never help, and never reduce how an
   attempt counts. The answer request doesn't carry them.
 - The tips under a question, which everyone sees with it, and earlier feedback.
-- A debugging exercise's explanation and reference repair: asking for it isn't recorded.
+- A debugging exercise's explanation opened before 16 Nov 2026: it wasn't recorded then, and an
+  attempt from before says so. Read without signing in, it's recorded nowhere (there's no account
+  to record it against). One left open on the page across attempts counts for the attempt after it
+  was opened only.
+- Which coding-interview messages were checked before 16 Nov 2026.
 
-## Not covered yet
+## Debugging exercises and coding interviews
 
-Covered: coding attempts, career written answers, interview rounds, drills, scenarios,
-whiteboards, code-review exercises, sample-answer comparisons and work samples. Next: debugging
-exercises (asking for the explanation and reference repair isn't recorded), offer comparisons, story
-help and the coding interviewer.
+Volume 16, prompt 2. Both read by the one function each (`Conditions.for_submissions`,
+`Conditions.for_interviews`), used by the submission page, the interview's review, History and the
+export, so they can't disagree.
+
+**A debugging exercise** is a submission, so its hints are found as for any coding problem. Opening
+its explanation and repair ("Stuck? Show the explanation", or "Why it happened" after a passing fix)
+is recorded when signed in: the page asks with `POST /problems/{slug}/lab/explanation`, which keeps
+the exercise, its version then and the time (`lab_reveals`, migration `b2e6d4a8c157`, owner-only
+under row-level security, in the export and the data summary, deleted with the account). The next
+attempt at that version says "Solution revealed: The exercise's explanation and a correct repair
+(version 1)", with the time; an attempt after that, unless it's opened again, doesn't. Opening it
+again before the next attempt is the same opening (no second row). An opening at another version of
+the exercise doesn't count. A Learn lesson that prepares an exercise (`prepares: "debug:<slug>"`)
+counts by the lesson rule; none does yet. An attempt from before 16 Nov 2026 says "Opening the
+exercise's explanation and repair wasn't recorded before 16 Nov 2026, so whether it was opened before
+this attempt isn't known", beside any hints it did record, and with nothing else found it's "Not
+recorded".
+
+**A coding interview** lists the hints for its problem shown after the previous coding interview of
+that problem ended and before this one ended, at the problem's version when it started (recorded at
+the start from 16 Nov 2026; before, known only if the problem never had another version). Each is
+in the hint panel's words, with the problem and when: "Level 2 hint, “Concept”, on “Two Sum”, during
+the interview". The interview itself has no hint panel, so these were asked for in the problem's
+workspace. A submission of the problem counts the same hints for itself (a submission and an
+interview are counted apart, like a Run and a Submit). Its format is read from what it stores, never
+help: "A 15-minute coding interview, finished; 1 of 2 messages checked before sending; the
+feedback's material checked before it was scored." with each check and its time. A message counts as
+checked when it was sent with its preview's fingerprint (`interview_turns.meta.checked`, from 16 Nov
+2026; before, "whether messages were checked before they were sent wasn't recorded then"); the
+feedback, from `plan.feedback_read` (docs/COACH_CONTEXT.md). Nothing is said while it runs. A career
+interview isn't described as a whole: each answer has its own (interview rounds, above).
+
+## What isn't a practice attempt
+
+- **Offer comparisons** (docs/OFFER_COMPARISON.md) organise the terms of real or fictional job offers
+  the learner enters. There's nothing to attempt and no result to qualify, so there's no record of
+  help before one, and none is made up.
+- **Story help** (docs/STORIES.md, "Writing help") is the story bank's rule-based check of a story
+  being written. A story is the learner's own material, not an attempt at an exercise; it isn't
+  scored, so nothing qualifies it. A story used in a written answer or a round is part of that
+  answer, whose conditions are its own.
 
 ## Checked by tests (interview rounds)
 
@@ -197,3 +246,26 @@ controls (each caught): help counted for every later attempt (backend and in the
 content versions, a read of unknown version taken as help, modes counted together, the date ignored, a
 read recording no version, the drill comparison ignoring the help; on the pages, a drill's, scenario
 run's or whiteboard attempt's conditions or a row's left out.
+
+## Checked by tests (debugging exercises and coding interviews)
+
+`backend/tests/test_debug_interview_conditions.py` (SQLite and PostgreSQL): a debugging exercise after
+a hint says so and the next says none; opening the explanation is "Solution revealed" for the next
+attempt only, asking again is the same opening, and one opened after an attempt is the next one's;
+the plain read records nothing and needs no account, the recording one does; an opening at another
+version doesn't count; an attempt from before says the opening wasn't recorded, beside its hints;
+another account's openings and hints never count; a coding interview with two hints lists both in
+order, before and during, and the next interview of the problem starts afresh while the next
+submission counts its own; which messages and the feedback were checked; an interview ended early,
+unchecked; an interview from before says its checks weren't recorded; nothing while one runs; the
+export and History carry both records by id and match the pages; a career interview isn't described
+as a coding one; and on PostgreSQL, row-level security keeps both records to this account's rows even
+with the hint and opening queries' owner filters removed. `frontend/src/test/integration/debugInterviewConditions.test.tsx`
+covers the review, History's row and an older attempt's note; `debuggingLab.test.tsx` that opening it
+signed in is recorded and signed out isn't. Negative controls (each caught): openings ignored, counted
+for every later attempt, across versions, recorded twice, from before not said, another account's
+counted; an interview's hints not bounded by the previous interview, before and during swapped, a
+checked message not recorded, the feedback's check not listed, an old interview's checks claimed, the
+export or the bulk route without interviews, a career interview or a running one described; on the
+pages, the format line, the checks, the older attempt's note, the review's section, History's request
+and row left out, the lab read without recording, and a record promised when signed out.

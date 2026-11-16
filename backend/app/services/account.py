@@ -33,6 +33,7 @@ from app.models import (
     Submission,
     User,
 )
+from app.services import lab_reveals
 from app.services.actions import Actions
 from app.services.answer_review import AnswerReview
 from app.services.applications import Applications
@@ -189,6 +190,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
     finder = Conditions(db, user)
     sub_conditions = {k: v.model_dump(mode="json") for k, v in finder.for_submissions(subs).items()}
     answer_conditions = {k: v.model_dump(mode="json") for k, v in finder.for_answers(answers).items()}
+    interview_conditions = {k: v.model_dump(mode="json") for k, v in finder.for_interviews(sessions).items()}
     # Each answer compared with the one before it, as the contract decided it at export time: the
     # file keeps that classification and the rules' version (docs/COMPARING_ATTEMPTS.md).
     answer_comparisons = {
@@ -271,6 +273,9 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 "evaluation": s.evaluation,
                 # What the feedback read (labels and sizes), checked or not (docs/COACH_CONTEXT.md).
                 "feedback_read": (s.plan or {}).get("feedback_read"),
+                # A coding interview's in-app help and format, as its review shows them
+                # (docs/ATTEMPT_CONDITIONS.md); a career interview's answers carry their own.
+                "conditions": interview_conditions.get(s.id),
                 # The summary's points left out because of feedback you disputed (docs/DISPUTES.md).
                 "points_left_out_disputed": disputed_point_keys(db, user.id, s),
                 "transcript": [
@@ -552,6 +557,8 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         # Your choices about the first-session introduction (no answer text is part of it).
         "onboarding": Onboarding(db, user).export(),
         "dismissed_suggestions": Dismissals(db, user).export(),
+        # Each time you opened a debugging exercise's explanation and repair: help for the next attempt.
+        "lab_reveals": lab_reveals.export(db, user),
         # Names you listed, replaced with [name] in what leaves the app (docs/PRIVACY.md).
         "listed_names": ListedNames(db, user).export(),
         # Problems you reported in questions or feedback, and what happened (no internal notes).

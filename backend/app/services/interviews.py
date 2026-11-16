@@ -63,6 +63,7 @@ from app.models import (
 )
 from app.schemas.ai import CoachPreview, ContextItem
 from app.schemas.common import Page
+from app.schemas.conditions import AttemptConditions
 from app.schemas.interview import (
     PHASE_GUIDE,
     Engagement,
@@ -93,6 +94,7 @@ from app.services.ai.context_text import ending_text, interview_phase_text, tran
 from app.services.ai.offline import OfflineCoach
 from app.services.ai.service import CoachService, problem_context, redact_secrets_counted
 from app.services.ai.static_analysis import analyze
+from app.services.conditions import Conditions, problem_version
 from app.services.listed_names import names_for, names_note, replace_names
 from app.services.progress import ProgressService
 from app.services.question_rounds import ROUND, QuestionRounds
@@ -227,6 +229,9 @@ class InterviewService:
                 duration_seconds=duration,
                 started_at=now,
                 deadline_at=now + timedelta(seconds=duration),
+                # The problem's version when it started: a hint counts for it only at that version
+                # (docs/ATTEMPT_CONDITIONS.md, "Coding interviews").
+                plan={"content_version": problem_version(self.db, problem.id)},
             )
             session.problem = problem
             self.db.add(session)
@@ -287,6 +292,10 @@ class InterviewService:
         meta: dict[str, Any] = {"source": body.source, "engagement": read.model_dump(mode="json")}
         if body.client_request_id:
             meta["client_request_id"] = body.client_request_id
+        if body.approved_context is not None:
+            # Checked before it was sent (it matched, or it was refused above): part of how the
+            # interview was given, shown with its conditions (docs/ATTEMPT_CONDITIONS.md).
+            meta["checked"] = True
         self._add_turn(session, TurnRole.CANDIDATE, message, meta=meta)
         try:
             self.db.flush()  # a turn's position is unique: a message sent at the same moment elsewhere loses here
@@ -952,12 +961,19 @@ class InterviewService:
             final_code=session.final_code,
             evaluation=InterviewEvaluation.model_validate(session.evaluation) if session.evaluation else None,
             feedback_read=self.feedback_read(session),
+            conditions=self._conditions(session),
             feedback_check_margin_seconds=(
                 FEEDBACK_CHECK_MARGIN_SECONDS
                 if session.status == InterviewStatus.IN_PROGRESS and session.mode == PracticeMode.INTERVIEW
                 else None
             ),
         )
+
+    def _conditions(self, session: PracticeSession) -> AttemptConditions | None:
+        """A finished coding interview's conditions, by the one rule History and the export use (it
+        describes nothing while an interview runs, nor a career interview)."""
+        owner = self.db.get(User, session.user_id)
+        return Conditions(self.db, owner).for_interview(session) if owner is not None else None
 
     def _to_summary(self, session: PracticeSession) -> InterviewSummary:
         ev = session.evaluation or {}

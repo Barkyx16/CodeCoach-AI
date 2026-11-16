@@ -20,6 +20,7 @@ import { debugNotesKey } from "./notesKey";
  */
 export function DebugBrief({ problem }: { problem: ProblemDetail }) {
   const lab = problem.lab;
+  const { isAuthenticated } = useAuth();
   const [asking, setAsking] = useState(false);
   const [shown, setShown] = useState(false);
   const titleId = useId();
@@ -44,7 +45,7 @@ export function DebugBrief({ problem }: { problem: ProblemDetail }) {
         <ExplanationView slug={problem.slug} heading="What the defect is" />
       ) : asking ? (
         <div className="banner banner--info stack-sm" role="group" aria-label="Show the explanation?">
-          <p>This shows what the defect is, why a simple case misses it, and one correct repair. You can still write your own fix afterwards: any fix that passes is accepted.</p>
+          <p>This shows what the defect is, why a simple case misses it, and one correct repair. You can still write your own fix afterwards: any fix that passes is accepted.{isAuthenticated ? " Your next attempt will say the solution was revealed before it." : ""}</p>
           <span className="row">
             <Button size="sm" variant="primary" onClick={() => setShown(true)}>Show the explanation</Button>
             <Button size="sm" variant="ghost" onClick={() => setAsking(false)}>Not yet</Button>
@@ -107,7 +108,8 @@ function InvestigationNotes({ slug }: { slug: string }) {
 }
 
 function ExplanationView({ slug, heading }: { slug: string; heading: string }) {
-  const explanation = useLabExplanation(slug, true);
+  const { isAuthenticated } = useAuth();
+  const explanation = useLabExplanation(slug, true, isAuthenticated);
   if (explanation.isPending) return <p className="subtle" role="status">Loading the explanation…</p>;
   if (explanation.isError) return <ErrorState error={explanation.error} onRetry={() => void explanation.refetch()} />;
   const e = explanation.data;
@@ -123,6 +125,9 @@ function ExplanationView({ slug, heading }: { slug: string; heading: string }) {
       <pre className="code-block"><code>{e.reference_repair}</code></pre>
       <h4 className="debug-brief__minor">Next time</h4>
       <p>{e.follow_up}</p>
+      {e.recorded_at && (
+        <p className="subtle">Your next attempt at this exercise will say the solution was revealed before it. It changes no verdict.</p>
+      )}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Literal
 
 from pydantic import Field
@@ -61,6 +62,10 @@ class LabExplanation(APIModel):
         description="One correct repair; any repair that passes the tests is accepted"
     )
     follow_up: str
+    recorded_at: datetime | None = Field(
+        default=None,
+        description="When opening it was recorded as help for your next attempt (POST only; the GET records nothing)",
+    )
 
 
 class ProblemDetail(ProblemSummary):

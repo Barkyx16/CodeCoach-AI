@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, field_validator
 from app.models import Difficulty, InterviewPhase, InterviewStatus, TurnRole
 from app.schemas.careers import AnswerOut
 from app.schemas.common import APIModel, OptionalKey
+from app.schemas.conditions import AttemptConditions
 
 InterviewKind = Literal["coding", "questions"]
 AnswerSource = Literal["typed", "voice", "mixed"]
@@ -344,6 +345,11 @@ class InterviewOut(APIModel):
         default=None,
         description="How long before time runs out the page offers to check what the feedback will read "
         "(a coding interview in progress; null otherwise)",
+    )
+    conditions: AttemptConditions | None = Field(
+        default=None,
+        description="A coding interview once it's over: the in-app help before it ended and its format "
+        "(docs/ATTEMPT_CONDITIONS.md). Null while it's on, and for a career interview (each answer has its own)",
     )
 
 

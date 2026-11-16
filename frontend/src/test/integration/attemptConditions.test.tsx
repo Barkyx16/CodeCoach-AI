@@ -56,7 +56,8 @@ describe("What help was part of an attempt", () => {
     renderApp("/history", { signedIn: true });
     expect(await screen.findByText(/In-app help: Hint shown, Solution revealed/)).toBeInTheDocument();
     expect(screen.getByText(/In-app help: No in-app help recorded/)).toBeInTheDocument();
-    expect(asked).toEqual([{ submission_ids: ["sub-1"], answer_ids: ["a-1"] }]);
+    // The interview row's id is asked too; a career round isn't described as a whole, so it's absent.
+    expect(asked).toEqual([{ submission_ids: ["sub-1"], answer_ids: ["a-1"], interview_ids: ["round-7"] }]);
     // The mock interview row has no attempt conditions.
     const round = screen.getByText("Registered Nurse question round").closest("a")!;
     expect(round.textContent).not.toMatch(/In-app help/);

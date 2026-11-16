@@ -53,11 +53,19 @@ const explanation: LabExplanation = {
 };
 
 let explanationCalls = 0;
+let recordedCalls = 0;
 function serveLab() {
   explanationCalls = 0;
+  recordedCalls = 0;
   server.use(
     http.get(`${API}/api/v1/problems/debug-count-at-most`, () => HttpResponse.json(exercise)),
     http.get(`${API}/api/v1/problems/debug-count-at-most/lab/explanation`, () => { explanationCalls += 1; return HttpResponse.json(explanation); }),
+    // Signed in, opening it is recorded as help for the next attempt (Volume 16, prompt 2).
+    http.post(`${API}/api/v1/problems/debug-count-at-most/lab/explanation`, () => {
+      explanationCalls += 1;
+      recordedCalls += 1;
+      return HttpResponse.json({ ...explanation, recorded_at: "2026-11-16T09:00:00Z" });
+    }),
     http.get(`${API}/api/v1/problems`, ({ request }) =>
       new URL(request.url).searchParams.get("kind") === "debug"
         ? HttpResponse.json(page([{ slug: exercise.slug, title: exercise.title, difficulty: exercise.difficulty, topics: exercise.topics, summary: exercise.summary }]))
@@ -108,6 +116,21 @@ describe("the debugging lab", () => {
     expect(brief).toHaveTextContent("If the last value is above the limit, skipping it changes nothing.");
     expect(brief).toHaveTextContent("Yours doesn't have to look like this: the tests decide.");
     expect(explanationCalls).toBe(1);
+    // Signed in, opening it is recorded, and the page says what that means for the next attempt.
+    expect(recordedCalls).toBe(1);
+    expect(brief).toHaveTextContent("Your next attempt at this exercise will say the solution was revealed before it.");
+  });
+
+  it("signed out, the explanation is read without recording anything, and says nothing about a next attempt", async () => {
+    serveLab();
+    const { user } = renderApp("/problems/debug-count-at-most");
+    const brief = await screen.findByRole("region", { name: "Fix the bug" });
+    await user.click(within(brief).getByRole("button", { name: "Stuck? Show the explanation" }));
+    expect(brief).not.toHaveTextContent("Your next attempt will say");
+    await user.click(within(brief).getByRole("button", { name: "Show the explanation" }));
+    expect(await within(brief).findByText("The loop stops one index early.")).toBeInTheDocument();
+    expect(recordedCalls).toBe(0);
+    expect(brief).not.toHaveTextContent("solution was revealed");
   });
 
   it("investigation notes are optional, kept in this browser for this account, and come back", async () => {

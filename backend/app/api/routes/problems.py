@@ -22,6 +22,7 @@ from app.schemas.problem import (
 from app.schemas.problem_followups import ProblemFollowUpsOut
 from app.services import search
 from app.services.content import retired_problem_slugs
+from app.services.lab_reveals import record_reveal
 from app.services.problem_followups import ProblemFollowUps
 
 router = APIRouter(prefix="/api/v1", tags=["problems"])
@@ -198,12 +199,38 @@ def _lab_brief(problem: Problem) -> LabBrief | None:
 )
 def get_lab_explanation(slug: str, db: Session = Depends(get_db)) -> LabExplanation:
     """Authored content, the same for everyone: what the defect is, why a simple case misses it,
-    one correct repair and a follow-up. It reveals no hidden test. Asking for it is recorded nowhere:
-    looking is part of learning, not a mark against the learner."""
+    one correct repair and a follow-up. It reveals no hidden test. This read records nothing; the
+    workspace opens it with POST, which records it as help for the next attempt (Volume 16, prompt 2).
+    Looking is part of learning, not a mark against the learner: it changes no verdict."""
+    return _lab_explanation(_debug_exercise(db, slug))
+
+
+@router.post(
+    "/problems/{slug}/lab/explanation",
+    response_model=LabExplanation,
+    responses=error_responses(401, 404),
+    summary="Open a debugging exercise's explanation and repair, recorded as help for your next attempt",
+)
+def open_lab_explanation(
+    slug: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> LabExplanation:
+    """The same authored content as the GET, recorded for you: your next attempt at this version
+    of the exercise says "Solution revealed" (docs/ATTEMPT_CONDITIONS.md). Opening it again before
+    that attempt is the same opening. It changes no verdict, score or progress."""
+    problem = _debug_exercise(db, slug)
+    reveal = record_reveal(db, user, problem)
+    return _lab_explanation(problem).model_copy(update={"recorded_at": reveal.created_at})
+
+
+def _debug_exercise(db: Session, slug: str) -> Problem:
     problem = db.scalar(select(Problem).where(Problem.slug == slug, Problem.kind == "debug"))
     if problem is None or not problem.lab:
         raise NotFoundError(f"Debugging exercise '{slug}' not found")
-    lab = problem.lab
+    return problem
+
+
+def _lab_explanation(problem: Problem) -> LabExplanation:
+    lab = problem.lab or {}
     return LabExplanation(
         version=lab["version"],
         defect_summary=lab["defect"]["summary"],

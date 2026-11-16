@@ -35,9 +35,12 @@ recorded", never "none". Labels change no score, verdict or count.
 
 from __future__ import annotations
 
+import json
 from collections import defaultdict
 from collections.abc import Iterable
 from datetime import UTC, datetime
+from functools import lru_cache
+from pathlib import Path
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -53,24 +56,38 @@ from app.models import (
     DrillAttempt,
     InterviewStatus,
     InterviewTurn,
+    LabReveal,
     LearnEvent,
     PracticeAnswer,
+    PracticeMode,
     PracticeSession,
+    Problem,
     ScenarioAttempt,
     Submission,
     TestCase,
+    TurnRole,
     User,
     WhiteboardAttempt,
     WorkSampleAttempt,
 )
 from app.schemas.ai import HINT_LEVEL_NAMES
-from app.schemas.conditions import AttemptConditions, HelpShown, RoundConditions
+from app.schemas.conditions import (
+    AttemptConditions,
+    CheckMade,
+    HelpShown,
+    InterviewFormat,
+    RoundConditions,
+)
 
 RECORDED_FROM = datetime(2026, 11, 14, tzinfo=UTC)
 # Interview round answers record their conditions when saved from this day (Volume 13, prompt 3).
 ROUND_RECORDED_FROM = datetime(2026, 11, 15, tzinfo=UTC)
 # Drills, scenarios and whiteboards from this day (Volume 14, prompt 4).
 FORMATS_RECORDED_FROM = datetime(2026, 11, 15, tzinfo=UTC)
+# A debugging exercise's explanation opened, and a coding interview's checked messages, from this day
+# (Volume 16, prompt 2). Before it, neither was recorded anywhere.
+LAB_RECORDED_FROM = datetime(2026, 11, 16, tzinfo=UTC)
+DEBUGGING_DIR = Path(__file__).resolve().parents[1] / "seed" / "debugging"
 ENDED_EARLY = {InterviewStatus.ABANDONED, InterviewStatus.EXPIRED}
 SOLUTION_LEVEL = 4
 NOTE = (
@@ -102,8 +119,8 @@ def problem_versions(db: Session, problem_ids: set[int]) -> dict[int, int]:
 
 def practice_version(ref: str) -> int | None:
     """The version now of what a lesson prepares ("scenario:<id>", "drill:<id>",
-    "whiteboard:<id>", "code_review:<slug>", "comparison:<id>", "work_sample:<id>"), or None if
-    there's no such thing."""
+    "whiteboard:<id>", "code_review:<slug>", "comparison:<id>", "work_sample:<id>", "debug:<slug>"),
+    or None if there's no such thing."""
     from app.comparisons import BY_ID as COMPARISONS
     from app.drills import BY_ID as DRILLS
     from app.drills import RUBRIC_VERSION as DRILL_VERSION
@@ -130,6 +147,8 @@ def practice_version(ref: str) -> int | None:
     if kind == "work_sample":
         b = BRIEFS.get(cid)
         return b.version if b is not None else None
+    if kind == "debug":
+        return debug_versions().get(cid)
     return None
 
 
@@ -168,7 +187,10 @@ def conditions(
     *,
     unknown: bool = False,
     recorded_from: datetime = RECORDED_FROM,
+    unrecorded: str | None = None,
 ) -> AttemptConditions:
+    """`unrecorded`: a kind of help that wasn't recorded yet when this attempt was made (said, never
+    guessed); with nothing else found, the attempt is "Not recorded"."""
     help = sorted(help, key=lambda h: _aware(h.at))
     labels: list = []
     for h in help:
@@ -178,9 +200,33 @@ def conditions(
         # Nothing recorded: from before recording began (or with help whose version isn't known),
         # that's "not recorded", never "none".
         labels = [
-            "Not recorded" if unknown or _aware(attempted_at) < recorded_from else "No in-app help recorded"
+            "Not recorded"
+            if unknown or unrecorded or _aware(attempted_at) < recorded_from
+            else "No in-app help recorded"
         ]
-    return AttemptConditions(labels=labels, help=help, recorded_from=recorded_from.date(), note=NOTE)
+    return AttemptConditions(
+        labels=labels, help=help, recorded_from=recorded_from.date(), note=NOTE, unrecorded=unrecorded
+    )
+
+
+@lru_cache(maxsize=1)
+def debug_versions() -> dict[str, int]:
+    """Each debugging exercise's version now, from its authored file (app/seed/debugging)."""
+    out: dict[str, int] = {}
+    for path in sorted(DEBUGGING_DIR.glob("*.json")):
+        data = json.loads(path.read_text(encoding="utf-8"))
+        out[data["slug"]] = int(data["lab"]["version"])
+    return out
+
+
+def _day(dt: datetime) -> str:
+    return f"{dt.day} {dt:%b %Y}"
+
+
+LAB_UNRECORDED = (
+    f"Opening the exercise's explanation and repair wasn't recorded before {_day(LAB_RECORDED_FROM)}, "
+    "so whether it was opened before this attempt isn't known."
+)
 
 
 def round_text(timed_minutes: int | None, follow_up: str | None, ended_early: bool) -> str:
@@ -216,6 +262,58 @@ def _round(
     )
 
 
+def interview_format(session: PracticeSession) -> InterviewFormat:
+    """A coding interview's format, from what it stores: never help."""
+    minutes = (session.duration_seconds or 0) // 60 or None
+    ending: str | None = {
+        InterviewStatus.COMPLETED: "finished",
+        InterviewStatus.ABANDONED: "ended_early",
+        InterviewStatus.EXPIRED: "time_expired",
+    }.get(session.status)
+    recorded = _aware(session.started_at) >= LAB_RECORDED_FROM
+    sent = [t for t in session.turns if t.role == TurnRole.CANDIDATE]
+    checks: list[CheckMade] = []
+    for n, t in enumerate(sent, start=1):
+        if (t.meta or {}).get("checked"):
+            checks.append(
+                CheckMade(what=f"Message {n}", detail="checked before it was sent", at=t.created_at)
+            )
+    read = (session.plan or {}).get("feedback_read")
+    if isinstance(read, dict) and read.get("checked") and read.get("at"):
+        checks.append(
+            CheckMade(
+                what="The feedback's material",
+                detail="checked before it was scored",
+                at=datetime.fromisoformat(read["at"]),
+            )
+        )
+    text = f"A {minutes}-minute coding interview" if minutes else "A coding interview"
+    text += {
+        "finished": ", finished",
+        "ended_early": ", ended early",
+        "time_expired": "; time ran out",
+        None: ", in progress",
+    }[ending]
+    messages = sum(1 for c in checks if c.what.startswith("Message "))
+    if not recorded:
+        text += "; whether messages were checked before they were sent wasn't recorded then"
+    elif sent:
+        text += f"; {messages} of {len(sent)} {'message' if len(sent) == 1 else 'messages'} checked before sending"
+    else:
+        text += "; no messages sent"
+    if any(c.what == "The feedback's material" for c in checks):
+        text += "; the feedback's material checked before it was scored"
+    elif ending is not None and isinstance(read, dict) and read.get("checked") is False:
+        text += "; the feedback's material not checked"
+    return InterviewFormat(
+        timed_minutes=minutes,
+        ending=ending,
+        checks_recorded=recorded,
+        checks=sorted(checks, key=lambda c: _aware(c.at)),
+        text=text + ".",
+    )
+
+
 class Conditions:
     def __init__(self, db: Session, user: User):
         self.db = db
@@ -223,12 +321,8 @@ class Conditions:
 
     # --- coding attempts --------------------------------------------------------------------------
 
-    def for_submissions(self, subs: Iterable[Submission]) -> dict[str, AttemptConditions]:
-        subs = list(subs)
-        if not subs:
-            return {}
-        problem_ids = {s.problem_id for s in subs}
-        current = problem_versions(self.db, problem_ids)
+    def _hints(self, problem_ids: set[int]) -> dict[int, list[AIInteraction]]:
+        """The hints shown for these problems, oldest first (a failed request saved nothing)."""
         hints: dict[int, list[AIInteraction]] = defaultdict(list)
         for h in self.db.scalars(
             select(AIInteraction)
@@ -241,6 +335,28 @@ class Conditions:
             .order_by(AIInteraction.created_at)
         ):
             hints[h.problem_id].append(h)
+        return hints
+
+    def _reveals(self, problem_ids: set[int]) -> dict[int, list[LabReveal]]:
+        """When this learner opened these debugging exercises' explanations, oldest first."""
+        out: dict[int, list[LabReveal]] = defaultdict(list)
+        for r in self.db.scalars(
+            select(LabReveal)
+            .where(LabReveal.user_id == self.user.id, LabReveal.problem_id.in_(problem_ids))
+            .order_by(LabReveal.created_at)
+        ):
+            out[r.problem_id].append(r)
+        return out
+
+    def for_submissions(self, subs: Iterable[Submission]) -> dict[str, AttemptConditions]:
+        """Hints for the problem; for a debugging exercise also its explanation and repair opened
+        (Volume 16, prompt 2) and any lesson that prepares it, each since the previous attempt."""
+        subs = list(subs)
+        if not subs:
+            return {}
+        problem_ids = {s.problem_id for s in subs}
+        current = problem_versions(self.db, problem_ids)
+        hints = self._hints(problem_ids)
 
         # Every attempt of these problems in the same mode, to find the one before each: help
         # belongs to the first attempt after it, so an attempt shows only what came since the last.
@@ -252,6 +368,30 @@ class Conditions:
         ):
             attempts[(pid, str(mode))].append(_aware(at))
 
+        # A debugging exercise's attempt records the exercise's version (it always has: the lab and
+        # that column arrived together), so it's told apart without another read.
+        debug = [s for s in subs if s.lab_version is not None]
+        reveals: dict[int, list[LabReveal]] = defaultdict(list)
+        lessons: dict[str, tuple[list[HelpShown], bool]] = {}
+        if debug:
+            reveals = self._reveals({s.problem_id for s in debug})
+            if any(ref.startswith("debug:") for u in UNIT_INDEX.values() for ref in u.prepares):
+                slugs = dict(
+                    self.db.execute(
+                        select(Problem.id, Problem.slug).where(Problem.id.in_({s.problem_id for s in debug}))
+                    ).all()
+                )
+                earlier = {
+                    (slugs[pid], mode): times for (pid, mode), times in attempts.items() if pid in slugs
+                }
+                lessons = self._lesson_help(
+                    [
+                        (s.id, f"debug:{slugs[s.problem_id]}", s.lab_version or 0, s.created_at, str(s.mode))
+                        for s in debug
+                    ],
+                    earlier,
+                )
+
         def version(recorded: int | None, pid: int) -> int | None:
             # Not recorded: known only if the problem never had another version.
             return recorded if recorded is not None else (1 if current[pid] == 1 else None)
@@ -260,35 +400,150 @@ class Conditions:
         for s in subs:
             at = _aware(s.created_at)
             since = max((t for t in attempts[(s.problem_id, str(s.mode))] if t < at), default=None)
-            sv = version(s.content_version, s.problem_id)
-            shown: list[HelpShown] = []
-            unknown = False
-            for h in hints[s.problem_id]:
-                when = _aware(h.created_at)
-                if when >= at:
-                    break  # afterwards: the next attempt's, never this one's
-                if since is not None and when <= since:
-                    continue  # before the previous attempt: that one's
-                hv = version(h.content_version, s.problem_id)
-                if hv is None or sv is None:
-                    unknown = True
-                    continue
-                if hv != sv or h.hint_level is None:
-                    continue
-                level = h.hint_level
-                shown.append(
-                    HelpShown(
-                        label="Solution revealed" if level >= SOLUTION_LEVEL else "Hint shown",
-                        detail=f"Level {level} hint ({HINT_LEVEL_NAMES.get(level, 'hint')})"
-                        + (": the full explanation" if level >= SOLUTION_LEVEL else ""),
-                        at=h.created_at,
+            shown, unknown = self._hints_between(
+                hints[s.problem_id], since, at, s.content_version, version, s.problem_id
+            )
+            unrecorded = None
+            if s.lab_version is not None:
+                if at < LAB_RECORDED_FROM:
+                    unrecorded = LAB_UNRECORDED
+                for r in reveals[s.problem_id]:
+                    when = _aware(r.created_at)
+                    if when >= at:
+                        break  # afterwards: the next attempt's
+                    if since is not None and when <= since:
+                        continue  # before the previous attempt: that one's
+                    if r.lab_version != s.lab_version:
+                        continue  # opened while the exercise was at another version
+                    shown.append(
+                        HelpShown(
+                            label="Solution revealed",
+                            detail=f"The exercise's explanation and a correct repair (version {r.lab_version})",
+                            at=r.created_at,
+                        )
                     )
-                )
-            out[s.id] = conditions(shown, s.created_at, unknown=unknown)
+                    break  # one opening per attempt: asking again is the same one
+                read, read_unknown = lessons.get(s.id, ([], False))
+                shown.extend(read)
+                unknown = unknown or read_unknown
+            out[s.id] = conditions(shown, s.created_at, unknown=unknown, unrecorded=unrecorded)
         return out
+
+    @staticmethod
+    def _hints_between(
+        rows: list[AIInteraction],
+        since: datetime | None,
+        at: datetime,
+        recorded_version: int | None,
+        version,
+        problem_id: int,
+        *,
+        title: str | None = None,
+        started_at: datetime | None = None,
+    ) -> tuple[list[HelpShown], bool]:
+        """The hints shown after `since` and before `at`, at the attempt's version: each as "Hint shown"
+        (levels 1-3) or "Solution revealed" (level 4). With `title`, a coding interview's: each says
+        which problem and whether it was before or during the interview, in the hint panel's words."""
+        sv = version(recorded_version, problem_id)
+        shown: list[HelpShown] = []
+        unknown = False
+        for h in rows:
+            when = _aware(h.created_at)
+            if when >= at:
+                break  # afterwards: the next attempt's, never this one's
+            if since is not None and when <= since:
+                continue  # before the previous attempt: that one's
+            hv = version(h.content_version, problem_id)
+            if hv is None or sv is None:
+                unknown = True
+                continue
+            if hv != sv or h.hint_level is None:
+                continue
+            level = h.hint_level
+            name = HINT_LEVEL_NAMES.get(level, "hint")
+            if title is None:
+                detail = f"Level {level} hint ({name})" + (
+                    ": the full explanation" if level >= SOLUTION_LEVEL else ""
+                )
+            else:
+                during = started_at is not None and when >= _aware(started_at)
+                detail = f"Level {level} hint, “{name.capitalize()}”, on {title}, " + (
+                    "during the interview" if during else "before the interview"
+                )
+            shown.append(
+                HelpShown(
+                    label="Solution revealed" if level >= SOLUTION_LEVEL else "Hint shown",
+                    detail=detail,
+                    at=h.created_at,
+                )
+            )
+        return shown, unknown
 
     def for_submission(self, sub: Submission) -> AttemptConditions:
         return self.for_submissions([sub])[sub.id]
+
+    # --- coding interviews ------------------------------------------------------------------------
+
+    def for_interviews(self, sessions: Iterable[PracticeSession]) -> dict[str, AttemptConditions]:
+        """A coding interview (Volume 16, prompt 2): the hints for its problem shown before it ended,
+        since the previous coding interview of that problem ended, at the problem's version when it
+        started; and its format, read from what it stores: the time limit, how it ended, and each
+        message and the feedback checked before it was sent, once it's over. Checking is never help. A career
+        interview's answers have their own (`for_answers`); they aren't described here."""
+        rows = [
+            x
+            for x in sessions
+            if x.mode == PracticeMode.INTERVIEW
+            and x.problem_id is not None
+            and x.status != InterviewStatus.IN_PROGRESS  # described once it's over
+        ]
+        if not rows:
+            return {}
+        problem_ids = {x.problem_id for x in rows if x.problem_id is not None}
+        current = problem_versions(self.db, problem_ids)
+        hints = self._hints(problem_ids)
+        titles = dict(
+            self.db.execute(select(Problem.id, Problem.title).where(Problem.id.in_(problem_ids))).all()
+        )
+        ends: dict[int, list[datetime]] = defaultdict(list)
+        for pid, ended in self.db.execute(
+            select(PracticeSession.problem_id, PracticeSession.ended_at).where(
+                PracticeSession.user_id == self.user.id,
+                PracticeSession.mode == PracticeMode.INTERVIEW,
+                PracticeSession.problem_id.in_(problem_ids),
+                PracticeSession.ended_at.is_not(None),
+            )
+        ):
+            if pid is not None and ended is not None:
+                ends[pid].append(_aware(ended))
+
+        def version(recorded: int | None, pid: int) -> int | None:
+            return recorded if recorded is not None else (1 if current[pid] == 1 else None)
+
+        now = datetime.now(UTC)
+        out: dict[str, AttemptConditions] = {}
+        for x in rows:
+            pid = x.problem_id
+            assert pid is not None
+            end = _aware(x.ended_at) if x.ended_at else now  # closed: ended_at is set; `now` is a guard
+            since = max((t for t in ends[pid] if t < end), default=None)
+            plan = x.plan or {}
+            shown, unknown = self._hints_between(
+                hints[pid],
+                since,
+                end,
+                plan.get("content_version"),
+                version,
+                pid,
+                title=f"“{titles.get(pid, 'this problem')}”",
+                started_at=x.started_at,
+            )
+            c = conditions(shown, x.started_at, unknown=unknown)
+            out[x.id] = c.model_copy(update={"interview": interview_format(x)})
+        return out
+
+    def for_interview(self, session: PracticeSession) -> AttemptConditions | None:
+        return self.for_interviews([session]).get(session.id)
 
     # --- career written answers -------------------------------------------------------------------
 
@@ -548,6 +803,24 @@ class Conditions:
         """(id, ref, version, made at, mode) → the lessons preparing `ref` read since the previous
         attempt at it (in the same mode), before this one, while it was at this version; plus any
         help the attempt itself stored (`stored`, by id)."""
+        found = self._lesson_help(items, earlier)
+        made = {item_id: at for item_id, _, _, at, _ in items}
+        return {
+            item_id: conditions(
+                list((stored or {}).get(item_id, [])) + shown,
+                made[item_id],
+                unknown=unknown,
+                recorded_from=FORMATS_RECORDED_FROM,
+            )
+            for item_id, (shown, unknown) in found.items()
+        }
+
+    def _lesson_help(
+        self,
+        items: list[tuple[str, str, int, datetime, str]],
+        earlier: dict[tuple[str, str], list[datetime]],
+    ) -> dict[str, tuple[list[HelpShown], bool]]:
+        """The lesson reads `_practice` describes, by id, and whether one's version wasn't known."""
         if not items:
             return {}
         refs = {ref for _, ref, _, _, _ in items}
@@ -564,12 +837,12 @@ class Conditions:
                 .order_by(LearnEvent.created_at)
             ):
                 reads[e.unit_id].append(e)
-        out: dict[str, AttemptConditions] = {}
+        out: dict[str, tuple[list[HelpShown], bool]] = {}
         for item_id, ref, version, made, mode in items:
             at = _aware(made)
             cid = ref.partition(":")[2]
             since = max((t for t in earlier.get((cid, mode), []) if t < at), default=None)
-            shown: list[HelpShown] = list((stored or {}).get(item_id, []))
+            shown: list[HelpShown] = []
             unknown = False
             for u in units.values():
                 if ref not in u.prepares:
@@ -592,5 +865,5 @@ class Conditions:
                         HelpShown(label="Hint shown", detail=f"Lesson “{u.title}” read", at=e.created_at)
                     )
                     break  # one entry per lesson
-            out[item_id] = conditions(shown, made, unknown=unknown, recorded_from=FORMATS_RECORDED_FROM)
+            out[item_id] = (shown, unknown)
         return out

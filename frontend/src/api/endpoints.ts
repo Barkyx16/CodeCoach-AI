@@ -363,6 +363,9 @@ export const api = {
     apiRequest<DifficultyCounts>("/api/v1/problems/counts", { query: { ...filters }, signal }),
   topics: () => apiRequest<TopicCount[]>("/api/v1/topics"),
   labExplanation: (slug: string) => apiRequest<LabExplanation>(`/api/v1/problems/${encodeURIComponent(slug)}/lab/explanation`, { auth: false }),
+  /** The same, recorded as help for your next attempt at this version (docs/ATTEMPT_CONDITIONS.md). */
+  openLabExplanation: (slug: string) =>
+    apiRequest<LabExplanation>(`/api/v1/problems/${encodeURIComponent(slug)}/lab/explanation`, { method: "POST" }),
 
   // careers and their interview questions
   careers: () => apiRequest<Career[]>("/api/v1/careers"),

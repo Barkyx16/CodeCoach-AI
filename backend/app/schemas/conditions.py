@@ -34,6 +34,32 @@ class RoundConditions(APIModel):
     text: str = Field(description="One line, e.g. 'A 15-minute timed mock interview; no follow-up.'")
 
 
+class CheckMade(APIModel):
+    """Something the learner checked before it left CodeCoach: part of how a coding interview was
+    given, never help."""
+
+    what: str = Field(description="e.g. 'Message 2' or 'The feedback's material'")
+    detail: str = Field(description="e.g. 'checked before it was sent'")
+    at: datetime
+
+
+class InterviewFormat(APIModel):
+    """A coding interview's format (Volume 16, prompt 2): its time limit, how it ended, and what was
+    checked before it was sent. Read from what the interview stores; never help."""
+
+    timed_minutes: int | None
+    ending: Literal["finished", "ended_early", "time_expired"] | None = Field(
+        description="None while it's in progress"
+    )
+    checks_recorded: bool = Field(
+        description="Whether checked messages were recorded; false for interviews from before 16 Nov 2026"
+    )
+    checks: list[CheckMade] = Field(description="Each message and the feedback checked first, oldest first")
+    text: str = Field(
+        description="One line, e.g. 'A 45-minute coding interview, finished; 1 of 3 messages checked.'"
+    )
+
+
 class AttemptConditions(APIModel):
     labels: list[ConditionsLabel] = Field(
         description="'Hint shown' and/or 'Solution revealed'; or 'No in-app help recorded'; or 'Not recorded' "
@@ -45,6 +71,13 @@ class AttemptConditions(APIModel):
     round: RoundConditions | None = Field(
         default=None,
         description="For an answer given in an interview round: its format, recorded with the round",
+    )
+    interview: InterviewFormat | None = Field(
+        default=None, description="For a coding interview: its format and what was checked, never help"
+    )
+    unrecorded: str | None = Field(
+        default=None,
+        description="Help of a kind that wasn't recorded when this attempt was made, said rather than guessed",
     )
 
 
@@ -60,6 +93,11 @@ class ConditionsQuery(APIModel):
     code_review_attempt_ids: list[str] = Field(default_factory=list, max_length=50)
     comparison_attempt_ids: list[str] = Field(default_factory=list, max_length=50)
     work_sample_attempt_ids: list[str] = Field(default_factory=list, max_length=50)
+    interview_ids: list[str] = Field(
+        default_factory=list,
+        max_length=50,
+        description="Coding interviews (a round's answers have their own)",
+    )
 
 
 class ConditionsOut(APIModel):
@@ -71,3 +109,4 @@ class ConditionsOut(APIModel):
     code_review_attempts: dict[str, AttemptConditions] = Field(default_factory=dict)
     comparison_attempts: dict[str, AttemptConditions] = Field(default_factory=dict)
     work_sample_attempts: dict[str, AttemptConditions] = Field(default_factory=dict)
+    interviews: dict[str, AttemptConditions] = Field(default_factory=dict)

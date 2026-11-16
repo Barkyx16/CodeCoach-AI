@@ -124,6 +124,15 @@ from the career catalog, so they're referenced by `(track, question_id)`, not a 
 | `folded` | varchar(80) | The same in one letter case: unique per account, so the same name twice is one row |
 | `created_at`, `updated_at` | timestamptz | |
 
+### `lab_reveals`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | varchar(36) PK | UUID4 |
+| `user_id` | FK → users (cascade) | Owner-only under row-level security (migration `b2e6d4a8c157`) |
+| `problem_id` | FK → problems | The debugging exercise whose explanation and repair were opened |
+| `lab_version` | int | The exercise's version then: only an attempt at that version counts it |
+| `created_at` | timestamptz | When it was opened; one row until the learner's next attempt (index on `user_id, problem_id, created_at`) |
+
 ### `refresh_tokens`
 | Column | Type | Notes |
 |---|---|---|

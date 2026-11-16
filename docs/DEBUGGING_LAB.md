@@ -60,11 +60,14 @@ alternative repair through the real judge (`tests/test_judge_sandbox.py`, `e2e/j
   case to try) stay in this browser for the signed-in account and are removed at sign-out; nothing
   requires them.
 - **When asked** (a two-step "Stuck? Show the explanation"): the defect, why a simple case misses
-  it, one correct repair and a follow-up. Asking isn't recorded anywhere. The explanation endpoint
-  (`GET /api/v1/problems/{slug}/lab/explanation`) returns authored text only, never a hidden test.
+  it, one correct repair and a follow-up. Signed in, opening it is recorded as help for your next
+  attempt at that version, which says "Solution revealed" (docs/ATTEMPT_CONDITIONS.md, from 16 Nov
+  2026; Volume 16, prompt 2); it changes no verdict. The page asks with
+  `POST /api/v1/problems/{slug}/lab/explanation`; `GET` returns the same and records nothing. Both
+  return authored text only, never a hidden test.
 - **After an attempt:** the judge's verdict in the lab's terms ("Fixed: every test passes" only on
   a pass), whether each reproduction case now passes, and a line diff of what changed from the
-  starting code. On a pass, "Why it happened". Any repair that passes is accepted: nothing compares
+  starting code. On a pass, "Why it happened" (the explanation, so it's recorded the same way). Any repair that passes is accepted: nothing compares
   it with the reference text.
 - **History:** the code the attempt started from (with its version) and the code sent, apart from
   the verdict and any AI review.

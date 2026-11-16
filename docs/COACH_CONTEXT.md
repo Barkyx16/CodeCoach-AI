@@ -122,7 +122,10 @@ builds the material again and sends only if it's identical. Otherwise nothing is
 interviewer would read changed since you checked it, so nothing was sent." Before sending, the page
 says when your message, your code or the conversation changed since the check (**Check again**; the
 send waits). Finish and End early are bound the same way, and a refused one leaves the interview
-open. A message resent after a lost reply is answered once, as before.
+open. A message resent after a lost reply is answered once, as before. From 16 Nov 2026 a message
+sent checked is marked so (`interview_turns.meta.checked`), and the interview's review lists which
+were, with the feedback's check, as part of how it was given (docs/ATTEMPT_CONDITIONS.md, "Coding
+interviews"; never help).
 
 The interviewer's questions, phases, timing and the 30-message limit are unchanged. Previews share
 the 60-a-minute limit with the others, call nothing, spend nothing and store nothing; only the

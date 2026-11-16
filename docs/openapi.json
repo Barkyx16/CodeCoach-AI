@@ -1771,7 +1771,7 @@
           "problems"
         ],
         "summary": "A debugging exercise's defect explanation and reference repair (shown when the learner asks)",
-        "description": "Authored content, the same for everyone: what the defect is, why a simple case misses it,\none correct repair and a follow-up. It reveals no hidden test. Asking for it is recorded nowhere:\nlooking is part of learning, not a mark against the learner.",
+        "description": "Authored content, the same for everyone: what the defect is, why a simple case misses it,\none correct repair and a follow-up. It reveals no hidden test. This read records nothing; the\nworkspace opens it with POST, which records it as help for the next attempt (Volume 16, prompt 2).\nLooking is part of learning, not a mark against the learner: it changes no verdict.",
         "operationId": "get_lab_explanation_api_v1_problems__slug__lab_explanation_get",
         "parameters": [
           {
@@ -1791,6 +1791,72 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/LabExplanation"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "problems"
+        ],
+        "summary": "Open a debugging exercise's explanation and repair, recorded as help for your next attempt",
+        "description": "The same authored content as the GET, recorded for you: your next attempt at this version\nof the exercise says \"Solution revealed\" (docs/ATTEMPT_CONDITIONS.md). Opening it again before\nthat attempt is the same opening. It changes no verdict, score or progress.",
+        "operationId": "open_lab_explanation_api_v1_problems__slug__lab_explanation_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LabExplanation"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }
@@ -28156,6 +28222,29 @@
               }
             ],
             "description": "For an answer given in an interview round: its format, recorded with the round"
+          },
+          "interview": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InterviewFormat"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For a coding interview: its format and what was checked, never help"
+          },
+          "unrecorded": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unrecorded",
+            "description": "Help of a kind that wasn't recorded when this attempt was made, said rather than guessed"
           }
         },
         "type": "object",
@@ -28953,6 +29042,33 @@
           "explanation"
         ],
         "title": "CheckItemResult"
+      },
+      "CheckMade": {
+        "properties": {
+          "what": {
+            "type": "string",
+            "title": "What",
+            "description": "e.g. 'Message 2' or 'The feedback's material'"
+          },
+          "detail": {
+            "type": "string",
+            "title": "Detail",
+            "description": "e.g. 'checked before it was sent'"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "what",
+          "detail",
+          "at"
+        ],
+        "title": "CheckMade",
+        "description": "Something the learner checked before it left CodeCoach: part of how a coding interview was\ngiven, never help."
       },
       "CheckQuestionOut": {
         "properties": {
@@ -30413,6 +30529,13 @@
             },
             "type": "object",
             "title": "Work Sample Attempts"
+          },
+          "interviews": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AttemptConditions"
+            },
+            "type": "object",
+            "title": "Interviews"
           }
         },
         "type": "object",
@@ -30487,6 +30610,15 @@
             "type": "array",
             "maxItems": 50,
             "title": "Work Sample Attempt Ids"
+          },
+          "interview_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Interview Ids",
+            "description": "Coding interviews (a round's answers have their own)"
           }
         },
         "type": "object",
@@ -35543,6 +35675,66 @@
         "type": "object",
         "title": "InterviewFinish"
       },
+      "InterviewFormat": {
+        "properties": {
+          "timed_minutes": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timed Minutes"
+          },
+          "ending": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "finished",
+                  "ended_early",
+                  "time_expired"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ending",
+            "description": "None while it's in progress"
+          },
+          "checks_recorded": {
+            "type": "boolean",
+            "title": "Checks Recorded",
+            "description": "Whether checked messages were recorded; false for interviews from before 16 Nov 2026"
+          },
+          "checks": {
+            "items": {
+              "$ref": "#/components/schemas/CheckMade"
+            },
+            "type": "array",
+            "title": "Checks",
+            "description": "Each message and the feedback checked first, oldest first"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "One line, e.g. 'A 45-minute coding interview, finished; 1 of 3 messages checked.'"
+          }
+        },
+        "type": "object",
+        "required": [
+          "timed_minutes",
+          "ending",
+          "checks_recorded",
+          "checks",
+          "text"
+        ],
+        "title": "InterviewFormat",
+        "description": "A coding interview's format (Volume 16, prompt 2): its time limit, how it ended, and what was\nchecked before it was sent. Read from what the interview stores; never help."
+      },
       "InterviewMessage": {
         "properties": {
           "message": {
@@ -35865,6 +36057,17 @@
             ],
             "title": "Feedback Check Margin Seconds",
             "description": "How long before time runs out the page offers to check what the feedback will read (a coding interview in progress; null otherwise)"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A coding interview once it's over: the in-app help before it ended and its format (docs/ATTEMPT_CONDITIONS.md). Null while it's on, and for a career interview (each answer has its own)"
           }
         },
         "type": "object",
@@ -37470,6 +37673,19 @@
           "follow_up": {
             "type": "string",
             "title": "Follow Up"
+          },
+          "recorded_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Recorded At",
+            "description": "When opening it was recorded as help for your next attempt (POST only; the GET records nothing)"
           }
         },
         "type": "object",

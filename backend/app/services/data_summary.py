@@ -148,6 +148,13 @@ CATEGORIES: tuple[Category, ...] = (
         note="Settings lists them and can offer any of them again.",
     ),
     Category(
+        "lab_reveals",
+        "work",
+        "Debugging exercises whose explanation and repair you opened",
+        ("lab_reveals",),
+        note="Your next attempt at that exercise says the solution was revealed before it.",
+    ),
+    Category(
         "listed_names",
         "account",
         "Names you listed, to be replaced in what leaves the app",

@@ -479,12 +479,19 @@ export interface paths {
         /**
          * A debugging exercise's defect explanation and reference repair (shown when the learner asks)
          * @description Authored content, the same for everyone: what the defect is, why a simple case misses it,
-         *     one correct repair and a follow-up. It reveals no hidden test. Asking for it is recorded nowhere:
-         *     looking is part of learning, not a mark against the learner.
+         *     one correct repair and a follow-up. It reveals no hidden test. This read records nothing; the
+         *     workspace opens it with POST, which records it as help for the next attempt (Volume 16, prompt 2).
+         *     Looking is part of learning, not a mark against the learner: it changes no verdict.
          */
         get: operations["get_lab_explanation_api_v1_problems__slug__lab_explanation_get"];
         put?: never;
-        post?: never;
+        /**
+         * Open a debugging exercise's explanation and repair, recorded as help for your next attempt
+         * @description The same authored content as the GET, recorded for you: your next attempt at this version
+         *     of the exercise says "Solution revealed" (docs/ATTEMPT_CONDITIONS.md). Opening it again before
+         *     that attempt is the same opening. It changes no verdict, score or progress.
+         */
+        post: operations["open_lab_explanation_api_v1_problems__slug__lab_explanation_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5877,6 +5884,13 @@ export interface components {
             note: string;
             /** @description For an answer given in an interview round: its format, recorded with the round */
             round?: components["schemas"]["RoundConditions"] | null;
+            /** @description For a coding interview: its format and what was checked, never help */
+            interview?: components["schemas"]["InterviewFormat"] | null;
+            /**
+             * Unrecorded
+             * @description Help of a kind that wasn't recorded when this attempt was made, said rather than guessed
+             */
+            unrecorded?: string | null;
         };
         /** AttemptOut */
         AttemptOut: {
@@ -6243,6 +6257,28 @@ export interface components {
             answer: number;
             /** Explanation */
             explanation: string;
+        };
+        /**
+         * CheckMade
+         * @description Something the learner checked before it left CodeCoach: part of how a coding interview was
+         *     given, never help.
+         */
+        CheckMade: {
+            /**
+             * What
+             * @description e.g. 'Message 2' or 'The feedback's material'
+             */
+            what: string;
+            /**
+             * Detail
+             * @description e.g. 'checked before it was sent'
+             */
+            detail: string;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
         };
         /**
          * CheckQuestionOut
@@ -6881,6 +6917,10 @@ export interface components {
             work_sample_attempts?: {
                 [key: string]: components["schemas"]["AttemptConditions"];
             };
+            /** Interviews */
+            interviews?: {
+                [key: string]: components["schemas"]["AttemptConditions"];
+            };
         };
         /**
          * ConditionsQuery
@@ -6904,6 +6944,11 @@ export interface components {
             comparison_attempt_ids?: string[];
             /** Work Sample Attempt Ids */
             work_sample_attempt_ids?: string[];
+            /**
+             * Interview Ids
+             * @description Coding interviews (a round's answers have their own)
+             */
+            interview_ids?: string[];
         };
         /** ContentChange */
         ContentChange: {
@@ -9133,6 +9178,35 @@ export interface components {
              */
             approved_context?: string | null;
         };
+        /**
+         * InterviewFormat
+         * @description A coding interview's format (Volume 16, prompt 2): its time limit, how it ended, and what was
+         *     checked before it was sent. Read from what the interview stores; never help.
+         */
+        InterviewFormat: {
+            /** Timed Minutes */
+            timed_minutes: number | null;
+            /**
+             * Ending
+             * @description None while it's in progress
+             */
+            ending: ("finished" | "ended_early" | "time_expired") | null;
+            /**
+             * Checks Recorded
+             * @description Whether checked messages were recorded; false for interviews from before 16 Nov 2026
+             */
+            checks_recorded: boolean;
+            /**
+             * Checks
+             * @description Each message and the feedback checked first, oldest first
+             */
+            checks: components["schemas"]["CheckMade"][];
+            /**
+             * Text
+             * @description One line, e.g. 'A 45-minute coding interview, finished; 1 of 3 messages checked.'
+             */
+            text: string;
+        };
         /** InterviewMessage */
         InterviewMessage: {
             /** Message */
@@ -9248,6 +9322,8 @@ export interface components {
              * @description How long before time runs out the page offers to check what the feedback will read (a coding interview in progress; null otherwise)
              */
             feedback_check_margin_seconds?: number | null;
+            /** @description A coding interview once it's over: the in-app help before it ended and its format (docs/ATTEMPT_CONDITIONS.md). Null while it's on, and for a career interview (each answer has its own) */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /**
          * InterviewPhase
@@ -9845,6 +9921,11 @@ export interface components {
             reference_repair: string;
             /** Follow Up */
             follow_up: string;
+            /**
+             * Recorded At
+             * @description When opening it was recorded as help for your next attempt (POST only; the GET records nothing)
+             */
+            recorded_at?: string | null;
         };
         /** LearnCatalog */
         LearnCatalog: {
@@ -17991,6 +18072,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LabExplanation"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_lab_explanation_api_v1_problems__slug__lab_explanation_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabExplanation"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Not found (also returned for resources owned by another user) */

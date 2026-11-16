@@ -53,9 +53,15 @@ export function useProblems(filters: ProblemFilters, enabled = true) {
   });
 }
 
-/** A debugging exercise's explanation and reference repair: fetched only once the learner asks. */
-export function useLabExplanation(slug: string, enabled: boolean) {
-  return useQuery({ queryKey: ["problems", slug, "lab-explanation"], queryFn: () => api.labExplanation(slug), enabled, staleTime: Infinity });
+/** A debugging exercise's explanation and reference repair: fetched only once it's shown. Signed in,
+ * opening it is recorded as help for the next attempt ("Solution revealed"); signed out, nothing is. */
+export function useLabExplanation(slug: string, enabled: boolean, signedIn: boolean) {
+  return useQuery({
+    queryKey: ["problems", slug, "lab-explanation", signedIn ? "recorded" : "read"],
+    queryFn: () => (signedIn ? api.openLabExplanation(slug) : api.labExplanation(slug)),
+    enabled,
+    staleTime: Infinity,
+  });
 }
 
 /** How many problems match the topic and search, per difficulty (the library tab counts). */

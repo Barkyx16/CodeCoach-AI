@@ -1251,6 +1251,23 @@ class OnboardingState(Base):
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
+class LabReveal(Base):
+    """A debugging exercise's explanation and reference repair, shown because the learner asked
+    (Volume 16, prompt 2; docs/DEBUGGING_LAB.md, docs/ATTEMPT_CONDITIONS.md): which exercise, its
+    version then, and when. It's "Solution revealed" for the next attempt at that version. One row
+    per opening since the learner's last attempt at it, so asking again adds nothing. Deleted with
+    the account."""
+
+    __tablename__ = "lab_reveals"
+    __table_args__ = (Index("ix_lab_reveals_user_problem", "user_id", "problem_id", "created_at"),)
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    problem_id: Mapped[int] = mapped_column(ForeignKey("problems.id"))
+    lab_version: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
 class ListedName(Base):
     """A name the learner doesn't want anywhere outside the app (Volume 15, prompt 7;
     docs/PRIVACY.md, "Names you listed"): the practice packet, a shared answer and every coach-context

@@ -232,6 +232,8 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | GET | `/api/v1/submissions/{id}` | 🔒 | Poll a submission |
 | GET | `/api/v1/me/submissions` | 🔒 | Attempt history |
 | GET | `/api/v1/careers/{slug}/questions/{question_id}/follow-up` | 🔒 | A reviewed follow-up question after repeated practice (docs/FOLLOW_UPS.md) |
+| GET | `/api/v1/problems/{slug}/lab/explanation` | – | A debugging exercise's explanation and repair (authored; records nothing) |
+| POST | `/api/v1/problems/{slug}/lab/explanation` | 🔒 | The same, recorded as help for your next attempt at this version: "Solution revealed" (docs/ATTEMPT_CONDITIONS.md); asking again before then is the same opening |
 | GET | `/api/v1/problems/{slug}/follow-ups` | 🔒 | A reviewed follow-up problem after a judged submission passed, and the follow-ups submitted from it (docs/FOLLOW_UPS.md, "Coding problems") |
 | POST | `/api/v1/problems/{slug}/follow-ups/{to_slug}/dismiss` | 🔒 | Not now: kept with the account, so it stays dismissed on every device |
 | GET | `/api/v1/me/dismissals` | 🔒 | Suggestions you dismissed with "Not now", in plain words (docs/FOLLOW_UPS.md, "Not now") |
@@ -242,7 +244,7 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | DELETE | `/api/v1/me/listed-names/{id}` | 🔒 | Remove one (`204`) |
 | DELETE | `/api/v1/me/dismissals?key=` | 🔒 | Offer a dismissed suggestion again; it then follows its own rules |
 | GET | `/api/v1/me/careers/{slug}/analytics/attempts?since=&until=&offset=&limit≤100` | 🔒 | Every answer in an analytics range: in the trend or why not, each with its comparison with the answer before it (docs/COMPARING_ATTEMPTS.md) |
-| POST | `/api/v1/me/attempt-conditions` | 🔒 | The in-app help shown before each of up to 50 submissions, answers, drill attempts, scenario runs, whiteboard attempts, code reviews, comparison readings and work-sample attempts (docs/ATTEMPT_CONDITIONS.md) |
+| POST | `/api/v1/me/attempt-conditions` | 🔒 | The in-app help shown before each of up to 50 submissions, answers, drill attempts, scenario runs, whiteboard attempts, code reviews, comparison readings, work-sample attempts and finished coding interviews (docs/ATTEMPT_CONDITIONS.md) |
 | POST | `/api/v1/ai/hint` | 🔒 | Progressive hint |
 | POST | `/api/v1/ai/review/preview` | 🔒 | What a review would send, exactly (no coach call, no budget) |
 | POST | `/api/v1/ai/review` | 🔒 | Structured code review |
