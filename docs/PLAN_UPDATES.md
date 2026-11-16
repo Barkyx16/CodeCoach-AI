@@ -32,18 +32,59 @@ Since the version was made, and not used by any activity in it:
 - **Judged coding submissions** (Volume 14, prompt 2), for a career with coding: submissions (not
   runs, which check the public tests only) that the judge gave a verdict on, named with it: "1
   submission (not passed) since this plan.", "3 submissions (2 not passed)", "2 submissions (both
-  passed)". Attempts only saved (no judge on the server) and the judge's own failures aren't
-  verdicts, so they aren't counted. A submission that completed a coding activity in the version is
-  that activity's, not new. To see whether they change anything, the coding recommender reads the
-  learner's submissions with these left out (`ProgressService.recommend(leave_out=...)`).
+  passed)". Attempts only saved (no judge on the server) aren't verdicts, so they aren't counted. A
+  submission that completed a coding activity in the version is that activity's, not new. To see
+  whether they change anything, the coding recommender reads the learner's submissions with these
+  left out (`ProgressService.recommend(leave_out=...)`).
+- **Judged debugging exercises** (Volume 16, prompt 7), by the same rule: a submission to an
+  exercise counts for the skills the exercise names (its topics after "debugging" itself), in the
+  weak-topic and difficulty-ladder rules exactly as a problem's does. An exercise is never suggested
+  itself: the plan's coding activities are problems.
+
+How code counts, said under the preview whenever code is among what's new: "How code counts: a pass
+counts as solved; failed tests, errors and time or memory limits count as tried, not solved. A
+verdict is never turned into a score." Each submission is named with its verdict in the judge's
+terms (`verdict_detail`: passed, tests failed, compile error, runtime error, time limit exceeded,
+memory limit exceeded) and never a score (`score` stays null).
 
 Not counted, and named as not counted when an update is offered:
 
 - answers too short to score ("1 answer too short to score isn’t counted.");
-- answers whose feedback as a whole the learner disputed (docs/DISPUTES.md).
+- answers whose feedback as a whole the learner disputed (docs/DISPUTES.md);
+- submissions the judge couldn't run (`INTERNAL_ERROR`: its own problem, not the learner's code):
+  "1 submission the judge couldn't run isn’t counted: that was a problem on the judge's side, not
+  your code." (Volume 16, prompt 7). The plan doesn't read one as an attempt anywhere: the coding
+  recommender leaves it out (so it never asks to "finish" a problem the judge failed on), and it
+  doesn't complete a coding activity.
 
 Not counted at all yet: accepted improvements (they have their own section of the plan page and
-the planner doesn't choose from them), lessons, reflections.
+the planner doesn't choose from them), lessons, reflections. The plan page says which evidence the
+plan reads, in a sentence from the server (`evidence_read`): "This plan reads your scored answers to
+Software Engineer questions, your finished question rounds and the lesson checks you've passed, and
+the judge's verdicts on code you submit: to problems, and to debugging exercises for the skills they
+name (not runs, which check the public tests only). Lessons and accepted improvements don't count as
+new practice yet." A career without coding says the first part only.
+
+## What each skill's evidence would move
+
+The preview groups what's new by skill (`news.by_skill`, Volume 16, prompt 7), oldest first, in one
+sentence each: what's new, what it counts as, and what the next version would suggest or stop
+suggesting because of it.
+
+> Arrays: “Contains Duplicate” passed, which counts as solved, so the next version would suggest
+> “Solve: First Unique Character” and not “Solve: Find Largest Number”.
+>
+> Strings: “Valid Parentheses” didn't pass (compile error), which counts as tried, not solved, so
+> the next version would suggest “Solve: Valid Parentheses”.
+
+A skill is a question's skill, a problem's first topic (as the plan's coding activities are
+labelled), an exercise's first topic after "debugging", or the kind of round ("Interview practice",
+"Baseline"). The planner is asked once with and without all of what's new (as before); an activity
+that differs is put on the skill whose evidence is on its problem or question, else on its own
+skill, else on a topic the new code practises. With one skill, everything that moves is its. What
+can't be put on one is said once: "From all of it together, the next version would also suggest
+…". A skill whose evidence moves nothing on its own says so ("…; on its own that changes nothing
+the plan chooses."). No more planner runs: the attribution reads the two plans already made.
 
 ## Whether it changes anything
 
@@ -85,6 +126,15 @@ answer and round; the Today card shows the line and the button only.
 After pressing, focus moves to the result line (the button is gone). Disputed feedback stays out of
 the update as everywhere else: the version is built by the same `_new_version`.
 
+The version an update makes records the judged submissions it read, by id, oldest first
+(`practice_plans.read_submissions`, migration `d4a9b2e6f137`; Volume 16, prompt 7): `[]` for an
+update that read no code, null for a version made otherwise (an activity done, goals changed) and
+for every version from before. The plan response lists them (`read_submissions`: id, title, verdict,
+whether an exercise, link; one statement, only for such a version; one no longer stored is listed
+by id), the "Your plan changed" panel shows "Code this update read as new evidence", and the export
+carries the ids on each version (`practice_plans[].read_submissions`). A version from before reads
+exactly as it did. Not pressing changes nothing: no version, no item, nothing applied later.
+
 ## Boundaries
 
 - Another account's practice never counts or shows: every query is the learner's own (and row-level
@@ -109,11 +159,17 @@ the update as everywhere else: the version is built by the same `_new_version`.
 | A started round's activity dropped without saying so | `test_dropping_an_activity_the_learner_started_says_so` |
 | Rounds, or retries, not counted | `test_a_finished_round_and_its_answers_are_counted`, `test_a_revision_is_counted_as_a_retry` |
 | A conflict shown as a failure; focus left behind; a no-op claimed as a new version; no line on Today; a failure not said | `planNews.test.tsx` (and Today: `plan-updates.spec.ts`) |
+| Runs counted; another career reading code; the judge's failure counted, read as an attempt or completing an activity; a verdict as a score; exercises not read, or suggested; what an update read not recorded or not exported; another account's code counted; moves not put on their skill (Volume 16, prompt 7) | `tests/test_plan_code_evidence.py` (13) |
+| The skill sentences, the rule, the verdict's own words, an exercise's name, the code an update read or what the plan reads not shown | `planCodeEvidence.test.tsx` |
 
 ## Limits
 
-- A judged submission's verdict is said as passed or not passed; the counts and the comparison are
-  on the submission's own page.
+- A judged submission's verdict is said in the judge's terms; the counts and the comparison are on
+  the submission's own page.
+- An activity is put on a skill by what it's for, not by asking the planner once per skill: when
+  several skills' evidence together moves an activity that isn't on any one of them, it's said once
+  for all of it. A problem counts for its first topic in the preview; the planner's rules read all
+  its topics.
 - Whether the plan would change is decided by which activities are chosen, not their order or the
   numbers in their reasons.
 - A dispute or its reinstatement isn't "new practice": it shows on the plan at once (labels) and

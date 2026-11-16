@@ -132,7 +132,39 @@ class NewEvidence(APIModel):
     verdict: Literal["passed", "not passed"] | None = Field(
         default=None, description="A submission's verdict, as judged"
     )
+    verdict_detail: str | None = Field(
+        default=None,
+        description="A submission's verdict in the judge's terms: 'passed', 'tests failed', 'compile error', "
+        "'runtime error', 'time limit exceeded' or 'memory limit exceeded' (never a score)",
+    )
+    exercise: bool = Field(default=False, description="A submission to a debugging exercise, not a problem")
+    skill: str | None = Field(
+        default=None,
+        description="The skill it's evidence for, as grouped in `by_skill`: a question's skill, a problem's "
+        "first topic, a debugging exercise's first topic after 'debugging', or the kind of round",
+    )
     href: str
+
+
+class SkillNews(APIModel):
+    """What's new for one skill and what it would move in the next version, in one sentence."""
+
+    skill: str | None = Field(
+        description="The skill; none for what all of what's new moves together, when it can't be put on one"
+    )
+    count: int = Field(description="How many of the new pieces of evidence are for this skill")
+    text: str = Field(
+        description="One sentence: what's new, what it counts as, and what the next version would suggest "
+        "or stop suggesting because of it (or that it changes nothing on its own)"
+    )
+
+
+class ReadSubmission(APIModel):
+    id: str
+    title: str | None = Field(description="The problem or exercise; none if it's no longer stored")
+    verdict: Literal["passed", "not passed"] | None = None
+    exercise: bool = False
+    href: str | None = None
 
 
 class PlanNews(APIModel):
@@ -151,7 +183,15 @@ class PlanNews(APIModel):
     entries: list[NewEvidence] = Field(description="Them, oldest first (at most 10)")
     not_counted: list[str] = Field(
         default_factory=list,
-        description="Answers since this version the plan doesn't use: too short to score, or disputed",
+        description="Practice since this version the plan doesn't use: answers too short to score or "
+        "disputed, and submissions the judge couldn't run (its problem, not the learner's code)",
+    )
+    by_skill: list[SkillNews] = Field(
+        default_factory=list,
+        description="What's new grouped by skill, oldest first, one sentence each (Volume 16, prompt 7)",
+    )
+    rule: str | None = Field(
+        default=None, description="How a verdict counts, when submissions are among what's new"
     )
 
 
@@ -181,4 +221,13 @@ class PlanOut(APIModel):
     news: PlanNews | None = Field(
         default=None,
         description="New practice this version doesn't use that would change it; the plan updates only when asked",
+    )
+    read_submissions: list[ReadSubmission] | None = Field(
+        default=None,
+        description="The judged submissions the update that made this version read as new evidence, oldest "
+        "first; none when the version wasn't made by 'Update my plan' (or was made before this was recorded)",
+    )
+    evidence_read: str = Field(
+        default="",
+        description="Which kinds of evidence this career's plan reads, in a sentence",
     )

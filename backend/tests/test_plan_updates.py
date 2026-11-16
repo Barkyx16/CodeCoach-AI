@@ -178,6 +178,9 @@ def test_a_finished_round_and_its_answers_are_counted(client):
         "title": "Practice round (3 questions)",
         "score": None,
         "verdict": None,
+        "verdict_detail": None,
+        "exercise": False,
+        "skill": "Interview practice",
         "href": f"/interviews/{iv['id']}",
     } in news["entries"]
     v2 = update(client, h, 1).json()

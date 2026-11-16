@@ -27,8 +27,14 @@ new pieces reuse `ActivityCard`, `MoreOptions`, `Button`, `Icon` and live in `sr
   target. The session estimate is what the plan holds.
 - **Completion** is reconciled lazily on `GET /me/plan` (`Roadmap._sync`) from evidence recorded
   after the activity was planned: a saved answer (question/retry), a voice turn (voice), a finished
-  round (mock/assessment), a lesson event (learn). Completing an activity starts a new plan version
-  with new item ids, and the change list says `Done: “title” (label).`
+  round (mock/assessment), a lesson event (learn), a submission (coding; not one the judge failed
+  to run, since Volume 16, prompt 7). Completing an activity starts a new plan version with new item
+  ids, and the change list says `Done: “title” (label).`
+- **New evidence** (docs/PLAN_UPDATES.md): practice the version doesn't use (scored answers,
+  finished rounds, and for an engineer judged submissions to problems and debugging exercises, not
+  runs) is named on the plan, grouped by skill with what it would move, and changes the plan only
+  when the learner presses "Update my plan"; that version records the submissions it read, by id.
+  The plan page says which kinds of evidence the plan reads.
 - **Swap** (`POST /me/plan/items/{id}/replace`) keeps skill and level, avoids anything skipped or
   swapped in the last 7 days, and returns 409 `no_alternative` when nothing is left.
 - **Schedule** entries reference a plan item by `(kind="plan_item", ref=item id)`. They have

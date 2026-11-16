@@ -38686,6 +38686,36 @@
             "title": "Verdict",
             "description": "A submission's verdict, as judged"
           },
+          "verdict_detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict Detail",
+            "description": "A submission's verdict in the judge's terms: 'passed', 'tests failed', 'compile error', 'runtime error', 'time limit exceeded' or 'memory limit exceeded' (never a score)"
+          },
+          "exercise": {
+            "type": "boolean",
+            "title": "Exercise",
+            "description": "A submission to a debugging exercise, not a problem",
+            "default": false
+          },
+          "skill": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skill",
+            "description": "The skill it's evidence for, as grouped in `by_skill`: a question's skill, a problem's first topic, a debugging exercise's first topic after 'debugging', or the kind of round"
+          },
           "href": {
             "type": "string",
             "title": "Href"
@@ -41672,7 +41702,27 @@
             },
             "type": "array",
             "title": "Not Counted",
-            "description": "Answers since this version the plan doesn't use: too short to score, or disputed"
+            "description": "Practice since this version the plan doesn't use: answers too short to score or disputed, and submissions the judge couldn't run (its problem, not the learner's code)"
+          },
+          "by_skill": {
+            "items": {
+              "$ref": "#/components/schemas/SkillNews"
+            },
+            "type": "array",
+            "title": "By Skill",
+            "description": "What's new grouped by skill, oldest first, one sentence each (Volume 16, prompt 7)"
+          },
+          "rule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule",
+            "description": "How a verdict counts, when submissions are among what's new"
           }
         },
         "type": "object",
@@ -41775,6 +41825,27 @@
               }
             ],
             "description": "New practice this version doesn't use that would change it; the plan updates only when asked"
+          },
+          "read_submissions": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/ReadSubmission"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read Submissions",
+            "description": "The judged submissions the update that made this version read as new evidence, oldest first; none when the version wasn't made by 'Update my plan' (or was made before this was recorded)"
+          },
+          "evidence_read": {
+            "type": "string",
+            "title": "Evidence Read",
+            "description": "Which kinds of evidence this career's plan reads, in a sentence",
+            "default": ""
           }
         },
         "type": "object",
@@ -43279,6 +43350,63 @@
         },
         "type": "object",
         "title": "Rating"
+      },
+      "ReadSubmission": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "The problem or exercise; none if it's no longer stored"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "passed",
+                  "not passed"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          },
+          "exercise": {
+            "type": "boolean",
+            "title": "Exercise",
+            "default": false
+          },
+          "href": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Href"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "title"
+        ],
+        "title": "ReadSubmission"
       },
       "RecentItem": {
         "properties": {
@@ -49163,6 +49291,40 @@
           "returns"
         ],
         "title": "Signature"
+      },
+      "SkillNews": {
+        "properties": {
+          "skill": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Skill",
+            "description": "The skill; none for what all of what's new moves together, when it can't be put on one"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "How many of the new pieces of evidence are for this skill"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "One sentence: what's new, what it counts as, and what the next version would suggest or stop suggesting because of it (or that it changes nothing on its own)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "skill",
+          "count",
+          "text"
+        ],
+        "title": "SkillNews",
+        "description": "What's new for one skill and what it would move in the next version, in one sentence."
       },
       "SkillStat": {
         "properties": {

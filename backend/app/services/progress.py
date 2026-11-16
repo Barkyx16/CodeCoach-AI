@@ -101,12 +101,20 @@ class ProgressService:
     def __init__(self, db: Session):
         self.db = db
 
-    def _facts(self, user: User, leave_out: set[str] | None = None) -> dict[int, _ProblemFacts]:
+    def _facts(
+        self, user: User, leave_out: set[str] | None = None, *, plan: bool = False
+    ) -> dict[int, _ProblemFacts]:
         """`leave_out`: submissions to read as if they didn't exist (the plan without what's new since
-        a version, to see whether that changes anything: Roadmap._news)."""
+        a version, to see whether that changes anything: Roadmap._news).
+
+        `plan` (the practice plan's reading, Volume 16, prompt 7; docs/PLAN_UPDATES.md): a submission
+        the judge failed to run (INTERNAL_ERROR: the judge's problem, not the learner's code) isn't
+        read, and debugging exercises are read too, by their judged submissions only, as evidence for
+        the topics they name (never recommended themselves: `recommend`)."""
         # Debugging exercises (kind "debug") are in History, not in problem progress or recommendations.
+        kinds = ("problem", "debug") if plan else ("problem",)
         problems = self.db.scalars(
-            select(Problem).where(Problem.kind == "problem").order_by(Problem.order_index)
+            select(Problem).where(Problem.kind.in_(kinds)).order_by(Problem.order_index)
         ).all()
         facts = {p.id: _ProblemFacts(problem=p) for p in problems}
 
@@ -118,6 +126,11 @@ class ProgressService:
             f = facts.get(sub.problem_id)
             if f is None or (leave_out and sub.id in leave_out):
                 continue
+            if plan and (
+                sub.status == SubmissionStatus.INTERNAL_ERROR
+                or (f.problem.kind == "debug" and not sub.status.is_terminal)
+            ):
+                continue  # no verdict on the learner's code (yet): not evidence for the plan
             f.submissions += 1
             f.last_status = sub.status
             f.last_activity = _aware(sub.created_at)
@@ -126,7 +139,7 @@ class ProgressService:
 
         for ai in self.db.scalars(select(AIInteraction).where(AIInteraction.user_id == user.id)):
             f = facts.get(ai.problem_id)
-            if f is None:
+            if f is None or f.problem.kind != "problem":
                 continue
             if ai.action == AIAction.HINT:
                 f.hints += 1
@@ -137,7 +150,7 @@ class ProgressService:
 
         for ev in self.db.scalars(select(ProgressEvent).where(ProgressEvent.user_id == user.id)):
             f = facts.get(ev.problem_id)
-            if f is not None:
+            if f is not None and f.problem.kind == "problem":
                 f.opened = True
         return facts
 
@@ -249,10 +262,14 @@ class ProgressService:
         limit: int = 5,
         facts: dict[int, _ProblemFacts] | None = None,
         leave_out: set[str] | None = None,
+        plan: bool = False,
     ) -> list[Recommendation]:
-        facts = facts if facts is not None else self._facts(user, leave_out)
+        """`plan`: the practice plan's reading (`_facts`). Debugging exercises then count toward the
+        weak topics and the difficulty ladder by the same rule as problems (a pass is solved, any
+        other verdict is tried), and are never recommended."""
+        facts = facts if facts is not None else self._facts(user, leave_out, plan=plan)
         retired = retired_problem_slugs()  # never recommended; still counted in history
-        values = [f for f in facts.values() if f.problem.slug not in retired]
+        values = [f for f in facts.values() if f.problem.slug not in retired and f.problem.kind == "problem"]
         picks: list[Recommendation] = []
         chosen: set[str] = set()
 
@@ -284,8 +301,8 @@ class ProgressService:
         # 2. Weak topics: easiest unsolved problem in each.
         solved_easy_topics = {
             t
-            for f in values
-            if f.solved and f.problem.difficulty == Difficulty.EASY
+            for f in facts.values()
+            if f.solved and f.problem.difficulty == Difficulty.EASY and f.problem.slug not in retired
             for t in f.problem.topics
         }
         for topic in self.weakest_topics(facts, limit=5):

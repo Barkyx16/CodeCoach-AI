@@ -4,7 +4,9 @@ Inputs, per career (one career's evidence never counts toward another's):
   goals       optional: focus areas, formats, experience, weekly time, target date, confidence
   answers     practice_answers for the career (best score per question, rubric points missed)
   sessions    question rounds for the career (completed rounds, spoken answers)
-  coding      for careers with coding problems: submissions and the judge's verdicts
+  coding      for careers with coding problems: submissions and the judge's verdicts, on problems
+              and (as evidence for their topics only) debugging exercises; never runs, and never a
+              submission the judge failed to run
 
 Rules, in order (see `_generate`):
   1. Fewer than 3 answers and no finished baseline round -> a 3-question baseline first.
@@ -74,8 +76,10 @@ from app.schemas.roadmap import (
     PlanNews,
     PlanOut,
     PlanProgress,
+    ReadSubmission,
     RoundStart,
     SelfRating,
+    SkillNews,
     TodayOut,
     Withheld,
 )
@@ -115,6 +119,27 @@ JUDGED = {
     SubmissionStatus.MEMORY_LIMIT,
 }
 CODING_MINUTES = {"easy": 15, "medium": 25, "hard": 35}
+# A verdict in the judge's own terms (Volume 16, prompt 7): never turned into a score.
+VERDICT = {
+    SubmissionStatus.PASSED: "passed",
+    SubmissionStatus.FAILED: "tests failed",
+    SubmissionStatus.COMPILE_ERROR: "compile error",
+    SubmissionStatus.RUNTIME_ERROR: "runtime error",
+    SubmissionStatus.TIME_LIMIT: "time limit exceeded",
+    SubmissionStatus.MEMORY_LIMIT: "memory limit exceeded",
+}
+CODE_RULE = (
+    "How code counts: a pass counts as solved; failed tests, errors and time or memory limits count as "
+    "tried, not solved. A verdict is never turned into a score."
+)
+EVIDENCE_READ = (
+    "This plan reads your scored answers to {career} questions, your finished question rounds and the "
+    "lesson checks you've passed{code}. Lessons and accepted improvements don't count as new practice yet."
+)
+EVIDENCE_READ_CODE = (
+    ", and the judge's verdicts on code you submit: to problems, and to debugging exercises for the skills "
+    "they name (not runs, which check the public tests only)"
+)
 
 
 def _now() -> datetime:
@@ -137,6 +162,89 @@ def _aware(dt: datetime) -> datetime:
 
 def _plural(n: int, one: str, many: str) -> str:
     return f"{n} {one if n == 1 else many}"
+
+
+def _code_skill(problem: Problem) -> str:
+    """The skill a submission is evidence for: a problem's first topic (as the plan's coding
+    activities are labelled), a debugging exercise's first topic after "debugging" itself."""
+    topics = [t for t in problem.topics or [] if not (problem.kind == "debug" and t == "debugging")]
+    return topics[0] if topics else ("debugging" if problem.kind == "debug" else "problem solving")
+
+
+def _and(parts: list[str]) -> str:
+    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
+
+
+@dataclass
+class _Piece:
+    """One piece of new evidence, for the preview's sentence about its skill."""
+
+    kind: str  # answer | round | submission
+    title: str
+    score: int | None = None
+    passed: bool | None = None
+    verdict: str | None = None
+    exercise: bool = False
+
+
+def _moves(came_in: list[Spec], left: list[Spec], also: bool = False) -> str | None:
+    """'the next version would suggest “A” and not “B”', or None when nothing moves."""
+    ins = _and([f"“{s.title}”" for s in came_in]) if came_in else ""
+    outs = _and([f"“{s.title}”" for s in left]) if left else ""
+    would = "would also" if also else "would"
+    if ins and outs:
+        return f"the next version {would} suggest {ins} and not {outs}"
+    if ins:
+        return f"the next version {would} suggest {ins}"
+    if outs:
+        return f"the next version {'also ' if also else ''}wouldn't suggest {outs}"
+    return None
+
+
+def _skill_sentence(skill: str, pieces: list[_Piece], came_in: list[Spec], left: list[Spec]) -> str:
+    """One sentence: what's new for the skill, what it counts as, and what it moves (or that it
+    moves nothing on its own). Verdicts are said as verdicts; scores only for answers."""
+    phrases: list[str] = []
+    code = [p for p in pieces if p.kind == "submission"]
+    if code:
+        if len(code) > 3:
+            passed = sum(bool(p.passed) for p in code)
+            phrases.append(f"{len(code)} submissions, {passed} of them passed")
+        else:
+            phrases.append(
+                _and(
+                    [
+                        ("the debugging exercise " if p.exercise else "")
+                        + f"“{p.title}” "
+                        + ("passed" if p.passed else f"didn't pass ({p.verdict})")
+                        for p in code
+                    ]
+                )
+            )
+    answers = [p for p in pieces if p.kind == "answer"]
+    if answers:
+        if len(answers) > 2:
+            below = sum((p.score or 0) < WEAK for p in answers)
+            phrases.append(f"{len(answers)} answers, {below} below {WEAK}")
+        else:
+            phrases.append(_and([f"“{p.title}” scored {p.score}/100" for p in answers]))
+    rounds = [p for p in pieces if p.kind == "round"]
+    if rounds:
+        phrases.append(_and([f"a finished {p.title[0].lower() + p.title[1:]}" for p in rounds]))
+    what = "; ".join(phrases)
+    meaning = ""
+    if code:
+        if all(p.passed for p in code):
+            meaning = ", which counts as solved"
+        elif not any(p.passed for p in code):
+            meaning = ", which counts as tried, not solved"
+        else:
+            meaning = ": a pass counts as solved, the rest as tried"
+    moved = _moves(came_in, left)
+    head = skill[:1].upper() + skill[1:]
+    if moved is None:
+        return f"{head}: {what}{meaning}; on its own that changes nothing the plan chooses."
+    return f"{head}: {what}{meaning}, so {moved}."
 
 
 def _submissions_text(submissions: int, not_passed: int) -> str:
@@ -625,7 +733,9 @@ class Roadmap:
                 if self.judge_enabled
                 else "Submit an attempt. This server can't run code, so it's saved without a verdict."
             )
-            for rec in ProgressService(self.db).recommend(user, limit=2, leave_out=ev.left_out_submissions):
+            for rec in ProgressService(self.db).recommend(
+                user, limit=2, leave_out=ev.left_out_submissions, plan=True
+            ):
                 if rec.slug in used:
                     continue
                 coding.append(
@@ -965,6 +1075,8 @@ class Roadmap:
                     Submission.user_id == user.id,
                     Problem.slug == t.get("problem_slug"),
                     Submission.mode == SubmissionMode.SUBMIT,
+                    # The judge's own failure isn't the learner's attempt judged (Volume 16, prompt 7).
+                    Submission.status != SubmissionStatus.INTERNAL_ERROR,
                     Submission.created_at >= since,
                 )
                 .order_by(Submission.created_at.desc())
@@ -993,8 +1105,11 @@ class Roadmap:
         plan: PracticePlan,
         disputes: dict[tuple[str, str], Dispute],
         ev: Evidence,
+        read: list[str] | None = None,
     ) -> PlanNews | None:
         """What's new since this version that would change it (docs/PLAN_UPDATES.md), or None.
+        `read`, when given, gets the ids of the judged submissions it counted (for the version an
+        update makes from them).
 
         New: scored answers and finished question rounds recorded since the version was made that
         no activity in it used. Not counted: answers too short to score and answers whose feedback
@@ -1045,28 +1160,31 @@ class Roadmap:
             ).all()
             if r.id not in used.sessions
         ]
-        # Judged submissions no activity used (Volume 14, prompt 2): a verdict on the learner's code.
-        # Runs (public tests only) and attempts only saved aren't evidence.
-        subs = (
-            [
-                (sub, problem)
-                for sub, problem in self.db.execute(
-                    select(Submission, Problem)
-                    .join(Problem, Problem.id == Submission.problem_id)
-                    .where(
-                        Submission.user_id == user.id,
-                        Submission.mode == SubmissionMode.SUBMIT,
-                        Submission.status.in_(JUDGED),
-                        Submission.created_at >= since,
-                        Problem.kind == "problem",
-                    )
-                    .order_by(Submission.created_at)
-                ).all()
-                if sub.id not in used.submissions
-            ]
-            if CATALOG[track].has_coding
-            else []
-        )
+        # Judged submissions no activity used (Volume 14, prompt 2): a verdict on the learner's code,
+        # to a problem or (Volume 16, prompt 7) a debugging exercise. Runs (public tests only) and
+        # attempts only saved aren't evidence; nor is a submission the judge failed to run (its own
+        # problem, not the learner's code), which is named as not counted.
+        subs: list[tuple[Submission, Problem]] = []
+        broken = 0
+        if CATALOG[track].has_coding:
+            for sub, problem in self.db.execute(
+                select(Submission, Problem)
+                .join(Problem, Problem.id == Submission.problem_id)
+                .where(
+                    Submission.user_id == user.id,
+                    Submission.mode == SubmissionMode.SUBMIT,
+                    Submission.status.in_([*JUDGED, SubmissionStatus.INTERNAL_ERROR]),
+                    Submission.created_at >= since,
+                    Problem.kind.in_(("problem", "debug")),
+                )
+                .order_by(Submission.created_at, Submission.id)
+            ).all():
+                if sub.id in used.submissions:
+                    continue
+                if sub.status == SubmissionStatus.INTERNAL_ERROR:
+                    broken += 1
+                else:
+                    subs.append((sub, problem))
         if not fresh and not rounds and not subs:
             return None
         goal = self._goal(user, track)
@@ -1077,38 +1195,64 @@ class Roadmap:
         if {s.key for s in with_new} == {s.key for s in without}:
             return None  # nothing the planner chooses would change: the plan stays, unoffered
         entries: list[NewEvidence] = []
+        # Grouped by skill for the preview (Volume 16, prompt 7), oldest first within each kind.
+        groups: dict[str, list[_Piece]] = {}
+        by_question: dict[str, str] = {}
+        by_problem: dict[str, str] = {}
+        topics: dict[str, set[str]] = defaultdict(set)
         for answer_id, qid, score, retry in fresh:
             q = get_question(track, qid)
+            title = q.title if q else "A question no longer in the bank"
+            skill = question_skills(q)[0] if q else "Other questions"
+            groups.setdefault(skill, []).append(_Piece("answer", title, score=score))
+            by_question[qid] = skill
             entries.append(
                 NewEvidence(
                     kind="retry" if retry else "answer",
-                    title=q.title if q else "A question no longer in the bank",
+                    title=title,
                     score=score,
+                    skill=skill,
                     href=f"/careers/{track}/questions/{qid}?answer={answer_id}",
                 )
             )
         for r in rounds:
             n = len((r.plan or {}).get("question_ids", []))
+            baseline = (r.plan or {}).get("purpose") == "baseline"
+            title = (
+                "Baseline check" if baseline else f"Practice round ({_plural(n, 'question', 'questions')})"
+            )
+            skill = "Baseline" if baseline else "Interview practice"  # the skill of the activity it ends
+            groups.setdefault(skill, []).append(_Piece("round", title))
             entries.append(
-                NewEvidence(
-                    kind="round",
-                    title="Baseline check"
-                    if (r.plan or {}).get("purpose") == "baseline"
-                    else f"Practice round ({_plural(n, 'question', 'questions')})",
-                    score=None,
-                    href=f"/interviews/{r.id}",
-                )
+                NewEvidence(kind="round", title=title, score=None, skill=skill, href=f"/interviews/{r.id}")
             )
         for sub, problem in subs:
+            passed = sub.status == SubmissionStatus.PASSED
+            skill = _code_skill(problem)
+            exercise = problem.kind == "debug"
+            groups.setdefault(skill, []).append(
+                _Piece(
+                    "submission", problem.title, passed=passed, verdict=VERDICT[sub.status], exercise=exercise
+                )
+            )
+            topics[skill].update(problem.topics or [])
+            if not exercise:
+                by_problem[problem.slug] = skill
             entries.append(
                 NewEvidence(
                     kind="submission",
                     title=problem.title,
                     score=None,
-                    verdict="passed" if sub.status == SubmissionStatus.PASSED else "not passed",
+                    verdict="passed" if passed else "not passed",
+                    verdict_detail=VERDICT[sub.status],
+                    exercise=exercise,
+                    skill=skill,
                     href=f"/history/submissions/{sub.id}",
                 )
             )
+        by_skill = self._by_skill(groups, by_question, by_problem, topics, with_new, without)
+        if read is not None:
+            read.extend(sub.id for sub, _ in subs)
         not_passed = sum(sub.status != SubmissionStatus.PASSED for sub, _ in subs)
         retries = sum(a[3] for a in fresh)
         below = sum(a[2] < WEAK for a in fresh)
@@ -1121,6 +1265,11 @@ class Roadmap:
             not_counted.append(
                 f"{_plural(disputed, 'answer', 'answers')} whose feedback you disputed {'isn’t' if disputed == 1 else 'aren’t'} counted."
             )
+        if broken:
+            not_counted.append(
+                f"{_plural(broken, 'submission', 'submissions')} the judge couldn't run {'isn’t' if broken == 1 else 'aren’t'} "
+                "counted: that was a problem on the judge's side, not your code."
+            )
         return PlanNews(
             text=news_text(len(fresh), retries, below, len(rounds), "this plan", len(subs), not_passed),
             answers=len(fresh),
@@ -1131,7 +1280,67 @@ class Roadmap:
             not_passed=not_passed,
             entries=entries[:10],
             not_counted=not_counted,
+            by_skill=by_skill,
+            rule=CODE_RULE if subs else None,
         )
+
+    @staticmethod
+    def _by_skill(
+        groups: dict[str, list[_Piece]],
+        by_question: dict[str, str],
+        by_problem: dict[str, str],
+        topics: dict[str, set[str]],
+        with_new: list[Spec],
+        without: list[Spec],
+    ) -> list[SkillNews]:
+        """One sentence per skill: what the next version would suggest, or stop suggesting, because of
+        that skill's new evidence. The planner was asked once, with and without all of what's new; an
+        activity is put on a skill by what it's for (the problem or question the evidence is on, else
+        its skill, else a topic the new code practises). With one skill, everything that moves is its;
+        what can't be put on one is said once, for all of it together."""
+        keys_with, keys_without = {s.key for s in with_new}, {s.key for s in without}
+        came_in = [s for s in with_new if s.key not in keys_without]
+        left = [s for s in without if s.key not in keys_with]
+
+        def owner(s: Spec) -> str | None:
+            if len(groups) == 1:
+                return next(iter(groups))
+            t = s.target or {}
+            if s.kind == "coding" and t.get("problem_slug") in by_problem:
+                return by_problem[t["problem_slug"]]
+            if t.get("question_id") in by_question:
+                return by_question[t["question_id"]]
+            if s.skill in groups:
+                return s.skill
+            if s.kind == "coding":
+                return next((g for g, ts in topics.items() if s.skill in ts), None)
+            return None
+
+        out = [
+            SkillNews(
+                skill=skill,
+                count=len(pieces),
+                text=_skill_sentence(
+                    skill,
+                    pieces,
+                    [s for s in came_in if owner(s) == skill],
+                    [s for s in left if owner(s) == skill],
+                ),
+            )
+            for skill, pieces in groups.items()
+        ]
+        rest = _moves(
+            [s for s in came_in if owner(s) is None], [s for s in left if owner(s) is None], also=True
+        )
+        if rest:
+            out.append(
+                SkillNews(
+                    skill=None,
+                    count=sum(len(p) for p in groups.values()),
+                    text=f"From all of it together, {rest}.",
+                )
+            )
+        return out
 
     def update(self, user: User, track: str | None, seen: int, minutes: int) -> PlanOut:
         """The next version, from all the evidence, because the learner asked: bound to the version
@@ -1143,7 +1352,8 @@ class Roadmap:
             raise self._moved_on(plan)
         done = self._sync(user, plan)
         disputes = Disputes(self.db, user.id).active(t)
-        news = self._news(user, t, plan, disputes, self._evidence(user, t, disputes))
+        read: list[str] = []
+        news = self._news(user, t, plan, disputes, self._evidence(user, t, disputes), read)
         if news is None and not done:
             # Nothing new changes it (anymore): the same version, unchanged.
             self.db.commit()
@@ -1167,6 +1377,7 @@ class Roadmap:
         self.db.flush()
         try:
             new = self._new_version(user, t, plan, why)
+            new.read_submissions = read  # the version's own record of what this update read, by id
             self.db.commit()
         except IntegrityError:
             # Another request saved this version number first.
@@ -1499,7 +1710,45 @@ class Roadmap:
             target_date=goal.target_date if goal else None,
             days_to_interview=days if days is not None and days >= 0 else None,
             news=news,
+            read_submissions=self._read_submissions(user, plan),
+            evidence_read=EVIDENCE_READ.format(
+                career=CATALOG[track].title, code=EVIDENCE_READ_CODE if CATALOG[track].has_coding else ""
+            ),
         )
+
+    def _read_submissions(self, user: User, plan: PracticePlan) -> list[ReadSubmission] | None:
+        """The submissions the update that made this version read, as it recorded them by id (one
+        statement, only for such a version). One no longer stored is still listed, by id."""
+        ids = plan.read_submissions
+        if ids is None:
+            return None  # not made by an update that recorded this: reads as before
+        if not ids:
+            return []
+        rows = {
+            sub_id: (status, title, kind)
+            for sub_id, status, title, kind in self.db.execute(
+                select(Submission.id, Submission.status, Problem.title, Problem.kind)
+                .join(Problem, Problem.id == Submission.problem_id)
+                .where(Submission.user_id == user.id, Submission.id.in_(ids))
+            ).all()
+        }
+        out = []
+        for sub_id in ids:
+            row = rows.get(sub_id)
+            if row is None:
+                out.append(ReadSubmission(id=sub_id, title=None))
+                continue
+            status, title, kind = row
+            out.append(
+                ReadSubmission(
+                    id=sub_id,
+                    title=title,
+                    verdict="passed" if status == SubmissionStatus.PASSED else "not passed",
+                    exercise=kind == "debug",
+                    href=f"/history/submissions/{sub_id}",
+                )
+            )
+        return out
 
     def item_out(self, item: PlanItem) -> PlanItemOut:
         track = item.plan.track

@@ -1280,7 +1280,15 @@ Deterministic rules over recorded evidence (`app/services/roadmap.py` documents 
   else `null`), and the plan `withheld` (`[{text, href, reinstated}]`: what this version didn't
   suggest because of a dispute, one line each). The same `disputed` note is on accepted actions
   (`GET /me/actions`) and schedule entries (`GET /me/schedule`) derived from a disputed point;
-  they're never removed or cancelled for it (docs/DISPUTES.md).
+  they're never removed or cancelled for it (docs/DISPUTES.md). `news` (or null) is practice the
+  version doesn't use that would change it: counts, `entries` (each with `skill`, and for a
+  submission `verdict`, `verdict_detail` and `exercise`), `not_counted`, `by_skill` (`[{skill,
+  count, text}]`, one sentence each) and `rule` (how a verdict counts, when code is among it);
+  `read_submissions` lists the submissions the update that made this version read (null for other
+  versions); `evidence_read` says which evidence the plan reads (docs/PLAN_UPDATES.md).
+- `POST /api/v1/me/plan/update` 🔒 `{version, track?}` makes the next version from what's new,
+  bound to the version seen (`409 plan_changed` with `details.version` otherwise), and records the
+  submissions it read.
 - `POST /api/v1/me/plan/items/{id}/skip | replace | reviewed` 🔒: skip records `skipped` (never
   done); replace swaps in another activity of the same kind and skill; `reviewed` is only for
   "review feedback" items (`409 not_self_reportable` otherwise). Closed items are `409`.

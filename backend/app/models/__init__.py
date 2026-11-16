@@ -657,6 +657,10 @@ class PracticePlan(Base):
     changes: Mapped[list] = mapped_column(JSONType, default=list)  # why this version differs
     # Suggestions this version didn't make because of a dispute: [{text, href}] (docs/DISPUTES.md).
     withheld: Mapped[list | None] = mapped_column(JSONType, nullable=True)
+    # The judged submissions (ids, oldest first) the "Update my plan" that made this version read as
+    # new evidence (Volume 16, prompt 7; docs/PLAN_UPDATES.md): [] for an update that read none,
+    # null for a version made otherwise or before this was recorded.
+    read_submissions: Mapped[list | None] = mapped_column(JSONType, nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
     items: Mapped[list[PlanItem]] = relationship(

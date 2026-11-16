@@ -3,13 +3,14 @@ import { Link } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { useUpdatePlan } from "@/api/queries";
-import type { Plan } from "@/api/types";
+import type { Plan, PlanNews as News } from "@/api/types";
 import { Button } from "@/components/Button";
 import { describeError } from "@/lib/errors";
 
 interface Notice { version: number; text: string }
 
 const KIND = { answer: "Answer", retry: "Retry", round: "Round", submission: "Submission" } as const;
+const label = (e: News["entries"][number]) => (e.exercise ? "Debugging exercise" : KIND[e.kind]);
 
 /**
  * Practice this plan version doesn't use yet that would change it (docs/PLAN_UPDATES.md): one line
@@ -48,15 +49,22 @@ export function PlanNews({ plan, minutes, compact = false }: { plan: Plan; minut
           <p className="plan-news__line" id={id}>
             <strong>{news.text}</strong> Your plan stays as it is until you update it.
           </p>
+          {!compact && (news.by_skill ?? []).length > 0 && (
+            // What each skill's new evidence would move in the next version, one sentence each (Volume 16, prompt 7).
+            <ul className="mini-list plan-news__skills" aria-label="What it would change, by skill">
+              {(news.by_skill ?? []).map((g) => <li key={g.text}>{g.text}</li>)}
+            </ul>
+          )}
+          {!compact && news.rule && <p className="subtle">{news.rule}</p>}
           {!compact && (
             <details className="plan-news__details">
               <summary>What's new ({news.entries.length})</summary>
               <ul className="mini-list">
                 {news.entries.map((e) => (
                   <li key={e.href}>
-                    <Link to={e.href}>{KIND[e.kind]}: {e.title}</Link>
+                    <Link to={e.href}>{label(e)}: {e.title}</Link>
                     {e.score !== null && e.score !== undefined && <span className="subtle"> · {e.score}/100</span>}
-                    {e.verdict && <span className="subtle"> · {e.verdict}</span>}
+                    {e.verdict && <span className="subtle"> · {e.verdict_detail ?? e.verdict}</span>}
                   </li>
                 ))}
               </ul>

@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
 import type { Plan } from "@/api/types";
@@ -28,6 +29,22 @@ export function PlanChanges({ plan, always = false }: { plan: Plan; always?: boo
     <div className="plan-changes" role="status">
       <strong>{plan.version > 1 ? "Your plan changed" : "Your starter plan"}</strong>
       <ul className="mini-list">{plan.changes.map((c) => <li key={c}>{c}</li>)}</ul>
+      {(plan.read_submissions ?? []).length > 0 && (
+        // The judged code the update that made this version read, as the version recorded it (Volume 16, prompt 7).
+        <>
+          <p className="subtle">Code this update read as new evidence:</p>
+          <ul className="mini-list" aria-label="Code this update read">
+            {(plan.read_submissions ?? []).map((r) => (
+              <li key={r.id}>
+                {r.href && r.title
+                  ? <Link to={r.href}>{r.exercise ? "Debugging exercise" : "Submission"}: {r.title}</Link>
+                  : "A submission that's no longer stored"}
+                {r.verdict && <span className="subtle"> · {r.verdict}</span>}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
       {!always && (
         <Button size="sm" variant="ghost" onClick={() => { setGotIt(true); save.mutate(); }}>Got it</Button>
       )}

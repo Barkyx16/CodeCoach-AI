@@ -182,6 +182,9 @@ def test_judged_submissions_are_new_evidence_for_the_plan(client):
         "title": "Two Sum",
         "score": None,
         "verdict": "not passed",
+        "verdict_detail": "tests failed",
+        "exercise": False,
+        "skill": "arrays",
         "href": f"/history/submissions/{sid}",
     }
     # A run (public tests only) isn't evidence.

@@ -10346,6 +10346,22 @@ export interface components {
              * @description A submission's verdict, as judged
              */
             verdict?: ("passed" | "not passed") | null;
+            /**
+             * Verdict Detail
+             * @description A submission's verdict in the judge's terms: 'passed', 'tests failed', 'compile error', 'runtime error', 'time limit exceeded' or 'memory limit exceeded' (never a score)
+             */
+            verdict_detail?: string | null;
+            /**
+             * Exercise
+             * @description A submission to a debugging exercise, not a problem
+             * @default false
+             */
+            exercise: boolean;
+            /**
+             * Skill
+             * @description The skill it's evidence for, as grouped in `by_skill`: a question's skill, a problem's first topic, a debugging exercise's first topic after 'debugging', or the kind of round
+             */
+            skill?: string | null;
             /** Href */
             href: string;
         };
@@ -11607,9 +11623,19 @@ export interface components {
             entries: components["schemas"]["NewEvidence"][];
             /**
              * Not Counted
-             * @description Answers since this version the plan doesn't use: too short to score, or disputed
+             * @description Practice since this version the plan doesn't use: answers too short to score or disputed, and submissions the judge couldn't run (its problem, not the learner's code)
              */
             not_counted?: string[];
+            /**
+             * By Skill
+             * @description What's new grouped by skill, oldest first, one sentence each (Volume 16, prompt 7)
+             */
+            by_skill?: components["schemas"]["SkillNews"][];
+            /**
+             * Rule
+             * @description How a verdict counts, when submissions are among what's new
+             */
+            rule?: string | null;
         };
         /** PlanOut */
         PlanOut: {
@@ -11647,6 +11673,17 @@ export interface components {
             days_to_interview: number | null;
             /** @description New practice this version doesn't use that would change it; the plan updates only when asked */
             news?: components["schemas"]["PlanNews"] | null;
+            /**
+             * Read Submissions
+             * @description The judged submissions the update that made this version read as new evidence, oldest first; none when the version wasn't made by 'Update my plan' (or was made before this was recorded)
+             */
+            read_submissions?: components["schemas"]["ReadSubmission"][] | null;
+            /**
+             * Evidence Read
+             * @description Which kinds of evidence this career's plan reads, in a sentence
+             * @default
+             */
+            evidence_read: string;
         };
         /** PlanProgress */
         PlanProgress: {
@@ -12242,6 +12279,25 @@ export interface components {
              * @default
              */
             note: string;
+        };
+        /** ReadSubmission */
+        ReadSubmission: {
+            /** Id */
+            id: string;
+            /**
+             * Title
+             * @description The problem or exercise; none if it's no longer stored
+             */
+            title: string | null;
+            /** Verdict */
+            verdict?: ("passed" | "not passed") | null;
+            /**
+             * Exercise
+             * @default false
+             */
+            exercise: boolean;
+            /** Href */
+            href?: string | null;
         };
         /** RecentItem */
         RecentItem: {
@@ -14623,6 +14679,27 @@ export interface components {
             params: components["schemas"]["Param"][];
             /** Returns */
             returns: string;
+        };
+        /**
+         * SkillNews
+         * @description What's new for one skill and what it would move in the next version, in one sentence.
+         */
+        SkillNews: {
+            /**
+             * Skill
+             * @description The skill; none for what all of what's new moves together, when it can't be put on one
+             */
+            skill: string | null;
+            /**
+             * Count
+             * @description How many of the new pieces of evidence are for this skill
+             */
+            count: number;
+            /**
+             * Text
+             * @description One sentence: what's new, what it counts as, and what the next version would suggest or stop suggesting because of it (or that it changes nothing on its own)
+             */
+            text: string;
         };
         /** SkillStat */
         SkillStat: {

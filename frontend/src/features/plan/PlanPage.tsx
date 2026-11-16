@@ -26,6 +26,7 @@ export function PlanPage() {
           <p className="eyebrow">YOUR PRACTICE PLAN · {p.career_title.toUpperCase()}</p>
           <h1 className="page__title">Your plan</h1>
           <p className="page__subtitle">Version {p.version}. It updates when you complete work or change your goals, and says why. Other practice shows here and changes it only when you ask.</p>
+          {p.evidence_read && <p className="subtle">{p.evidence_read}</p>}
         </div>
         <div className="row">
           <Link to="/reviews" className="btn btn--ghost btn--md">Review queue</Link>

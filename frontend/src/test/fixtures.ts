@@ -307,6 +307,7 @@ export function makePlan(minutes: number, items: PlanItem[] = planItems, goalsSa
       coding: null,
     },
     goals_saved: goalsSaved, target_date: null, days_to_interview: null,
+    evidence_read: "This plan reads your scored answers to Registered Nurse questions, your finished question rounds and the lesson checks you've passed. Lessons and accepted improvements don't count as new practice yet.",
   };
 }
 
