@@ -41,7 +41,7 @@ export function CollectionPage() {
   const maxCollections = useLimit("collections_per_account");
   const copies = useQueryClient();
   const requestKey = useRequestKey();
-  // One key per copy or move (Volume 18, prompt 6): sent again after a lost reply, the server gives back
+  // One key per copy or move (Volume 18, prompt 5): sent again after a lost reply, the server gives back
   // what the first request did.
   const transferKey = useRequestKey();
   const [duplicating, setDuplicating] = useState(false);

@@ -19,7 +19,7 @@ export const store = {
   itemLimit: 200,
   /** Apply the next copy or move, then lose its reply (the client sees a network error). */
   loseTransferReply: false,
-  /** Each keyed copy or move's first results, as the server keeps them (Volume 18, prompt 6). */
+  /** Each keyed copy or move's first results, as the server keeps them (Volume 18, prompt 5). */
   transferReplies: new Map<string, unknown[]>(),
 };
 

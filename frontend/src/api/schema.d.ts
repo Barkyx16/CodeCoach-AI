@@ -6805,7 +6805,7 @@ export interface components {
             move: boolean;
             /**
              * Client Request Id
-             * @description A key for this request (Volume 18, prompt 6): sent again after a lost reply, it gets the first reply's outcomes back exactly, with both collections as they are now
+             * @description A key for this request (Volume 18, prompt 5): sent again after a lost reply, it gets the first reply's outcomes back exactly, with both collections as they are now
              */
             client_request_id?: string | null;
         };

@@ -791,7 +791,12 @@ class Roadmap:
             *((s, "you asked for help with it", []) for s in chosen),
         ]:
             unit = next(
-                (u for u in units_for(track) if u.skill == skill and u.id not in ev.learn_passed), None
+                (
+                    u
+                    for u in units_for(track)
+                    if u.skill == skill and u.id not in ev.learn_passed and u.id not in used
+                ),
+                None,
             )
             if unit is not None and not lessons:
                 lessons.append(
@@ -804,6 +809,52 @@ class Roadmap:
                         unit.minutes,
                         {"unit_id": unit.id},
                         derived,
+                    )
+                )
+
+        # The code's facts, read once here and given to the coding suggestions below (Volume 18, prompt 7).
+        code_facts = (
+            (
+                ev.code_facts
+                if ev.code_facts is not None
+                else ProgressService(self.db)._facts(user, ev.left_out_submissions, plan=True)
+            )
+            if profile.has_coding and "coding" in formats
+            else None
+        )
+        # A debugging exercise tried and not fixed: the lesson that prepares the exercises, when no other
+        # lesson is suggested and its check isn't passed (Volume 18, prompt 7; docs/ATTEMPT_CONDITIONS.md).
+        if code_facts is not None and not lessons:
+            stuck = sorted(
+                (
+                    f
+                    for f in code_facts.values()
+                    if f.problem.kind == "debug" and f.attempted and not f.solved
+                ),
+                key=lambda f: (f.last_activity is None, f.last_activity),
+            )
+            unit = next(
+                (
+                    u
+                    for u in units_for(track)
+                    if any(p.startswith("debug:") for p in u.prepares)
+                    and u.id not in ev.learn_passed
+                    and u.id not in used
+                ),
+                None,
+            )
+            if stuck and unit is not None:
+                latest = stuck[-1].problem
+                lessons.append(
+                    Spec(
+                        "learn",
+                        "debugging exercises",  # not the written-answer skill "debugging"
+                        f"Learn: {unit.title}",
+                        f"A {unit.minutes}-minute lesson that prepares the debugging exercises, because "
+                        f"“{latest.title}” isn't fixed yet.",
+                        "Pass the lesson's comprehension check. Reading it alone doesn't count.",
+                        unit.minutes,
+                        {"unit_id": unit.id},
                     )
                 )
 
@@ -833,7 +884,7 @@ class Roadmap:
                 else "Submit an attempt. This server can't run code, so it's saved without a verdict."
             )
             for rec in ProgressService(self.db).recommend(
-                user, limit=2, facts=ev.code_facts, leave_out=ev.left_out_submissions, plan=True
+                user, limit=2, facts=code_facts, leave_out=ev.left_out_submissions, plan=True
             ):
                 if rec.slug in used:
                     continue
@@ -908,7 +959,8 @@ class Roadmap:
         )
 
     def _avoid(self, user: User, track: str) -> set[str]:
-        """Targets skipped or replaced in the last 7 days don't come straight back."""
+        """Targets skipped or replaced in the last 7 days don't come straight back: a question, a
+        problem, or (since Volume 18, prompt 7) a lesson, by its unit."""
         since = _now() - timedelta(days=7)
         rows = self.db.scalars(
             select(PlanItem)
@@ -920,7 +972,14 @@ class Roadmap:
                 PlanItem.resolved_at >= since,
             )
         ).all()
-        return {str(i.target.get("question_id") or i.target.get("problem_slug")) for i in rows if i.target}
+        return {
+            str(key)
+            for i in rows
+            if i.target
+            and (
+                key := i.target.get("question_id") or i.target.get("problem_slug") or i.target.get("unit_id")
+            )
+        }
 
     def _new_version(
         self, user: User, track: str, prev: PracticePlan | None, changes: list[str]

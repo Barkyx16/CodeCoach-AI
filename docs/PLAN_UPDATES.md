@@ -131,6 +131,34 @@ save); PostgreSQL, two rounds: 103.3 and 103.3 ms before, 90.4 and 92.6 ms after
 trips). **Budget:** no more than 1.25 times the median before on either database: 1.17 on SQLite and
 0.88 on PostgreSQL. With fewer skills new, fewer plans are made.
 
+## A debugging exercise not fixed yet
+
+Since Volume 18, prompt 7, a debugging exercise tried and not fixed brings the lesson that prepares
+the exercises, **Fixing code from a failing test** (`se-failing-test`; docs/ATTEMPT_CONDITIONS.md),
+when the plan reads code (a software engineer's plan with coding among its formats):
+
+> **Learn: Fixing code from a failing test** · 7 min
+> A 7-minute lesson that prepares the debugging exercises, because “Fix: Coldest Reading” isn't fixed
+> yet. Pass the lesson's comprehension check. Reading it alone doesn't count.
+
+- Tried means a submission (submit, not run) the judge judged and didn't pass: failed tests, a
+  compile error, a time-out. One the judge couldn't run isn't an attempt, as everywhere in the plan.
+  An exercise passed since is fixed, and doesn't bring it.
+- It names the most recent exercise not fixed. The exercise itself is never suggested: it's evidence
+  for its skills, not an activity.
+- One lesson at a time, as before: a lesson for a weak skill or a chosen focus skill comes first, and
+  this one waits until there's none. Its check passed, it isn't suggested again.
+- **A skipped lesson waits a week**, as a skipped question or problem does: no version in the next 7
+  days suggests it again, by its unit. Before, every lesson came straight back in the next version
+  after a skip; now a skipped focus-skill lesson makes way for the next lesson, this one included.
+- It's on the skill "debugging exercises", not the written-answer skill "debugging" (whose lesson is
+  **Explaining how you debug**), so it's never placed before a retry it doesn't prepare.
+- The plan reads the code once for this and its coding suggestions (`fact_rows` once per version,
+  counted by a test); the update preview, which asks the planner with and without what's new, says it
+  in the skill's sentence: "Arrays: the debugging exercise “Fix: Coldest Reading” didn't pass (tests
+  failed), which counts as tried, not solved, so the next version would suggest “Learn: Fixing code
+  from a failing test” and “Solve: Contains Duplicate” and not “Solve: Valid Palindrome”."
+
 ## Whether it changes anything
 
 The planner answers that itself: `_news` plans twice, from the evidence with what's new and from the
@@ -210,6 +238,7 @@ changes nothing: no version, no item, nothing applied later.
 | A conflict shown as a failure; focus left behind; a no-op claimed as a new version; no line on Today; a failure not said | `planNews.test.tsx` (and Today: `plan-updates.spec.ts`) |
 | Runs counted; another career reading code; the judge's failure counted, read as an attempt or completing an activity; a verdict as a score; exercises not read, or suggested; what an update read not recorded or not exported; another account's code counted; moves not put on their skill (Volume 16, prompt 7) | `tests/test_plan_code_evidence.py` (13) |
 | The skill sentences, the rule, the verdict's own words, an exercise's name, the code an update read or what the plan reads not shown | `planCodeEvidence.test.tsx` |
+| The debugging lesson never suggested; suggested with its check passed, for a fixed exercise, for a problem that isn't an exercise, beside another lesson, or naming the oldest exercise; the code read twice; put on the written-answer skill; a skipped lesson not held back (by either lesson rule, or held back for ever) (Volume 18, prompt 7) | `tests/test_plan_debug_lesson.py` (12) |
 
 ## Limits
 
@@ -219,6 +248,8 @@ changes nothing: no version, no item, nothing applied later.
   several skills' evidence together moves an activity that isn't on any one of them, it's said once
   for all of it. A problem counts for its first topic in the preview; the planner's rules read all
   its topics.
+- The debugging lesson (above) waits behind any other lesson, so with a weak skill that has its own
+  lesson it isn't suggested until that one's check is passed or it's skipped.
 - Whether the plan would change is decided by which activities are chosen, not their order or the
   numbers in their reasons.
 - A dispute or its reinstatement isn't "new practice": it shows on the plan at once (labels) and

@@ -193,7 +193,9 @@ the exercise doesn't count. A Learn lesson that prepares an exercise (`prepares:
 counts by the lesson rule: since Volume 17, prompt 5, **Fixing code from a failing test**
 (`se-failing-test`, version 1, author-reviewed) prepares all three exercises, is offered under
 "Learn first" on each, and its read is help for the first attempt after it (reading it after an
-attempt is the next one's). The content gate refuses a `prepares` link to something that doesn't
+attempt is the next one's). Since Volume 18, prompt 7, the practice plan suggests it when an exercise
+was tried and not fixed and no other lesson is suggested (docs/PLAN_UPDATES.md, "A debugging exercise
+not fixed yet"). The content gate refuses a `prepares` link to something that doesn't
 exist, and a test checks the lesson gives none of the exercises' answers away. An attempt from before 16 Nov 2026 says "Opening the
 exercise's explanation and repair wasn't recorded before 16 Nov 2026, so whether it was opened before
 this attempt isn't known", beside any hints it did record, and with nothing else found it's "Not

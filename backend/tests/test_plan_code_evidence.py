@@ -188,9 +188,9 @@ def test_a_debugging_exercise_counts_for_the_skills_it_names(client):
     assert entry["href"] == f"/history/submissions/{sid}"
     assert news["by_skill"][0]["text"] == (
         f"Arrays: the debugging exercise “{LAB_TITLE}” didn't pass (tests failed), which counts as tried, "
-        "not solved, so the next version would suggest “Solve: Contains Duplicate” and not "
-        "“Solve: Valid Palindrome”."
-    )
+        "not solved, so the next version would suggest “Learn: Fixing code from a failing test” and "
+        "“Solve: Contains Duplicate” and not “Solve: Valid Palindrome”."
+    )  # the lesson that prepares the exercises, since one isn't fixed yet (Volume 18, prompt 7)
     # The exercise itself is never suggested: it's evidence for its skills, not an activity.
     v2 = accept(client, h, 1)
     assert LAB not in str([i["href"] for i in v2["items"]])
@@ -209,7 +209,8 @@ def test_an_exercise_passed_after_the_version_counts_as_solved(client):
     # The exercise names arrays and edge cases after debugging: it counts for each (Volume 17, prompt 9).
     assert [g["text"] for g in plan(client, h)["news"]["by_skill"]] == [
         f"{head}: the debugging exercise “{LAB_TITLE}” passed, which counts as solved, so the next version "
-        "would suggest “Solve: Valid Palindrome” and not “Solve: Contains Duplicate”."
+        "would suggest “Solve: Valid Palindrome” and not “Learn: Fixing code from a failing test” and "
+        "“Solve: Contains Duplicate”."
         for head in ("Arrays", "Edge-cases")
     ]
 

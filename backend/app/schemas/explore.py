@@ -181,7 +181,7 @@ class CollectionTransferIn(APIModel):
         default=None,
         min_length=8,
         max_length=64,
-        description="A key for this request (Volume 18, prompt 6): sent again after a lost reply, it gets the "
+        description="A key for this request (Volume 18, prompt 5): sent again after a lost reply, it gets the "
         "first reply's outcomes back exactly, with both collections as they are now",
     )
 

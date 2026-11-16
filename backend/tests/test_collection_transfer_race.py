@@ -1,5 +1,5 @@
 """Two tabs copying or moving the same items at once, in two real PostgreSQL transactions (Volume 18,
-prompt 7; docs/BULK_ACTIONS.md, "Copy or move items"). Each request has read the other collection
+prompt 6; docs/BULK_ACTIONS.md, "Copy or move items"). Each request has read the other collection
 and found the items missing before either inserts them (a flush hook holds both until then); then
 both insert, the second waits on the unique (collection, item) until the first commits, and its
 insert is refused. That request is worked out once more against what's now there: nothing is

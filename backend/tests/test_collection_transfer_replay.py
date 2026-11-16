@@ -1,4 +1,4 @@
-"""A keyed copy or move sent again repeats its first reply (Volume 18, prompt 6; docs/BULK_ACTIONS.md,
+"""A keyed copy or move sent again repeats its first reply (Volume 18, prompt 5; docs/BULK_ACTIONS.md,
 "Copy or move items"). With a request key, the first reply's outcomes are kept with what it did, in the
 same transaction; the same request sent again after a lost reply gets them back exactly ("Moved", not
 "Already there"), marked as a replay, with both collections as they are now, and nothing is done twice.

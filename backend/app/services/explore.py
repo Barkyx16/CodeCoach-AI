@@ -156,7 +156,7 @@ def _track(slug: str) -> str:
     return slug
 
 
-# The receipt a keyed copy or move keeps of its reply (Volume 18, prompt 6), in lifecycle_receipts.
+# The receipt a keyed copy or move keeps of its reply (Volume 18, prompt 5), in lifecycle_receipts.
 TRANSFER_RECEIPT = "collection_transfer"
 
 
@@ -966,7 +966,7 @@ class Explorer:
     def _transfer_replay(
         self, user: User, cid: str, body: CollectionTransferIn
     ) -> CollectionTransferOut | None:
-        """A keyed copy or move sent again after a lost reply (Volume 18, prompt 6): its first reply's
+        """A keyed copy or move sent again after a lost reply (Volume 18, prompt 5): its first reply's
         outcomes, exactly ("Moved", not "Already there"), with both collections as they are now. The
         same key for another request is refused; another account's key finds nothing."""
         key = body.client_request_id

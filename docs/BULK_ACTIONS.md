@@ -68,7 +68,7 @@ items selected, then the collection they go to. Within one account; nothing is s
 - **After it**, the page links to both collections with their counts ("Now: “Week 2” has 3 items,
   and “Week 1” has 1 item.").
 - **Sent again**: the request names each item by what it is (type, track, id) and both collections,
-  so nothing changes twice whatever happens. And it carries a request key (Volume 18, prompt 6):
+  so nothing changes twice whatever happens. And it carries a request key (Volume 18, prompt 5):
   the first reply's outcomes are kept with what it did, in the same transaction (a
   `lifecycle_receipts` row, purged after a week like the others), so the same request sent again
   after a lost reply gets them back exactly ("Moved", not "Already there"), marked `replayed`, with
@@ -80,7 +80,7 @@ items selected, then the collection they go to. Within one account; nothing is s
   already did reads "Already there", as before. Two tabs sending the same items at once: the unique `(collection, item)`
   settles it, and the request that meets it is worked out once more against what's now there; two
   copies of one keyed request meet the receipt's unique key instead, and the second is given the
-  first's reply. Shown with two real PostgreSQL transactions (Volume 18, prompt 7;
+  first's reply. Shown with two real PostgreSQL transactions (Volume 18, prompt 6;
   `test_collection_transfer_race.py`): both requests read the other collection and find the items
   missing before either inserts (a test hook holds them there), the second insert waits on the
   unique key until the first commits and is refused, and that request is worked out a third time:

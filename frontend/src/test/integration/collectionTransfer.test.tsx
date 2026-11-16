@@ -112,7 +112,7 @@ describe("Copying and moving on a collection's page", () => {
     expect(lost).toHaveTextContent("Sending the same ones again is safe");
     await user.click(within(lost).getByRole("button", { name: "Send again" }));
     const outcomes = await screen.findByRole("region", { name: "What happened: moving to “Week 2”" }, { timeout: 3000 });
-    // The resend carries the first request's key, so the server gives back what it did (Volume 18, prompt 6).
+    // The resend carries the first request's key, so the server gives back what it did (Volume 18, prompt 5).
     expect(within(outcomes).getByRole("status")).toHaveTextContent("2 moved. Nothing needs attention.");
     expect(screen.getByText(/This was sent again after no reply came/)).toHaveTextContent(
       "This was sent again after no reply came: these are what the first request did, and nothing was done twice.");
