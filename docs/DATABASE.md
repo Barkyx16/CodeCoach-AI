@@ -356,10 +356,13 @@ The exercises are files (`backend/app/seed/reviews`, docs/CODE_REVIEW_PRACTICE.m
   cascade with the account): `exercise_version` (the version its line numbers were written
   against), `findings` (JSON: id, lines, the cited excerpt, the three texts), `summary`,
   `revision` (checked on save), `revealed_version` (set once the authored review was seen),
-  `updated_at`.
+  `revealed_at` (when it was first seen at that version; migration `c3d5f7a9e182`, Volume 18,
+  prompt 9; null for a reveal from before), `updated_at`.
 - `code_review_attempts`: reviews sent for comparison (cascade with the account), indexed by user
   and exercise: `exercise_version`, `snapshot` (JSON: the code and the authored review compared
-  with), `findings`, `summary`, `feedback` (JSON), `after_reveal`, `created_at`. Never updated.
+  with), `findings`, `summary`, `feedback` (JSON), `after_reveal`, `revealed_at` (when the
+  authored review it was written after was first shown; null if written before it, or from before
+  the time was kept), `created_at`. Never updated.
 
 ### Test design
 The exercises are files (`backend/app/seed/testdesign`, docs/TEST_DESIGN.md), not rows.

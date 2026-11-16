@@ -95,6 +95,9 @@ NOTE = (
     "accessibility settings such as dictation or captions are never counted as help."
 )
 
+# The day a code review's reveal time began to be kept (Volume 18, prompt 9).
+REVEAL_TIMES_FROM = "16 Nov 2026"
+
 
 def _aware(dt: datetime) -> datetime:
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
@@ -752,11 +755,20 @@ class Conditions:
         earlier = self._times(
             CodeReviewAttempt, CodeReviewAttempt.exercise_slug, {r.exercise_slug for r in rows}
         )
+        # When it was first shown, since Volume 18, prompt 9; before, only that it was, so the time
+        # beside it is the review's own and it says so.
         shown = {
             r.id: [
                 HelpShown(
                     label="Solution revealed",
                     detail="The authored review was shown before this was written",
+                    at=r.revealed_at,
+                )
+                if r.revealed_at is not None
+                else HelpShown(
+                    label="Solution revealed",
+                    detail="The authored review was shown before this was written (when wasn't recorded "
+                    f"before {REVEAL_TIMES_FROM}; the time here is this review's)",
                     at=r.created_at,
                 )
             ]

@@ -262,9 +262,10 @@ class CodeReviews:
         out.save_replay = SaveReplay(accepted_revision=done.accepted_revision, current_revision=out.revision)
         return out
 
-    def _mark_revealed(self, ex: Exercise) -> bool:
-        """Record that the authored review for this version has been seen. Returns whether it had
-        been seen before."""
+    def _mark_revealed(self, ex: Exercise) -> tuple[bool, datetime | None]:
+        """Record that the authored review for this version has been seen, and when it first was
+        (Volume 18, prompt 9). Returns whether it had been seen before, and when (None if it hadn't,
+        or if that reveal's time wasn't kept)."""
         row = self.db.get(CodeReviewDraft, (self._me.id, ex.slug))
         if row is None:
             row = CodeReviewDraft(
@@ -278,8 +279,11 @@ class CodeReviews:
             )
             self.db.add(row)
         before = row.revealed_version == ex.version
-        row.revealed_version = ex.version
-        return before
+        when = row.revealed_at if before else None
+        if not before:
+            row.revealed_version = ex.version
+            row.revealed_at = datetime.now(UTC)
+        return before, when
 
     def reveal(self, slug: str) -> ReviewReference:
         ex = self._exercise(slug)
@@ -321,7 +325,7 @@ class CodeReviews:
                 "You've reached the limit of saved reviews for this exercise.", code="too_many_attempts"
             )
         snapshot = self._snapshot(ex)
-        seen = self._mark_revealed(ex)
+        seen, seen_at = self._mark_revealed(ex)
         a = CodeReviewAttempt(
             user_id=self._me.id,
             exercise_slug=slug,
@@ -331,6 +335,7 @@ class CodeReviews:
             summary=summary,
             feedback=evaluate(snapshot, findings),
             after_reveal=seen,
+            revealed_at=seen_at,
         )
         self.db.add(a)
         self.db.commit()
@@ -409,6 +414,7 @@ class CodeReviews:
                     "summary": d.summary,
                     "revision": d.revision,
                     "revealed_version": d.revealed_version,
+                    "revealed_at": d.revealed_at.isoformat() if d.revealed_at else None,
                 }
                 for d in self.db.scalars(select(CodeReviewDraft).where(CodeReviewDraft.user_id == me))
             ],
@@ -423,6 +429,7 @@ class CodeReviews:
                     "summary": a.summary,
                     "feedback": a.feedback,
                     "after_reveal": a.after_reveal,
+                    "revealed_at": a.revealed_at.isoformat() if a.revealed_at else None,
                     "created_at": a.created_at.isoformat(),
                 }
                 for a in rows

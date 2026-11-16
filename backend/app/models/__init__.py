@@ -1557,6 +1557,9 @@ class CodeReviewDraft(Base):
     summary: Mapped[str] = mapped_column(Text, default="")
     revision: Mapped[int] = mapped_column(Integer, default=0)
     revealed_version: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # When the authored review was first shown at `revealed_version` (Volume 18, prompt 9); null for
+    # a reveal from before it was kept.
+    revealed_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
@@ -1577,6 +1580,9 @@ class CodeReviewAttempt(Base):
     summary: Mapped[str] = mapped_column(Text, default="")
     feedback: Mapped[dict] = mapped_column(JSONType)
     after_reveal: Mapped[bool] = mapped_column(Boolean, default=False)
+    # When the authored review it was written after was first shown (Volume 18, prompt 9): null when
+    # written before reading it, or when that reveal's time wasn't kept.
+    revealed_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 

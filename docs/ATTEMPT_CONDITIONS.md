@@ -136,8 +136,14 @@ Volume 15, prompt 3. Two kinds of help, by the rule every format uses:
   opened before the reading is sent, after a confirmation; a reading sent after that says
   **Solution revealed** ("The explanation was opened before this was sent"). Both attempts have
   always stored this (`after_reveal`, `revealed_early`), so it's shown for every attempt, older ones
-  too. Its time is the attempt's: the reveal's own time isn't kept. Unlike a hint, the authored
-  review stays seen: every later review of the same exercise says so, as it always has.
+  too. Since Volume 18, prompt 9, a code review's carries **when the authored review was first
+  shown** at that version of the exercise, asked for or shown by sending a review
+  (`code_review_drafts.revealed_at`, copied onto each review written after it); showing it again
+  doesn't move it, and a new version of the exercise is a new first showing. A review from before,
+  with only the flag, says "(when wasn't recorded before 16 Nov 2026; the time here is this
+  review's)". A comparison's explanation is opened on the page, which reports it when the reading is
+  sent, so its time is still the reading's. Unlike a hint, the authored review stays seen: every later
+  review of the same exercise says so, as it always has.
 - **A Learn lesson that prepares it**, read before the attempt and since the previous one, at the
   attempt's version: **Hint shown**, for the first attempt after the read only. The STAR lesson
   prepares "Specific evidence or general claims?" (reviewed: both teach showing what you did rather
