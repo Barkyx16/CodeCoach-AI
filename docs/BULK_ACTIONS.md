@@ -80,7 +80,11 @@ items selected, then the collection they go to. Within one account; nothing is s
   already did reads "Already there", as before. Two tabs sending the same items at once: the unique `(collection, item)`
   settles it, and the request that meets it is worked out once more against what's now there; two
   copies of one keyed request meet the receipt's unique key instead, and the second is given the
-  first's reply.
+  first's reply. Shown with two real PostgreSQL transactions (Volume 18, prompt 7;
+  `test_collection_transfer_race.py`): both requests read the other collection and find the items
+  missing before either inserts (a test hook holds them there), the second insert waits on the
+  unique key until the first commits and is refused, and that request is worked out a third time:
+  a copy is made once ("Copied" for one, "Already there" for the other), a move moves once.
 - **Refused**: either collection another account's or missing, `404` before anything is looked at;
   the same collection on both sides, `409 same_collection`; 1–50 items.
 
