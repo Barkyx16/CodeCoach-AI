@@ -159,6 +159,10 @@ def _plural_of(n: int, one: str, many: str) -> str:
 
 def change_text(change: dict[str, Any]) -> str:
     """One changed part, said: "Your code: 3 lines added, 1 line removed"."""
+    if change.get("hints_after"):
+        names = change["hints_after"]
+        listed = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
+        return f"{change['label']}: {listed} asked for after your check"
     if change.get("messages_after") is not None:
         n = change["messages_after"]
         return f"{change['label']}: {_plural_of(n, 'message', 'messages')} sent after your check"
@@ -222,6 +226,26 @@ def hints_during(session: PracticeSession) -> tuple[str, ...]:
         for h in (session.plan or {}).get("hints") or []
         if isinstance(h, dict) and h.get("level")
     )
+
+
+HINTS_LABEL = "Hints"
+
+
+def hints_after(session: PracticeSession, check_at: str | None) -> list[str]:
+    """The hints asked for in this interview after a check (Volume 18, prompt 3), as the feedback
+    reads them ("level 2 (hint)"), oldest first. None for a check without a time."""
+    if not check_at:
+        return []
+    then = datetime.fromisoformat(check_at)
+    then = then if then.tzinfo else then.replace(tzinfo=UTC)
+    out = []
+    for h in (session.plan or {}).get("hints") or []:
+        if not (isinstance(h, dict) and h.get("level") and h.get("at")):
+            continue
+        at = datetime.fromisoformat(h["at"])
+        if (at if at.tzinfo else at.replace(tzinfo=UTC)) > then:
+            out.append(f"level {h['level']} ({h['level_name']})")
+    return out
 
 
 def interview_hint_key(interview_id: str, level: int) -> str:
@@ -499,13 +523,20 @@ class InterviewService:
         now = {i.label: _digest(i.text) for i in preview.items if i.key != "ending"}
         changed = [label for label in now if then.get(label) != now[label]]
         changed += [label for label in then if label not in now]
+        changes = _check_changes(session, check, preview, changed)
+        # How it ends is compared apart, but a hint asked for after the check is something the feedback
+        # reads that wasn't checked (Volume 18, prompt 3): named as a change of its own.
+        after = hints_after(session, check.get("at"))
+        if after:
+            changed.append(HINTS_LABEL)
+            changes.append({"label": HINTS_LABEL, "hints_after": after})
         return {
             "at": check.get("at"),
             "fingerprint": check.get("fingerprint"),
             "matched": not changed,
             "changed": changed,
             "code_unsent": "Your code" in changed and not check.get("code_sent", True),
-            "changes": _check_changes(session, check, preview, changed),
+            "changes": changes,
         }
 
     def hint(self, user: User, interview_id: str, body: InterviewHintIn) -> InterviewHintOut:

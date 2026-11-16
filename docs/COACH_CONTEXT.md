@@ -99,8 +99,12 @@ interview), and asks bound to it (`POST /interviews/{id}/hint` with `approved_co
 fresh preview if the code last sent changed). The feedback then reads that hints were used, in its
 "How it ended" part, the same words the provider is sent: "How it ended: finished. Hints the
 candidate asked for during it: level 1 (nudge)." (shown in the feedback's preview before anything is
-sent). A hint asked for after "I've checked this" doesn't count as a change to the check, since how it
-ends is compared apart.
+sent). How it ends is compared apart from a check, but a hint asked for after "I've checked this" is
+something the feedback reads that wasn't checked (Volume 18, prompt 3): the review names it among
+what changed after ("Hints: level 2 (concept) asked for after your check", each hint by its level,
+oldest first; `hints_after` on the change), and the check reads as an earlier version ("You checked
+an earlier version before time ran out; it changed after: Hints."). A hint asked for before the
+check changes nothing.
 
 **One request per interview and level** (Volume 18, prompt 2). An interview's hint at a level has one
 request key, made from the interview and the level (`interview-hint_<id>_<level>`), whatever key the

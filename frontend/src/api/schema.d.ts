@@ -6392,6 +6392,11 @@ export interface components {
             added_lines?: number[];
             /** Messages After */
             messages_after?: number | null;
+            /**
+             * Hints After
+             * @description Hints asked for in the interview after the check, as the feedback reads them ("level 2 (hint)")
+             */
+            hints_after?: string[];
         };
         /** CheckIn */
         CheckIn: {

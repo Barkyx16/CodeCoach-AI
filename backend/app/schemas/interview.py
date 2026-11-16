@@ -335,6 +335,10 @@ class CheckChange(APIModel):
     removed: int | None = None
     added_lines: list[int] = Field(default_factory=list, description="1-based, in the part as read")
     messages_after: int | None = None
+    hints_after: list[str] = Field(
+        default_factory=list,
+        description='Hints asked for in the interview after the check, as the feedback reads them ("level 2 (hint)")',
+    )
 
 
 class ConfirmedCheck(APIModel):

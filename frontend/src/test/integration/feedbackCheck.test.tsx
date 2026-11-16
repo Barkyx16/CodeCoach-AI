@@ -132,4 +132,19 @@ describe("A check before time ran out", () => {
     expect(screen.getByRole("list", { name: "What changed after your check" })).toHaveTextContent("Your code: 1 line added.");
     expect(screen.queryByLabelText("Lines added to Your code after your check")).not.toBeInTheDocument();
   });
+
+  it("a hint asked for after the check is listed among what changed, with no lines (Volume 18, prompt 3)", () => {
+    const read: FeedbackRead = {
+      recorded: true, ending: "time_expired", checked: false, fingerprint: "v1:read", read_by: null, items: [],
+      text: "You checked an earlier version before time ran out; it changed after: Hints.",
+      confirmed: {
+        at: "2026-11-16T09:13:00Z", fingerprint: "v1:first", matched: false, changed: ["Hints"], code_unsent: false,
+        changes: [{ label: "Hints", text: "Hints: level 2 (concept) asked for after your check", hints_after: ["level 2 (concept)"], added: null, removed: null, added_lines: [], messages_after: null }],
+      },
+    };
+    render(<FeedbackReadSection read={read} code="class Solution {}" />);
+    const list = screen.getByRole("list", { name: "What changed after your check" });
+    expect(within(list).getByRole("listitem")).toHaveTextContent(/^Hints: level 2 \(concept\) asked for after your check\.$/);
+    expect(screen.queryByLabelText(/^Lines added to/)).not.toBeInTheDocument();
+  });
 });
