@@ -20,6 +20,7 @@ import { invalidProps, useFieldErrors } from "@/hooks/useFieldErrors";
 import { formDraftKey, isTextForm, useFormDraft } from "@/hooks/useFormDraft";
 import { useLeaveWarning } from "@/hooks/useLeaveWarning";
 import { formatDateTime } from "@/lib/format";
+import { testsPassedWords } from "@/features/workspace/testsPassed";
 import { ActionLinks, RequirementHistory, RequirementSetEditor } from "@/features/targets/RequirementVersions";
 import { useRequirementChange } from "@/features/targets/useRequirementChange";
 import { FreshnessReview } from "@/features/stories/FreshnessReview";
@@ -238,7 +239,7 @@ function RequirementCard({ t, r }: { t: Target; r: Requirement }) {
               <li key={s.submission_id}>
                 <Link to={s.href} state={{ from: location.pathname + location.search, fromLabel: "Back to this role" }}>Submitted: {s.problem_title}</Link>
                 <span className="subtle"> · </span><StatusBadge status={s.status} />
-                {s.total_count != null && <span className="subtle"> · {s.passed_count ?? 0} of {s.total_count} tests passed</span>}
+                {s.total_count != null && <span className="subtle"> · {testsPassedWords(s.passed_count ?? 0, s.total_count, s.hidden_passed, s.hidden_total)}</span>}
                 <span className="subtle"> · <time dateTime={s.created_at}>{formatDay(s.created_at.slice(0, 10))}</time></span>
                 {/* The contract's outcome against the one before, linking to that same comparison on its own page (Volume 16, prompt 9). */}
                 {s.outcome_text && (

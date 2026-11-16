@@ -70,6 +70,7 @@ from app.services.attempt_comparisons import (
 )
 from app.services.content import retired_problem_slugs
 from app.services.jd_extract import extract, map_skills
+from app.services.judge.views import public_result_view
 from app.services.lifecycle import archive_target_now
 from app.services.requirement_versions import RequirementVersions
 from app.services.stories import record_revision, snapshot
@@ -844,6 +845,10 @@ def _compare(db: Session, user: User, groups: list[list[RequirementSubmission]])
             res = x.result if x is not None else None
             item.passed_count = res.passed_count if res else None
             item.total_count = res.total_count if res else None
+            # The hidden tests too, by the rule its own page reads them with (Volume 17, prompt 10).
+            seen = public_result_view(x) if x is not None and res is not None else None
+            item.hidden_passed = seen.hidden_passed if seen else None
+            item.hidden_total = seen.hidden_total if seen else None
             view = views.get(item.submission_id)
             item.compared = view
             if view is None:

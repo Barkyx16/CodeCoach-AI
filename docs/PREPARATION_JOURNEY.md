@@ -399,12 +399,78 @@ Both runs: partly comparable (the help differed), the comparison read the same o
 with the check's time on both devices, and neither canary in the API's log. The step's 12 tests (this
 journey, the engineer's journey, its branches and its phone journey, each twice) took 5.7 minutes.
 
+## A second problem on a phone
+
+Volume 17, prompt 10. The engineer's other journeys use Two Sum, and a requirement's compared code
+had been checked at phone width once by hand, not by a committed test (Volume 16, rows 9 and 10).
+This one is on a phone from start to finish (Chromium emulating a Pixel 7, 412 px wide) and uses a
+second problem, **Valid Palindrome** (strings and two pointers; its Java reference passes in CI's
+reference-solutions step), in Java, judged by the real judge, with a debugging exercise.
+
+- The journey: `frontend/e2e/engineer-second-problem-mobile.spec.ts` (the mobile project).
+- Where it runs: CI's sandbox job, in the step that already runs the engineer's specs twice on fresh
+  accounts with the real judge (`E2E_JUDGE=1`, `--repeat-each=2`), added to that step's list; its
+  record is in the step's `[journey-record]` lines and the `engineer-journey-record` artifact. No new
+  job, no retries. Without the real judge it skips, saying why; with `E2E_JUDGE=1` but no ready judge
+  it stops at its first step with the judge's state.
+
+| # | Step | What it checks |
+|---|---|---|
+| 1 | The judge is ready | `/capabilities`: code execution on, the judge "ready" |
+| 2 | A target whose requirement lists code | "Solid experience with string processing in Java", parsed from the job description, offers "Problem: Valid Palindrome", not practised yet; the link opens its workspace |
+| 3 | A failing solution, its failed test shown | The reference with one line changed (letters compared with their case), judged in the sandbox: FAILED; the result names the failed public test, `s = "A man, a plan, a canal: Panama"`, expected true, got false |
+| 4 | A passing solution, written plainly | Not the reference: letters and digits kept lower-cased, compared with their reverse (with a canary in a comment); PASSED, compared with the failing one by the one contract |
+| 5 | The requirement lists both, compared, in the page's words | Newest first, each as "Passed · 8 of 8 tests passed (hidden 5 of 5)" and "Failed · 6 of 8 tests passed (hidden 4 of 5)", the outcome ("Comparable with the one before") and the line "1 compared with the one before; 1 not compared: the first judged submission of its problem."; the outcome opens the submission's own comparison, whose two lines say the same verdicts and counts word for word, with the contract's explanation |
+| 6 | The lesson that prepares the exercise, read | "Fixing code from a failing test", from the exercise's "Learn first", marked as read |
+| 7 | The debugging exercise, judged, its conditions shown | "Fix: Sentence Palindrome", repaired in the learner's own words (not the reference's text), PASSED in the sandbox; "Fixed: every test passes"; its page's conditions: "In-app help before this attempt: Hint shown" with "Lesson “Fixing code from a failing test” read" and its time |
+| 8 | History lists both kinds, each opening its attempt | Both Valid Palindrome submissions and the exercise, each row linking to its own id; the exercise's and the failing one's rows open those attempts |
+| 9 | Nothing typed reached the API's log | The canary typed into the passing solution isn't in it |
+
+Every page in the journey (the target twice, the workspace with its failed result, the passing
+submission's page, the lesson, the exercise with its debrief, its submission page and History) is
+checked at 412 px and again at 360 px for sideways scrolling.
+
+**What isn't checked from the page, and what is instead.** Ids aren't on the page: the submissions'
+ids and the requirement's list order are read by the API too, and History's rows are found by the id
+in their links. The verdicts are the judge's, read back by the API exactly as it gave them.
+
+**Found on the way.** The requirement said "8 of 8 tests passed" where the submission's own page
+says "8 of 8 tests passed (hidden 5 of 5)". The requirement's submissions now carry `hidden_passed`
+and `hidden_total`, read by the same rule as the page (`public_result_view`), and both say their
+counts through one formatter (`testsPassedWords`), so they can't drift.
+
+**Negative controls, each caught by this journey with the real judge here:** the requirement's
+counts without the hidden tests, as before (step 5: not the page's words); its outcome not opening
+the submission's comparison (step 5: the URL); the hidden counts read by another rule than the
+page's (step 5); and a debugging exercise's lesson read not recorded as help (step 7: its
+conditions).
+
+### Its record
+
+**Before CI** (the development check, not the record): this machine, on 16 November 2026, with the
+real judge in gVisor, through the e2e launcher, the sandbox step's five specs twice: 14 passed, this
+journey 9 of 9 steps both times. The judge's verdicts as it gave them, the time inside the method,
+and from request to verdict:
+
+| Run | Failing | Passing | Exercise |
+|---|---|---|---|
+| First | FAILED, 6 of 8 (hidden 4 of 5), 1 ms, 3.8 s | PASSED, 8 of 8 (hidden 5 of 5), 1 ms, 4.0 s | PASSED, 10 of 10 (hidden 6 of 6), 1 ms, 3.8 s |
+| Second | FAILED, 6 of 8 (hidden 4 of 5), 1 ms, 3.9 s | PASSED, 8 of 8 (hidden 5 of 5), 1 ms, 3.9 s | PASSED, 10 of 10 (hidden 6 of 6), 1 ms, 3.9 s |
+
+Both runs: comparable ("the same problem and tests, judged the same way, with the same in-app
+help"), the requirement's words the page's, the exercise's conditions naming the lesson read, no
+sideways scroll at 412 or 360 px on any page, and the canary not in the API's log.
+
+**In CI**: pending, the sandbox job of the run on the commit that adds the journey. The next commit
+records that run here.
+
 ## Limits
 
 - The nurse's path: one career, a registered nurse. The coach-context step is absent for it (above);
   the "Hint shown" assistance label isn't on it (the software engineer's journey has it); the judge
   isn't used.
-- The software engineer's path: one problem (Two Sum), Java only. (Coding submissions are compared
+- The software engineer's path: Two Sum and, on a phone, Valid Palindrome with one debugging
+  exercise (Volume 17, prompt 10); Java only. (Coding submissions are compared
   since Volume 14, prompt 1, and listed under the coding interview's improvement and the requirement
   since prompt 2; a record made before those says "not compared" and "no practice linked".)
 - The journey links the follow-up and the accepted improvement only by order. Since Volume 13, prompt 4, a

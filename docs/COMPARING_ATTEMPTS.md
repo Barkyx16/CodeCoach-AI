@@ -141,6 +141,10 @@ problem) says its outcome in the contract's words.
   requirements share is compared once), with each one's result and problem tests loaded together, so
   reading the target takes the same statements with 6 submissions or 46
   (`test_reading_the_target_doesnt_grow_with_the_number_of_submissions`).
+- **In the page's words** (Volume 17, prompt 10): each listed submission says its counts as its own
+  page does, the hidden tests beside the total ("6 of 8 tests passed (hidden 4 of 5)"), read by the
+  same rule (`hidden_passed`, `hidden_total`) and said through one formatter; proved on a phone, with
+  the real judge, by `e2e/engineer-second-problem-mobile.spec.ts`.
 - **Export**: each requirement carries `submissions: [{id, status, comparison, compared_with,
   outcome}]` by id, as the page lists them.
 - Tests: `backend/tests/test_requirement_comparisons.py` (8),

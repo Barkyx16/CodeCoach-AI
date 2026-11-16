@@ -13394,6 +13394,13 @@ export interface components {
             passed_count?: number | null;
             /** Total Count */
             total_count?: number | null;
+            /**
+             * Hidden Passed
+             * @description Hidden tests passed, as judged (its own page says them beside the total)
+             */
+            hidden_passed?: number | null;
+            /** Hidden Total */
+            hidden_total?: number | null;
             /** @description The previous judged submission of the same problem and how the two compare; none for the first */
             compared?: components["schemas"]["SubmissionComparison"] | null;
             /**

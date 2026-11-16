@@ -86,6 +86,10 @@ class RequirementSubmission(APIModel):
     href: str = Field(description="Its own page, which shows this same comparison in full")
     passed_count: int | None = Field(default=None, description="Tests passed, as judged")
     total_count: int | None = None
+    hidden_passed: int | None = Field(
+        default=None, description="Hidden tests passed, as judged (its own page says them beside the total)"
+    )
+    hidden_total: int | None = None
     compared: SubmissionComparison | None = Field(
         default=None,
         description="The previous judged submission of the same problem and how the two compare; none for "

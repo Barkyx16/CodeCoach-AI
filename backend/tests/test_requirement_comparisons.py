@@ -77,6 +77,23 @@ def test_a_failed_then_passed_submission_is_compared_with_the_rule_and_the_first
         assert claim not in str(req).lower()
 
 
+def test_each_listed_submission_says_its_hidden_tests_as_its_own_page_does(client):
+    """Volume 17, prompt 10: beside the total, the hidden tests, by the rule its own page reads them with."""
+    h = coder(client)
+    tid = target(client, h)
+    failed_then_passed(client, h)
+    listed = requirement(client, h, tid)["submissions"]
+    assert len(listed) == 2
+    for item in listed:
+        result = page(client, h, item["submission_id"])["result"]
+        assert (item["passed_count"], item["total_count"]) == (result["passed_count"], result["total_count"])
+        assert (item["hidden_passed"], item["hidden_total"]) == (
+            result["hidden_passed"],
+            result["hidden_total"],
+        )
+        assert item["hidden_total"] > 0
+
+
 def test_the_coverage_line_counts_as_before(client):
     """Comparisons add a line beside the coverage; the coverage itself counts practice as it did (the
     same level, label and counts as a target page read before comparisons were added)."""

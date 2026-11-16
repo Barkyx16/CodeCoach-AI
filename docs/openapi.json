@@ -46292,6 +46292,29 @@
             ],
             "title": "Total Count"
           },
+          "hidden_passed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hidden Passed",
+            "description": "Hidden tests passed, as judged (its own page says them beside the total)"
+          },
+          "hidden_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hidden Total"
+          },
           "compared": {
             "anyOf": [
               {

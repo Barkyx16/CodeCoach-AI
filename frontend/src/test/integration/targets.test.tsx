@@ -512,6 +512,26 @@ describe("A requirement's submissions, compared (Volume 16, prompt 9)", () => {
   });
 });
 
+describe("A requirement's submissions, in the words of their own page (Volume 17, prompt 10)", () => {
+  it("says the hidden tests beside the total, as the submission's comparison does", async () => {
+    const t = makeTarget();
+    targetServer({
+      requirement_list: [{ ...t.requirement_list[0]!, submissions: [
+        { submission_id: "s-2", problem_title: "Valid Palindrome", status: "PASSED", created_at: now, href: "/history/submissions/s-2",
+          passed_count: 8, total_count: 8, hidden_passed: 5, hidden_total: 5, compared: null, outcome_text: "Not compared: the first judged submission of this problem" },
+        { submission_id: "s-1", problem_title: "Valid Palindrome", status: "FAILED", created_at: now, href: "/history/submissions/s-1",
+          passed_count: 6, total_count: 8, hidden_passed: null, hidden_total: null, compared: null, outcome_text: "" },
+      ] }, ...t.requirement_list.slice(1)],
+    });
+    renderApp("/targets/t-1", { signedIn: true });
+    const list = await screen.findByRole("list", { name: "Your latest submissions for Perform patient assessment and triage" });
+    const [newer, older] = within(list).getAllByRole("listitem");
+    expect(newer).toHaveTextContent("8 of 8 tests passed (hidden 5 of 5)");
+    expect(older).toHaveTextContent("6 of 8 tests passed");
+    expect(older).not.toHaveTextContent("hidden"); // not known: not said
+  });
+});
+
 describe("A story archived in the story bank, on its target", () => {
   it("stays linked to its requirement, labelled archived (Volume 14, prompt 6)", async () => {
     targetServer({

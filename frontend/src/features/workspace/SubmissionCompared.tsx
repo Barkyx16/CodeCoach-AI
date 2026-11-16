@@ -2,6 +2,8 @@ import type { Submission, SubmissionComparison } from "@/api/types";
 import { StatusBadge } from "@/components/Badge";
 import { formatDateTime } from "@/lib/format";
 
+import { testsPassedWords } from "./testsPassed";
+
 /**
  * A finished submission beside the previous judged one of the same problem and mode, by the one
  * comparison contract (docs/COMPARING_ATTEMPTS.md, "Coding submissions"). Each verdict is shown as
@@ -12,9 +14,10 @@ export function SubmissionCompared({ current, compared }: { current: Submission;
   const prev = compared.previous;
   const c = compared.comparison;
   const noun = current.mode === "run" ? "run" : "submission";
-  const counts = (passed?: number | null, total?: number | null, hiddenPassed?: number | null, hiddenTotal?: number | null) =>
-    passed == null || total == null ? null
-      : <span className="subtle"> {passed} of {total} tests passed{hiddenTotal ? ` (hidden ${hiddenPassed ?? 0} of ${hiddenTotal})` : ""}</span>;
+  const counts = (passed?: number | null, total?: number | null, hiddenPassed?: number | null, hiddenTotal?: number | null) => {
+    const words = testsPassedWords(passed, total, hiddenPassed, hiddenTotal);
+    return words && <span className="subtle"> {words}</span>;
+  };
   const r = current.result;
   return (
     <section className="submission-compared stack-sm" id="comparison" aria-label={`Compared with your previous ${noun}`}>

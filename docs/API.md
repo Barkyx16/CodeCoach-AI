@@ -826,8 +826,10 @@ All under `/api/v1/targets` 🔒 and scoped to the owner (another user's id is a
 - `GET /targets/{id}`: the target with `requirement_list` (each `{category, text, origin:
   explicit|inferred|user, quote, quote_in_description, skills, removed, coverage: {level:
   practised|some|limited|gap, label, …}, practice: [{kind, title, href, why}], submissions:
-  [{submission_id, problem_title, status, created_at, href}]}`: the latest three judged submissions to
-  the problems it offers, Volume 14, prompt 2),
+  [{submission_id, problem_title, status, created_at, href, passed_count, total_count, hidden_passed,
+  hidden_total, compared, outcome_text}]}`: the latest three judged submissions to the problems it
+  offers, Volume 14, prompt 2, each compared with the one before as its own page does, Volume 16,
+  prompt 9, and with its hidden tests by the page's own rule, Volume 17, prompt 10),
   `next_activity`, `targeted_session` and `mock_interview` (`{title, scope, round}` for
   `POST /interviews`), `recent_attempts`, `experience`.
 - `PATCH /targets/{id}` edits fields, `archived`, or `selected` (one active target); editing the
