@@ -255,4 +255,30 @@ describe("code-review practice", () => {
     expect(earlier).toHaveTextContent("In-app help: Solution revealed");
     expect(earlier).toHaveTextContent("In-app help: No in-app help recorded");
   });
+
+  it("each review is beside the one before, by the one contract, in its list and on its page (Volume 18, prompt 4)", async () => {
+    const explanation = "Partly comparable: the in-app help differed: before the earlier one, none recorded; before the later one, solution revealed. The results are from the same checks by the same fixed rules, so both are shown. (Comparison rules v1)";
+    const compared = {
+      previous: { id: "rev-1", created_at: "2026-11-15T09:30:00Z", result: "1 of 1 authored defects raised" },
+      result: "1 of 1 authored defects raised",
+      comparison: { against: "rev-1", outcome: "partially_comparable" as const, scores_comparable: true, points_comparable: true, reasons: [], explanation, contract_version: 1 },
+    };
+    const second = { ...sent, id: "rev-2", after_reveal: true, conditions: revealedConditions("The authored review was shown before this was written"), compared, not_compared: null };
+    serve(emptyDraft, second);
+    server.use(http.get(`${API}/api/v1/me/code-reviews/${exercise.slug}/attempts`, () => HttpResponse.json([
+      { id: "rev-2", exercise_version: 1, findings: 2, defects_raised: 1, defects_total: 1, after_reveal: true, created_at: "2026-11-15T10:00:00Z", conditions: second.conditions, compared, not_compared: null },
+      { id: "rev-1", exercise_version: 1, findings: 2, defects_raised: 1, defects_total: 1, after_reveal: false, created_at: "2026-11-15T09:30:00Z", conditions: noHelp, compared: null, not_compared: "Not compared: the first checked attempt at this exercise" },
+    ])));
+    const page = renderApp("/code-reviews/attempts/rev-2", { signedIn: true });
+    const section = await screen.findByRole("region", { name: "Compared with your previous attempt" });
+    expect(section).toHaveTextContent("1 of 1 authored defects raised");
+    expect(section).toHaveTextContent(explanation);
+    expect(section).not.toHaveTextContent(/improv|better/i);
+    page.unmount();
+    renderApp(`/code-reviews/${exercise.slug}`, { signedIn: true });
+    const earlier = (await screen.findByRole("heading", { name: "Your earlier reviews" })).closest("section")!;
+    const [newer, older] = within(earlier).getAllByRole("listitem");
+    expect(newer).toHaveTextContent("Partly comparable with the one before");
+    expect(older).toHaveTextContent("Not compared: the first checked attempt at this exercise");
+  });
 });

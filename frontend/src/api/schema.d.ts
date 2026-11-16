@@ -13670,6 +13670,13 @@ export interface components {
             created_at: string;
             /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
             conditions?: components["schemas"]["AttemptConditions"] | null;
+            /** @description Beside the previous review of the same exercise, by the one comparison contract (docs/COMPARING_ATTEMPTS.md, Volume 18, prompt 4); null when there's none */
+            compared?: components["schemas"]["PracticeComparison"] | null;
+            /**
+             * Not Compared
+             * @description Why it isn't compared, in the words History uses too; null when it is
+             */
+            not_compared?: string | null;
         };
         /** ReviewAttemptSummary */
         ReviewAttemptSummary: {
@@ -13692,6 +13699,13 @@ export interface components {
             created_at: string;
             /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
             conditions?: components["schemas"]["AttemptConditions"] | null;
+            /** @description Beside the previous review of the same exercise, by the one comparison contract (docs/COMPARING_ATTEMPTS.md, Volume 18, prompt 4); null when there's none */
+            compared?: components["schemas"]["PracticeComparison"] | null;
+            /**
+             * Not Compared
+             * @description Why it isn't compared, in the words History uses too; null when it is
+             */
+            not_compared?: string | null;
         };
         /** ReviewDraftIn */
         ReviewDraftIn: {

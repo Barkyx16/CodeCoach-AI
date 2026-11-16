@@ -39,6 +39,7 @@ from app.schemas.code_reviews import (
 )
 from app.schemas.common import SaveReplay
 from app.services import update_receipts
+from app.services.attempt_comparisons import AttemptComparisons, not_compared
 from app.services.conditions import Conditions
 
 MAX_ATTEMPTS_PER_EXERCISE = 50
@@ -335,9 +336,16 @@ class CodeReviews:
         self.db.commit()
         return self._out(a)
 
+    def _compared(self, slug: str) -> dict[str, Any]:
+        """Each review of this exercise beside the previous one, by the one comparison contract
+        (Volume 18, prompt 4): every review of it, so the earlier one is there."""
+        comparisons = AttemptComparisons(self.db, self._me)
+        return comparisons.checklist_compared("code_review", comparisons.all_attempts("code_review", {slug}))
+
     def _out(self, a: CodeReviewAttempt) -> ReviewAttemptOut:
         current = BY_SLUG.get(a.exercise_slug)
         found = Conditions(self.db, self._me).for_code_reviews([a])
+        compared = self._compared(a.exercise_slug)
         return ReviewAttemptOut(
             id=a.id,
             slug=a.exercise_slug,
@@ -353,6 +361,8 @@ class CodeReviews:
             after_reveal=a.after_reveal,
             created_at=a.created_at,
             conditions=found[a.id],
+            compared=compared.get(a.id),
+            not_compared=not_compared("code_review", a, compared),
         )
 
     def attempts(self, slug: str) -> list[ReviewAttemptSummary]:
@@ -363,6 +373,7 @@ class CodeReviews:
             .order_by(CodeReviewAttempt.created_at.desc())
         ).all()
         found = Conditions(self.db, self._me).for_code_reviews(rows)
+        compared = self._compared(slug)
         return [
             ReviewAttemptSummary(
                 id=a.id,
@@ -373,6 +384,8 @@ class CodeReviews:
                 after_reveal=a.after_reveal,
                 created_at=a.created_at,
                 conditions=found[a.id],
+                compared=compared.get(a.id),
+                not_compared=not_compared("code_review", a, compared),
             )
             for a in rows
         ]

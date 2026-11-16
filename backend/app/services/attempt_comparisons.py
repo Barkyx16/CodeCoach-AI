@@ -5,6 +5,7 @@ Every surface that compares written answers (the question page's tries, an inter
 progress chart's list) gets its classifications here, so the same pair always reads the same. Coding
 submissions too (Volume 14, prompt 1): the submission page, the workspace's result and History. And
 drills, whiteboard designs and work samples (Volume 15, prompt 4): each attempt's own page and list.
+And code reviews (Volume 18, prompt 4): defects raised of the exercise's authored ones, by its rules.
 """
 
 from __future__ import annotations
@@ -26,6 +27,7 @@ from app.careers.comparability import (
 )
 from app.careers.eligibility import feedback_eligibility
 from app.models import (
+    CodeReviewAttempt,
     DrillAttempt,
     InterviewRetry,
     InterviewTurn,
@@ -63,9 +65,15 @@ VERDICTS = frozenset(
 
 
 # Drills, whiteboard designs and work samples: the result is how many of the item's points the
-# built-in rules found, as stored with the attempt.
-Checklist = Literal["drill", "whiteboard", "work_sample"]
-_FOUND: dict[str, str] = {"drill": "there", "whiteboard": "addressed", "work_sample": "covered"}
+# built-in rules found, as stored with the attempt. Code reviews (Volume 18, prompt 4): how many of
+# the exercise's authored defects the review raised, as its rules matched them.
+Checklist = Literal["drill", "whiteboard", "work_sample", "code_review"]
+_FOUND: dict[str, str] = {
+    "drill": "there",
+    "whiteboard": "addressed",
+    "work_sample": "covered",
+    "code_review": "raised",
+}
 
 
 def checklist_result(kind: Checklist, feedback: dict | None) -> tuple[int, int] | None:
@@ -77,6 +85,9 @@ def checklist_result(kind: Checklist, feedback: dict | None) -> tuple[int, int] 
     if kind == "whiteboard":
         rows = fb.get("rubric") or []
         return (sum(1 for r in rows if r.get("addressed")), len(rows)) if rows else None
+    if kind == "code_review":
+        total = int(fb.get("defects_total") or 0)
+        return (int(fb.get("defects_raised") or 0), total) if total else None
     if fb.get("total"):
         return int(fb.get("covered") or 0), int(fb["total"])
     return None
@@ -84,10 +95,11 @@ def checklist_result(kind: Checklist, feedback: dict | None) -> tuple[int, int] 
 
 def checklist_text(kind: Checklist, feedback: dict | None) -> str:
     got = checklist_result(kind, feedback)
-    return f"{got[0]} of {got[1]} points {_FOUND[kind]}" if got else "No result stored"
+    noun = "authored defects" if kind == "code_review" else "points"
+    return f"{got[0]} of {got[1]} {noun} {_FOUND[kind]}" if got else "No result stored"
 
 
-_FIRST = {"drill": "drill", "whiteboard": "prompt", "work_sample": "brief"}
+_FIRST = {"drill": "drill", "whiteboard": "prompt", "work_sample": "brief", "code_review": "exercise"}
 
 
 def not_compared(kind: Checklist, row: Any, compared: dict[str, Any]) -> str | None:
@@ -101,6 +113,8 @@ def not_compared(kind: Checklist, row: Any, compared: dict[str, Any]) -> str | N
 
 
 def _item(kind: Checklist, row: Any) -> str:
+    if kind == "code_review":
+        return str(row.exercise_slug)
     return row.drill_id if kind == "drill" else row.prompt_id if kind == "whiteboard" else row.brief_id
 
 
@@ -344,6 +358,8 @@ class AttemptComparisons:
             if kind == "drill"
             else finder.for_whiteboards(rows)
             if kind == "whiteboard"
+            else finder.for_code_reviews(rows)
+            if kind == "code_review"
             else finder.for_work_samples(rows)
         )
         self.conditions.update(help)
@@ -356,6 +372,10 @@ class AttemptComparisons:
                 track, version, rubric = r.track, r.rubric_version, "the drill's points"
             elif kind == "whiteboard":
                 track, version, rubric = "whiteboard", r.prompt_version, f"v{r.rubric_version}"
+            elif kind == "code_review":
+                # The authored defects are the exercise's, versioned with it; the rules that match a
+                # finding to one are fixed (app/services/code_reviews.py, evaluate).
+                track, version, rubric = "code_review", r.exercise_version, "the exercise's authored review"
             else:
                 rules = fb.get("rules_version")
                 track, version, rubric = "work_sample", r.brief_version, f"v{rules}" if rules else None
@@ -418,6 +438,8 @@ class AttemptComparisons:
             if kind == "drill"
             else WhiteboardAttempt
             if kind == "whiteboard"
+            else CodeReviewAttempt
+            if kind == "code_review"
             else WorkSampleAttempt
         )
         col = (
@@ -425,6 +447,8 @@ class AttemptComparisons:
             if kind == "drill"
             else WhiteboardAttempt.prompt_id
             if kind == "whiteboard"
+            else CodeReviewAttempt.exercise_slug
+            if kind == "code_review"
             else WorkSampleAttempt.brief_id
         )
         if not items:

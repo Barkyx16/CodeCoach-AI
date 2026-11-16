@@ -6,6 +6,7 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 
 from app.models import Difficulty
+from app.schemas.careers import PracticeComparison
 from app.schemas.common import APIModel, OptionalKey, SaveReplay, save_replay_field, update_key_field
 from app.schemas.conditions import AttemptConditions
 
@@ -136,6 +137,14 @@ class ReviewAttemptOut(APIModel):
     conditions: AttemptConditions | None = Field(
         default=None, description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
     )
+    compared: PracticeComparison | None = Field(
+        default=None,
+        description="Beside the previous review of the same exercise, by the one comparison contract "
+        "(docs/COMPARING_ATTEMPTS.md, Volume 18, prompt 4); null when there's none",
+    )
+    not_compared: str | None = Field(
+        default=None, description="Why it isn't compared, in the words History uses too; null when it is"
+    )
 
 
 class ReviewAttemptSummary(APIModel):
@@ -148,4 +157,12 @@ class ReviewAttemptSummary(APIModel):
     created_at: datetime
     conditions: AttemptConditions | None = Field(
         default=None, description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+    )
+    compared: PracticeComparison | None = Field(
+        default=None,
+        description="Beside the previous review of the same exercise, by the one comparison contract "
+        "(docs/COMPARING_ATTEMPTS.md, Volume 18, prompt 4); null when there's none",
+    )
+    not_compared: str | None = Field(
+        default=None, description="Why it isn't compared, in the words History uses too; null when it is"
     )

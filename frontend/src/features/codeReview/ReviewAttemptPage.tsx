@@ -6,6 +6,7 @@ import { BackLink } from "@/components/BackLink";
 import { ErrorState, LoadingState } from "@/components/States";
 import { formatDateTime } from "@/lib/format";
 import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
+import { PracticeCompared } from "@/features/conditions/PracticeCompared";
 
 import { CodeView, ComparisonView } from "./Comparison";
 
@@ -38,6 +39,7 @@ export function ReviewAttemptPage() {
       <ComparisonView findings={a.findings} summary={a.summary} feedback={a.feedback as unknown as ReviewFeedback}
         reference={a.reference} afterReveal={a.after_reveal} />
       <AttemptConditionsView conditions={a.conditions} />
+      {a.compared ? <PracticeCompared compared={a.compared} /> : a.not_compared ? <p className="subtle">{a.not_compared}.</p> : null}
       {a.current_version != null && <p><Link to={`/code-reviews/${a.slug}`}>Open the exercise</Link></p>}
     </div>
   );

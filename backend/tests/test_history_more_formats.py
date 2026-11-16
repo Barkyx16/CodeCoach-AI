@@ -48,7 +48,10 @@ def test_a_code_review_row_says_what_its_page_says_and_opens_that_review(client)
         f"points at {listed['defects_raised']} of {listed['defects_total']} authored defect" in row["detail"]
     )
     assert f"version {listed['exercise_version']}" in row["detail"]
-    assert row["detail"].endswith("Not compared: code reviews aren't compared with each other yet")
+    # Compared by the contract since Volume 18, prompt 4: the first review of an exercise says so, in
+    # the words its own page's list uses.
+    assert row["detail"].endswith(" · " + listed["not_compared"])
+    assert listed["not_compared"] == "Not compared: the first checked attempt at this exercise"
     assert row["target"]["href"] == f"/code-reviews/attempts/{review['id']}"
     assert row["career"] == "coding" and row["career_title"] == "Coding problems"
     assert row["status"] == "completed"

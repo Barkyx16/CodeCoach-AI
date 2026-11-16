@@ -149,7 +149,8 @@ PRACTICE: dict[str, tuple[Checklist, Any, Any]] = {
     "work_sample_attempt": ("work_sample", WorkSampleAttempt, WorkSampleAttempt.brief_id),
 }
 # Scenario runs, code reviews and sample-answer comparisons in History (Volume 17, prompt 2). Their
-# own pages list their attempts; no comparison contract covers them yet, and the row says so.
+# own pages list their attempts; the contract covers code reviews (Volume 18, prompt 4), and for the
+# others the row says it doesn't.
 OTHERS: dict[str, tuple[str, Any, Any]] = {
     "scenario_attempt": ("scenario", ScenarioAttempt, ScenarioAttempt.scenario_id),
     "code_review_attempt": ("code_review", CodeReviewAttempt, CodeReviewAttempt.exercise_slug),
@@ -167,7 +168,6 @@ GONE = {
 }
 NOT_COMPARED = {
     "scenario": "Not compared: scenario runs aren't compared with each other",
-    "code_review": "Not compared: code reviews aren't compared with each other yet",
     "comparison": "Not compared: readings of sample answers aren't compared with each other yet",
 }
 # Where the content's careers come from: the attempt (a drill), the content (these), the coding
@@ -191,8 +191,9 @@ def _plural(n: int, one: str, many: str | None = None) -> str:
     return f"{n} {one if n == 1 else (many or one + 's')}"
 
 
-def other_detail(kind: str, r: Any) -> str:
-    """What its own page's list says of it, in the same words, then why it isn't compared."""
+def other_detail(kind: str, r: Any, outcome: str | None = None) -> str:
+    """What its own page's list says of it, in the same words, then how it compares with the one
+    before (a code review's, by the contract) or why it isn't compared."""
     if kind == "scenario":
         end = next((st for st in r.steps or [] if st.get("kind") == "ending"), None)
         said = (end or {}).get("outcome") if r.status == "completed" else None
@@ -218,7 +219,7 @@ def other_detail(kind: str, r: Any) -> str:
         if r.revealed_early:
             text += " · after the explanation"
         text += f" · version {r.lesson_version}"
-    return f"{text} · {NOT_COMPARED[kind]}"
+    return f"{text} · {outcome or NOT_COMPARED[kind]}"
 
 
 def chart_facts(row) -> AttemptFacts:
@@ -738,8 +739,8 @@ class ActivityService:
                 self.db.scalars(select(model).where(*conds).order_by(model.created_at.desc()).limit(limit))
             )
             compared: dict[str, Any] = {}
-            checklist = cast(Checklist, kind)  # only read for drills, whiteboards and work samples
-            if type_ in PRACTICE:
+            checklist = cast(Checklist, kind)  # only read for drills, whiteboards, work samples, code reviews
+            if type_ in PRACTICE or kind == "code_review":
                 comparisons = AttemptComparisons(self.db, user)
                 compared = comparisons.checklist_compared(
                     checklist, comparisons.all_attempts(checklist, {getattr(r, col.key) for r in rows})
@@ -762,6 +763,14 @@ class ActivityService:
                         else not_compared(checklist, r, compared)
                     )
                     detail = f"{checklist_text(checklist, r.feedback)} · {outcome}"
+                elif kind == "code_review":
+                    detail = other_detail(
+                        kind,
+                        r,
+                        COMPARED_SHORT[compared[r.id].comparison.outcome]
+                        if r.id in compared
+                        else not_compared(checklist, r, compared),
+                    )
                 else:
                     detail = other_detail(kind, r)
                 out.append(

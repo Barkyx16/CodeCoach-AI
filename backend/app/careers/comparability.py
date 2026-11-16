@@ -41,7 +41,7 @@ CONTRACT_VERSION = 1
 Outcome = Literal["comparable", "partially_comparable", "incompatible", "unknown"]
 Format = Literal["single", "interview", "retry", "submit", "run"]
 Source = Literal["rules", "ai", "person", "judge"]
-Kind = Literal["written", "code", "drill", "whiteboard", "work_sample"]
+Kind = Literal["written", "code", "drill", "whiteboard", "work_sample", "code_review"]
 
 # Who graded it, by the recorded coach name: only names that are known. Anything else is unknown.
 SOURCES: dict[str, Source] = {"built-in (offline)": "rules"}
@@ -59,16 +59,24 @@ FORMAT_LABEL: dict[str, str] = {
     "run": "as a run (the public tests only)",
 }
 HELP_NONE = "No in-app help recorded"
-# Formats whose result is a checklist of the item's points, checked by built-in rules.
-CHECKLISTS: frozenset[str] = frozenset({"drill", "whiteboard", "work_sample"})
+# Formats whose result is a checklist of the item's points, checked by built-in rules. A code
+# review's are the exercise's authored defects, matched to its findings by fixed rules (Volume 18,
+# prompt 4).
+CHECKLISTS: frozenset[str] = frozenset({"drill", "whiteboard", "work_sample", "code_review"})
 KIND_NOUN: dict[str, str] = {
     "written": "a written answer",
     "code": "code",
     "drill": "a drill",
     "whiteboard": "a whiteboard design",
     "work_sample": "a work sample",
+    "code_review": "a code review",
 }
-ITEM: dict[str, str] = {"drill": "drill", "whiteboard": "prompt", "work_sample": "brief"}
+ITEM: dict[str, str] = {
+    "drill": "drill",
+    "whiteboard": "prompt",
+    "work_sample": "brief",
+    "code_review": "exercise",
+}
 
 
 @dataclass(frozen=True)

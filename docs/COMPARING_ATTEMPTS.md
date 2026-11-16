@@ -213,8 +213,7 @@ another rubric; a checklist's ticks against other points don't. So:
   finding · points at 1 of 2 authored defects · version 1", "1 excerpt, 1 matching the explanation ·
   version 1", with "after reading the authored review" or "after the explanation" where it was), then
   why it isn't compared: no rule of this contract covers these formats ("Not compared: scenario runs
-  aren't compared with each other" (each run takes its own path), "Not compared: code reviews aren't
-  compared with each other yet", "Not compared: readings of sample answers aren't compared with each
+  aren't compared with each other" (each run takes its own path), code reviews since Volume 18, prompt 4: by the contract, below, "Not compared: readings of sample answers aren't compared with each
   other yet"). Each opens that attempt: a run's or a review's own page, or the lesson's page showing
   that reading (`/compare/<lesson>?attempt=<id>`); one that can't be opened says so. Its in-app help
   comes in the same one request. A scenario run in progress is "In progress" (the status filter and
@@ -229,13 +228,37 @@ another rubric; a checklist's ticks against other points don't. So:
 - **Rules version**: still v1. No written answer's or submission's classification changed; these are
   new facts, with the rules for a checklist, under the same version.
 
+## Code reviews (Volume 18, prompt 4)
+
+Each review of a code-review exercise is set beside the **previous review of the same exercise**,
+by the same checklist rules as drills, whiteboards and work samples. Its result is how many of the
+exercise's authored defects it raised, as the exercise's fixed rules matched its findings to them
+("1 of 2 authored defects raised"), shown as given for both; its item is the exercise, its version
+the exercise's (its authored defects are versioned with it), its help the conditions it records
+(docs/ATTEMPT_CONDITIONS.md).
+
+- **Sending a review shows the authored one** with its feedback, so the next review of that exercise
+  is written after reading it: the second review is **partly comparable** with the first ("the
+  in-app help differed: before the earlier one, none recorded; before the later one, solution
+  revealed."), and a third with the second is **comparable** (both after reading it). Reading the
+  authored review before the first review is said the same way.
+- **Another version** of the exercise isn't comparable with it (the explanation names the version).
+- **Where it shows**: the exercise's list of your reviews ("· Partly comparable with the one
+  before", or "· Not compared: the first checked attempt at this exercise"), the review's own page
+  ("Compared with your previous attempt", both results and the explanation), and History's row, in
+  the same words. `compared` and `not_compared` on the review's list item and page (additive).
+- **Never** "improved", a score, or an average. **Rules version**: still v1; no earlier
+  classification changed.
+- Tests: `backend/tests/test_code_review_comparisons.py` (6, SQLite and PostgreSQL),
+  `frontend/src/test/integration/codeReview.test.tsx` (+1).
+
 ## Not covered yet
 
 Every list of coding submissions now says how each compares with the one before: History, a
 submission's page and the workspace's result, an improvement's related practice, a requirement, and
 your submissions list (`GET /me/submissions`, `outcome_text`), which the dashboard's "Recent
 attempts" shows, linking to the comparison (the first says it's the first; one still being judged,
-or that the judge couldn't run, says nothing). Scenario runs, code-review exercises and sample-answer
+or that the judge couldn't run, says nothing). Code reviews are compared since Volume 18, prompt 4 (above). Scenario runs and sample-answer
 comparisons are listed in History (Volume 17, prompt 2) but not compared: they, and the other formats,
 keep their own rules for now (docs/SCENARIOS.md, docs/CODE_REVIEWS.md, docs/COMPARE_ANSWERS.md and others) and adopt
 this contract later. Help outside the app isn't known.

@@ -20,7 +20,7 @@ import { formatArgs, formatDateTime, formatValue, timeAgo } from "@/lib/format";
 import { useCopySince, writeCopy } from "@/lib/deviceCopies";
 import { useRequestKey } from "@/lib/requestKey";
 import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
-import { conditionsSummary } from "@/features/conditions/summary";
+import { COMPARED_SHORT, conditionsSummary } from "@/features/conditions/summary";
 
 import { CodeView, ComparisonView, ReferenceView } from "./Comparison";
 import { where } from "./where";
@@ -384,7 +384,9 @@ function Review({ exercise, initial }: { exercise: ReviewExercise; initial: Revi
                 <span className="subtle"> · {a.findings} finding{a.findings === 1 ? "" : "s"}
                   {a.defects_total ? ` · points at ${a.defects_raised} of ${a.defects_total} authored defect${a.defects_total === 1 ? "" : "s"}` : " · no authored defect"}
                   {a.after_reveal ? " · after reading the authored review" : ""} · version {a.exercise_version}
-                  {a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}</span>
+                  {a.conditions ? ` · In-app help: ${conditionsSummary(a.conditions)}` : ""}
+                  {/* Beside the review before it, by the one contract (Volume 18, prompt 4). */}
+                  {a.compared ? ` · ${COMPARED_SHORT[a.compared.comparison.outcome]}` : a.not_compared ? ` · ${a.not_compared}` : ""}</span>
               </li>
             ))}
           </ul>
