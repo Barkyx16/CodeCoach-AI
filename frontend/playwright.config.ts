@@ -69,7 +69,10 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       env: {
         E2E_OWNED_NAME: "api",
-        E2E_OWNED_COMMAND: `${python} -c "import pathlib, shutil; pathlib.Path('e2e${suffix}.db').unlink(missing_ok=True); pathlib.Path('e2e-access${suffix}.log').unlink(missing_ok=True); shutil.rmtree('e2e-outbox${suffix}', ignore_errors=True)" && ${python} -m uvicorn app.main:app --port ${PORTS.api}`,
+        // Idle connections are kept 310 s, longer than the longest test (300 s): uvicorn's default
+        // 5 s can close a kept-alive connection just as a test's own request client reuses it, and
+        // unlike the browser it doesn't resend ("socket hang up", CI run 346; docs/NAVIGATION.md, H2).
+        E2E_OWNED_COMMAND: `${python} -c "import pathlib, shutil; pathlib.Path('e2e${suffix}.db').unlink(missing_ok=True); pathlib.Path('e2e-access${suffix}.log').unlink(missing_ok=True); shutil.rmtree('e2e-outbox${suffix}', ignore_errors=True)" && ${python} -m uvicorn app.main:app --port ${PORTS.api} --timeout-keep-alive 310`,
         // Tells e2e/global-setup.ts this is the suite's own server (never a developer's).
         INSTANCE_LABEL,
         DATABASE_URL: E2E_DATABASE_URL,
