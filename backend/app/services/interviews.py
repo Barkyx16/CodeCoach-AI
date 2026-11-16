@@ -54,6 +54,7 @@ from app.db import rls
 from app.errors import AppError, ConflictError, NotFoundError, RateLimitedError
 from app.models import (
     AIAction,
+    AIInteraction,
     InterviewPhase,
     InterviewStatus,
     InterviewTurn,
@@ -65,7 +66,7 @@ from app.models import (
     TurnRole,
     User,
 )
-from app.schemas.ai import CoachPreview, ContextItem
+from app.schemas.ai import CoachPreview, ContextItem, HintContent, HintRequest
 from app.schemas.common import Page
 from app.schemas.conditions import AttemptConditions
 from app.schemas.interview import (
@@ -84,6 +85,9 @@ from app.schemas.interview import (
     InterviewFeedbackConfirm,
     InterviewFeedbackPreview,
     InterviewFinish,
+    InterviewHintIn,
+    InterviewHintOut,
+    InterviewHintRecord,
     InterviewKind,
     InterviewMessage,
     InterviewMessagePreview,
@@ -208,6 +212,22 @@ def _check_changes(
             }
         )
     return out
+
+
+def hints_during(session: PracticeSession) -> tuple[str, ...]:
+    """The hints asked for in this interview's own panel (Volume 17, prompt 4), as the feedback reads
+    them: "level 1 (nudge)", oldest first."""
+    return tuple(
+        f"level {h['level']} ({h['level_name']})"
+        for h in (session.plan or {}).get("hints") or []
+        if isinstance(h, dict) and h.get("level")
+    )
+
+
+def hint_record(h: dict[str, Any]) -> InterviewHintRecord:
+    return InterviewHintRecord(
+        level=h["level"], level_name=h["level_name"], at=datetime.fromisoformat(h["at"]), turn=int(h["turn"])
+    )
 
 
 def _plural(n: int, word: str) -> str:
@@ -481,6 +501,68 @@ class InterviewService:
             "code_unsent": "Your code" in changed and not check.get("code_sent", True),
             "changes": _check_changes(session, check, preview, changed),
         }
+
+    def hint(self, user: User, interview_id: str, body: InterviewHintIn) -> InterviewHintOut:
+        """A hint inside a coding interview (Volume 17, prompt 4; docs/ATTEMPT_CONDITIONS.md): the
+        problem's own hint ladder, asked for through the coach exactly as the workspace asks (the same
+        ladder, budget and fallback), with the code last sent, and recorded with the interview: its
+        level, when it was shown and after how many messages. A level already asked for in this
+        interview gives that hint again, with no second request. Refused once the interview is over
+        or its time is up."""
+        session = self._load(user, interview_id)
+        self._require_kind(session, PracticeMode.INTERVIEW)
+        self._require_open_for_preview(session)
+        problem = session.problem
+        assert problem is not None
+        kept = [h for h in (session.plan or {}).get("hints") or [] if isinstance(h, dict)]
+        again = next((h for h in kept if h.get("level") == body.level), None)
+        if again is not None:
+            row = self.db.get(AIInteraction, again.get("interaction_id"))
+            if row is not None and row.user_id == user.id and row.response is not None:
+                shown = self.coach._hint_response(
+                    problem, body.level, HintContent.model_validate(row.response), row.provider
+                )
+                return InterviewHintOut(hint=shown, record=hint_record(again), repeated=True)
+        shown = self.coach.hint(
+            user,
+            HintRequest(
+                problem_slug=problem.slug,
+                source_code=session.final_code or "",
+                level=body.level,
+                approved_context=body.approved_context,
+                client_request_id=body.client_request_id,
+            ),
+        )
+        row = self.db.scalar(
+            select(AIInteraction)
+            .where(
+                AIInteraction.user_id == user.id,
+                AIInteraction.problem_id == problem.id,
+                AIInteraction.action == AIAction.HINT,
+                AIInteraction.hint_level == body.level,
+                AIInteraction.response.is_not(None),
+            )
+            .order_by(AIInteraction.created_at.desc())
+            .limit(1)
+        )
+        assert row is not None  # the coach just recorded it
+        self.db.refresh(session)
+        kept = [h for h in (session.plan or {}).get("hints") or [] if isinstance(h, dict)]
+        shown_at = row.created_at if row.created_at.tzinfo else row.created_at.replace(tzinfo=UTC)
+        rec: dict[str, Any] = {
+            "level": body.level,
+            "level_name": shown.level_name,
+            "at": shown_at.isoformat(),
+            "turn": len(session.turns),
+            "interaction_id": row.id,
+        }
+        same = next((h for h in kept if h.get("level") == body.level), None)
+        if same is None:
+            session.plan = {**(session.plan or {}), "hints": [*kept, rec]}
+            self.db.commit()
+        else:  # a resend after a lost reply: recorded once
+            rec = same
+        return InterviewHintOut(hint=shown, record=hint_record(rec), repeated=False)
 
     def feedback_preview(self, user: User, interview_id: str, body: InterviewFeedbackPreview) -> CoachPreview:
         """Exactly what the end-of-interview feedback would read, on Finish or on End early."""
@@ -989,7 +1071,7 @@ class InterviewService:
                 key="ending",
                 label="How it ended",
                 source="Worked out by CodeCoach from how you're ending it.",
-                text=ending_text(ending),
+                text=ending_text(ending, hints_during(session)),
                 derived=True,
                 required=True,
                 why_required="Feedback on an interview ended early takes that into account.",
@@ -1021,6 +1103,7 @@ class InterviewService:
             ),
             seconds_remaining=self._seconds_remaining(session),
             end_reason=ending,
+            hints_during=hints_during(session),
         )
         return ctx, preview
 
@@ -1143,6 +1226,7 @@ class InterviewService:
             evaluation=InterviewEvaluation.model_validate(session.evaluation) if session.evaluation else None,
             feedback_read=self.feedback_read(session),
             conditions=self._conditions(session),
+            hints=[hint_record(h) for h in (session.plan or {}).get("hints") or [] if isinstance(h, dict)],
             feedback_check_margin_seconds=(
                 FEEDBACK_CHECK_MARGIN_SECONDS
                 if session.status == InterviewStatus.IN_PROGRESS and session.mode == PracticeMode.INTERVIEW

@@ -1296,6 +1296,13 @@ Deterministic rules over recorded evidence (`app/services/roadmap.py` documents 
   versions), and `read_lessons` the lesson checks it read (`[{unit_id, version, title, href}]`, the
   same way; Volume 17, prompt 3); `news.lessons` counts lesson checks passed since the version and an
   entry of kind `lesson` names each; `evidence_read` says which evidence the plan reads (docs/PLAN_UPDATES.md).
+- `POST /api/v1/interviews/{id}/hint` 🔒 `{level, approved_context?, client_request_id?}` (Volume 17,
+  prompt 4): a hint inside a coding interview, the problem's ladder through the coach (`hint_locked`
+  past the next level, `context_changed` with a fresh preview when the code last sent moved on),
+  recorded with the interview; returns `{hint, record: {level, level_name, at, turn}, repeated}`
+  (`repeated`: that level was already asked for in this interview, so the same hint comes back with no
+  second request). `409 interview_closed` once it's over or its time is up, `409 wrong_interview_kind`
+  for a career interview. `InterviewOut.hints` lists them.
 - `POST /api/v1/me/plan/update` 🔒 `{version, track?}` makes the next version from what's new,
   bound to the version seen (`409 plan_changed` with `details.version` otherwise), and records the
   submissions it read.

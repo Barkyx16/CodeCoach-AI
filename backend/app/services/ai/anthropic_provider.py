@@ -336,7 +336,7 @@ class AnthropicCoach:
         prompt = (
             f"{_problem_block(ctx.problem)}\n\n{_transcript_block(ctx)}\n\n"
             f"<candidate_code>\n{_numbered(ctx.code) if ctx.code.strip() else '(no code written)'}\n</candidate_code>\n\n"
-            f"{_analysis_block(ctx.analysis)}\n\n{ending_text(ctx.end_reason)}\n"
+            f"{_analysis_block(ctx.analysis)}\n\n{ending_text(ctx.end_reason, ctx.hints_during)}\n"
             f"Score these dimensions in this order: {', '.join(RUBRIC_DIMENSIONS)}."
         )
         result = self._call(prompt, InterviewEvaluation, max_tokens=4_000, system=EVALUATOR_SYSTEM_PROMPT)

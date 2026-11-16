@@ -89,6 +89,7 @@ class InterviewContext:
     seconds_remaining: int
     is_opening: bool = False
     end_reason: str | None = None  # "finished" | "time_expired" | "abandoned" (evaluation only)
+    hints_during: tuple[str, ...] = ()  # hints asked for in the interview's panel (evaluation only)
 
 
 @dataclass(frozen=True)

@@ -17,6 +17,8 @@ from app.schemas.interview import (
     InterviewFeedbackConfirm,
     InterviewFeedbackPreview,
     InterviewFinish,
+    InterviewHintIn,
+    InterviewHintOut,
     InterviewMessage,
     InterviewMessagePreview,
     InterviewOut,
@@ -283,6 +285,21 @@ def feedback_preview(
 ) -> CoachPreview:
     _preview_allowed(request, user)
     return svc.feedback_preview(user, interview_id, body)
+
+
+@router.post(
+    "/{interview_id}/hint",
+    response_model=InterviewHintOut,
+    responses=_ERRORS,
+    summary="A hint inside a coding interview: the problem's ladder, recorded with the interview",
+)
+def interview_hint(
+    interview_id: str,
+    body: InterviewHintIn,
+    user: User = Depends(get_current_user),
+    svc: InterviewService = Depends(get_interviews),
+) -> InterviewHintOut:
+    return svc.hint(user, interview_id, body)
 
 
 @router.post(

@@ -21722,6 +21722,113 @@
         }
       }
     },
+    "/api/v1/interviews/{interview_id}/hint": {
+      "post": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "A hint inside a coding interview: the problem's ladder, recorded with the interview",
+        "operationId": "interview_hint_api_v1_interviews__interview_id__hint_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InterviewHintIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterviewHintOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/interviews/{interview_id}/feedback/confirm": {
       "post": {
         "tags": [
@@ -36304,6 +36411,115 @@
         "title": "InterviewFormat",
         "description": "A coding interview's format (Volume 16, prompt 2): its time limit, how it ended, and what was\nchecked before it was sent. Read from what the interview stores; never help."
       },
+      "InterviewHintIn": {
+        "properties": {
+          "level": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "title": "Level",
+            "description": "1 nudge, 2 concept, 3 pseudocode, 4 full explanation"
+          },
+          "approved_context": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 80
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approved Context",
+            "description": "The `context_fingerprint` from POST /ai/hint/preview for this problem, this level and the code last sent in the interview: sent only if that's still exactly what the coach would read (409 `context_changed` with a fresh preview otherwise)"
+          },
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "One key per request: sent again after a lost response, it gets the same hint back"
+          }
+        },
+        "type": "object",
+        "required": [
+          "level"
+        ],
+        "title": "InterviewHintIn",
+        "description": "Ask for a hint inside a coding interview (Volume 17, prompt 4): the problem's own ladder, one\nlevel at a time, recorded with the interview."
+      },
+      "InterviewHintOut": {
+        "properties": {
+          "hint": {
+            "$ref": "#/components/schemas/HintResponse"
+          },
+          "record": {
+            "$ref": "#/components/schemas/InterviewHintRecord"
+          },
+          "repeated": {
+            "type": "boolean",
+            "title": "Repeated",
+            "description": "This level was already asked for in this interview: the same hint, again",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "hint",
+          "record"
+        ],
+        "title": "InterviewHintOut"
+      },
+      "InterviewHintRecord": {
+        "properties": {
+          "level": {
+            "type": "integer",
+            "enum": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "title": "Level"
+          },
+          "level_name": {
+            "type": "string",
+            "title": "Level Name"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At",
+            "description": "When it was shown"
+          },
+          "turn": {
+            "type": "integer",
+            "title": "Turn",
+            "description": "How many messages had been exchanged when it was asked for"
+          }
+        },
+        "type": "object",
+        "required": [
+          "level",
+          "level_name",
+          "at",
+          "turn"
+        ],
+        "title": "InterviewHintRecord",
+        "description": "A hint asked for during the interview, as the interview recorded it."
+      },
       "InterviewMessage": {
         "properties": {
           "message": {
@@ -36637,6 +36853,14 @@
               }
             ],
             "description": "A coding interview once it's over: the in-app help before it ended and its format (docs/ATTEMPT_CONDITIONS.md). Null while it's on, and for a career interview (each answer has its own)"
+          },
+          "hints": {
+            "items": {
+              "$ref": "#/components/schemas/InterviewHintRecord"
+            },
+            "type": "array",
+            "title": "Hints",
+            "description": "Hints asked for in this interview's own hint panel (Volume 17, prompt 4), oldest first"
           }
         },
         "type": "object",

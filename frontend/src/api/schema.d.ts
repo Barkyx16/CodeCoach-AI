@@ -4164,6 +4164,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/interviews/{interview_id}/hint": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A hint inside a coding interview: the problem's ladder, recorded with the interview */
+        post: operations["interview_hint_api_v1_interviews__interview_id__hint_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/interviews/{interview_id}/feedback/confirm": {
         parameters: {
             query?: never;
@@ -9406,6 +9423,64 @@ export interface components {
              */
             text: string;
         };
+        /**
+         * InterviewHintIn
+         * @description Ask for a hint inside a coding interview (Volume 17, prompt 4): the problem's own ladder, one
+         *     level at a time, recorded with the interview.
+         */
+        InterviewHintIn: {
+            /**
+             * Level
+             * @description 1 nudge, 2 concept, 3 pseudocode, 4 full explanation
+             * @enum {integer}
+             */
+            level: 1 | 2 | 3 | 4;
+            /**
+             * Approved Context
+             * @description The `context_fingerprint` from POST /ai/hint/preview for this problem, this level and the code last sent in the interview: sent only if that's still exactly what the coach would read (409 `context_changed` with a fresh preview otherwise)
+             */
+            approved_context?: string | null;
+            /**
+             * Client Request Id
+             * @description One key per request: sent again after a lost response, it gets the same hint back
+             */
+            client_request_id?: string | null;
+        };
+        /** InterviewHintOut */
+        InterviewHintOut: {
+            hint: components["schemas"]["HintResponse"];
+            record: components["schemas"]["InterviewHintRecord"];
+            /**
+             * Repeated
+             * @description This level was already asked for in this interview: the same hint, again
+             * @default false
+             */
+            repeated: boolean;
+        };
+        /**
+         * InterviewHintRecord
+         * @description A hint asked for during the interview, as the interview recorded it.
+         */
+        InterviewHintRecord: {
+            /**
+             * Level
+             * @enum {integer}
+             */
+            level: 1 | 2 | 3 | 4;
+            /** Level Name */
+            level_name: string;
+            /**
+             * At
+             * Format: date-time
+             * @description When it was shown
+             */
+            at: string;
+            /**
+             * Turn
+             * @description How many messages had been exchanged when it was asked for
+             */
+            turn: number;
+        };
         /** InterviewMessage */
         InterviewMessage: {
             /** Message */
@@ -9523,6 +9598,11 @@ export interface components {
             feedback_check_margin_seconds?: number | null;
             /** @description A coding interview once it's over: the in-app help before it ended and its format (docs/ATTEMPT_CONDITIONS.md). Null while it's on, and for a career interview (each answer has its own) */
             conditions?: components["schemas"]["AttemptConditions"] | null;
+            /**
+             * Hints
+             * @description Hints asked for in this interview's own hint panel (Volume 17, prompt 4), oldest first
+             */
+            hints?: components["schemas"]["InterviewHintRecord"][];
         };
         /**
          * InterviewPhase
@@ -32270,6 +32350,86 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CoachPreview"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    interview_hint_api_v1_interviews__interview_id__hint_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InterviewHintIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterviewHintOut"];
                 };
             };
             /** @description Bad request */

@@ -199,8 +199,14 @@ recorded".
 that problem ended and before this one ended, at the problem's version when it started (recorded at
 the start from 16 Nov 2026; before, known only if the problem never had another version). Each is
 in the hint panel's words, with the problem and when: "Level 2 hint, “Concept”, on “Two Sum”, during
-the interview". The interview itself has no hint panel, so these were asked for in the problem's
-workspace. A submission of the problem counts the same hints for itself (a submission and an
+the interview". Since Volume 17, prompt 4, the interview room has its own **Hints** panel (under
+the editor): the problem's ladder, one level at a time, each checked first (what the coach reads: the
+code last sent) and asked for through `POST /interviews/{id}/hint`, the same coach, ladder and budget
+as the workspace. The interview records each (`hints`: level, its name, when it was shown, after how
+many messages); asking for a level it already has gives that hint again with no second request; the
+panel is closed once the interview is over or its time is up, and a career interview has none. Hints
+asked for in the workspace still count, said "before the interview" or "during the interview" by
+when. A submission of the problem counts the same hints for itself (a submission and an
 interview are counted apart, like a Run and a Submit). Its format is read from what it stores, never
 help: "A 15-minute coding interview, finished; 1 of 2 messages checked before sending; the
 feedback's material checked before it was scored." with each check and its time. A message counts as

@@ -34,6 +34,7 @@ import { INTERVIEWER_REFUSED, SEND_LABEL, feedbackCost, staleness, useCheckEach,
 import { PhaseStepper } from "./PhaseStepper";
 import { LiveRound } from "./QuestionRound";
 import { ReviewWorkspace } from "@/features/review/ReviewWorkspace";
+import { InterviewHints } from "./InterviewHints";
 import { Transcript } from "./Transcript";
 import { formatClock, useCountdown } from "./useCountdown";
 import { Icon } from "@/components/Icon";
@@ -379,6 +380,11 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
           {problem.isError ? <ErrorState error={problem.error} onRetry={() => void problem.refetch()} />
             : problem.data ? <CodeEditor value={draft.code} onChange={draft.setCode} onSubmit={() => composerSubmit.current?.()} />
               : <LoadingState label="Loading editor…" />}
+          {/* Hints inside the interview (Volume 17, prompt 4): recorded with it, closed once time is up. */}
+          {problem.data && problem.data.hint_levels > 0 && (
+            <InterviewHints iv={iv} maxLevel={problem.data.hint_levels} open={(iv.seconds_remaining ?? 0) > 0}
+              onAsked={() => void queryClient.invalidateQueries({ queryKey: queryKeys.interview(iv.id) })} />
+          )}
         </section>
       </div>
     </div>

@@ -10,6 +10,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator
 
 from app.models import Difficulty, InterviewPhase, InterviewStatus, TurnRole
+from app.schemas.ai import HintLevel, HintResponse
 from app.schemas.careers import AnswerOut
 from app.schemas.common import APIModel, OptionalKey
 from app.schemas.conditions import AttemptConditions
@@ -371,6 +372,44 @@ class FeedbackRead(APIModel):
     text: str = Field(description="What it says, in plain words")
 
 
+class InterviewHintIn(APIModel):
+    """Ask for a hint inside a coding interview (Volume 17, prompt 4): the problem's own ladder, one
+    level at a time, recorded with the interview."""
+
+    level: HintLevel = Field(description="1 nudge, 2 concept, 3 pseudocode, 4 full explanation")
+    approved_context: str | None = Field(
+        default=None,
+        max_length=80,
+        description="The `context_fingerprint` from POST /ai/hint/preview for this problem, this level and the "
+        "code last sent in the interview: sent only if that's still exactly what the coach would read "
+        "(409 `context_changed` with a fresh preview otherwise)",
+    )
+    client_request_id: OptionalKey = Field(
+        default=None,
+        min_length=8,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_-]+$",
+        description="One key per request: sent again after a lost response, it gets the same hint back",
+    )
+
+
+class InterviewHintRecord(APIModel):
+    """A hint asked for during the interview, as the interview recorded it."""
+
+    level: HintLevel
+    level_name: str
+    at: datetime = Field(description="When it was shown")
+    turn: int = Field(description="How many messages had been exchanged when it was asked for")
+
+
+class InterviewHintOut(APIModel):
+    hint: HintResponse
+    record: InterviewHintRecord
+    repeated: bool = Field(
+        default=False, description="This level was already asked for in this interview: the same hint, again"
+    )
+
+
 class InterviewOut(APIModel):
     id: str
     kind: InterviewKind
@@ -406,6 +445,10 @@ class InterviewOut(APIModel):
         default=None,
         description="A coding interview once it's over: the in-app help before it ended and its format "
         "(docs/ATTEMPT_CONDITIONS.md). Null while it's on, and for a career interview (each answer has its own)",
+    )
+    hints: list[InterviewHintRecord] = Field(
+        default_factory=list,
+        description="Hints asked for in this interview's own hint panel (Volume 17, prompt 4), oldest first",
     )
 
 

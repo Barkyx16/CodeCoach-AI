@@ -93,6 +93,15 @@ explanation works as before, everything included.
 
 ## The coding interviewer: one action away, or every time
 
+**Hints inside the interview** (Volume 17, prompt 4): the room's **Hints** panel shows what a hint
+would read, exactly as the workspace's does (`POST /ai/hint/preview` with the code last sent in the
+interview), and asks bound to it (`POST /interviews/{id}/hint` with `approved_context`; refused with a
+fresh preview if the code last sent changed). The feedback then reads that hints were used, in its
+"How it ended" part, the same words the provider is sent: "How it ended: finished. Hints the
+candidate asked for during it: level 1 (nudge)." (shown in the feedback's preview before anything is
+sent). A hint asked for after "I've checked this" doesn't count as a change to the check, since how it
+ends is compared apart.
+
 During a coding interview, **What the interviewer reads** (under the answer box) shows what your next
 message would send, and **What the feedback reads** what Finish would send, in the same panel as the
 other operations, titled **What the interviewer reads**. It stays out of the way: Send sends straight

@@ -6,6 +6,7 @@ so what's shown is what's sent, byte for byte."""
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 
 from app.services.ai.static_analysis import Analysis
 
@@ -103,6 +104,10 @@ def interview_phase_text(phase: str, guide: str, candidate_turns_in_phase: int) 
     )
 
 
-def ending_text(end_reason: str | None) -> str:
-    """How the interview ended, as the feedback reads it."""
-    return f"How it ended: {end_reason or 'finished'}."
+def ending_text(end_reason: str | None, hints: Sequence[str] = ()) -> str:
+    """How the interview ended, as the feedback reads it, and the hints asked for in its own hint
+    panel (Volume 17, prompt 4), so the feedback knows help came during it."""
+    text = f"How it ended: {end_reason or 'finished'}."
+    if hints:
+        text += f" Hints the candidate asked for during it: {', '.join(hints)}."
+    return text

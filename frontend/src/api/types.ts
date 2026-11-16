@@ -71,6 +71,8 @@ export type Progress = S["ProgressOut"];
 export type Recommendation = S["Recommendation"];
 
 export type Interview = S["InterviewOut"];
+export type InterviewHintOut = S["InterviewHintOut"];
+export type InterviewHintRecord = S["InterviewHintRecord"];
 export type InterviewSummary = S["InterviewSummary"];
 /** `format` defaults to "mixed" on the server. */
 export type InterviewStart = Omit<S["InterviewStart"], "format"> & { format?: S["InterviewStart"]["format"] };

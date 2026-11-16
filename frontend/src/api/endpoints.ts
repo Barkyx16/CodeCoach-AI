@@ -69,6 +69,7 @@ import type {
   FollowUpOut,
   Goals,
   GoalsInput,
+  HintLevel,
   HintPreviewRequest,
   HintRequest,
   HintResponse,
@@ -78,6 +79,7 @@ import type {
   InterviewFeedbackConfirmRequest,
   InterviewFeedbackPreviewRequest,
   InterviewFormat,
+  InterviewHintOut,
   InterviewMessagePreviewRequest,
   InterviewReview,
   InterviewStart,
@@ -545,6 +547,9 @@ export const api = {
   interviewFeedbackPreview: (id: string, body: InterviewFeedbackPreviewRequest) =>
     apiRequest<CoachPreview>(`/api/v1/interviews/${encodeURIComponent(id)}/feedback/preview`, { method: "POST", body }),
   /** "I've checked this": kept with the interview so a time-out can say it was checked (docs/COACH_CONTEXT.md). */
+  // A hint inside the coding interview (Volume 17, prompt 4): the problem's ladder, recorded with it.
+  interviewHint: (id: string, body: { level: HintLevel; approved_context?: string; client_request_id?: string }) =>
+    apiRequest<InterviewHintOut>(`/api/v1/interviews/${encodeURIComponent(id)}/hint`, { method: "POST", body }),
   confirmFeedbackCheck: (id: string, body: InterviewFeedbackConfirmRequest) =>
     apiRequest<FeedbackCheck>(`/api/v1/interviews/${encodeURIComponent(id)}/feedback/confirm`, { method: "POST", body }),
   answerRoundQuestion: (id: string, body: { question_index: number; answer: string; source: AnswerSource }, traceparent?: string) =>
