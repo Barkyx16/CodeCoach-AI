@@ -136,3 +136,8 @@ class SubmissionListItem(APIModel):
     created_at: datetime
     duration_ms: int | None = Field(default=None, description="Judge runtime, once execution is enabled")
     conditions: AttemptConditions | None = None
+    outcome_text: str | None = Field(
+        default=None,
+        description="How it compares with the previous judged one, in History's words, or that it's the first; "
+        "none while it's being judged or when the judge couldn't run it (docs/COMPARING_ATTEMPTS.md)",
+    )

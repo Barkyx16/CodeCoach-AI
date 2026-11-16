@@ -15586,6 +15586,11 @@ export interface components {
              */
             duration_ms?: number | null;
             conditions?: components["schemas"]["AttemptConditions"] | null;
+            /**
+             * Outcome Text
+             * @description How it compares with the previous judged one, in History's words, or that it's the first; none while it's being judged or when the judge couldn't run it (docs/COMPARING_ATTEMPTS.md)
+             */
+            outcome_text?: string | null;
         };
         /**
          * SubmissionMode

@@ -209,8 +209,10 @@ another rubric; a checklist's ticks against other points don't. So:
 
 ## Not covered yet
 
-Submissions still listed without their comparison: the problem workspace's list of past
-submissions and the dashboard's recent activity (each links to the submission's page, which shows
-it). Scenario runs, code-review exercises and sample-answer comparisons aren't listed in History: they keep
+Every list of coding submissions now says how each compares with the one before: History, a
+submission's page and the workspace's result, an improvement's related practice, a requirement, and
+your submissions list (`GET /me/submissions`, `outcome_text`), which the dashboard's "Recent
+attempts" shows, linking to the comparison (the first says it's the first; one still being judged,
+or that the judge couldn't run, says nothing). Scenario runs, code-review exercises and sample-answer comparisons aren't listed in History: they keep
 their own pages and attempts lists. They, and the other formats, keep their own rules for now (docs/SCENARIOS.md, docs/CODE_REVIEWS.md, docs/COMPARE_ANSWERS.md and others) and adopt
 this contract later. Help outside the app isn't known.

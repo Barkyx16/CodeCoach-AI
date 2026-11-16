@@ -382,7 +382,22 @@ of 4), 3 ms, 4.1 s. The contract's outcome: partly comparable ("the in-app help 
 earlier one, hint shown; before the later one, none recorded. The counts are from the same tests, so
 both are shown."). Version 2 read both submissions; the check was kept and the review said "You
 checked this before time ran out." with its time on both devices. The phone was 412 × 839; the run
-took 1.8 minutes. CI's record follows from the first sandbox run with it.
+took 1.8 minutes.
+
+**In CI**: run 348 (`962a410`), the sandbox job's step that runs the engineer's specs twice on fresh
+accounts with the real judge (the `engineer-journey-record` artifact and the job's `[journey-record]`
+lines): **10 of 10 steps, both times**, every step's device named as above. The judge's verdicts as
+it gave them, and the time from request to verdict:
+
+| Run | Baseline | Resubmission | Check kept at | Interview |
+|---|---|---|---|---|
+| First | `10c52eed…` FAILED, 2 of 7 (hidden 0 of 4), 2.4 s | `c4f60fd6…` PASSED, 7 of 7 (hidden 4 of 4), 2.5 s | 03:38:07Z | `af2c3b3e…` |
+| Second | `5cbcdbe0…` FAILED, 2 of 7 (hidden 0 of 4), 2.5 s | `dbfc4fdb…` PASSED, 7 of 7 (hidden 4 of 4), 2.4 s | 03:40:29Z | `cce9a806…` |
+
+Both runs: partly comparable (the help differed), the comparison read the same on the phone (412 ×
+839) word for word, version 2 read both submissions by id, "You checked this before time ran out."
+with the check's time on both devices, and neither canary in the API's log. The step's 12 tests (this
+journey, the engineer's journey, its branches and its phone journey, each twice) took 5.7 minutes.
 
 ## Limits
 

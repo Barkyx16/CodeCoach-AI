@@ -135,6 +135,17 @@ COMPARED_SHORT: dict[str, str] = {
     "unknown": "Can't tell whether it compares with the one before",
 }
 FIRST_SUBMISSION = "Not compared: the first judged submission of this problem"
+FIRST_RUN = "Not compared: the first judged run of this problem"
+
+
+def outcome_line(sub: Submission, pairs: dict[str, tuple[Submission, Classification]]) -> str | None:
+    """A submission's comparison in one line, as History and a requirement say it; the first judged one
+    says so; none while it's being judged or when the judge couldn't run it (no verdict to compare)."""
+    if sub.id in pairs:
+        return COMPARED_SHORT[pairs[sub.id][1].outcome]
+    if sub.status in VERDICTS:
+        return FIRST_RUN if sub.mode == SubmissionMode.RUN else FIRST_SUBMISSION
+    return None
 
 
 def compared_view(previous: Submission, classification: Classification) -> SubmissionComparison:

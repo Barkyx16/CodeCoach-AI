@@ -596,10 +596,15 @@ Query: `problem_slug`, `status` (e.g. `QUEUED`, `PASSED`), `mode` (`submit` defa
 ```json
 {
   "items": [{"id": "9098…", "problem_slug": "two-sum", "problem_title": "Two Sum", "mode": "submit", "status": "QUEUED",
-             "created_at": "2026-11-01T08:49:54.608581Z", "duration_ms": null}],
+             "created_at": "2026-11-01T08:49:54.608581Z", "duration_ms": null, "conditions": null,
+             "outcome_text": null}],
   "total": 1, "page": 1, "page_size": 20
 }
 ```
+`outcome_text`: how it compares with the previous judged submission of the same problem and mode, in
+History's words ("Comparable with the one before"), or "Not compared: the first judged submission of
+this problem" (a run: "…the first judged run…"); null while it's being judged or when the judge
+couldn't run it. The page's rows are compared together (docs/COMPARING_ATTEMPTS.md).
 
 ### AI coach
 

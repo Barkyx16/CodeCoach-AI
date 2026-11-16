@@ -25,7 +25,7 @@ from app.schemas.submission import (
     SubmissionDetail,
     SubmissionListItem,
 )
-from app.services.attempt_comparisons import AttemptComparisons, compared_view
+from app.services.attempt_comparisons import AttemptComparisons, compared_view, outcome_line
 from app.services.conditions import Conditions, problem_version
 from app.services.content import is_problem_retired
 from app.services.judge.backends import ExecutionDisabledError, JudgeUnavailableError
@@ -234,6 +234,8 @@ def list_my_submissions(
         .limit(page_size)
     ).all()
     found = Conditions(db, user).for_submissions(rows)
+    # Each compared with the one before by the one contract, the page's rows together (Volume 16, prompt 9).
+    pairs = AttemptComparisons(db, user).submissions_with_previous(rows) if rows else {}
     items = [
         SubmissionListItem(
             id=s.id,
@@ -244,6 +246,7 @@ def list_my_submissions(
             created_at=s.created_at,
             duration_ms=s.result.runtime_ms if s.result else None,
             conditions=found[s.id],
+            outcome_text=outcome_line(s, pairs),
         )
         for s in rows
     ]
