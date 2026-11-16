@@ -23814,6 +23814,94 @@
         }
       }
     },
+    "/api/v1/me/reviews/{item_id}/points": {
+      "delete": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Take one point off a question saved for several (the question stays, with its other points)",
+        "operationId": "remove_review_point_api_v1_me_reviews__item_id__points_delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "item_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Item Id"
+            }
+          },
+          {
+            "name": "point",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200,
+              "title": "Point"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewQueue"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/reviews/{item_id}": {
       "delete": {
         "tags": [
@@ -45730,7 +45818,7 @@
               }
             ],
             "title": "Criterion",
-            "description": "The one feedback point it's saved for (a summary's improvement); a dispute on that point then holds it like a dispute on the whole feedback"
+            "description": "A feedback point it's saved for (a summary's improvement); saving a question again for another point adds that point, and with none it's saved for the whole answer. A dispute on any of its points then holds it like a dispute on the whole feedback"
           }
         },
         "type": "object",
@@ -46553,6 +46641,18 @@
           "note": {
             "type": "string",
             "title": "Note"
+          },
+          "saved": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saved",
+            "description": "After saving: what changed, e.g. 'Added \u201cB\u201d to the points it's saved for.' (null if nothing did)"
           }
         },
         "type": "object",
@@ -46648,7 +46748,15 @@
               }
             ],
             "title": "Criterion",
-            "description": "The one feedback point it was saved for, or null for the whole answer: a dispute on that point holds it like a dispute on the whole feedback"
+            "description": "The first feedback point it was saved for, or null for the whole answer (see `points`)"
+          },
+          "points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Points",
+            "description": "Every feedback point it was saved for, in the order added; empty for the whole answer. A dispute on any of them holds that answer's score out like a dispute on the whole feedback"
           },
           "recounted": {
             "anyOf": [

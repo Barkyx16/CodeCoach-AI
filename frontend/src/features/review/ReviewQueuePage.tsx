@@ -59,7 +59,7 @@ function DisputedRow({ item }: { item: ReviewQueueItem }) {
         <strong>{item.title}</strong>
         <span className="subtle">{item.career_title}</span>
       </div>
-      {item.criterion && <p className="subtle">Saved for “{item.criterion}”.</p>}
+      <SavedFor item={item} />
       <p className="subtle">{item.why}</p>
       <div className="row queue-row__actions">
         {item.dispute && <Link className="btn btn--secondary btn--sm" to={item.dispute.href}>Count it again (see the dispute)</Link>}
@@ -80,7 +80,7 @@ function QueueRow({ item }: { item: ReviewQueueItem }) {
         <strong>{item.title}</strong>
         <span className="subtle">{item.career_title}{item.last_score !== null && item.last_score !== undefined ? ` · last ${item.last_score}/100` : ""}</span>
       </div>
-      {item.criterion && <p className="subtle">Saved for “{item.criterion}”.</p>}
+      <SavedFor item={item} />
       <p className="subtle">{item.why}</p>
       <div className="row queue-row__actions">
         <Link className="btn btn--primary btn--sm" to={item.href} state={{ from: "/reviews", fromLabel: "Back to the review queue" }}>Answer it now</Link>
@@ -94,5 +94,29 @@ function QueueRow({ item }: { item: ReviewQueueItem }) {
       </div>
       <InlineError error={snooze.error ?? remove.error} />
     </li>
+  );
+}
+
+/** The points it was saved for (Volume 16, prompt 5): one reads as before; with several, each can be
+ * taken off, keeping the question and its other points. */
+function SavedFor({ item }: { item: ReviewQueueItem }) {
+  const points = item.points?.length ? item.points : item.criterion ? [item.criterion] : [];
+  const drop = useReviewQueueMutation((point: string) => api.removeReviewPoint(item.id, point));
+  if (points.length === 0) return null;
+  if (points.length === 1) return <p className="subtle">Saved for “{points[0]}”.</p>;
+  return (
+    <div className="stack-sm">
+      <p className="subtle">Saved for {points.length} points:</p>
+      <ul className="mini-list" aria-label={`Points “${item.title}” is saved for`}>
+        {points.map((p) => (
+          <li key={p} className="row">
+            <span>“{p}”</span>
+            <Button size="sm" variant="ghost" loading={drop.isPending && drop.variables === p} disabled={drop.isPending}
+              aria-label={`Remove the point “${p}”`} onClick={() => drop.mutate(p)}>Remove this point</Button>
+          </li>
+        ))}
+      </ul>
+      <InlineError error={drop.error} />
+    </div>
   );
 }

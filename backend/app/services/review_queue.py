@@ -30,7 +30,7 @@ from sqlalchemy.orm import Session
 
 from app.careers import CATALOG
 from app.careers.questions import get_question
-from app.errors import AppError, NotFoundError
+from app.errors import AppError, ConflictError, NotFoundError
 from app.models import InterviewTurn, PracticeAnswer, PracticeSession, ReviewItem, User
 from app.schemas.review import ReviewAdd, ReviewQueue, ReviewQueueItem
 from app.services.disputes import OVERALL, Dispute, Disputes, count_words, covering, note, overall
@@ -55,6 +55,19 @@ def _point(criterion: str | None) -> str | None:
     """The point an item is saved for; the whole feedback ("Overall", or nothing) is no one point."""
     text = " ".join((criterion or "").split())
     return None if not text or text == OVERALL else text
+
+
+def saved_points(row: ReviewItem) -> list[str]:
+    """Every point an item was saved for, in the order added; [] for the whole answer. An item from
+    before Volume 16, prompt 5 has its one point in `criterion` and no `points`: read as that point."""
+    if row.points is not None:
+        return [p for p in row.points if isinstance(p, str) and p]
+    return [row.criterion] if row.criterion else []
+
+
+def _quoted(points: list[str]) -> str:
+    q = [f"“{p}”" for p in points]
+    return q[0] if len(q) == 1 else ", ".join(q[:-1]) + " and " + q[-1]
 
 
 class ReviewQueueService:
@@ -111,6 +124,42 @@ class ReviewQueueService:
                 )
             )
             self.db.commit()
+            return self.queue(user)
+        # Saved again: another point is added to the item (Volume 16, prompt 5); with no point, it's
+        # now saved for the whole answer. The same point again changes nothing.
+        point = _point(body.criterion)
+        have = saved_points(existing)
+        said = None
+        if not have:
+            said = "It's already saved for the whole answer, which covers every point." if point else None
+        elif point is None:
+            existing.points, existing.criterion = [], None
+            said = "It's now saved for the whole answer, not only for " + _quoted(have) + "."
+        elif point not in have:
+            existing.points = [*have, point]
+            existing.criterion = have[0]
+            said = f"Added “{point}” to the points it's saved for."
+        self.db.commit()
+        out = self.queue(user)
+        out.saved = said
+        return out
+
+    def remove_point(self, user: User, item_id: str, point: str) -> ReviewQueue:
+        """Take one point off an item saved for several, keeping the item and the others. Its scores
+        disputed only on that point count again."""
+        row = self._item(user, item_id)
+        have = saved_points(row)
+        text = _point(point)
+        if text not in have:
+            raise NotFoundError("It isn't saved for that point.")
+        if len(have) == 1:
+            raise ConflictError(
+                "It's the only point it's saved for: remove the question from the queue instead.",
+                code="last_point",
+            )
+        rest = [p for p in have if p != text]
+        row.points, row.criterion = rest, rest[0]
+        self.db.commit()
         return self.queue(user)
 
     def snooze(self, user: User, item_id: str, days: int) -> ReviewQueue:
@@ -246,7 +295,7 @@ class ReviewQueueService:
                 what = (
                     "an interview answer whose feedback you disputed"
                     if dispute.criterion == OVERALL
-                    else f"an interview answer, for “{row.criterion}”, and you disputed that point"
+                    else f"an interview answer, for “{dispute.criterion}”, and you disputed that point"
                 )
                 why = (
                     f"Not scheduled: you saved it from {what} {dispute.when}, and that's the only reason it's here. "
@@ -256,7 +305,7 @@ class ReviewQueueService:
                 which = (
                     "feedback you disputed"
                     if dispute.criterion == OVERALL
-                    else f"your dispute of “{row.criterion}”"
+                    else f"your dispute of “{dispute.criterion}”"
                 )
                 why += (
                     f" One reason it's here is {which} {dispute.when}; it's scheduled for its other reasons."
@@ -280,6 +329,7 @@ class ReviewQueueService:
                 snoozed=lad.snoozed,
                 dispute=note(dispute),
                 criterion=row.criterion,
+                points=saved_points(row),
                 recounted=recounted,
             )
             if read.withheld:
@@ -334,8 +384,9 @@ def held(row: ReviewItem, disputes: dict[tuple[str, str], Dispute], answer_id: s
     of the whole feedback, for that item only)."""
     if not answer_id:
         return None
-    if row.criterion:
-        return covering(disputes, answer_id, row.criterion)
+    points = saved_points(row)
+    if points:  # a dispute on any of the points it was saved for (Volume 16, prompt 5)
+        return next((d for p in points if (d := covering(disputes, answer_id, p)) is not None), None)
     return overall(disputes, answer_id)
 
 
@@ -379,8 +430,10 @@ class Ladder:
         n = len(self.left_out)
         points = sorted({d.criterion for d in self.left_out if d.criterion != OVERALL})
         what = f"{count_words(n)} earlier score{'s' if n != 1 else ''} {'was' if n == 1 else 'were'} disputed"
-        if points:
+        if len(points) == 1:
             what += f" (on “{points[0]}”, the point it was saved for)"
+        elif points:  # each disputed point it left out (Volume 16, prompt 5)
+            what += f", on {_quoted(points)}"
         if is_.startswith("in ") and was.startswith("in "):
             return f"Recounted: {what}, so it's due {is_}, not {was.removeprefix('in ').split(' ')[0]}."
         return f"Recounted: {what}, so it's due {is_}, not {was}."

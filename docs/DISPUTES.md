@@ -16,7 +16,7 @@ suggests until they count it again. What happened stays as it happened (Volume 1
 |---|---|---|
 | The adaptive plan (`roadmap.py`) | as described below | "Not suggested (n): Left out because of feedback you disputed …" |
 | An interview's summary, "Work on next" (`review.py`) | a point missed in an answer you disputed it on (or disputed overall) is still counted, but isn't used as evidence or to choose the retry; a point missed only where it's disputed isn't suggested at all, unless you'd already accepted it (it stays, with its dispute said) | "Missing in 3 of 3 answers, one disputed." with the dispute linked; under **Not suggested (n)**: "Not suggested: “…” (missing in 2 of 4 answers, all disputed). Left out because of feedback you disputed, not because there's nothing to practise." |
-| The review queue (`review_queue.py`) | an answer whose score is disputed for an item doesn't move its ladder, whenever it was counted: the ladder is recounted from the item's answers without it (see "The review queue" below). For an item saved for one point, a dispute on that point counts like a dispute overall, for that item only. An item whose every reason is disputed (saved from an interview answer you disputed, and not answered since except in answers you disputed) isn't scheduled: it's listed under **You disputed this**, with "Count it again (see the dispute)" and "Answer it anyway". An item with any other reason keeps its schedule | "Recounted: one earlier score was disputed, so it's due in 3 days, not 7."; "Not scheduled: you saved it from an interview answer whose feedback you disputed …" (or "…, for “…”, and you disputed that point …"); a kept item: "One reason it's here is feedback you disputed …; it's scheduled for its other reasons." |
+| The review queue (`review_queue.py`) | an answer whose score is disputed for an item doesn't move its ladder, whenever it was counted: the ladder is recounted from the item's answers without it (see "The review queue" below). For an item saved for one point or several, a dispute on any of them counts like a dispute overall, for that item only. An item whose every reason is disputed (saved from an interview answer you disputed, and not answered since except in answers you disputed) isn't scheduled: it's listed under **You disputed this**, with "Count it again (see the dispute)" and "Answer it anyway". An item with any other reason keeps its schedule | "Recounted: one earlier score was disputed, so it's due in 3 days, not 7."; "Not scheduled: you saved it from an interview answer whose feedback you disputed …" (or "…, for “…”, and you disputed that point …"); a kept item: "One reason it's here is feedback you disputed …; it's scheduled for its other reasons." |
 | Today and the schedule's "things to schedule" | follow the queue, by the same reading (`ReviewQueueService.ladders`): an item it doesn't schedule isn't counted as due or offered, and a recounted item is due when the recount says | (the queue's own words) |
 | Accepted improvements | labelled, never moved (Volume 12, prompt 7) | "It stays as it is; it's yours to keep, move or mark done." |
 | Drills | nothing to read: a drill's feedback is its own (each attempt, against the drill's checklist), no drill reuses an answer's feedback, and drill feedback can't be disputed | |
@@ -55,8 +55,24 @@ item a dispute on that point counts like a dispute on the whole feedback: it hol
 it's the only reason it's here, and leaves that answer's score out of the recount. A dispute on
 another point of the same answer doesn't. The queue says what each item was saved for ("Saved for
 “…”."), and the recount sentence names the point ("one earlier score was disputed (on “…”, the
-point it was saved for)"). A question is saved once: saving it again keeps what it was first saved
-for.
+point it was saved for)").
+
+**Saved for several points** (Volume 16, prompt 5). A question is one item, and saving it again for
+another point adds that point to it and says so ("Added “B” to the points it's saved for.";
+`review_items.points`, migration `c3f8a1d5e926`, the points in the order added). Saving it for the
+whole answer makes it a whole-answer item ("It's now saved for the whole answer, not only for “A”
+and “B”."); a whole-answer item saved for a point stays whole ("It's already saved for the whole
+answer, which covers every point."). The same point again changes nothing. A dispute on **any** of
+its points leaves that answer's score out of the recount, and the item is held when every reason
+it's here is disputed, as before. The queue lists the points, and with several each has "Remove this
+point" (`DELETE /me/reviews/{id}/points?point=…`): the item stays with its other points, and scores
+disputed only on that point count again; its last point can't be removed (remove the question
+instead). The recount sentence names each disputed point it left out ("two earlier scores were
+disputed, on “A” and “B”"); with one, it reads as before. An item from before this keeps its one
+point in `criterion` with no `points`, and reads exactly as it did: nothing was rewritten. The export
+lists every point (`review_queue[].saved_for_points`, beside `saved_for_point`, the first). Review
+items still aren't restored from a backup file (docs/BACKUP_FORMAT.md), so neither are their points.
+In the interview summary, a question already in the queue offers "Add this point to its review".
 
 Reading stays bounded: the answers to every item's question come from one query (only the columns
 the ladder needs), so a long history doesn't add statements (a test reads an item with a hundred

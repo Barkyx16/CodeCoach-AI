@@ -143,6 +143,21 @@ def snooze_review(
 
 
 @router.delete(
+    "/reviews/{item_id}/points",
+    response_model=ReviewQueue,
+    responses=error_responses(401, 404, 409),
+    summary="Take one point off a question saved for several (the question stays, with its other points)",
+)
+def remove_review_point(
+    item_id: str,
+    point: str = Query(min_length=1, max_length=200),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ReviewQueue:
+    return ReviewQueueService(db).remove_point(user, item_id, point)
+
+
+@router.delete(
     "/reviews/{item_id}",
     response_model=ReviewQueue,
     responses=error_responses(401, 404),

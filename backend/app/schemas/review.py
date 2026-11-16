@@ -183,8 +183,9 @@ class ReviewAdd(APIModel):
     criterion: str | None = Field(
         default=None,
         max_length=200,
-        description="The one feedback point it's saved for (a summary's improvement); a dispute on that point "
-        "then holds it like a dispute on the whole feedback",
+        description="A feedback point it's saved for (a summary's improvement); saving a question again for "
+        "another point adds that point, and with none it's saved for the whole answer. A dispute on any of its "
+        "points then holds it like a dispute on the whole feedback",
     )
 
 
@@ -213,8 +214,12 @@ class ReviewQueueItem(APIModel):
     )
     criterion: str | None = Field(
         default=None,
-        description="The one feedback point it was saved for, or null for the whole answer: a dispute on that "
-        "point holds it like a dispute on the whole feedback",
+        description="The first feedback point it was saved for, or null for the whole answer (see `points`)",
+    )
+    points: list[str] = Field(
+        default_factory=list,
+        description="Every feedback point it was saved for, in the order added; empty for the whole answer. A "
+        "dispute on any of them holds that answer's score out like a dispute on the whole feedback",
     )
     recounted: str | None = Field(
         default=None,
@@ -233,3 +238,7 @@ class ReviewQueue(APIModel):
     )
     ladder_days: list[int]
     note: str
+    saved: str | None = Field(
+        default=None,
+        description="After saving: what changed, e.g. 'Added “B” to the points it's saved for.' (null if nothing did)",
+    )

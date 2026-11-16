@@ -64,11 +64,16 @@ describe("Saving a point for review (Volume 15, prompt 9)", () => {
     expect(await screen.findByText(`Saved for review, for “${POINT}”: if you dispute that point, it's held back.`)).toBeInTheDocument();
   });
 
-  it("doesn't offer it again when the question is already in the queue", async () => {
+  it("when the question is already in the queue, offers to add this point to it and says what changed (Volume 16, prompt 5)", async () => {
     serve(review(true));
-    renderApp("/interviews/iv-r", { signedIn: true });
-    expect(await screen.findByText("“A hard shift” is already in your review queue.")).toBeInTheDocument();
+    server.use(http.post(`${API}/api/v1/me/reviews`, () => HttpResponse.json({
+      due: [], upcoming: [], disputed: [], ladder_days: [1, 3, 7, 14, 30], note: "", saved: `Added “${POINT}” to the points it's saved for.`,
+    })));
+    const { user } = renderApp("/interviews/iv-r", { signedIn: true });
+    expect(await screen.findByText("“A hard shift” is already in your review queue; this adds the point to it.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save this point for review" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Add this point to its review" }));
+    expect(await screen.findByText(`Added “${POINT}” to the points it's saved for.`)).toBeInTheDocument();
   });
 });
 

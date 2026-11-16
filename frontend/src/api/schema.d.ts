@@ -4554,6 +4554,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/reviews/{item_id}/points": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Take one point off a question saved for several (the question stays, with its other points) */
+        delete: operations["remove_review_point_api_v1_me_reviews__item_id__points_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/reviews/{item_id}": {
         parameters: {
             query?: never;
@@ -13215,7 +13232,7 @@ export interface components {
             session_id?: string | null;
             /**
              * Criterion
-             * @description The one feedback point it's saved for (a summary's improvement); a dispute on that point then holds it like a dispute on the whole feedback
+             * @description A feedback point it's saved for (a summary's improvement); saving a question again for another point adds that point, and with none it's saved for the whole answer. A dispute on any of its points then holds it like a dispute on the whole feedback
              */
             criterion?: string | null;
         };
@@ -13540,6 +13557,11 @@ export interface components {
             ladder_days: number[];
             /** Note */
             note: string;
+            /**
+             * Saved
+             * @description After saving: what changed, e.g. 'Added “B” to the points it's saved for.' (null if nothing did)
+             */
+            saved?: string | null;
         };
         /** ReviewQueueItem */
         ReviewQueueItem: {
@@ -13579,9 +13601,14 @@ export interface components {
             dispute?: components["schemas"]["DisputeNote"] | null;
             /**
              * Criterion
-             * @description The one feedback point it was saved for, or null for the whole answer: a dispute on that point holds it like a dispute on the whole feedback
+             * @description The first feedback point it was saved for, or null for the whole answer (see `points`)
              */
             criterion?: string | null;
+            /**
+             * Points
+             * @description Every feedback point it was saved for, in the order added; empty for the whole answer. A dispute on any of them holds that answer's score out like a dispute on the whole feedback
+             */
+            points?: string[];
             /**
              * Recounted
              * @description Set when a dispute changed when it's due: the ladder was recounted without the disputed scores, and this says what changed (it's also the last sentence of `why`)
@@ -33426,6 +33453,66 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    remove_review_point_api_v1_me_reviews__item_id__points_delete: {
+        parameters: {
+            query: {
+                point: string;
+            };
+            header?: never;
+            path: {
+                item_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueue"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

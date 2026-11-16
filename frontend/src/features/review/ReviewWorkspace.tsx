@@ -270,13 +270,14 @@ function SavePointForReview({ r, improvementKey, point, retryIndex }: {
   }));
   if (r.kind !== "questions" || !r.track || !improvementKey.startsWith("point:") || !item?.question_id) return null;
   if (save.isSuccess) {
-    return <p className="subtle" role="status">Saved for review, for “{point}”: if you dispute that point, it's held back.</p>;
+    // Already in the queue: the point is added to it, or it's saved for the whole answer (Volume 16, prompt 5).
+    return <p className="subtle" role="status">{save.data.saved ?? `Saved for review, for “${point}”: if you dispute that point, it's held back.`}</p>;
   }
-  if (item.in_review_queue) return <p className="subtle">“{item.title}” is already in your review queue.</p>;
   return (
     <div className="stack-sm">
+      {item.in_review_queue && <p className="subtle">“{item.title}” is already in your review queue; this adds the point to it.</p>}
       <Button size="sm" variant="ghost" loading={save.isPending} onClick={() => save.mutate(undefined)}>
-        Save this point for review
+        {item.in_review_queue ? "Add this point to its review" : "Save this point for review"}
       </Button>
       <InlineError error={save.error} />
     </div>
