@@ -127,6 +127,16 @@ def comparison_out(against: str, c: Classification) -> AttemptComparison:
     )
 
 
+# A comparison's outcome in one line, as History and a requirement's submissions say it.
+COMPARED_SHORT: dict[str, str] = {
+    "comparable": "Comparable with the one before",
+    "partially_comparable": "Partly comparable with the one before",
+    "incompatible": "Not comparable with the one before",
+    "unknown": "Can't tell whether it compares with the one before",
+}
+FIRST_SUBMISSION = "Not compared: the first judged submission of this problem"
+
+
 def compared_view(previous: Submission, classification: Classification) -> SubmissionComparison:
     """A submission's comparison as shown: the earlier one's verdict and counts, and the classification."""
     from app.services.judge.views import public_result_view

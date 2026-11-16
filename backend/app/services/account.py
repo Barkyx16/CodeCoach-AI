@@ -55,6 +55,7 @@ from app.services.reflections import Reflections
 from app.services.restore import Restore
 from app.services.review import disputed_point_keys
 from app.services.review_queue import QueueRead, ReviewQueueService, saved_points
+from app.services.roles import requirement_submissions
 from app.services.schedule import Schedule
 from app.services.shares import status_of
 from app.services.stories import snapshot
@@ -117,6 +118,9 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         .where(ExperienceEntry.user_id == user.id)
         .order_by(ExperienceEntry.created_at, ExperienceEntry.id)
     ).all()
+    # Each requirement's listed submissions and their comparisons, as its target page shows them
+    # (Volume 16, prompt 9).
+    requirement_code = requirement_submissions(db, user, list(targets))
     requirement_history: dict[str, list[RequirementVersion]] = {}
     for v in db.scalars(
         select(RequirementVersion)
@@ -410,6 +414,18 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                                 "at": iso(v.created_at),
                             }
                             for v in requirement_history.get(r.id, [])
+                        ],
+                        # The submissions it lists, by id, each with the contract's outcome against the
+                        # one before it (null for the first) and that one's id.
+                        "submissions": [
+                            {
+                                "id": x.submission_id,
+                                "status": x.status,
+                                "comparison": x.compared.comparison.outcome if x.compared else None,
+                                "compared_with": x.compared.previous.id if x.compared else None,
+                                "outcome": x.outcome_text,
+                            }
+                            for x in requirement_code.get(r.id, [])
                         ],
                     }
                     for r in t.requirements

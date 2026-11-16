@@ -17,7 +17,7 @@ export function SubmissionCompared({ current, compared }: { current: Submission;
       : <span className="subtle"> {passed} of {total} tests passed{hiddenTotal ? ` (hidden ${hiddenPassed ?? 0} of ${hiddenTotal})` : ""}</span>;
   const r = current.result;
   return (
-    <section className="submission-compared stack-sm" aria-label={`Compared with your previous ${noun}`}>
+    <section className="submission-compared stack-sm" id="comparison" aria-label={`Compared with your previous ${noun}`}>
       <h3 className="section-title">Compared with your previous {noun}</h3>
       <ul className="mini-list">
         <li>

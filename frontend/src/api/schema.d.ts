@@ -13092,6 +13092,11 @@ export interface components {
              * @description Your latest judged submissions (at most 3) to the problems this requirement offers
              */
             submissions?: components["schemas"]["RequirementSubmission"][];
+            /**
+             * Comparisons
+             * @description How many of those were compared with the one before and how many weren't, and why (none when there are none); it changes no coverage
+             */
+            comparisons?: string | null;
         };
         /** RequirementPatch */
         RequirementPatch: {
@@ -13122,7 +13127,8 @@ export interface components {
         /**
          * RequirementSubmission
          * @description One of the learner's latest judged submissions to a problem this requirement offers, with its
-         *     verdict as judged (Volume 14, prompt 2).
+         *     verdict as judged (Volume 14, prompt 2) and how it compares with the one before it (Volume 16,
+         *     prompt 9: the same comparison its own page shows, by the one contract).
          */
         RequirementSubmission: {
             /** Submission Id */
@@ -13135,8 +13141,26 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
-            /** Href */
+            /**
+             * Href
+             * @description Its own page, which shows this same comparison in full
+             */
             href: string;
+            /**
+             * Passed Count
+             * @description Tests passed, as judged
+             */
+            passed_count?: number | null;
+            /** Total Count */
+            total_count?: number | null;
+            /** @description The previous judged submission of the same problem and how the two compare; none for the first */
+            compared?: components["schemas"]["SubmissionComparison"] | null;
+            /**
+             * Outcome Text
+             * @description The contract's outcome in one line, in History's words, or why it isn't compared
+             * @default
+             */
+            outcome_text: string;
         };
         /** RestoreBatch */
         RestoreBatch: {

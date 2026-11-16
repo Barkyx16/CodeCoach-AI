@@ -79,6 +79,7 @@ from app.schemas.activity import (
 )
 from app.schemas.common import Page
 from app.services.attempt_comparisons import (
+    COMPARED_SHORT,
     WRITTEN_SCALE,
     AttemptComparisons,
     Checklist,
@@ -99,12 +100,6 @@ TYPE_LABELS: dict[str, str] = {
     "work_sample_attempt": "Work sample",
 }
 # A code submission's row: how it compares with the previous judged one of the same problem.
-COMPARED_SHORT: dict[str, str] = {
-    "comparable": "Comparable with the one before",
-    "partially_comparable": "Partly comparable with the one before",
-    "incompatible": "Not comparable with the one before",
-    "unknown": "Can't tell whether it compares with the one before",
-}
 
 STATUS_LABELS: dict[str, str] = {
     "opened": "Opened (not an attempt)",

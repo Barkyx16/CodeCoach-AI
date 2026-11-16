@@ -232,15 +232,25 @@ function RequirementCard({ t, r }: { t: Target; r: Requirement }) {
         </details>
       )}
       {!r.removed && (r.submissions ?? []).length > 0 && (
-        <ul className="requirement__practice" aria-label={`Your latest submissions for ${r.text}`}>
-          {(r.submissions ?? []).map((s) => (
-            <li key={s.submission_id}>
-              <Link to={s.href} state={{ from: location.pathname + location.search, fromLabel: "Back to this role" }}>Submitted: {s.problem_title}</Link>
-              <span className="subtle"> · </span><StatusBadge status={s.status} />
-              <span className="subtle"> · <time dateTime={s.created_at}>{formatDay(s.created_at.slice(0, 10))}</time></span>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="requirement__practice requirement__submissions" aria-label={`Your latest submissions for ${r.text}`}>
+            {(r.submissions ?? []).map((s) => (
+              <li key={s.submission_id}>
+                <Link to={s.href} state={{ from: location.pathname + location.search, fromLabel: "Back to this role" }}>Submitted: {s.problem_title}</Link>
+                <span className="subtle"> · </span><StatusBadge status={s.status} />
+                {s.total_count != null && <span className="subtle"> · {s.passed_count ?? 0} of {s.total_count} tests passed</span>}
+                <span className="subtle"> · <time dateTime={s.created_at}>{formatDay(s.created_at.slice(0, 10))}</time></span>
+                {/* The contract's outcome against the one before, linking to that same comparison on its own page (Volume 16, prompt 9). */}
+                {s.outcome_text && (
+                  <span className="requirement__compared"> · {s.compared
+                    ? <Link to={`${s.href}#comparison`} state={{ from: location.pathname + location.search, fromLabel: "Back to this role" }}>{s.outcome_text}</Link>
+                    : <span className="subtle">{s.outcome_text}</span>}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+          {r.comparisons && <p className="subtle requirement__comparisons">{r.comparisons}</p>}
+        </>
       )}
       {!r.removed && r.practice.length > 0 && (
         <ul className="requirement__practice">

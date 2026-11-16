@@ -452,8 +452,8 @@ describe("A requirement's latest submissions (Volume 14, prompt 2)", () => {
     const t = makeTarget();
     targetServer({
       requirement_list: [{ ...t.requirement_list[0]!, submissions: [
-        { submission_id: "s-2", problem_title: "Two Sum", status: "PASSED", created_at: now, href: "/history/submissions/s-2" },
-        { submission_id: "s-1", problem_title: "Two Sum", status: "FAILED", created_at: now, href: "/history/submissions/s-1" },
+        { submission_id: "s-2", problem_title: "Two Sum", status: "PASSED", created_at: now, href: "/history/submissions/s-2", outcome_text: "" },
+        { submission_id: "s-1", problem_title: "Two Sum", status: "FAILED", created_at: now, href: "/history/submissions/s-1", outcome_text: "" },
       ] }, ...t.requirement_list.slice(1)],
     });
     renderApp("/targets/t-1", { signedIn: true });
@@ -463,6 +463,35 @@ describe("A requirement's latest submissions (Volume 14, prompt 2)", () => {
     expect(within(items[0]!).getByRole("link", { name: "Submitted: Two Sum" })).toHaveAttribute("href", "/history/submissions/s-2");
     expect(items[0]).toHaveTextContent("Passed");
     expect(items[1]).toHaveTextContent("Failed");
+  });
+});
+
+describe("A requirement's submissions, compared (Volume 16, prompt 9)", () => {
+  it("shows each one's counts and the contract's outcome, linking to that comparison, and says what wasn't compared", async () => {
+    const t = makeTarget();
+    const comparison = {
+      against: "s-1", outcome: "comparable" as const, scores_comparable: true, points_comparable: true, reasons: [],
+      explanation: "Same problem, the same tests and the same help: the two results can be set side by side.", contract_version: 1,
+    };
+    targetServer({
+      requirement_list: [{ ...t.requirement_list[0]!, comparisons: "1 compared with the one before; 1 not compared: the first judged submission of its problem.", submissions: [
+        { submission_id: "s-2", problem_title: "Two Sum", status: "PASSED", created_at: now, href: "/history/submissions/s-2", passed_count: 7, total_count: 7,
+          compared: { previous: { id: "s-1", status: "FAILED", created_at: now, passed_count: 2, total_count: 7 }, comparison },
+          outcome_text: "Comparable with the one before" },
+        { submission_id: "s-1", problem_title: "Two Sum", status: "FAILED", created_at: now, href: "/history/submissions/s-1", passed_count: 2, total_count: 7,
+          compared: null, outcome_text: "Not compared: the first judged submission of this problem" },
+      ] }, ...t.requirement_list.slice(1)],
+    });
+    renderApp("/targets/t-1", { signedIn: true });
+    const list = await screen.findByRole("list", { name: "Your latest submissions for Perform patient assessment and triage" });
+    const [newer, older] = within(list).getAllByRole("listitem");
+    expect(newer).toHaveTextContent("7 of 7 tests passed");
+    expect(within(newer!).getByRole("link", { name: "Comparable with the one before" })).toHaveAttribute("href", "/history/submissions/s-2#comparison");
+    expect(older).toHaveTextContent("2 of 7 tests passed");
+    expect(older).toHaveTextContent("Not compared: the first judged submission of this problem");
+    expect(within(older!).queryByRole("link", { name: /compared/i })).not.toBeInTheDocument(); // nothing to link to
+    expect(screen.getByText("1 compared with the one before; 1 not compared: the first judged submission of its problem.")).toBeInTheDocument();
+    for (const claim of [/improved/i, /mastered/i]) expect(list).not.toHaveTextContent(claim);
   });
 });
 

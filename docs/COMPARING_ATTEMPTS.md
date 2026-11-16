@@ -119,6 +119,33 @@ same mode**, by the same `classify()` with code's own facts (`AttemptComparisons
 - **Rules version**: still v1. No written answer's classification changed; code's rules are new
   facts for the same rules.
 
+### Under a target's requirement (Volume 16, prompt 9)
+
+Each submission a requirement lists (its latest three judged submissions, not runs, to the problems
+it offers) shows its verdict, its tests passed and the contract's one-line outcome against the one
+before it, in History's words ("Comparable with the one before"), linking to that same comparison on
+the submission's own page (`/history/submissions/{id}#comparison`): the `compared` object is the
+page's, built by the same `compared_view`, so the two can't say different things. The first judged
+submission of a problem says "Not compared: the first judged submission of this problem"; one the
+contract couldn't set beside the one before (other tests whose version wasn't recorded, another
+problem) says its outcome in the contract's words.
+
+- **The requirement's line** (`comparisons`): "1 compared with the one before; 1 not compared: the
+  first judged submission of its problem." Compared means comparable or partly comparable; not
+  compared gives the contract's reason for each (counted when several share one). It sits beside the
+  coverage line, which counts practice exactly as before: no new score, no "improved", no "mastered".
+- **A failed then passed submission** shows both verdicts and counts side by side under "Comparable
+  with the one before", with the explanation (the rule). As everywhere, the contract doesn't call one
+  "improved": the two results, comparable, say it.
+- **Bounded**: the listed submissions of every requirement are compared in one batch (a problem two
+  requirements share is compared once), with each one's result and problem tests loaded together, so
+  reading the target takes the same statements with 6 submissions or 46
+  (`test_reading_the_target_doesnt_grow_with_the_number_of_submissions`).
+- **Export**: each requirement carries `submissions: [{id, status, comparison, compared_with,
+  outcome}]` by id, as the page lists them.
+- Tests: `backend/tests/test_requirement_comparisons.py` (8),
+  `frontend/src/test/integration/targets.test.tsx` ("A requirement's submissions, compared").
+
 ## Drills, whiteboards and work samples (Volume 15, prompt 4)
 
 Each **assessed** attempt is compared with the **previous assessed attempt at the same item** (a
@@ -182,6 +209,8 @@ another rubric; a checklist's ticks against other points don't. So:
 
 ## Not covered yet
 
-Scenario runs, code-review exercises and sample-answer comparisons aren't listed in History: they keep
+Submissions still listed without their comparison: the problem workspace's list of past
+submissions and the dashboard's recent activity (each links to the submission's page, which shows
+it). Scenario runs, code-review exercises and sample-answer comparisons aren't listed in History: they keep
 their own pages and attempts lists. They, and the other formats, keep their own rules for now (docs/SCENARIOS.md, docs/CODE_REVIEWS.md, docs/COMPARE_ANSWERS.md and others) and adopt
 this contract later. Help outside the app isn't known.

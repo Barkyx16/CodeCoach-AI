@@ -14,8 +14,9 @@ question bank and the learner's recorded attempts.
 from __future__ import annotations
 
 import re
-from collections import defaultdict
+from collections import Counter, defaultdict
 from datetime import UTC, datetime
+from typing import Any
 
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy import func, select
@@ -60,6 +61,12 @@ from app.schemas.roles import (
     TargetOut,
     TargetPatch,
     TargetSummary,
+)
+from app.services.attempt_comparisons import (
+    COMPARED_SHORT,
+    FIRST_SUBMISSION,
+    AttemptComparisons,
+    compared_view,
 )
 from app.services.content import retired_problem_slugs
 from app.services.jd_extract import extract, map_skills
@@ -515,25 +522,7 @@ class RoleTargets:
             counts[a.question_id] += 1
         by_skill = questions_by_skill(track)
         bank = sorted(questions_for(track), key=lambda q: (DIFFICULTY_ORDER.get(q.difficulty, 3), q.id))
-        retired = retired_problem_slugs()
-        problems: list[Problem] = (
-            [
-                p
-                for p in self.db.scalars(select(Problem).where(Problem.kind == "problem")).all()
-                if p.slug not in retired
-            ]
-            if profile.has_coding
-            else []
-        )
-        sub_rows = (
-            self.db.execute(
-                select(Submission.id, Submission.problem_id, Submission.status, Submission.created_at)
-                .where(Submission.user_id == user.id, Submission.mode == SubmissionMode.SUBMIT)
-                .order_by(Submission.created_at.desc(), Submission.id.desc())
-            ).all()
-            if profile.has_coding
-            else []
-        )
+        problems, sub_rows = _coding(self.db, user, track)
         judged: dict[int, int] = defaultdict(int)
         passed: set[int] = set()
         attempted: set[int] = set()
@@ -630,20 +619,7 @@ class RoleTargets:
                         best_score=best.get(q.id),
                     )
                 )
-            # The latest judged submissions to these problems, newest first (Volume 14, prompt 2): the
-            # attempts themselves, since a passed problem leaves the practice links.
-            titles = {p.id: p.title for p in probs}
-            latest = [
-                RequirementSubmission(
-                    submission_id=sid,
-                    problem_title=titles[pid],
-                    status=status,
-                    created_at=at,
-                    href=f"/history/submissions/{sid}",
-                )
-                for sid, pid, status, at in sub_rows
-                if pid in titles and status in JUDGED
-            ][:3]
+            latest = _latest(probs, sub_rows)
             for p in [p for p in probs if p.id not in passed][:2]:
                 practice.append(
                     PracticeLink(
@@ -677,6 +653,11 @@ class RoleTargets:
                     ),
                 )
             )
+
+        # How each listed submission compares with the one before, read once for every requirement.
+        notes = _compare(self.db, user, [ro.submissions for ro in reqs])
+        for ro, note in zip(reqs, notes, strict=True):
+            ro.comparisons = note
 
         active = sorted(
             (r for r in reqs if not r.removed),
@@ -797,6 +778,117 @@ class RoleTargets:
             action_links=versions.action_links(t),
             days_to_interview=days if days is not None and days >= 0 else None,
         )
+
+
+def _coding(db: Session, user: User, track: str) -> tuple[list[Problem], list[Any]]:
+    """The problems a requirement can offer (not retired) and the learner's submissions (not runs),
+    newest first: (id, problem id, status, created at)."""
+    if not CATALOG[track].has_coding:
+        return [], []
+    retired = retired_problem_slugs()
+    problems = [
+        p for p in db.scalars(select(Problem).where(Problem.kind == "problem")).all() if p.slug not in retired
+    ]
+    rows = db.execute(
+        select(Submission.id, Submission.problem_id, Submission.status, Submission.created_at)
+        .where(Submission.user_id == user.id, Submission.mode == SubmissionMode.SUBMIT)
+        .order_by(Submission.created_at.desc(), Submission.id.desc())
+    ).all()
+    return problems, list(rows)
+
+
+def _latest(probs: list[Problem], sub_rows: list[Any]) -> list[RequirementSubmission]:
+    """The latest judged submissions to these problems, newest first (Volume 14, prompt 2): the
+    attempts themselves, since a passed problem leaves the practice links."""
+    titles = {p.id: p.title for p in probs}
+    return [
+        RequirementSubmission(
+            submission_id=sid,
+            problem_title=titles[pid],
+            status=status,
+            created_at=at,
+            href=f"/history/submissions/{sid}",
+        )
+        for sid, pid, status, at in sub_rows
+        if pid in titles and status in JUDGED
+    ][:3]
+
+
+def _compare(db: Session, user: User, groups: list[list[RequirementSubmission]]) -> list[str | None]:
+    """Each listed submission's result and its comparison with the previous judged one, by the one
+    contract (Volume 16, prompt 9): the same pair its own page shows, read once for every group (a
+    problem two requirements share is compared once), in a fixed number of statements however many
+    are listed. Fills each item in place; returns each group's one-line summary."""
+    ids = {s.submission_id for g in groups for s in g}
+    if not ids:
+        return [None for _ in groups]
+    # Each with its result and its problem's tests (the comparison's "before" reads them), in one go.
+    loaded = (
+        selectinload(Submission.result),
+        selectinload(Submission.problem).selectinload(Problem.test_cases),
+    )
+    subs = db.scalars(
+        select(Submission).options(*loaded).where(Submission.user_id == user.id, Submission.id.in_(ids))
+    ).all()
+    pairs = AttemptComparisons(db, user).submissions_with_previous(subs)
+    earlier = {prev.id for prev, _ in pairs.values()} - ids
+    if earlier:  # the earlier ones' results, for "before", in one statement
+        db.scalars(select(Submission).options(*loaded).where(Submission.id.in_(earlier))).all()
+    views = {sid: compared_view(*pair) for sid, pair in pairs.items()}
+    by_id = {x.id: x for x in subs}
+    notes: list[str | None] = []
+    for group in groups:
+        compared, why = 0, Counter[str]()
+        for item in group:
+            x = by_id.get(item.submission_id)
+            res = x.result if x is not None else None
+            item.passed_count = res.passed_count if res else None
+            item.total_count = res.total_count if res else None
+            view = views.get(item.submission_id)
+            item.compared = view
+            if view is None:
+                item.outcome_text = FIRST_SUBMISSION
+                why["the first judged submission of its problem"] += 1
+                continue
+            c = view.comparison
+            item.outcome_text = COMPARED_SHORT[c.outcome]
+            if c.outcome in ("comparable", "partially_comparable"):
+                compared += 1
+            else:  # the contract couldn't set them side by side: its own reason
+                first = next((r for r in c.reasons if r.kind in ("incompatible", "unknown")), None)
+                why[(first.text if first else c.explanation).rstrip(".")] += 1
+        notes.append(_comparisons_note(compared, why) if group else None)
+    return notes
+
+
+def requirement_submissions(
+    db: Session, user: User, targets: list[RoleTarget]
+) -> dict[str, list[RequirementSubmission]]:
+    """For the export: each requirement's listed submissions with their comparisons, as its target
+    page shows them, by requirement id."""
+    out: dict[str, list[RequirementSubmission]] = {}
+    coding: dict[str, tuple[list[Problem], list[Any]]] = {}
+    for t in targets:
+        if t.track not in CATALOG or not CATALOG[t.track].has_coding:
+            continue
+        if t.track not in coding:
+            coding[t.track] = _coding(db, user, t.track)
+        problems, sub_rows = coding[t.track]
+        for r in t.requirements:
+            topics = coding_topics(r.text)
+            out[r.id] = _latest([p for p in problems if set(p.topics) & set(topics)], sub_rows)
+    _compare(db, user, list(out.values()))
+    return out
+
+
+def _comparisons_note(compared: int, why: Counter[str]) -> str:
+    """ "2 compared with the one before; 1 not compared: the first judged submission of its problem." """
+    parts = [f"{compared} compared with the one before"] if compared else []
+    if why:
+        n = sum(why.values())
+        reasons = "; ".join(f"{k}{f' ({v})' if v > 1 and len(why) > 1 else ''}" for k, v in why.items())
+        parts.append(f"{n} not compared: {reasons}")
+    return "; ".join(parts) + "."
 
 
 def _contains(text: str, quote: str) -> bool:

@@ -45480,6 +45480,18 @@
             "type": "array",
             "title": "Submissions",
             "description": "Your latest judged submissions (at most 3) to the problems this requirement offers"
+          },
+          "comparisons": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparisons",
+            "description": "How many of those were compared with the one before and how many weren't, and why (none when there are none); it changes no coverage"
           }
         },
         "type": "object",
@@ -45613,7 +45625,48 @@
           },
           "href": {
             "type": "string",
-            "title": "Href"
+            "title": "Href",
+            "description": "Its own page, which shows this same comparison in full"
+          },
+          "passed_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passed Count",
+            "description": "Tests passed, as judged"
+          },
+          "total_count": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Total Count"
+          },
+          "compared": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubmissionComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The previous judged submission of the same problem and how the two compare; none for the first"
+          },
+          "outcome_text": {
+            "type": "string",
+            "title": "Outcome Text",
+            "description": "The contract's outcome in one line, in History's words, or why it isn't compared",
+            "default": ""
           }
         },
         "type": "object",
@@ -45625,7 +45678,7 @@
           "href"
         ],
         "title": "RequirementSubmission",
-        "description": "One of the learner's latest judged submissions to a problem this requirement offers, with its\nverdict as judged (Volume 14, prompt 2)."
+        "description": "One of the learner's latest judged submissions to a problem this requirement offers, with its\nverdict as judged (Volume 14, prompt 2) and how it compares with the one before it (Volume 16,\nprompt 9: the same comparison its own page shows, by the one contract)."
       },
       "RestoreBatch": {
         "properties": {
