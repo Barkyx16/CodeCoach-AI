@@ -102,7 +102,8 @@ test("guest journey: try it, code, hints, review, submit, progress", async ({ pa
   await filters.getByLabel("Activity").selectOption("code_submission");
   await expect(page.getByRole("listitem").filter({ hasText: "Two Sum" }).first()).toBeVisible();
   await filters.getByLabel("Activity").selectOption("coaching");
-  await expect(page.getByText(/Code review/).first()).toBeVisible();
+  // The review's own row (the Activity filter has a hidden "Code review exercise" option of its own).
+  await expect(page.getByRole("link", { name: /^Coaching Two Sum .*· Code review ·/ })).toBeVisible();
 });
 
 test("account journey: register, filter library, sign out, sign in", async ({ page }) => {
