@@ -3,6 +3,7 @@ import { http, HttpResponse } from "msw";
 
 import { tokenResponse, user as baseUser } from "../fixtures";
 import { chooseCareer } from "../careerPicker";
+import { failLimits, serveLimits } from "../limits";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -118,6 +119,26 @@ describe("Career practice", () => {
     await chooseCareer(user, await screen.findByLabelText("Job you're preparing for"), "barista");
     await user.click(create);
     await waitFor(() => expect(body.career_track).toBe("barista"));
+  });
+});
+
+describe("The answer and report forms take the server's limits", () => {
+  const QUESTION = "/careers/registered-nurse/questions/m-pressure-0";
+
+  it("caps the answer and a report's details at the served numbers, and not at all when they can't be read", async () => {
+    serveLimits({ answer_chars: 321, report_details_chars: 45 });
+    const { user, unmount } = renderApp(QUESTION, { signedIn: true });
+    await waitFor(async () => expect(await screen.findByLabelText("Your answer")).toHaveAttribute("maxlength", "321"));
+    await user.click(screen.getByRole("button", { name: "Report an issue" }));
+    await waitFor(() => expect(screen.getByLabelText(/^Details/)).toHaveAttribute("maxlength", "45"));
+    unmount();
+    const reads = failLimits();
+    const again = renderApp(QUESTION, { signedIn: true });
+    const box = await screen.findByLabelText("Your answer");
+    await waitFor(() => expect(reads.n).toBe(2), { timeout: 4000 });
+    expect(box).not.toHaveAttribute("maxlength");
+    await again.user.click(screen.getByRole("button", { name: "Report an issue" }));
+    expect(screen.getByLabelText(/^Details/)).not.toHaveAttribute("maxlength");
   });
 });
 

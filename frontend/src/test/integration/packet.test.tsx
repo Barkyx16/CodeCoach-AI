@@ -11,6 +11,7 @@ import { http, HttpResponse } from "msw";
 import type { Bookmark, Packet, StorySummary } from "@/api/types";
 
 import { resetExploreStore, store } from "../explore";
+import { failLimits, serveLimits } from "../limits";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -67,6 +68,23 @@ async function captureDownload(click: () => Promise<void>): Promise<{ name: stri
 }
 
 describe("A practice packet", () => {
+  it("states the served number of items, and none when the limits can't be read", async () => {
+    serve();
+    serveLimits({ packet_items: 2 });
+    const { user, unmount } = renderApp("/packet", { signedIn: true });
+    await user.click(await screen.findByRole("checkbox", { name: "Handover notes" }, { timeout: 3000 }));
+    expect(await screen.findByText("1 of up to 2 chosen.")).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: "Two call lights" }));
+    expect(await screen.findByText("Up to 2 in one packet.")).toBeInTheDocument();
+    unmount();
+    serve();
+    const reads = failLimits();
+    const again = renderApp("/packet", { signedIn: true });
+    await again.user.click(await screen.findByRole("checkbox", { name: "Handover notes" }, { timeout: 3000 }));
+    await waitFor(() => expect(reads.n).toBe(2), { timeout: 4000 });
+    expect(screen.getByText("1 chosen.")).toBeInTheDocument();
+  });
+
   it("sends exactly the choices in order, and the saved file is the preview", async () => {
     serve();
     const { user } = renderApp("/packet", { signedIn: true });

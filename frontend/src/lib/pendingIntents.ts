@@ -30,6 +30,7 @@ export interface PendingIntent {
 }
 
 const PREFIX = "codecoach.pending.v1.";
+// The client's own limit: pending sends kept on this device (no server limit; no form states it).
 const MAX = 20;
 export const INTENT_TTL_MS = 24 * 60 * 60 * 1000;
 

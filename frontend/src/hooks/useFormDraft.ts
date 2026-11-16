@@ -20,6 +20,7 @@ import { useCopySince, writeCopy } from "@/lib/deviceCopies";
  *   copy wasn't kept instead of implying it was.
  */
 export const FORM_DRAFT_VERSION = 1;
+// The client's own limits: a draft's size and age in this browser (the server never sees a draft).
 export const MAX_CHARS = 60_000;
 export const MAX_AGE_DAYS = 14;
 const WRITE_DELAY_MS = 400;

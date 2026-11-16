@@ -4,6 +4,7 @@ import { http, HttpResponse } from "msw";
 import type { Application, ApplicationSummary } from "@/api/types";
 
 import { tokenResponse, user as baseUser } from "../fixtures";
+import { failLimits, serveLimits } from "../limits";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -36,6 +37,23 @@ function fakeApps(list: Application[]) {
   );
   return { sent, store };
 }
+
+describe("an application's story links state the server's limit", () => {
+  it("states the served number when it's reached, and nothing when the limits can't be read", async () => {
+    asUser();
+    fakeApps([app({ stories: [{ id: "s1", title: "Two call lights", archived: false }] })]);
+    server.use(http.get(`${API}/api/v1/me/stories`, () => HttpResponse.json([])), http.get(`${API}/api/v1/me/targets`, () => HttpResponse.json([])));
+    serveLimits({ stories_per_application: 1 });
+    const { unmount } = renderApp("/applications/a1", { signedIn: true });
+    expect(await screen.findByText("Up to 1 stories per application: unlink one to add another.")).toBeInTheDocument();
+    unmount();
+    const reads = failLimits();
+    renderApp("/applications/a1", { signedIn: true });
+    expect(await screen.findByRole("form", { name: "Change the stage" })).toBeInTheDocument();
+    await waitFor(() => expect(reads.n).toBe(2), { timeout: 4000 });
+    expect(screen.queryByText(/stories per application/)).not.toBeInTheDocument();
+  });
+});
 
 describe("the board", () => {
   it("a card's next interview leads to its kit, and says when the time isn't known", async () => {

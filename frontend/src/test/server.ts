@@ -1,7 +1,7 @@
 import { http, HttpResponse, type JsonBodyType } from "msw";
 import { setupServer } from "msw/node";
 
-import type { Interview } from "@/api/types";
+import type { Interview, ServedLimits } from "@/api/types";
 
 import { contentHandlers } from "./content";
 import { onboardingHandlers } from "./onboarding";
@@ -26,6 +26,27 @@ export function filterProblems<P extends { title: string; summary: string; topic
   return list.filter((p) => (!topic || p.topics.includes(topic))
     && words.every((w) => `${p.title} ${p.summary}`.toLowerCase().includes(w)));
 }
+
+/** GET /limits as this build's server serves it (backend/app/services/limits.py); a test that needs
+ * the read to fail overrides it. */
+export const SERVED_LIMITS: ServedLimits["limits"] = [
+  { name: "collections_per_account", value: 50, counts: "collections" },
+  { name: "items_per_collection", value: 200, counts: "items" },
+  { name: "items_per_batch", value: 50, counts: "at a time" },
+  { name: "stories_per_application", value: 20, counts: "stories" },
+  { name: "target_description_chars", value: 20000, counts: "characters" },
+  { name: "report_details_chars", value: 2000, counts: "characters" },
+  { name: "report_excerpt_chars", value: 1500, counts: "characters" },
+  { name: "backup_file_bytes", value: 5242880, counts: "bytes" },
+  { name: "packet_items", value: 20, counts: "items" },
+  { name: "packet_kits", value: 1, counts: "interview's kit" },
+  { name: "goal_focus_areas", value: 8, counts: "skills" },
+  { name: "answer_chars", value: 6000, counts: "characters" },
+  { name: "share_feedback_field_chars", value: 1500, counts: "characters" },
+  { name: "share_feedback_comments", value: 8, counts: "comments" },
+  { name: "whiteboard_components", value: 40, counts: "components" },
+  { name: "whiteboard_connections", value: 80, counts: "connections" },
+];
 
 export const handlers = [
   ...contentHandlers,
@@ -72,6 +93,8 @@ export const handlers = [
     const size = Number(params.get("page_size") ?? 20);
     return HttpResponse.json({ ...page(items.slice(0, size)), total: items.length, page_size: size });
   }),
+  // The limits forms state (Volume 17, prompt 7), as this build's server serves them.
+  http.get(`${API}/api/v1/limits`, () => HttpResponse.json({ limits: SERVED_LIMITS })),
   http.get(`${API}/api/v1/capabilities`, () => HttpResponse.json({ execution_enabled: false, ai_provider: "offline", execution: executionStatus("not_configured"), guest_retention_days: 30 })),
   http.get(`${API}/api/v1/topics`, () => HttpResponse.json([{ topic: "arrays", count: 3 }, { topic: "hash-maps", count: 1 }])),
   http.get(`${API}/api/v1/problems/two-sum`, () => HttpResponse.json(twoSum)),

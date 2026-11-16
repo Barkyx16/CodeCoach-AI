@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
-import { useTargetMutation, useTargets } from "@/api/queries";
+import { useLimit, useTargetMutation, useTargets } from "@/api/queries";
 import type { TargetSummary } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Badge } from "@/components/Badge";
@@ -17,7 +17,6 @@ import { invalidProps, useFieldErrors } from "@/hooks/useFieldErrors";
 import { formDraftKey, isTextForm, useFormDraft } from "@/hooks/useFormDraft";
 import { allowLeaveAfterSave, useLeaveWarning } from "@/hooks/useLeaveWarning";
 
-const MAX_DESCRIPTION = 20_000;
 
 /** Saved target roles and a form to add one from a pasted job description. */
 export function TargetsPage() {
@@ -95,6 +94,7 @@ function NewTarget({ onCancel }: { onCancel: () => void }) {
   const { user } = useAuth();
   const navigate = useNavigate();
   const create = useTargetMutation(api.createTarget);
+  const maxDescription = useLimit("target_description_chars"); // the server's; unread, no number is stated
   const [empty] = useState(() => ({
     title: "", employer: "", description: "", track: user?.career_track || DEFAULT_TRACK, interview_date: "", notes: "",
   }));
@@ -153,10 +153,10 @@ function NewTarget({ onCancel }: { onCancel: () => void }) {
         <CareerSelect id="new-target-track" value={form.track} onChange={set("track")} error={err("track")} />
         <div className="field">
           <label className="field__label" htmlFor="new-target-jd">Job description</label>
-          <textarea id="new-target-jd" className="input target-jd" required rows={12} maxLength={MAX_DESCRIPTION} value={form.description}
+          <textarea id="new-target-jd" className="input target-jd" required rows={12} maxLength={maxDescription} value={form.description}
             {...invalidProps("new-target-jd-error", err("description"), "jd-help")} placeholder="Paste the text of the posting here" onChange={(e) => set("description")(e.target.value)} />
           <FieldError id="new-target-jd-error" message={err("description")} />
-          <span id="jd-help" className="subtle">{form.description.length.toLocaleString()} of {MAX_DESCRIPTION.toLocaleString()} characters. Pasted text is only read for requirements; it's never treated as instructions. Requirements are found by rules, not AI, and you can correct them.</span>
+          <span id="jd-help" className="subtle">{form.description.length.toLocaleString()}{maxDescription !== undefined ? ` of ${maxDescription.toLocaleString()}` : ""} characters. Pasted text is only read for requirements; it's never treated as instructions. Requirements are found by rules, not AI, and you can correct them.</span>
         </div>
         <div className="goals-page__row">
           <ControlField id="new-target-date" label="Interview date (optional)" error={err("interview_date")}>

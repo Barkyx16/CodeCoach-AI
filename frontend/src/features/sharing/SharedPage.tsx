@@ -4,7 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
-import { useSharedView } from "@/api/queries";
+import { useLimit, useSharedView } from "@/api/queries";
 import type { FeedbackReceipt, RecipientView } from "@/api/types";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -15,8 +15,6 @@ import { useRequestKey } from "@/lib/requestKey";
 import { FeedbackView } from "./FeedbackView";
 import { SharedSnapshot } from "./SharedSnapshot";
 
-const MAX_FIELD = 1500;
-const MAX_COMMENTS = 8;
 
 
 /** The link's secret lives in the URL fragment (#t=…), which browsers never send to a server. */
@@ -111,6 +109,9 @@ function FeedbackForm({ token, data }: { token: string; data: RecipientView }) {
   // The same feedback sent again (a lost reply) keeps its key, so it's saved once; edited
   // feedback is new, with a new key.
   const requestKey = useRequestKey();
+  // The server's limits on feedback, as it serves them; unread, no number is stated and it decides.
+  const maxField = useLimit("share_feedback_field_chars");
+  const maxComments = useLimit("share_feedback_comments");
   const [fields, setFields] = useState({ clear: "", needs_evidence: "", next_step: "" });
   const [comments, setComments] = useState<{ sentence: number; text: string }[]>([]);
   const [sentence, setSentence] = useState<number>(view.excerpt[0]?.index ?? 0);
@@ -144,7 +145,7 @@ function FeedbackForm({ token, data }: { token: string; data: RecipientView }) {
   }
 
   function addComment() {
-    if (!commentText.trim() || comments.length >= MAX_COMMENTS) return;
+    if (!commentText.trim() || (maxComments !== undefined && comments.length >= maxComments)) return;
     setComments([...comments, { sentence, text: commentText.trim() }]);
     setCommentText("");
   }
@@ -168,13 +169,13 @@ function FeedbackForm({ token, data }: { token: string; data: RecipientView }) {
       {(["clear", "needs_evidence", "next_step"] as const).map((key, i) => (
         <label className="field" key={key}>
           <span className="field__label">{view.prompts[i]}</span>
-          <textarea className="input" rows={3} maxLength={MAX_FIELD} value={fields[key]}
+          <textarea className="input" rows={3} maxLength={maxField} value={fields[key]}
             onChange={(e) => setFields({ ...fields, [key]: e.target.value })} />
         </label>
       ))}
 
       <fieldset className="field share-comment-form">
-        <legend className="field__label">Comment on a sentence <span className="subtle">(optional, up to {MAX_COMMENTS})</span></legend>
+        <legend className="field__label">Comment on a sentence <span className="subtle">(optional{maxComments !== undefined ? `, up to ${maxComments}` : ""})</span></legend>
         {comments.length > 0 && (
           <ul className="share-comments" aria-label="Your comments">
             {comments.map((c, i) => (
@@ -186,7 +187,7 @@ function FeedbackForm({ token, data }: { token: string; data: RecipientView }) {
             ))}
           </ul>
         )}
-        {comments.length < MAX_COMMENTS && (
+        {(maxComments === undefined || comments.length < maxComments) && (
           <div className="stack-sm">
             <label className="field">
               <span className="field__label">Sentence</span>

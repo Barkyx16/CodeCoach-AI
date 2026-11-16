@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
-import { useCollection, useCollections } from "@/api/queries";
+import { useCollection, useCollections, useLimit } from "@/api/queries";
 import type { Collection, CollectionItem } from "@/api/types";
 import { Button } from "@/components/Button";
 import { InlineError } from "@/components/States";
@@ -26,10 +26,11 @@ export function TransferForm({ source, chosen, move, busy, onSend, onCancel }: {
   const others = (all.data ?? []).filter((o) => o.id !== source.id);
   const [to, setTo] = useState("");
   const dest = useCollection(to, Boolean(to));
+  const maxItems = useLimit("items_per_collection");
   const ready = to && dest.data?.id === to ? dest.data : null;
   const verb = move ? "Move" : "Copy";
   const n = chosen.length;
-  const words = ready ? transferWords({ source, chosen, dest: ready, move }) : [];
+  const words = ready ? transferWords({ source, chosen, dest: ready, move, maxItems }) : [];
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();

@@ -19,6 +19,7 @@ import { useState } from "react";
  */
 export const REMOVALS_KEY = "codecoach.removed.v2";
 const KEEP_MS = 24 * 60 * 60 * 1000;
+// The client's own limit: removals remembered on this device (no server limit; no form states it).
 const MAX = 200;
 
 interface Removals {

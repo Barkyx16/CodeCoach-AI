@@ -4,7 +4,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
-import { useCollection, useCollectionMutation, useCollections, useDeleteCollection } from "@/api/queries";
+import { useCollection, useCollectionMutation, useCollections, useDeleteCollection, useLimit } from "@/api/queries";
 import type { Collection, CollectionItem } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
@@ -16,7 +16,6 @@ import { BulkOutcomes, NoReply, SelectBox } from "./bulk";
 import { type BulkResult, isDone, useSelection } from "./bulkSelection";
 import { TransferForm } from "./CollectionTransfer";
 import { useItemKind } from "./labels";
-import { MAX_COLLECTIONS } from "./limits";
 import { SavedFreshness } from "./SavedFreshness";
 import { itemKey } from "./transfer";
 
@@ -38,6 +37,8 @@ export function CollectionPage() {
   const destroy = useDeleteCollection();
   // Duplicate (Volume 16, prompt 8): one key per exact request, so a retry after a lost reply makes one copy.
   const all = useCollections();
+  // The server's limit, as it serves it (Volume 17, prompt 7): unread, the form states no number.
+  const maxCollections = useLimit("collections_per_account");
   const copies = useQueryClient();
   const requestKey = useRequestKey();
   const [duplicating, setDuplicating] = useState(false);
@@ -71,6 +72,7 @@ export function CollectionPage() {
   const qc = useQueryClient();
   const itemIds = useMemo(() => collection.data?.item_list.map((i) => i.id) ?? [], [collection.data]);
   const selection = useSelection(itemIds);
+  const perBatch = useLimit("items_per_batch"); // the server's limit on one request
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkResults, setBulkResults] = useState<{ verb: string; rows: BulkResult[]; titles: Map<string, string> } | null>(null);
   const [bulkLost, setBulkLost] = useState<{ kind: "remove" | "review"; ids: string[] } | LostTransfer | null>(null);
@@ -105,6 +107,7 @@ export function CollectionPage() {
   if (collection.isError) return <div className="page"><ErrorState error={collection.error} onRetry={() => void collection.refetch()} /></div>;
   const c = collection.data;
   const items = c.item_list;
+  const tooMany = perBatch !== undefined && selection.selected.length > perBatch;
 
   async function removeSelected(ids: string[]) {
     setBulkBusy(true);
@@ -209,7 +212,7 @@ export function CollectionPage() {
   }
 
   const count = all.data?.length;
-  const atLimit = count !== undefined && count >= MAX_COLLECTIONS;
+  const atLimit = count !== undefined && maxCollections !== undefined && count >= maxCollections;
   const original = c.copied_from_id ? all.data?.find((x) => x.id === c.copied_from_id) : undefined;
 
   function onDuplicate(e: FormEvent) {
@@ -272,9 +275,9 @@ export function CollectionPage() {
           onKeyDown={(e) => { if (e.key === "Escape") { e.preventDefault(); setDuplicating(false); document.getElementById("duplicate-collection")?.focus(); } }}>
           <strong id="duplicate-title">Duplicate “{c.name}”</strong>
           <p>The copy has the same {c.items === 1 ? "item" : `${c.items} items`} in the same order, each at the version it was added at and with its “Mark reviewed”. Its queue starts at the beginning, and this collection doesn't change. Your saved items aren't touched.</p>
-          {count !== undefined && (atLimit
-            ? <p className="banner banner--warning" role="status">You have {count} of {MAX_COLLECTIONS} collections: delete one to make room for a copy.</p>
-            : count >= MAX_COLLECTIONS - 5 && <p className="subtle">You have {count} of {MAX_COLLECTIONS} collections; the copy would make {count + 1}.</p>)}
+          {count !== undefined && maxCollections !== undefined && (atLimit
+            ? <p className="banner banner--warning" role="status">You have {count} of {maxCollections} collections: delete one to make room for a copy.</p>
+            : count >= maxCollections - 5 && <p className="subtle">You have {count} of {maxCollections} collections; the copy would make {count + 1}.</p>)}
           <label className="field">
             <span className="field__label">Name for the copy</span>
             <input className="input" value={copyName} maxLength={80} placeholder={`${c.name} (copy)`} autoFocus onChange={(e) => setCopyName(e.target.value)} />
@@ -322,26 +325,27 @@ export function CollectionPage() {
           <span className="subtle" aria-live="polite">{selection.selected.length} of {items.length} selected</span>
           {selection.selected.length > 0 && (
             <span className="bulk-bar__action">
-              <Button size="sm" loading={bulkBusy} onClick={() => void removeSelected(selection.selected)}>
+              <Button size="sm" loading={bulkBusy} disabled={tooMany} onClick={() => void removeSelected(selection.selected)}>
                 Remove {selection.selected.length} from “{c.name}”
               </Button>
-              <Button size="sm" loading={bulkBusy} onClick={() => void reviewSelected(selection.selected)}>
+              <Button size="sm" loading={bulkBusy} disabled={tooMany} onClick={() => void reviewSelected(selection.selected)}>
                 Mark {selection.selected.length} reviewed
               </Button>
-              <Button size="sm" variant="secondary" aria-expanded={transferring === "copy"} onClick={() => setTransferring("copy")}>
+              <Button size="sm" variant="secondary" disabled={tooMany} aria-expanded={transferring === "copy"} onClick={() => setTransferring("copy")}>
                 Copy {selection.selected.length} to…
               </Button>
-              <Button size="sm" variant="secondary" aria-expanded={transferring === "move"} onClick={() => setTransferring("move")}>
+              <Button size="sm" variant="secondary" disabled={tooMany} aria-expanded={transferring === "move"} onClick={() => setTransferring("move")}>
                 Move {selection.selected.length} to…
               </Button>
               <Button size="sm" variant="ghost" onClick={() => selection.setAll(false)}>Clear selection</Button>
             </span>
           )}
         </div>
+        {tooMany && <p className="subtle" role="status">Up to {perBatch} at a time: {selection.selected.length} are selected.</p>}
         {selection.selected.length > 0 && (
           <p className="subtle">Removing only takes them out of this collection. The questions stay in the library, and your bookmarks and answers aren't touched.</p>
         )}
-        {transferring && selection.selected.length > 0 && (
+        {transferring && selection.selected.length > 0 && !tooMany && (
           <TransferForm key={transferring} source={c} move={transferring === "move"} busy={bulkBusy}
             chosen={items.filter((i) => selection.isSelected(i.id))}
             onSend={(to) => void transferSelected(items.filter((i) => selection.isSelected(i.id)), to, transferring === "move")}

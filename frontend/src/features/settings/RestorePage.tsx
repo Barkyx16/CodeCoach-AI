@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useRef, useState } from "react";
 
 import { api } from "@/api/endpoints";
-import { useRestoreBatches } from "@/api/queries";
+import { useLimit, useRestoreBatches } from "@/api/queries";
 import type { RestoreBatch, RestorePreview } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
@@ -11,7 +11,8 @@ import { Card } from "@/components/Card";
 import { InlineError } from "@/components/States";
 import { formatDateTime } from "@/lib/format";
 
-const MAX_BYTES = 5 * 1024 * 1024;
+/** A size in bytes as the server's refusal says it ("5 MB"). */
+const megabytes = (bytes: number) => `${Math.round((bytes / (1024 * 1024)) * 10) / 10} MB`;
 const LABEL: Record<string, string> = {
   notes: "Notes", stories: "Stories", bookmarks: "Bookmarks", applications: "Applications",
   accepted_actions: "Accepted improvements", collections: "Collections",
@@ -35,13 +36,15 @@ export function RestorePage() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [result, setResult] = useState<{ batch: RestoreBatch; again: boolean } | null>(null);
+  // The server's limit on a backup file, as it serves it; unread, the file goes to the server, which decides.
+  const maxBytes = useLimit("backup_file_bytes");
 
   async function check(f: File) {
     setError(null);
     setPreview(null);
     setResult(null);
-    if (f.size > MAX_BYTES) {
-      setError(new Error("That file is larger than 5 MB, so it can't be a CodeCoach backup."));
+    if (maxBytes !== undefined && f.size > maxBytes) {
+      setError(new Error(`That file is larger than ${megabytes(maxBytes)}, so it can't be a CodeCoach backup.`));
       return;
     }
     setBusy("preview");
@@ -116,7 +119,7 @@ export function RestorePage() {
         </span>
         <input ref={fileRef} type="file" accept="application/json,.json" className="visually-hidden" aria-label="Backup file" tabIndex={-1}
           onChange={(e) => { const f = e.target.files?.[0]; if (f) void check(f); e.target.value = ""; }} />
-        <p className="subtle">Up to 5 MB. The file is checked first; nothing changes until you choose to restore.</p>
+        <p className="subtle">{maxBytes !== undefined ? `Up to ${megabytes(maxBytes)}. ` : ""}The file is checked first; nothing changes until you choose to restore.</p>
       </Card>
 
       {preview && (

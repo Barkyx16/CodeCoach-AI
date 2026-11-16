@@ -4,6 +4,7 @@ import { vi } from "vitest";
 
 import type { RecipientView, ShareDetail, SharedView } from "@/api/types";
 
+import { failLimits, serveLimits } from "../limits";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -162,6 +163,22 @@ describe("sharing an answer: the reviewer", () => {
     await waitFor(() => expect(thanks).toHaveFocus());
     expect(sent).toMatchObject({ token: TOKEN, clear: "Clear order.", guest_name: "Sam", comments: [{ sentence: 2, text: "Add the number." }] });
     expect(String((sent as unknown as { client_request_id: string }).client_request_id).length).toBeGreaterThanOrEqual(8);
+  });
+
+  it("the feedback form states the served limits, and none when they can't be read", async () => {
+    server.use(http.post(`${API}/api/v1/shared/open`, () => HttpResponse.json(open())));
+    serveLimits({ share_feedback_comments: 3, share_feedback_field_chars: 77 });
+    const { unmount } = renderApp(`/shared#t=${TOKEN}`);
+    const legend = (await screen.findByText(/^Comment on a sentence/)).closest("legend");
+    await waitFor(() => expect(legend).toHaveTextContent(/^Comment on a sentence \(optional, up to 3\)$/));
+    expect(screen.getByLabelText("What was clear?")).toHaveAttribute("maxlength", "77");
+    unmount();
+    const reads = failLimits();
+    renderApp(`/shared#t=${TOKEN}`);
+    expect(await screen.findByRole("heading", { level: 1, name: "A practice answer to review" })).toBeInTheDocument();
+    await waitFor(() => expect(reads.n).toBe(2), { timeout: 4000 });
+    expect(screen.getByText(/^Comment on a sentence/).closest("legend")).toHaveTextContent(/^Comment on a sentence \(optional\)$/);
+    expect(screen.getByLabelText("What was clear?")).not.toHaveAttribute("maxlength");
   });
 
   it("explains revoked, expired and broken links without showing anything", async () => {

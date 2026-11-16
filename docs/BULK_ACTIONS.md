@@ -31,8 +31,9 @@ answers, scores, schedules, shares or account settings.
 - **The name** is checked like a restored collection's: not one you already have, compared with its
   spacing and letter case ignored (`409 name_taken`: "You already have a collection called “…”
   (names are compared in any letter case). Choose another name.").
-- **The limit** (50 collections) applies: `400 too_many_collections` with `{limit, count}`. The form
-  says it before it's reached ("You have 47 of 50 collections; the copy would make 48."), and at it
+- **The limit** (50 collections, served as `collections_per_account`) applies: `400
+  too_many_collections` with `{limit, count}`. The form says it, in the served number, before it's
+  reached ("You have 47 of 50 collections; the copy would make 48."), and at it
   says so and doesn't send ("You have 50 of 50 collections: delete one to make room for a copy.").
 - **A retried request makes one copy**: the page sends one `client_request_id` per exact request
   (`useRequestKey`), and the same key returns the copy it made (200, not 201), also from two tabs at
@@ -86,8 +87,11 @@ items selected, then the collection they go to. Within one account; nothing is s
   different group of records. Signing out leaves the page, and the selection with it; and since a
   bookmark's key is the same in every account, the selection also starts again whenever a different
   account is signed in, so one account's picks never apply to another's rows.
-- **At most 50 at a time** (the server's limit): with more selected, the page says so and the action
-  waits until 50 or fewer are chosen. One request per action, never several in parallel.
+- **At most 50 at a time** (the server's limit, read from `GET /limits` as `items_per_batch`; Volume
+  17, prompt 7): with more selected, the page says so and the action waits until that many or fewer
+  are chosen; a collection's bulk bar does the same for removing, marking reviewed, copying and
+  moving. If the limits can't be read, no number is stated and the server refuses past it (422). One
+  request per action, never several in parallel.
 
 ## `POST /api/v1/me/collections/{id}/items/batch`
 

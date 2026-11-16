@@ -177,6 +177,7 @@ import type {
   ScheduleMove,
   ScheduleSettings,
   SelfReviewIn,
+  ServedLimits,
   ShareCreate,
   ShareCreated,
   ShareDetail,
@@ -429,6 +430,8 @@ export const api = {
   publicProblem: (slug: string) => apiRequest<ProblemDetail>(`/api/v1/problems/${encodeURIComponent(slug)}`, { auth: false }),
 
   capabilities: () => apiRequest<Capabilities>("/api/v1/capabilities"),
+  /** The limits forms state, as this server enforces them (Volume 17, prompt 7). */
+  limits: () => apiRequest<ServedLimits>("/api/v1/limits"),
   /** The portfolio demo's fictional sample (404 unless the server runs the demo). */
   demo: () => apiRequest<DemoOut>("/api/v1/demo"),
 

@@ -127,6 +127,49 @@ def capabilities(request: Request, db: Session = Depends(get_db)) -> Capabilitie
     )
 
 
+LimitName = Literal[
+    "collections_per_account",
+    "items_per_collection",
+    "items_per_batch",
+    "stories_per_application",
+    "target_description_chars",
+    "report_details_chars",
+    "report_excerpt_chars",
+    "backup_file_bytes",
+    "packet_items",
+    "packet_kits",
+    "goal_focus_areas",
+    "answer_chars",
+    "share_feedback_field_chars",
+    "share_feedback_comments",
+    "whiteboard_components",
+    "whiteboard_connections",
+]
+
+
+class ServedLimit(APIModel):
+    name: LimitName = Field(description="Stable: a form reads its limit by this name")
+    value: int = Field(description="The number the server enforces")
+    counts: str = Field(description="What it counts, in the words the form and the server's refusal use")
+
+
+class LimitsOut(APIModel):
+    limits: list[ServedLimit]
+
+
+@router.get(
+    "/limits",
+    response_model=LimitsOut,
+    summary='The limits forms state, as this server enforces them (docs/API.md, "Limits")',
+)
+def limits() -> LimitsOut:
+    """Each is read from where the server enforces it (app/services/limits.py). The same for every
+    caller, so it's cached like the public catalogue. A form that can't read it states no number."""
+    from app.services.limits import served
+
+    return LimitsOut(limits=[ServedLimit(name=s.name, value=s.value, counts=s.counts) for s in served()])
+
+
 @router.get(
     "/demo",
     response_model=DemoOut,

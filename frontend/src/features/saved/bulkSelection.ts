@@ -2,9 +2,8 @@ import { useCallback, useMemo, useState } from "react";
 
 import type { BatchResult, ReviewResult, TransferResult } from "@/api/types";
 
-/** The selection and outcome rules behind the bulk actions (docs/BULK_ACTIONS.md); see bulk.tsx. */
-
-export const BATCH_LIMIT = 50;
+/** The selection and outcome rules behind the bulk actions (docs/BULK_ACTIONS.md); see bulk.tsx. A
+ * batch's size limit is the server's, read with useLimit("items_per_batch"). */
 
 export function useSelection(keys: string[]) {
   const [picked, setPicked] = useState<Set<string>>(() => new Set());

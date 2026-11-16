@@ -53,7 +53,8 @@ export function VoiceComposer({
   placeholder?: string;
   voice: InterviewerVoice;
   extraActions?: ReactNode;
-  maxLength: number;
+  /** The server's limit when known (useLimit); without one the input is unbounded and the server decides. */
+  maxLength?: number;
   hint?: ReactNode;
   rows?: number;
   /** Id of the error shown under the composer (when there is one), so the answer box describes it. */

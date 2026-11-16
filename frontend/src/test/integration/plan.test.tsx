@@ -2,6 +2,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 import { makePlan, nurseGoals, planItems, tokenResponse, user as baseUser } from "../fixtures";
+import { failLimits, serveLimits } from "../limits";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -127,6 +128,23 @@ describe("Plan page and goals", () => {
     expect(screen.queryByRole("heading", { name: "Code the judge ran" })).not.toBeInTheDocument(); // nurses have no coding
     expect(screen.queryByText(/readiness/i)).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Up next (3)" })).toBeInTheDocument();
+  });
+
+  it("states the served number of focus areas, and none when the limits can't be read", async () => {
+    asNurse();
+    serveLimits({ goal_focus_areas: 1 });
+    const { user, unmount } = renderApp("/plan/goals", { signedIn: true });
+    expect(await screen.findByText("Where do you want help? (up to 1)")).toBeInTheDocument();
+    await user.click(screen.getByRole("checkbox", { name: "Triage" }));
+    const others = screen.getAllByRole("checkbox").filter((b) => b.closest(".skill-grid") && !(b as HTMLInputElement).checked);
+    expect(others.length).toBeGreaterThan(0);
+    for (const b of others) expect(b).toBeDisabled(); // held back at the server's number
+    unmount();
+    const reads = failLimits();
+    renderApp("/plan/goals", { signedIn: true });
+    expect(await screen.findByText("Where do you want help?")).toBeInTheDocument();
+    await waitFor(() => expect(reads.n).toBe(2), { timeout: 4000 });
+    expect(screen.queryByText(/Where do you want help\? \(up to/)).not.toBeInTheDocument();
   });
 
   it("saves optional goals without touching progress, and shows server validation", async () => {

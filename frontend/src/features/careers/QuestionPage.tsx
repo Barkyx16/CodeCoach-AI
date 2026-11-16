@@ -4,7 +4,7 @@ import { Link, useLocation, useParams, useSearchParams } from "react-router-dom"
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
-import { queryKeys, useAnswerQuestion, useBookmarks, useCapabilities, useCareers, useContentMeta, useMyAnswers, useQuestion } from "@/api/queries";
+import { queryKeys, useAnswerQuestion, useBookmarks, useCapabilities, useCareers, useContentMeta, useLimit, useMyAnswers, useQuestion } from "@/api/queries";
 import type { Capabilities, Difficulty, InterviewAnswer } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { BackLink } from "@/components/BackLink";
@@ -45,7 +45,6 @@ import { KIND_LABEL } from "./kinds";
 import { keyFor, sendSignature, type PendingSend } from "./sendKey";
 import { tryNumbers } from "./tries";
 
-const MAX_CHARS = 6000;
 const REFLECT_KEY = "codecoach.reflect-first";
 
 function countWords(text: string): number {
@@ -87,6 +86,7 @@ function QuestionPageFor() {
   const question = useQuestion(track, id, !isRestoring); // its best score depends on who's asking
   const answers = useMyAnswers(track, id, isAuthenticated);
   const submit = useAnswerQuestion(track, id);
+  const maxChars = useLimit("answer_chars"); // the server's limit on an answer; unread, it decides
   // This server keeps at most one saved answer per send key (an older one would ignore the key,
   // so none is sent and no protection is claimed).
   const keyed = useCapabilities().data?.answer_request_keys === true;
@@ -321,7 +321,7 @@ function QuestionPageFor() {
             )}
             {isAuthenticated && <div className="focus-hide"><StoryPicker track={track} questionId={id} draft={draft} setDraft={setDraft} storyId={storyId} setStoryId={setStoryId} /></div>}
             <label className="visually-hidden" htmlFor="answer-text">Your answer</label>
-            <textarea id="answer-text" data-tour="answer" className="input answer-input" rows={10} maxLength={MAX_CHARS} value={draft}
+            <textarea id="answer-text" data-tour="answer" className="input answer-input" rows={10} maxLength={maxChars} value={draft}
               placeholder="Write it the way you'd say it in the interview…"
               aria-describedby={submit.error ? "answer-count answer-error" : "answer-count"}
               aria-invalid={submit.error instanceof ApiError && submit.error.status === 422 ? true : undefined}

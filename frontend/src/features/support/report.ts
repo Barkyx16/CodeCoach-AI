@@ -13,6 +13,7 @@ import { maskPath } from "@/lib/supportLog";
  */
 export const REPORT_FORMAT = "codecoach-support-report";
 export const REPORT_VERSION = 1;
+// The client's own limit: the report is made and saved in this browser, never sent to the server.
 export const MAX_DESCRIPTION = 500;
 
 /** A failure the learner asked for help with (from the message next to the control). */

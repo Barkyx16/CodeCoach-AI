@@ -16,6 +16,7 @@ import { storage } from "@/lib/storage";
  * only to some careers stays in the list, shown as not available for this career, until removed.
  */
 
+/** The client's own limit: shortcuts are kept in this browser, and the server has none. */
 export const SHORTCUTS_LIMIT = 8;
 export const DEFAULT_SHORTCUTS: readonly string[] = ["library", "notes", "stories", "applications", "plan"];
 export const shortcutsKey = (userId: string) => `codecoach.shortcuts.v1.${userId}`;

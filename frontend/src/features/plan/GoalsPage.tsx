@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { useGoals, useSaveGoals } from "@/api/queries";
+import { useGoals, useLimit, useSaveGoals } from "@/api/queries";
 import type { Goals, GoalsInput } from "@/api/types";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -21,7 +21,6 @@ const EXPERIENCE = [
   { id: "senior", label: "Senior (8+ years)", hint: "Hard questions" },
 ] as const;
 const WEEKLY = [30, 60, 90, 120, 180];
-const MAX_FOCUS = 8;
 type Format = NonNullable<GoalsInput["formats"]>[number];
 const FORMATS: Format[] = ["written", "voice", "coding"];
 /** What a refused save can name, in the form's order, with where each one is (Volume 9, prompt 3). */
@@ -47,6 +46,7 @@ function GoalsForm({ goals }: { goals: Goals }) {
   const came = useCameFrom();
   const returnTo = came?.from ?? "/dashboard";
   const save = useSaveGoals();
+  const maxFocus = useLimit("goal_focus_areas"); // the server's; unread, no number is stated and it decides
   const [form, setForm] = useState<GoalsInput>({
     track: goals.track, specialty: goals.specialty ?? "", experience: goals.experience ?? null,
     target_date: goals.target_date ?? null, weekly_minutes: goals.weekly_minutes ?? null,
@@ -165,14 +165,14 @@ function GoalsForm({ goals }: { goals: Goals }) {
         </Card>
         <Card className="stack">
           <fieldset className="field" id={goalId("focus_areas")} aria-describedby={err("focus_areas") ? goalErrorId("focus_areas") : undefined}>
-            <legend className="field__label">Where do you want help? (up to {MAX_FOCUS})</legend>
+            <legend className="field__label">Where do you want help?{maxFocus !== undefined ? ` (up to ${maxFocus})` : ""}</legend>
             <FieldError id={goalErrorId("focus_areas")} message={err("focus_areas")} />
             <div className="skill-grid">
               {goals.skills.map((s) => {
                 const on = focus.includes(s);
                 return (
                   <label key={s} className={`checkbox${on ? " checkbox--on" : ""}`}>
-                    <input type="checkbox" checked={on} disabled={!on && focus.length >= MAX_FOCUS}
+                    <input type="checkbox" checked={on} disabled={!on && maxFocus !== undefined && focus.length >= maxFocus}
                       onChange={() => set({ focus_areas: toggle(focus, s) })} />
                     {s.charAt(0).toUpperCase() + s.slice(1)}
                   </label>

@@ -4,6 +4,7 @@ import { http, HttpResponse } from "msw";
 import type { RestoreBatch, RestorePreview } from "@/api/types";
 
 import { tokenResponse, user as baseUser } from "../fixtures";
+import { failLimits, serveLimits } from "../limits";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -101,15 +102,37 @@ describe("restoring from a backup", () => {
       http.post(`${P}/preview`, () => { calls += 1; return HttpResponse.json({ error: { code: "unsupported_version", message: "Backups of version 0 can't be read; this version of CodeCoach reads version 1." } }, { status: 400 }); }),
       http.get(`${P}/batches`, () => HttpResponse.json([])),
     );
+    serveLimits({ backup_file_bytes: 2 * 1024 * 1024 }); // the server's number, whatever it is
     renderApp("/settings/restore", { signedIn: true });
     const input = await screen.findByLabelText("Backup file");
+    expect(await screen.findByText(/^Up to 2 MB\. The file is checked first/)).toBeInTheDocument();
     const big = new File(["x"], "big.json");
-    Object.defineProperty(big, "size", { value: 6 * 1024 * 1024 });
+    Object.defineProperty(big, "size", { value: 3 * 1024 * 1024 });
     fireEvent.change(input, { target: { files: [big] } });
-    expect(await screen.findByText(/larger than 5 MB/)).toBeInTheDocument();
+    expect(await screen.findByText("That file is larger than 2 MB, so it can't be a CodeCoach backup.")).toBeInTheDocument();
     expect(calls).toBe(0);
     fireEvent.change(input, { target: { files: [new File(['{"export_version":0}'], "old.json")] } });
     expect(await screen.findByText(/reads version 1/)).toBeInTheDocument();
     await waitFor(() => expect(calls).toBe(1));
+  });
+
+  it("when the limits can't be read, states no size and the server decides", async () => {
+    setup();
+    const reads = failLimits();
+    let sent = 0;
+    server.use(
+      http.post(`${P}/preview`, () => { sent += 1; return HttpResponse.json({ error: { code: "file_too_large", message: "That file is larger than 5 MB, so it can't be a CodeCoach backup." } }, { status: 400 }); }),
+      http.get(`${P}/batches`, () => HttpResponse.json([])),
+    );
+    renderApp("/settings/restore", { signedIn: true });
+    const input = await screen.findByLabelText("Backup file");
+    await waitFor(() => expect(reads.n).toBe(2), { timeout: 4000 }); // tried once more, then left
+    expect(screen.getByText(/^The file is checked first; nothing changes until you choose to restore\.$/)).toBeInTheDocument();
+    expect(screen.queryByText(/Up to \d/)).not.toBeInTheDocument();
+    const big = new File(["x"], "big.json");
+    Object.defineProperty(big, "size", { value: 6 * 1024 * 1024 });
+    fireEvent.change(input, { target: { files: [big] } });
+    expect(await screen.findByText(/larger than 5 MB/)).toBeInTheDocument(); // the server's own words
+    expect(sent).toBe(1);
   });
 });

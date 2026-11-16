@@ -11,7 +11,7 @@ import { type BulkResult, isDone, outcomeLabel } from "./bulkSelection";
  * The selection is a set of stable keys from the rows on screen. It never reaches past them: there's
  * no paging here, "Select all shown" means exactly the rows listed, and a key whose row goes away
  * (removed elsewhere, or by this action) stops counting, so an old selection can't turn into
- * different records. A batch holds at most BATCH_LIMIT items, the server's limit.
+ * different records. A batch holds at most the server's items_per_batch (useLimit), which it serves.
  */
 
 /** What happened to each item, said item by item, with the ones that need attention first. */

@@ -4,15 +4,13 @@ import { Link } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
+import { useLimit } from "@/api/queries";
 import type { ContentKind, ReportCategory } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { InlineError } from "@/components/States";
 
 import { CATEGORY_LABEL } from "./labels";
-
-const MAX_DETAILS = 2000;
-const MAX_EXCERPT = 1500;
 
 /**
  * "Report an issue": a small disclosure with a category, an optional description and, only if
@@ -38,6 +36,9 @@ export function ReportIssue({ type, id, version, context = "content", answerId, 
   const [details, setDetails] = useState("");
   const [attach, setAttach] = useState(false);
   const [excerpt, setExcerpt] = useState("");
+  // The server's limits, read once the form is opened; unread, the server decides.
+  const maxDetails = useLimit("report_details_chars", open);
+  const maxExcerpt = useLimit("report_excerpt_chars", open);
   const send = useMutation({
     mutationFn: () => api.report({
       content_type: type, content_id: id, content_version: version, category: category as ReportCategory,
@@ -89,19 +90,19 @@ export function ReportIssue({ type, id, version, context = "content", answerId, 
               </fieldset>
               <label className="field">
                 <span className="field__label">Details <span className="subtle">(optional)</span></span>
-                <textarea className="input" rows={3} maxLength={MAX_DETAILS} value={details} onChange={(e) => setDetails(e.target.value)}
+                <textarea className="input" rows={3} maxLength={maxDetails} value={details} onChange={(e) => setDetails(e.target.value)}
                   placeholder="What's confusing or wrong, and what would be right?" aria-describedby={`${formId}-attached`} />
               </label>
               {excerptSource && (
                 <div className="stack-sm">
                   <label className="checkbox">
-                    <input type="checkbox" checked={attach} onChange={(e) => { setAttach(e.target.checked); if (e.target.checked && !excerpt) setExcerpt(excerptSource.slice(0, MAX_EXCERPT)); }} />
+                    <input type="checkbox" checked={attach} onChange={(e) => { setAttach(e.target.checked); if (e.target.checked && !excerpt) setExcerpt(maxExcerpt === undefined ? excerptSource : excerptSource.slice(0, maxExcerpt)); }} />
                     Attach part of my answer (you can edit it first)
                   </label>
                   {attach && (
                     <label className="field">
                       <span className="field__label">Excerpt to attach</span>
-                      <textarea className="input" rows={4} maxLength={MAX_EXCERPT} value={excerpt} onChange={(e) => setExcerpt(e.target.value)} />
+                      <textarea className="input" rows={4} maxLength={maxExcerpt} value={excerpt} onChange={(e) => setExcerpt(e.target.value)} />
                     </label>
                   )}
                 </div>

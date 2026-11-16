@@ -1,7 +1,5 @@
 import type { Collection, CollectionItem } from "@/api/types";
 
-import { MAX_ITEMS } from "./limits";
-
 /**
  * Copying or moving chosen items to another collection (Volume 17, prompt 6; docs/BULK_ACTIONS.md,
  * "Copy or move items"): the item's key as the server names it, and what the form says before
@@ -22,22 +20,23 @@ const quoted = (titles: string[], most = 4) => {
 const items = (n: number) => `${n} ${n === 1 ? "item" : "items"}`;
 
 /** What the form says once the other collection is known: what it already has and its room, what
- * arrives with each item, and for a move what leaves this collection and what its queue will skip. */
-export function transferWords({ source, chosen, dest, move }: {
-  source: Collection; chosen: CollectionItem[]; dest: Collection; move: boolean;
+ * arrives with each item, and for a move what leaves this collection and what its queue will skip.
+ * `maxItems` is the server's limit as it serves it; unread, the room isn't stated (the server decides). */
+export function transferWords({ source, chosen, dest, move, maxItems }: {
+  source: Collection; chosen: CollectionItem[]; dest: Collection; move: boolean; maxItems?: number;
 }): string[] {
   const n = chosen.length;
   const there = new Set(dest.item_list.map(itemKey));
   const already = chosen.filter((i) => there.has(itemKey(i))).length;
   const fresh = n - already;
-  const room = Math.max(0, MAX_ITEMS - dest.items);
+  const room = maxItems === undefined ? undefined : Math.max(0, maxItems - dest.items);
   const to = `“${dest.name}”`;
   const out: string[] = [];
   if (n === 1) out.push(already ? `${to} already has it: it won't be doubled.` : `${to} doesn't have it yet.`);
   else if (already) out.push(`${to} already has ${already} of these ${n}: ${already === 1 ? "it" : "they"} won't be doubled.`);
   else out.push(`${to} has none of these ${n} yet.`);
-  if (fresh > 0) {
-    if (room === 0) out.push(`It's full (${dest.items} of ${MAX_ITEMS}): ${fresh === 1 ? "this one won't fit and will say so" : `none of the ${fresh} new ones will fit, and each will say so`}.`);
+  if (fresh > 0 && room !== undefined) {
+    if (room === 0) out.push(`It's full (${dest.items} of ${maxItems}): ${fresh === 1 ? "this one won't fit and will say so" : `none of the ${fresh} new ones will fit, and each will say so`}.`);
     else if (room < fresh) out.push(`It has room for ${room} more: ${fresh - room} of these won't fit and will say so.`);
     else out.push(`It has room for ${room} more.`);
   }

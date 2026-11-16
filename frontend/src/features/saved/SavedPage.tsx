@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
-import { useBookmarks, useCollectionMutation, useCollections, useToggleBookmark } from "@/api/queries";
+import { useBookmarks, useCollectionMutation, useCollections, useLimit, useToggleBookmark } from "@/api/queries";
 import type { Bookmark } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
@@ -13,7 +13,7 @@ import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/
 import { timeAgo } from "@/lib/format";
 
 import { BulkOutcomes, NoReply, SelectBox } from "./bulk";
-import { BATCH_LIMIT, type BulkResult, isDone, useSelection } from "./bulkSelection";
+import { type BulkResult, isDone, useSelection } from "./bulkSelection";
 import { useItemKind } from "./labels";
 import { sourceUpdated } from "./freshness";
 import { SavedFreshness } from "./SavedFreshness";
@@ -174,6 +174,7 @@ function BulkBookmarks({ marks, collections, onRemove, onReviewed }: {
   const qc = useQueryClient();
   const keys = useMemo(() => marks.map(markKey), [marks]);
   const selection = useSelection(keys);
+  const perBatch = useLimit("items_per_batch"); // the server's; unread, it isn't stated and the server decides
   const [target, setTarget] = useState("");
   const [busy, setBusy] = useState(false);
   const [results, setResults] = useState<{ verb: string; rows: BulkResult[]; titles: Map<string, string> } | null>(null);
@@ -188,7 +189,7 @@ function BulkBookmarks({ marks, collections, onRemove, onReviewed }: {
   }, [results]);
   const destination = collections.find((c) => c.id === target);
   const chosen = marks.filter((m) => selection.selected.includes(markKey(m)));
-  const tooMany = chosen.length > BATCH_LIMIT;
+  const tooMany = perBatch !== undefined && chosen.length > perBatch;
 
   async function send(cid: string, these: Bookmark[]) {
     setBusy(true);
@@ -264,7 +265,7 @@ function BulkBookmarks({ marks, collections, onRemove, onReviewed }: {
           </span>
         )}
       </div>
-      {tooMany && <p className="subtle" role="status">Up to {BATCH_LIMIT} at a time: {chosen.length} are selected.</p>}
+      {tooMany && <p className="subtle" role="status">Up to {perBatch} at a time: {chosen.length} are selected.</p>}
       {collections.length === 0 && selection.selected.length > 0 && <p className="subtle">Create a collection above first.</p>}
       {lost && <NoReply busy={busy} onRetry={() => void (lost.kind === "add" ? send(lost.cid, lost.marks) : markReviewed(lost.marks))} />}
       <InlineError error={error} />

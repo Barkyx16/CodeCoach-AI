@@ -4,6 +4,7 @@ import { http, HttpResponse } from "msw";
 import type { Freshness, Impact, Requirement, RequirementSetIn, RevisionPreview, Target } from "@/api/types";
 
 import { tokenResponse, user as baseUser } from "../fixtures";
+import { failLimits, serveLimits } from "../limits";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -145,6 +146,22 @@ describe("Prepare for this role", () => {
     await user.click(screen.getByRole("button", { name: "Find requirements" }));
     await waitFor(() => expect(router.state.location.pathname).toBe("/targets/t-1"));
     expect(calls[0]).toMatchObject({ path: "create", body: { title: "ED Nurse", track: "registered-nurse", description: "Responsibilities:\n- Perform patient assessment" } });
+  });
+
+  it("the description's length is the server's limit as served, and unstated when it can't be read", async () => {
+    targetServer();
+    serveLimits({ target_description_chars: 900 });
+    const { user, unmount } = renderApp("/targets", { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Add a target role" }));
+    expect(await screen.findByText(/^0 of 900 characters\./)).toBeInTheDocument();
+    expect(screen.getByLabelText("Job description")).toHaveAttribute("maxlength", "900");
+    unmount();
+    const reads = failLimits();
+    const again = renderApp("/targets", { signedIn: true });
+    await again.user.click(await screen.findByRole("button", { name: "Add a target role" }));
+    await waitFor(() => expect(reads.n).toBe(2), { timeout: 4000 });
+    expect(screen.getByText(/^0 characters\./)).toBeInTheDocument();
+    expect(screen.getByLabelText("Job description")).not.toHaveAttribute("maxlength");
   });
 
   it("shows each requirement's source, origin, honest coverage and gaps", async () => {

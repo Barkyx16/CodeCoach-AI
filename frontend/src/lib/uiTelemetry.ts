@@ -21,6 +21,8 @@ export interface UiEvent {
   error_code?: string | null;
 }
 
+// The client's own limits: events waiting in this tab, and how many go in one request. The server
+// refuses a request of more than 20 events on its own (routes/telemetry.py); no form states either.
 const MAX_QUEUE = 50;
 const MAX_BATCH = 20;
 const FLUSH_DELAY_MS = 2000;

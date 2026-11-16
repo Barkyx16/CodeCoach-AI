@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
-import { useActions, useBookmarks, useNotes, usePacketKits, usePacketReflections, useStories } from "@/api/queries";
+import { useActions, useBookmarks, useLimit, useNotes, usePacketKits, usePacketReflections, useStories } from "@/api/queries";
 import type { Packet } from "@/api/types";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
@@ -10,10 +10,6 @@ import { InlineError } from "@/components/States";
 
 import { LOCAL_FILE, packetFilename, packetText, SOURCE_LABEL, TYPE_LABEL } from "./packetText";
 
-/** At most this many items, the server's limit (docs/PACKET.md). */
-const MAX_ITEMS = 20;
-/** One interview's kit per packet (docs/PACKET.md). */
-const MAX_KITS = 1;
 type Kind = "question" | "note" | "story" | "action" | "kit" | "reflection";
 const PART_LABEL: Record<Kind, [string, string][]> = {
   question: [["question", "The question and tips"], ["your_answer", "Your latest answer"], ["feedback", "Automated feedback on it"]],
@@ -50,6 +46,10 @@ export function PacketPage() {
   const actions = useActions();
   const kits = usePacketKits();
   const reflections = usePacketReflections();
+  // The server's limits (docs/PACKET.md), as it serves them: items per packet and kits per packet.
+  // Unread, no number is stated and nothing is held back here; the server decides.
+  const maxItems = useLimit("packet_items");
+  const maxKits = useLimit("packet_kits");
   const [chosen, setChosen] = useState<Chosen[]>([]);
   const [title, setTitle] = useState("My practice packet");
   const [keepContact, setKeepContact] = useState(false);
@@ -76,7 +76,8 @@ export function PacketPage() {
 
   const isChosen = (type: Kind, id: string) => chosen.some((c) => c.type === type && c.id === id);
   const toggle = (type: Kind, id: string, itemTitle: string, on: boolean) => setChosen((now) => on
-    ? (now.length >= MAX_ITEMS || now.some((c) => c.type === type && c.id === id) || (type === "kit" && now.filter((c) => c.type === "kit").length >= MAX_KITS)
+    ? ((maxItems !== undefined && now.length >= maxItems) || now.some((c) => c.type === type && c.id === id)
+        || (type === "kit" && maxKits !== undefined && now.filter((c) => c.type === "kit").length >= maxKits)
       ? now : [...now, { type, id, title: itemTitle, parts: DEFAULT_PARTS[type] }])
     : now.filter((c) => !(c.type === type && c.id === id)));
   const move = (i: number, by: -1 | 1) => setChosen((now) => {
@@ -118,9 +119,9 @@ export function PacketPage() {
 
   const questions = (marks.data ?? []).filter((b) => b.item_type === "question" && b.available);
   const allActions = actions.data ?? [];
-  const offeredActions = allActions.slice(0, MAX_ITEMS);
-  const full = chosen.length >= MAX_ITEMS;
-  const kitChosen = chosen.some((c) => c.type === "kit");
+  const offeredActions = maxItems === undefined ? allActions : allActions.slice(0, maxItems);
+  const full = maxItems !== undefined && chosen.length >= maxItems;
+  const kitsFull = maxKits !== undefined && chosen.filter((c) => c.type === "kit").length >= maxKits;
   const emptyParts = chosen.some((c) => c.parts.length === 0);
   return (
     <div className="page packet-page">
@@ -140,7 +141,7 @@ export function PacketPage() {
         <div className="packet-page__layout no-print">
           <Card className="stack-sm">
             <h2 className="section-title">Choose</h2>
-            <p className="subtle" aria-live="polite">{chosen.length} of up to {MAX_ITEMS} chosen.</p>
+            <p className="subtle" aria-live="polite">{chosen.length}{maxItems !== undefined ? ` of up to ${maxItems}` : ""} chosen.</p>
             <ChooseList legend="Questions you bookmarked" empty={<>None yet. <Link to="/problems?view=questions">Bookmark questions</Link> to add them here.</>}
               rows={questions.map((b) => ({ type: "question" as const, id: `${b.track}/${b.ref_id}`, title: b.title }))} isChosen={isChosen} full={full} onToggle={toggle} />
             <ChooseList legend="Your notes" empty={<>No notes yet.</>}
@@ -150,13 +151,13 @@ export function PacketPage() {
             <ChooseList legend="Improvements you accepted" empty={<>None yet. Accept one from an interview's review.</>}
               rows={offeredActions.map((a) => ({ type: "action" as const, id: a.id, title: a.title }))} isChosen={isChosen} full={full} onToggle={toggle} />
             {allActions.length > offeredActions.length && (
-              <p className="subtle">{allActions.length - offeredActions.length} more {allActions.length - offeredActions.length === 1 ? "isn't" : "aren't"} listed: a packet holds up to {MAX_ITEMS} items, so the {MAX_ITEMS} most recent are offered.</p>
+              <p className="subtle">{allActions.length - offeredActions.length} more {allActions.length - offeredActions.length === 1 ? "isn't" : "aren't"} listed: a packet holds up to {maxItems} items, so the {maxItems} most recent are offered.</p>
             )}
             <ChooseList legend="One interview's kit" empty={<>No saved kits yet.</>}
               rows={(kits.data ?? []).map((k) => ({
                 type: "kit" as const, id: k.event_id, title: `${k.event_title}: ${k.role_title} at ${k.employer}`,
                 hint: privateHint(k),
-              }))} isChosen={isChosen} full={full} blocked={kitChosen ? "One kit per packet." : undefined} onToggle={toggle} />
+              }))} isChosen={isChosen} full={full} blocked={kitsFull ? (maxKits === 1 ? "One kit per packet." : `${maxKits} kits per packet.`) : undefined} onToggle={toggle} />
             <ChooseList legend="Your real-interview reflections" empty={<>None yet. Reflect on an interview from its application.</>}
               rows={(reflections.data?.items ?? []).map((r) => ({
                 type: "reflection" as const, id: r.event_id, title: `Reflection on ${r.event_title}: ${r.role_title} at ${r.employer}${r.on_date ? ` (${r.on_date})` : ""}`,
@@ -165,7 +166,7 @@ export function PacketPage() {
             {reflections.data && reflections.data.total > reflections.data.items.length && (
               <p className="subtle">{reflections.data.total - reflections.data.items.length} more {reflections.data.total - reflections.data.items.length === 1 ? "isn't" : "aren't"} listed: the {reflections.data.limit} most recent interviews are offered.</p>
             )}
-            {full && <p className="subtle">Up to {MAX_ITEMS} in one packet.</p>}
+            {full && <p className="subtle">Up to {maxItems} in one packet.</p>}
           </Card>
           <Card className="stack-sm">
             <h2 className="section-title">Your packet</h2>

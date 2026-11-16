@@ -25901,6 +25901,28 @@
         }
       }
     },
+    "/api/v1/limits": {
+      "get": {
+        "tags": [
+          "meta"
+        ],
+        "summary": "The limits forms state, as this server enforces them (docs/API.md, \"Limits\")",
+        "description": "Each is read from where the server enforces it (app/services/limits.py). The same for every\ncaller, so it's cached like the public catalogue. A form that can't read it states no number.",
+        "operationId": "limits_api_v1_limits_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LimitsOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/demo": {
       "get": {
         "tags": [
@@ -38828,6 +38850,22 @@
         ],
         "title": "LifecycleOutcome"
       },
+      "LimitsOut": {
+        "properties": {
+          "limits": {
+            "items": {
+              "$ref": "#/components/schemas/ServedLimit"
+            },
+            "type": "array",
+            "title": "Limits"
+          }
+        },
+        "type": "object",
+        "required": [
+          "limits"
+        ],
+        "title": "LimitsOut"
+      },
       "LineageEntry": {
         "properties": {
           "decision": {
@@ -49250,6 +49288,50 @@
           "updated_at"
         ],
         "title": "SelfReviewOut"
+      },
+      "ServedLimit": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "collections_per_account",
+              "items_per_collection",
+              "items_per_batch",
+              "stories_per_application",
+              "target_description_chars",
+              "report_details_chars",
+              "report_excerpt_chars",
+              "backup_file_bytes",
+              "packet_items",
+              "packet_kits",
+              "goal_focus_areas",
+              "answer_chars",
+              "share_feedback_field_chars",
+              "share_feedback_comments",
+              "whiteboard_components",
+              "whiteboard_connections"
+            ],
+            "title": "Name",
+            "description": "Stable: a form reads its limit by this name"
+          },
+          "value": {
+            "type": "integer",
+            "title": "Value",
+            "description": "The number the server enforces"
+          },
+          "counts": {
+            "type": "string",
+            "title": "Counts",
+            "description": "What it counts, in the words the form and the server's refusal use"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "value",
+          "counts"
+        ],
+        "title": "ServedLimit"
       },
       "SessionPlan": {
         "properties": {

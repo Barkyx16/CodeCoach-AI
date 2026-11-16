@@ -57,6 +57,8 @@ PUBLIC = {
     ("GET", "/api/v1/scenarios/{scenario_id}"),
     ("GET", "/api/v1/interviews/formats"),
     ("GET", "/api/v1/capabilities"),
+    # The limits forms state (constants, the same for everyone; a signed-out reviewer's form reads them).
+    ("GET", "/api/v1/limits"),
     # The portfolio demo's fictional sample (404 unless DEMO_MODE): no account's own data.
     ("GET", "/api/v1/demo"),
     ("POST", "/api/v1/shared/open"),  # the 256-bit link secret (in the body) is the credential

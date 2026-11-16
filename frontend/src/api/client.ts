@@ -14,7 +14,8 @@ import type { ErrorEnvelope } from "./types";
 export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
 /** The longest wait taken at its word: a day. Anything longer reads as a fault, not a plan, and
- * is treated as no wait at all (the page then offers a deliberate retry, never a countdown). */
+ * is treated as no wait at all (the page then offers a deliberate retry, never a countdown). The
+ * client's own ceiling: the server sets each Retry-After, not this. */
 export const MAX_RETRY_AFTER_SECONDS = 86_400;
 
 /**

@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 
-import { useComparison, useRetryQuestion } from "@/api/queries";
+import { useComparison, useLimit, useRetryQuestion } from "@/api/queries";
 import type { AnswerSource, Comparison } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
 import { Card } from "@/components/Card";
@@ -18,6 +18,7 @@ export function RetryPage() {
   const i = Number(index);
   const comparison = useComparison(id, i);
   const retry = useRetryQuestion(id, i);
+  const maxChars = useLimit("answer_chars"); // the server's; unread, it decides
   const key = `codecoach.retry.${id}.${i}`;
   const [draft, setDraft] = useStoredDraft(key);
   const [prefs] = useVoicePrefs();
@@ -56,7 +57,7 @@ export function RetryPage() {
         </details>
       )}
       <VoiceComposer id="retry-answer" label="Your new answer" value={draft} onChange={setDraft} onSubmit={submit}
-        submitting={retry.isPending} maxLength={6000} submitLabel="Get feedback and compare" voice={voice}
+        submitting={retry.isPending} maxLength={maxChars} submitLabel="Get feedback and compare" voice={voice}
         placeholder="Answer it again, using the feedback…" hint="Your draft is saved in this browser until you send it." />
       <InlineError error={retry.error} />
       {c.latest && <ComparisonView c={c} />}

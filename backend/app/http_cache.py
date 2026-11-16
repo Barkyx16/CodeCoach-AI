@@ -52,6 +52,7 @@ SHARED = [
     r"/api/v1/scenarios",
     r"/api/v1/scenarios/[^/]+",
     r"/api/v1/interviews/formats",
+    r"/api/v1/limits",
 ]
 # Public, but personalised for a signed-in caller: cached only for anonymous requests.
 ANONYMOUS_ONLY = [

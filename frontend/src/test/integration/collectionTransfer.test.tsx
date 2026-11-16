@@ -35,7 +35,7 @@ describe("What the form says before anything is sent", () => {
 
   it("for a move: what the other already has and its room, what leaves, what the queue will skip, the mark left behind", () => {
     const dest = collection("c-2", "Week 2", [item("c-2", 2), ...Array.from({ length: 198 }, (_, n) => item("c-2", 100 + n))]);
-    expect(transferWords({ source, chosen, dest, move: true })).toEqual([
+    expect(transferWords({ source, chosen, dest, move: true, maxItems: 200 })).toEqual([
       "“Week 2” already has 1 of these 2: it won't be doubled.",
       "It has room for 1 more.",
       "Each goes at the end of “Week 2”, in this collection's order, at the version it was added at and with its “Mark reviewed”. A queue mark isn't carried.",
@@ -58,13 +58,16 @@ describe("What the form says before anything is sent", () => {
     const fresh = collection("c-1", "Week 1", [item("c-1", 0), item("c-1", 1), item("c-1", 2)]);
     const three = fresh.item_list;
     const nearly = collection("c-2", "Week 2", Array.from({ length: 199 }, (_, n) => item("c-2", 100 + n)));
-    expect(transferWords({ source: fresh, chosen: three, dest: nearly, move: true })).toEqual(expect.arrayContaining([
+    expect(transferWords({ source: fresh, chosen: three, dest: nearly, move: true, maxItems: 200 })).toEqual(expect.arrayContaining([
       "It has room for 1 more: 2 of these won't fit and will say so.",
       "This collection's queue hasn't started; it will hold 0 items.",
     ]));
     const full = collection("c-2", "Week 2", Array.from({ length: 200 }, (_, n) => item("c-2", 100 + n)));
-    expect(transferWords({ source: fresh, chosen: three, dest: full, move: false })).toContain(
+    expect(transferWords({ source: fresh, chosen: three, dest: full, move: false, maxItems: 200 })).toContain(
       "It's full (200 of 200): none of the 3 new ones will fit, and each will say so.");
+    // The room is the server's number as served; unread, it isn't stated (the server decides).
+    expect(transferWords({ source: fresh, chosen: three, dest: nearly, move: false, maxItems: 201 })).toContain("It has room for 2 more: 1 of these won't fit and will say so.");
+    expect(transferWords({ source: fresh, chosen: three, dest: nearly, move: false }).join(" ")).not.toMatch(/room|full|fit/);
   });
 
   it("names an item as the server does: a question's track, never a problem's", () => {

@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
-import { useWhiteboardAttempts, useWhiteboardDraft, useWhiteboardPrompts } from "@/api/queries";
+import { useLimit, useWhiteboardAttempts, useWhiteboardDraft, useWhiteboardPrompts } from "@/api/queries";
 import type { WhiteboardAttempt, WhiteboardDraft, WhiteboardPrompt } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { LINKED_MISSING, useLinkedAttempt } from "@/hooks/useLinkedAttempt";
@@ -25,7 +25,7 @@ import { useCopySince, writeCopy } from "@/lib/deviceCopies";
 import { useRequestKey } from "@/lib/requestKey";
 
 import { Canvas } from "./Canvas";
-import { describe, fingerprint, fit, history, KIND_LABEL, MAX_EDGES, MAX_NODES, normalize, type Diagram, type NodeKind, type NotesKey } from "./diagram";
+import { describe, fingerprint, fit, history, KIND_LABEL, normalize, type Diagram, type NodeKind, type NotesKey } from "./diagram";
 
 const NOTES: { key: NotesKey; label: string; hint: string }[] = [
   { key: "requirements", label: "Requirements", hint: "What must it do? What's out of scope?" },
@@ -48,6 +48,9 @@ export function WhiteboardEditorPage() {
 
 function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: WhiteboardDraft }) {
   const { user } = useAuth();
+  // The server's limits on a diagram, as it serves them; unread, none is stated and the server decides.
+  const maxNodes = useLimit("whiteboard_components");
+  const maxEdges = useLimit("whiteboard_connections");
   const qc = useQueryClient();
   const localKey = `whiteboard-draft:${user?.id ?? "anon"}:${prompt.id}`;
   const [start] = useState(() => normalize(initial.diagram));
@@ -305,7 +308,7 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
           </ul>
         </Card>
       )}
-      <p className="subtle">Limits: up to {MAX_NODES} components and {MAX_EDGES} connections, plain text only.</p>
+      <p className="subtle">{maxNodes !== undefined && maxEdges !== undefined ? `Limits: up to ${maxNodes} components and ${maxEdges} connections, plain text only.` : "Plain text only."}</p>
     </div>
   );
 }
@@ -313,6 +316,8 @@ function Editor({ prompt, initial }: { prompt: WhiteboardPrompt; initial: Whiteb
 function Outline({ d, dispatch, selected, onSelect }: {
   d: Diagram; dispatch: (a: Parameters<typeof history>[1]) => void; selected: string | null; onSelect: (id: string | null) => void;
 }) {
+  const maxNodes = useLimit("whiteboard_components");
+  const maxEdges = useLimit("whiteboard_connections");
   const [label, setLabel] = useState("");
   const [kind, setKind] = useState<NodeKind>("service");
   const [from, setFrom] = useState("");
@@ -323,14 +328,14 @@ function Outline({ d, dispatch, selected, onSelect }: {
     <section className="stack-sm wb-outline" aria-labelledby="wb-outline-title">
       <h2 className="section-title" id="wb-outline-title">Outline</h2>
       <p className="subtle">Everything on the canvas can be done here with a keyboard.</p>
-      <form className="row" onSubmit={(e) => { e.preventDefault(); if (label.trim()) { dispatch({ type: "addNode", label: label.trim(), kind }); setLabel(""); } }}>
+      <form className="row" onSubmit={(e) => { e.preventDefault(); if (label.trim()) { dispatch({ type: "addNode", label: label.trim(), kind, max: maxNodes }); setLabel(""); } }}>
         <label className="field"><span className="field__label">New component</span><input className="input" maxLength={60} value={label} onChange={(e) => setLabel(e.target.value)} /></label>
         <label className="field"><span className="field__label">Kind</span>
           <select className="select" value={kind} onChange={(e) => setKind(e.target.value as NodeKind)}>
             {(Object.keys(KIND_LABEL) as NodeKind[]).map((k) => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}
           </select>
         </label>
-        <Button type="submit" size="sm" disabled={!label.trim() || d.nodes.length >= MAX_NODES}>Add component</Button>
+        <Button type="submit" size="sm" disabled={!label.trim() || (maxNodes !== undefined && d.nodes.length >= maxNodes)}>Add component</Button>
       </form>
       <h3 className="section-title">Components</h3>
       <ul className="wb-list">
@@ -369,7 +374,7 @@ function Outline({ d, dispatch, selected, onSelect }: {
           </li>
         ))}
       </ul>
-      <form className="stack-sm" onSubmit={(e) => { e.preventDefault(); dispatch({ type: "addEdge", source: from, target: to, label: edgeLabel.trim() }); setEdgeLabel(""); }}>
+      <form className="stack-sm" onSubmit={(e) => { e.preventDefault(); dispatch({ type: "addEdge", source: from, target: to, label: edgeLabel.trim(), max: maxEdges }); setEdgeLabel(""); }}>
         <div className="app-form__grid">
           <label className="field"><span className="field__label">From</span>
             <select className="select" value={from} onChange={(e) => setFrom(e.target.value)}><option value="">Choose…</option>{d.nodes.map((n) => <option key={n.id} value={n.id}>{n.label || n.id}</option>)}</select>
@@ -379,7 +384,7 @@ function Outline({ d, dispatch, selected, onSelect }: {
           </label>
           <label className="field"><span className="field__label">What flows</span><input className="input" maxLength={60} value={edgeLabel} onChange={(e) => setEdgeLabel(e.target.value)} /></label>
         </div>
-        <span><Button type="submit" size="sm" disabled={!from || !to || from === to || d.edges.length >= MAX_EDGES}>Add connection</Button></span>
+        <span><Button type="submit" size="sm" disabled={!from || !to || from === to || (maxEdges !== undefined && d.edges.length >= maxEdges)}>Add connection</Button></span>
       </form>
     </section>
   );

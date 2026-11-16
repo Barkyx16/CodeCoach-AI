@@ -18,7 +18,7 @@ import { useBrowseCareer, withCareer } from "@/features/careers/practiceTrack";
 /** Each tab starts with a short list; "View more" grows it. */
 const FIRST_PAGE = 5;
 const MORE_STEP = 10;
-/** A hand-edited ?shown= can't ask for an unbounded page. */
+/** A hand-edited ?shown= can't ask for an unbounded page: the client's own limit on how many it lists. */
 const MAX_SHOWN = 200;
 const DIFFICULTIES = [
   { id: "easy", label: "Easy" },

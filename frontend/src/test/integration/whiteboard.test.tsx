@@ -4,6 +4,7 @@ import { http, HttpResponse } from "msw";
 import type { WhiteboardAttempt, WhiteboardDraft, WhiteboardPromptList } from "@/api/types";
 
 import { tokenResponse, user as baseUser } from "../fixtures";
+import { failLimits, serveLimits } from "../limits";
 import { renderApp } from "../render";
 import { API, server } from "../server";
 
@@ -33,6 +34,26 @@ function setup() {
     http.get(`${W}/sd-url-shortener/attempts`, () => HttpResponse.json([])),
   );
 }
+
+describe("the whiteboard states the server's limits", () => {
+  it("states the served numbers of components and connections, and none when they can't be read", async () => {
+    setup();
+    serveLimits({ whiteboard_components: 1, whiteboard_connections: 3 });
+    const { user, unmount } = renderApp("/whiteboard/sd-url-shortener", { signedIn: true });
+    expect(await screen.findByText("Limits: up to 1 components and 3 connections, plain text only.")).toBeInTheDocument();
+    await addComponent(user, "Shorten API", "service");
+    await user.type(screen.getByLabelText("New component"), "Another");
+    expect(screen.getByRole("button", { name: "Add component" })).toBeDisabled(); // held back at the server's number
+    unmount();
+    setup();
+    const reads = failLimits();
+    renderApp("/whiteboard/sd-url-shortener", { signedIn: true });
+    expect(await screen.findByRole("heading", { level: 1, name: "Design a URL shortener" })).toBeInTheDocument();
+    await waitFor(() => expect(reads.n).toBe(2), { timeout: 4000 });
+    expect(screen.getByText("Plain text only.")).toBeInTheDocument();
+    expect(screen.queryByText(/Limits: up to/)).not.toBeInTheDocument();
+  });
+});
 
 async function addComponent(user: ReturnType<typeof renderApp>["user"], name: string, kind: string) {
   await user.type(screen.getByLabelText("New component"), name);

@@ -16,8 +16,6 @@ export interface Diagram {
   notes: Notes;
 }
 
-export const MAX_NODES = 40;
-export const MAX_EDGES = 80;
 export const GRID = 20;
 export const NODE_W = 140;
 export const NODE_H = 56;
@@ -53,12 +51,14 @@ function nextId(prefix: "n" | "e", taken: string[]): string {
 
 export type Action =
   | { type: "load"; diagram: Diagram }
-  | { type: "addNode"; label: string; kind: NodeKind }
+  // `max`: the server's limit (useLimit), so the editor can't build a diagram it would refuse; without it
+  // nothing is held back here and the server decides when the diagram is sent.
+  | { type: "addNode"; label: string; kind: NodeKind; max?: number }
   | { type: "updateNode"; id: string; patch: Partial<Omit<DNode, "id">> }
   | { type: "moveNode"; id: string; dx: number; dy: number }
   | { type: "placeNode"; id: string; x: number; y: number }
   | { type: "deleteNode"; id: string }
-  | { type: "addEdge"; source: string; target: string; label: string }
+  | { type: "addEdge"; source: string; target: string; label: string; max?: number }
   | { type: "updateEdge"; id: string; label: string }
   | { type: "deleteEdge"; id: string }
   | { type: "notes"; key: NotesKey; value: string };
@@ -69,7 +69,7 @@ export function apply(d: Diagram, a: Action): Diagram {
     case "load":
       return a.diagram;
     case "addNode": {
-      if (d.nodes.length >= MAX_NODES) return d;
+      if (a.max !== undefined && d.nodes.length >= a.max) return d;
       const id = nextId("n", d.nodes.map((n) => n.id));
       const i = d.nodes.length;
       // Place new components on a loose grid so they never land on top of each other.
@@ -87,7 +87,7 @@ export function apply(d: Diagram, a: Action): Diagram {
       // Its connections go with it (in the same step, so one Undo brings both back).
       return { ...d, nodes: d.nodes.filter((n) => n.id !== a.id), edges: d.edges.filter((e) => e.source !== a.id && e.target !== a.id) };
     case "addEdge": {
-      if (d.edges.length >= MAX_EDGES || a.source === a.target) return d;
+      if ((a.max !== undefined && d.edges.length >= a.max) || a.source === a.target) return d;
       if (!d.nodes.some((n) => n.id === a.source) || !d.nodes.some((n) => n.id === a.target)) return d;
       const id = nextId("e", d.edges.map((e) => e.id));
       return { ...d, edges: [...d.edges, { id, source: a.source, target: a.target, label: a.label.slice(0, 60) }] };

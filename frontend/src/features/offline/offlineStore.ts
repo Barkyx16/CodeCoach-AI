@@ -21,6 +21,7 @@ export interface OfflineEntry {
 }
 
 const CACHE = "codecoach-offline-v1";
+/** The client's own limit: items kept for offline reading in this browser (the server has none). */
 export const MAX_SAVED = 50;
 const path = (kind: OfflineKind, key: string) => `/offline-content/${kind}/${encodeURIComponent(key)}`;
 

@@ -4,15 +4,13 @@ import { Link } from "react-router-dom";
 
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
-import { useStories, useTargets } from "@/api/queries";
+import { useLimit, useStories, useTargets } from "@/api/queries";
 import type { Application } from "@/api/types";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { InlineError } from "@/components/States";
 import { COMPETENCY_LABEL } from "@/features/stories/labels";
 
-/** The server's limit on stories linked to one application (docs/BACKLINKS.md). */
-export const MAX_LINKED_STORIES = 20;
 /** With more stories than this, a box to find one by its title. */
 const FIND_FROM = 8;
 
@@ -26,6 +24,8 @@ const FIND_FROM = 8;
 export function LinksCard({ a, onDone }: { a: Application; onDone: (a: Application) => void }) {
   const targets = useTargets();
   const stories = useStories({});
+  // The server's limit on stories linked to one application (docs/BACKLINKS.md), as it serves it.
+  const maxStories = useLimit("stories_per_application");
   const qc = useQueryClient();
   const [error, setError] = useState<unknown>(null);
   const [targetPending, setTargetPending] = useState<string | null>(null);
@@ -64,7 +64,7 @@ export function LinksCard({ a, onDone }: { a: Application; onDone: (a: Applicati
 
   const linked = new Set(a.stories.map((s) => s.id));
   const on = (id: string) => (id in sending ? sending[id]! : linked.has(id));
-  const full = linked.size >= MAX_LINKED_STORIES;
+  const full = maxStories !== undefined && linked.size >= maxStories;
   // Your active stories, and any archived one that's still linked here (so it can be unlinked).
   const active = stories.data ?? [];
   const rows = [
@@ -111,7 +111,7 @@ export function LinksCard({ a, onDone }: { a: Application; onDone: (a: Applicati
             </span>
           </label>
         ))}
-        {full && <p className="subtle" id={limitId}>Up to {MAX_LINKED_STORIES} stories per application: unlink one to add another.</p>}
+        {full && <p className="subtle" id={limitId}>Up to {maxStories} stories per application: unlink one to add another.</p>}
       </fieldset>
       {lost && (
         <div className="banner banner--warning stack-sm" role="alert">

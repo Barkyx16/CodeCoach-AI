@@ -6,7 +6,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient, type QueryClie
 
 import { ApiError, isSameSession, sessionMark } from "./client";
 import { api, type ActivityFilters, type ExploreFilters, type NoteFilters, type ProblemFilters, type QuestionFilters } from "./endpoints";
-import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, ShareDetail, Target, ContentKind, Onboarding, OnboardingUpdate, UnitProgress, HintRequest, ExplainFailureRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate, WorkspaceSearchBody } from "./types";
+import type { AIHistoryAction, AnswerSource, Difficulty, Bookmark, Collection, GoalsInput, MyExploreResult, ReviewQueue, SavedItemRef, ShareDetail, Target, ContentKind, Onboarding, OnboardingUpdate, UnitProgress, HintRequest, ExplainFailureRequest, Interview, InterviewStart, ReviewRequest, Submission, SubmissionCreate, WorkspaceSearchBody, LimitName } from "./types";
 import { withOfflineCopy } from "@/features/offline/offlineStore";
 import { clearFinishPending } from "@/features/onboarding/finishIntent";
 
@@ -136,6 +136,17 @@ export function useDemo(enabled: boolean) {
 
 export function useCapabilities(enabled = true) {
   return useQuery({ queryKey: queryKeys.capabilities, queryFn: api.capabilities, staleTime: Infinity, enabled });
+}
+
+/**
+ * A limit a form states, as the server enforces it (Volume 17, prompt 7; docs/API.md, "Limits"). The
+ * limits are read once per session, the first time a form that states one is shown (no other page
+ * asks; `enabled` waits for a form that opens). Until then, or if they can't be read, this is `undefined`: the form states no number, never
+ * a guess, and the server decides as it always has.
+ */
+export function useLimit(name: LimitName, enabled = true): number | undefined {
+  const limits = useQuery({ queryKey: ["limits"], queryFn: api.limits, staleTime: Infinity, gcTime: Infinity, retry: 1, enabled });
+  return limits.data?.limits.find((l) => l.name === name)?.value;
 }
 
 /**

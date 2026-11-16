@@ -203,6 +203,7 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | GET | `/health` | – | Liveness |
 | GET | `/health/ready` | – | Readiness (database check) |
 | GET | `/api/v1/capabilities` | – | What this deployment supports (code execution, AI provider) |
+| GET | `/api/v1/limits` | – | The limits forms state, as this server enforces them ("Limits" below) |
 | GET | `/api/v1/demo` | – | Demo servers only (404 otherwise): the fictional sample learners and their labelled example answers (docs/DEMO.md) |
 | POST | `/api/v1/auth/register` | – | Create account → token |
 | POST | `/api/v1/auth/login` | – | Log in → token |
@@ -444,6 +445,38 @@ A downloadable JSON document (`Content-Disposition: attachment`, `Cache-Control:
 `{export_version, exported_at, profile, submissions[], ai_feedback[], interviews[], activity[]}`.
 Submissions include your source code and results; interviews include full transcripts and
 evaluations. Credentials (password hash, token version) are never included.
+
+### Limits
+
+`GET /api/v1/limits` (public; cached like the catalogue: `public, max-age` with an ETag) →
+`{limits: [{name, value, counts}]}` (Volume 17, prompt 7): each limit a form states and the server
+enforces, by a stable name, read from where the server enforces it (`app/services/limits.py`: the
+constant a service checks, or the `max_length` of the request field that refuses past it), and
+`counts`, what it counts in the words the form and the refusal use. Nothing here changes a limit or
+how the server refuses past one (the codes and words stay).
+
+| Name | Value | Counts | Enforced by | Stated by |
+|---|---|---|---|---|
+| `collections_per_account` | 50 | collections | `explore.MAX_COLLECTIONS` (`too_many_collections`) | a collection's Duplicate form |
+| `items_per_collection` | 200 | items | `explore.MAX_ITEMS` (`collection_full`, `full`) | the copy-or-move form's room |
+| `items_per_batch` | 50 | at a time | `CollectionBatchIn` and the other batch bodies (422) | the bulk bars on Saved and a collection |
+| `stories_per_application` | 20 | stories | `ApplicationFields.story_ids` and the link check | an application's story links |
+| `target_description_chars` | 20,000 | characters | `TargetIn.description` | a new target's description counter |
+| `report_details_chars`, `report_excerpt_chars` | 2,000, 1,500 | characters | `ReportIn` | "Report an issue" (read only once it's opened) |
+| `backup_file_bytes` | 5 MB | bytes | `restore.MAX_BYTES` (`file_too_large`) | Restore ("Up to 5 MB.") |
+| `packet_items`, `packet_kits` | 20, 1 | items, interview's kit | `PacketIn.items`, `packet.PACKET_KITS` | the practice packet |
+| `goal_focus_areas` | 8 | skills | `GoalsIn.focus_areas` | Goals ("Where do you want help? (up to 8)") |
+| `answer_chars` | 6,000 | characters | `AnswerRequest.answer` (and the round and retry answers) | the answer boxes |
+| `share_feedback_field_chars`, `share_feedback_comments` | 1,500, 8 | characters, comments | `FeedbackIn` | a shared answer's feedback form |
+| `whiteboard_components`, `whiteboard_connections` | 40, 80 | components, connections | `WhiteboardDiagram` | the whiteboard editor |
+
+The client reads them once per session (`useLimit`), only on a page with a form that states one (a
+report form only once it's opened); until then, or if the read fails, the form states no number,
+never a guess, and the server decides as before. A limit only the client enforces (a draft's size,
+the retry ceiling, offline copies, shortcuts, the telemetry queue) stays in the client, marked "the
+client's own". `tests/test_served_limits.py` fails if a client constant named like a limit holds a
+served value without that mark. Inputs' `maxLength` attributes that no form states in words stay as
+they are; the server's own `max_length` still decides.
 
 ### Capabilities
 

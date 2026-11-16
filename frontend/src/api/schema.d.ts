@@ -4902,6 +4902,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The limits forms state, as this server enforces them (docs/API.md, "Limits")
+         * @description Each is read from where the server enforces it (app/services/limits.py). The same for every
+         *     caller, so it's cached like the public catalogue. A form that can't read it states no number.
+         */
+        get: operations["limits_api_v1_limits_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/demo": {
         parameters: {
             query?: never;
@@ -10343,6 +10364,11 @@ export interface components {
              */
             restorable_until?: string | null;
         };
+        /** LimitsOut */
+        LimitsOut: {
+            /** Limits */
+            limits: components["schemas"]["ServedLimit"][];
+        };
         /** LineageEntry */
         LineageEntry: {
             /**
@@ -14597,6 +14623,25 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
+        };
+        /** ServedLimit */
+        ServedLimit: {
+            /**
+             * Name
+             * @description Stable: a form reads its limit by this name
+             * @enum {string}
+             */
+            name: "collections_per_account" | "items_per_collection" | "items_per_batch" | "stories_per_application" | "target_description_chars" | "report_details_chars" | "report_excerpt_chars" | "backup_file_bytes" | "packet_items" | "packet_kits" | "goal_focus_areas" | "answer_chars" | "share_feedback_field_chars" | "share_feedback_comments" | "whiteboard_components" | "whiteboard_connections";
+            /**
+             * Value
+             * @description The number the server enforces
+             */
+            value: number;
+            /**
+             * Counts
+             * @description What it counts, in the words the form and the server's refusal use
+             */
+            counts: string;
         };
         /** SessionPlan */
         SessionPlan: {
@@ -35317,6 +35362,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Capabilities"];
+                };
+            };
+        };
+    };
+    limits_api_v1_limits_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LimitsOut"];
                 };
             };
         };
