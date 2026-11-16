@@ -123,6 +123,7 @@ def test_an_interview_scored_before_this_says_it_wasnt_recorded(client):
         "items": [],
         "fingerprint": None,
         "read_by": None,
+        "confirmed": None,  # no check was confirmed (Volume 16, prompt 3)
         "text": "What it read wasn't recorded then.",
     }
 

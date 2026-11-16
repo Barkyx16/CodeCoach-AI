@@ -279,6 +279,8 @@ def interview_format(session: PracticeSession) -> InterviewFormat:
                 CheckMade(what=f"Message {n}", detail="checked before it was sent", at=t.created_at)
             )
     read = (session.plan or {}).get("feedback_read")
+    confirmed = read.get("confirmed") if isinstance(read, dict) else None
+    feedback_line = None
     if isinstance(read, dict) and read.get("checked") and read.get("at"):
         checks.append(
             CheckMade(
@@ -287,6 +289,24 @@ def interview_format(session: PracticeSession) -> InterviewFormat:
                 at=datetime.fromisoformat(read["at"]),
             )
         )
+        feedback_line = "the feedback's material checked before it was scored"
+    elif isinstance(confirmed, dict) and confirmed.get("at"):
+        # "I've checked this" before an unchecked ending (Volume 16, prompt 3), compared when scored.
+        when = "before time ran out" if ending == "time_expired" else "before it was scored"
+        at = datetime.fromisoformat(confirmed["at"])
+        if confirmed.get("matched"):
+            checks.append(CheckMade(what="The feedback's material", detail=f"checked {when}", at=at))
+            feedback_line = f"the feedback's material checked {when}"
+        else:
+            changed = ", ".join(confirmed.get("changed") or [])
+            checks.append(
+                CheckMade(
+                    what="An earlier version of the feedback's material",
+                    detail=f"checked; it changed after ({changed})",
+                    at=at,
+                )
+            )
+            feedback_line = "an earlier version of the feedback's material checked"
     text = f"A {minutes}-minute coding interview" if minutes else "A coding interview"
     text += {
         "finished": ", finished",
@@ -301,8 +321,8 @@ def interview_format(session: PracticeSession) -> InterviewFormat:
         text += f"; {messages} of {len(sent)} {'message' if len(sent) == 1 else 'messages'} checked before sending"
     else:
         text += "; no messages sent"
-    if any(c.what == "The feedback's material" for c in checks):
-        text += "; the feedback's material checked before it was scored"
+    if feedback_line is not None:
+        text += f"; {feedback_line}"
     elif ending is not None and isinstance(read, dict) and read.get("checked") is False:
         text += "; the feedback's material not checked"
     return InterviewFormat(

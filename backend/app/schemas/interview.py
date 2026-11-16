@@ -226,6 +226,28 @@ class InterviewFeedbackPreview(APIModel):
     code: str | None = Field(default=None, max_length=20_000, description="Finish only: the editor's code")
 
 
+class InterviewFeedbackConfirm(InterviewFeedbackPreview):
+    """ "I've checked this" (Volume 16, prompt 3): the preview the learner read, by its fingerprint.
+    Kept with the interview (its fingerprint, time and the labels it covered, never the text), so a
+    time-out can say whether what it read is what was checked."""
+
+    approved_context: str = Field(
+        max_length=128,
+        description="The `context_fingerprint` of the feedback preview read; refused with 409 "
+        "`context_changed` (and a fresh preview) if what the feedback would read has changed since",
+    )
+
+
+class FeedbackCheckOut(APIModel):
+    """The check kept: it replaces any earlier one. Confirming sends nothing, scores nothing and
+    doesn't stop the clock."""
+
+    at: datetime
+    fingerprint: str
+    labels: list[str] = Field(description="The parts of what the feedback reads that it covered")
+    text: str = Field(description="What happens if time runs out, in one sentence")
+
+
 class InterviewerReply(BaseModel):
     """What the interviewer says next. Schema for the AI provider."""
 
@@ -300,6 +322,19 @@ class FeedbackReadItem(APIModel):
     notes: list[str] = Field(default_factory=list, description="What was replaced in it, said")
 
 
+class ConfirmedCheck(APIModel):
+    """The learner's last "I've checked this" before an unchecked ending (a time-out), compared with
+    what the feedback then read: part by part, by label (Volume 16, prompt 3)."""
+
+    at: datetime
+    fingerprint: str
+    matched: bool = Field(description="What it read is what was checked (how it ended aside)")
+    changed: list[str] = Field(default_factory=list, description="The labels of the parts that changed after")
+    code_unsent: bool = Field(
+        default=False, description="The code checked was in the editor and hadn't been sent when it was read"
+    )
+
+
 class FeedbackRead(APIModel):
     """What an interview's feedback read, recorded when it was scored (Volume 15, prompt 7;
     docs/COACH_CONTEXT.md, "What the feedback read"): labels and sizes, never a second copy."""
@@ -312,6 +347,9 @@ class FeedbackRead(APIModel):
     items: list[FeedbackReadItem] = Field(default_factory=list)
     fingerprint: str | None = None
     read_by: str | None = None
+    confirmed: ConfirmedCheck | None = Field(
+        default=None, description="A check confirmed before an unchecked ending, and whether it still matched"
+    )
     text: str = Field(description="What it says, in plain words")
 
 

@@ -157,10 +157,36 @@ as `feedback_check_margin_seconds` while a coding interview is running), the pag
 what the feedback will read**. It's said once, as it appears (its words don't change with the clock,
 so a screen reader doesn't repeat it), and checking doesn't stop the clock. Finishing from the check
 carries its fingerprint as before; if what's read changed since, the finish is refused as before
-(`409 context_changed`) and the page says why. If time runs out instead, the interview is scored and
-recorded as not checked, also after a check that went stale: a preview stores nothing, so only a
-finish that carried a matching fingerprint counts as checked. Nothing extends an interview's time
-or changes its scoring. The data export carries each interview's record (`interviews[].feedback_read`).
+(`409 context_changed`) and the page says why. A preview itself stores nothing; what a time-out
+says about a check made before it is below. Nothing extends an interview's time or changes its
+scoring. The data export carries each interview's record (`interviews[].feedback_read`).
+
+### A check before time ran out (Volume 16, prompt 3)
+
+Under the feedback's check, **I've checked this** keeps that check with the interview
+(`POST /interviews/{id}/feedback/confirm` with the preview's fingerprint): the fingerprint, the time,
+the labels of the parts it covered and a digest of each part (`plan.feedback_check`), never the
+text. Each confirmation replaces the last. It's bound like a finish: if what the feedback would read
+changed since the preview (a message was sent, perhaps from another tab, or the code changed) it's
+refused with `409 context_changed`, "What the feedback would read changed since you checked it (a
+message was sent or your code changed, perhaps in another tab), so this check wasn't kept. Check
+what it reads now.", and the panel shows what it reads now. Confirming sends nothing, scores
+nothing, spends nothing (it shares the previews' 60-a-minute limit) and doesn't stop the clock. The
+page then says, once: "Checked. If time runs out before you finish, the review will say you checked
+this, or name what changed after."
+
+When the interview is scored without a checked finish (time ran out, or a finish or End early sent
+unchecked), the last confirmed check is compared with what the feedback read, part by part (how it
+ended aside, since a check is made before it ends): the record keeps `confirmed` (its time and
+fingerprint, whether it matched, the labels that changed). The review says **"You checked this
+before time ran out."** with when, or **"You checked an earlier version before time ran out; it
+changed after: The conversation so far."**. If the code checked was in the editor and hadn't been
+sent, it adds "The code you checked was still in your editor, not sent, so it read the code last
+sent." (a time-out reads the code last sent, as it always has). With no confirmed check it says what
+it said before. A career interview has nothing to check (`409 wrong_interview_kind`): nothing of
+theirs leaves CodeCoach. The export carries the check's time, fingerprint and labels
+(`interviews[].feedback_check`) and the comparison (`interviews[].feedback_read.confirmed`), never the
+text nor the digests.
 
 ## Checked by tests
 
@@ -217,11 +243,22 @@ server sending a stale request, a message's secret not replaced, changed code st
 meaningful control: leaving the conversation out of the approval, because the phase item counts your
 messages in the phase, so any message sent in between changes the approval anyway.
 
+A check before time ran out: `backend/tests/test_feedback_check.py` (a check then a time-out is
+recorded as checked, with its time, and the interview's conditions say so; a check, a message, a
+time-out names "The conversation so far"; no check is unchanged; code checked in the editor but never
+sent is said; a confirmation after another tab moved the interview on is refused with a fresh preview
+and keeps nothing; each confirmation replaces the last; confirming sends nothing, scores nothing,
+keeps the clock and stores no text; another account can't confirm or read it; a career interview has
+nothing to check; the export carries its time and fingerprint, never the text) and
+`frontend/src/test/integration/feedbackCheck.test.tsx` (the button, the one-sentence status, the
+refusal from another tab, the review's wording with the time).
+
 ## Limits
 
 - Every coaching operation is previewed: the code review, hints, failure explanations and the coding
   interviewer (its messages and its feedback). An interview that runs out of time is scored without a
-  preview, from the material listed above.
+  preview, from the material listed above; a check confirmed before it is compared part by part, and
+  a part's change is named by its label, not shown.
 - An explanation's choices apply to the first one asked for: one is kept per submission, so asking
   again with more (or less) shows the kept one.
 - The preview shows what CodeCoach sends. What an outside service does with it is governed by

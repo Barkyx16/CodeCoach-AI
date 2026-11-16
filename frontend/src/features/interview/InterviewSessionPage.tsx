@@ -13,7 +13,7 @@ import {
   useInterviewMessage,
   useProblem,
 } from "@/api/queries";
-import type { AnswerSource, CoachPreview, Interview } from "@/api/types";
+import type { AnswerSource, CoachPreview, FeedbackCheck, Interview } from "@/api/types";
 import { useAuth } from "@/auth/useAuth";
 import { DifficultyBadge } from "@/components/Badge";
 import { Button } from "@/components/Button";
@@ -130,6 +130,9 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
   const [checkError, setCheckError] = useState<unknown>(null);
   const [changed, setChanged] = useState<string | null>(null);
   const [cancelled, setCancelled] = useState(false);
+  // "I've checked this" (Volume 16, prompt 3): kept with the interview, so a time-out can say so.
+  const [confirmedCheck, setConfirmedCheck] = useState<FeedbackCheck | null>(null);
+  const [confirming, setConfirming] = useState(false);
   const refusedWith = (err: unknown): CoachPreview | null =>
     err instanceof ApiError && err.code === "context_changed" ? ((err.details as { preview?: CoachPreview } | undefined)?.preview ?? null) : null;
 
@@ -164,6 +167,25 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
       setCheckError(err);
     } finally {
       setChecking(false);
+    }
+  }
+
+  async function confirmChecked() {
+    if (!checked || checked.kind !== "feedback") return;
+    const { ending, code, data } = checked;
+    setConfirming(true);
+    setChanged(null);
+    try {
+      setConfirmedCheck(await api.confirmFeedbackCheck(iv.id, { ending, approved_context: data.context_fingerprint, ...(code === null ? {} : { code }) }));
+    } catch (err) {
+      const fresh = refusedWith(err);
+      if (fresh) {
+        // Moved on (another tab sent a message, or the code changed): show what it reads now.
+        setChecked({ kind: "feedback", ending, data: fresh, code, turns: iv.turns.length });
+        setChanged((err as ApiError).message);
+      } else setCheckError(err);
+    } finally {
+      setConfirming(false);
     }
   }
 
@@ -336,6 +358,17 @@ function LiveInterview({ iv, problemSlug }: { iv: Interview; problemSlug: string
               onSend={() => void sendChecked()}
               onCancel={() => { setChecked(null); setChanged(null); setCancelled(true); }}
               onCheckAgain={() => void (checked.kind === "message" ? checkMessage(checked.source) : checkFeedback(checked.ending))} />
+          )}
+          {checked?.kind === "feedback" && seconds > 0 && (
+            <p className="row interview__confirm">
+              <Button size="sm" variant="secondary" loading={confirming} disabled={busy || checking || confirming}
+                onClick={() => void confirmChecked()}>I&apos;ve checked this</Button>
+              <span className="subtle">Keeps this check with the interview. It sends nothing and doesn&apos;t stop the clock.</span>
+            </p>
+          )}
+          {confirmedCheck && (
+            // One sentence, the same each time: announced once when it appears.
+            <p className="subtle" role="status">{confirmedCheck.text}</p>
           )}
         </section>
         <section className="interview__code" aria-label="Your code">

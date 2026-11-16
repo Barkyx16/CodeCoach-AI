@@ -34,6 +34,7 @@ deadline and one-active-interview rules; they have no phases and make no AI call
 
 from __future__ import annotations
 
+import hashlib
 import hmac
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime, timedelta
@@ -66,7 +67,9 @@ from app.schemas.common import Page
 from app.schemas.conditions import AttemptConditions
 from app.schemas.interview import (
     PHASE_GUIDE,
+    ConfirmedCheck,
     Engagement,
+    FeedbackCheckOut,
     FeedbackRead,
     FeedbackReadItem,
     FollowupAnswer,
@@ -74,6 +77,7 @@ from app.schemas.interview import (
     FormatSlot,
     InterviewAbandon,
     InterviewEvaluation,
+    InterviewFeedbackConfirm,
     InterviewFeedbackPreview,
     InterviewFinish,
     InterviewKind,
@@ -112,6 +116,31 @@ CHANGED = (
     "Check it again before sending."
 )
 BUILT_IN_FALLBACK = "If it can't be reached, the built-in interviewer answers from this same material."
+# "I've checked this" (Volume 16, prompt 3).
+CHECK_CHANGED = (
+    "What the feedback would read changed since you checked it (a message was sent or your code changed, "
+    "perhaps in another tab), so this check wasn't kept. Check what it reads now."
+)
+CHECK_KEPT = (
+    "Checked. If time runs out before you finish, the review will say you checked this, or name what "
+    "changed after."
+)
+
+
+def _digest(text: str) -> str:
+    """A part's digest, to tell later whether it changed: never the text itself."""
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:32]
+
+
+def confirmed_text(ending: str | None, confirmed: dict[str, Any]) -> str:
+    """What the review says about a check confirmed before an unchecked ending."""
+    when = "before time ran out" if ending == "time_expired" else "before it was scored"
+    if confirmed.get("matched"):
+        return f"You checked this {when}."
+    text = f"You checked an earlier version {when}; it changed after: {', '.join(confirmed.get('changed') or [])}."
+    if confirmed.get("code_unsent"):
+        text += " The code you checked was still in your editor, not sent, so it read the code last sent."
+    return text
 
 
 def _plural(n: int, word: str) -> str:
@@ -321,6 +350,59 @@ class InterviewService:
         return self._message_material(
             user, session, body.message, body.code or session.final_code or "", body.code is not None
         )[1]
+
+    def confirm_feedback(
+        self, user: User, interview_id: str, body: InterviewFeedbackConfirm
+    ) -> FeedbackCheckOut:
+        """ "I've checked this" (Volume 16, prompt 3; docs/COACH_CONTEXT.md, "A check before time ran
+        out"): the preview read is still exactly what the feedback would read, so it's kept with the
+        interview: its fingerprint, the time, and a digest of each part by label (never the text). It
+        replaces any earlier check. Nothing is sent or scored, and the clock doesn't stop."""
+        session = self._load(user, interview_id)
+        self._require_open_for_preview(session)
+        self._require_kind(session, PracticeMode.INTERVIEW)
+        code, from_editor = self._ending_code(session, body.ending, body.code)
+        preview = self._feedback_material(user, session, code, body.ending, from_editor)[1]
+        if not hmac.compare_digest(preview.context_fingerprint, body.approved_context):
+            raise ConflictError(
+                CHECK_CHANGED, code="context_changed", details={"preview": preview.model_dump(mode="json")}
+            )
+        at = _now()
+        parts = [i for i in preview.items if i.key != "ending"]  # how it ends is said apart
+        session.plan = {
+            **(session.plan or {}),
+            "feedback_check": {
+                "v": 1,
+                "fingerprint": preview.context_fingerprint,
+                "at": at.isoformat(),
+                "parts": [{"label": i.label, "digest": _digest(i.text)} for i in parts],
+                # The code checked was the code last sent: if not, a time-out reads the code last sent.
+                "code_sent": code == (session.final_code or ""),
+            },
+        }
+        self.db.commit()
+        return FeedbackCheckOut(
+            at=at, fingerprint=preview.context_fingerprint, labels=[i.label for i in parts], text=CHECK_KEPT
+        )
+
+    @staticmethod
+    def _compare_check(session: PracticeSession, preview: CoachPreview) -> dict[str, Any] | None:
+        """The last confirmed check against what the feedback read, part by part (how it ended aside):
+        whether it matched, and the labels of what changed after. None without a check."""
+        check = (session.plan or {}).get("feedback_check")
+        if not isinstance(check, dict):
+            return None
+        then = {p["label"]: p["digest"] for p in check.get("parts") or []}
+        now = {i.label: _digest(i.text) for i in preview.items if i.key != "ending"}
+        changed = [label for label in now if then.get(label) != now[label]]
+        changed += [label for label in then if label not in now]
+        return {
+            "at": check.get("at"),
+            "fingerprint": check.get("fingerprint"),
+            "matched": not changed,
+            "changed": changed,
+            "code_unsent": "Your code" in changed and not check.get("code_sent", True),
+        }
 
     def feedback_preview(self, user: User, interview_id: str, body: InterviewFeedbackPreview) -> CoachPreview:
         """Exactly what the end-of-interview feedback would read, on Finish or on End early."""
@@ -539,7 +621,10 @@ class InterviewService:
         if not isinstance(rec, dict):
             return FeedbackRead(recorded=False, text="What it read wasn't recorded then.")
         ending, checked = rec.get("ending"), rec.get("checked")
-        if checked is None:
+        confirmed = rec.get("confirmed") if isinstance(rec.get("confirmed"), dict) else None
+        if checked is False and confirmed is not None:
+            text = confirmed_text(ending, confirmed)
+        elif checked is None:
             text = "Scored by CodeCoach's own rules from these; nothing left CodeCoach, so there was nothing to check."
             if ending == "time_expired":
                 text = "Time ran out, so it was scored from what you'd answered. " + text
@@ -556,6 +641,7 @@ class InterviewService:
             items=[FeedbackReadItem(**i) for i in rec.get("items") or []],
             fingerprint=rec.get("fingerprint"),
             read_by=rec.get("read_by"),
+            confirmed=ConfirmedCheck(**confirmed) if confirmed is not None else None,
             text=text,
         )
 
@@ -615,18 +701,21 @@ class InterviewService:
             read_by = "The built-in interviewer, on CodeCoach's own server (no coaching requests were left that day)"
         # What it read, recorded with the feedback (docs/COACH_CONTEXT.md, "What the feedback read"):
         # labels, sizes and what was replaced, never a second copy of the text.
-        self._remember_read(
-            session,
-            {
-                "ending": reason,
-                "checked": checked,
-                "fingerprint": preview.context_fingerprint,
-                "read_by": read_by,
-                "items": [
-                    {"label": i.label, "chars": len(i.text), "notes": list(i.notes)} for i in preview.items
-                ],
-            },
-        )
+        record: dict[str, Any] = {
+            "ending": reason,
+            "checked": checked,
+            "fingerprint": preview.context_fingerprint,
+            "read_by": read_by,
+            "items": [
+                {"label": i.label, "chars": len(i.text), "notes": list(i.notes)} for i in preview.items
+            ],
+        }
+        if not checked:
+            # A check the learner confirmed earlier (Volume 16, prompt 3), compared now, once.
+            confirmed = self._compare_check(session, preview)
+            if confirmed is not None:
+                record["confirmed"] = confirmed
+        self._remember_read(session, record)
         session.evaluation = result.content.model_dump(mode="json")
         session.status = status
         session.ended_at = _now()

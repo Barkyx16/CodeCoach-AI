@@ -10,9 +10,11 @@ from app.models import User
 from app.schemas.ai import CoachPreview
 from app.schemas.common import Page, error_responses
 from app.schemas.interview import (
+    FeedbackCheckOut,
     FollowupAnswer,
     FormatOption,
     InterviewAbandon,
+    InterviewFeedbackConfirm,
     InterviewFeedbackPreview,
     InterviewFinish,
     InterviewMessage,
@@ -281,3 +283,23 @@ def feedback_preview(
 ) -> CoachPreview:
     _preview_allowed(request, user)
     return svc.feedback_preview(user, interview_id, body)
+
+
+@router.post(
+    "/{interview_id}/feedback/confirm",
+    response_model=FeedbackCheckOut,
+    responses=_ERRORS,
+    summary="I've checked this: keep the feedback preview read, so a time-out can say it was checked",
+)
+def confirm_feedback(
+    interview_id: str,
+    body: InterviewFeedbackConfirm,
+    request: Request,
+    user: User = Depends(get_current_user),
+    svc: InterviewService = Depends(get_interviews),
+) -> FeedbackCheckOut:
+    """Keeps the preview's fingerprint, the time and the parts it covered (never the text), replacing
+    any earlier check; 409 `context_changed` with a fresh preview if what the feedback would read has
+    changed since. Sends nothing, scores nothing and doesn't stop the clock (docs/COACH_CONTEXT.md)."""
+    _preview_allowed(request, user)
+    return svc.confirm_feedback(user, interview_id, body)

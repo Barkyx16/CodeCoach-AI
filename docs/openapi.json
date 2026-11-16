@@ -21624,6 +21624,114 @@
         }
       }
     },
+    "/api/v1/interviews/{interview_id}/feedback/confirm": {
+      "post": {
+        "tags": [
+          "interviews"
+        ],
+        "summary": "I've checked this: keep the feedback preview read, so a time-out can say it was checked",
+        "description": "Keeps the preview's fingerprint, the time and the parts it covered (never the text), replacing\nany earlier check; 409 `context_changed` with a fresh preview if what the feedback would read has\nchanged since. Sends nothing, scores nothing and doesn't stop the clock (docs/COACH_CONTEXT.md).",
+        "operationId": "confirm_feedback_api_v1_interviews__interview_id__feedback_confirm_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "interview_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Interview Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InterviewFeedbackConfirm"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackCheckOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limit or AI budget exceeded",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/progress": {
       "get": {
         "tags": [
@@ -30625,6 +30733,46 @@
         "title": "ConditionsQuery",
         "description": "Which of your attempts to describe: up to 50 of each kind (another account's or unknown ids\nare left out, the same as each other)."
       },
+      "ConfirmedCheck": {
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "fingerprint": {
+            "type": "string",
+            "title": "Fingerprint"
+          },
+          "matched": {
+            "type": "boolean",
+            "title": "Matched",
+            "description": "What it read is what was checked (how it ended aside)"
+          },
+          "changed": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Changed",
+            "description": "The labels of the parts that changed after"
+          },
+          "code_unsent": {
+            "type": "boolean",
+            "title": "Code Unsent",
+            "description": "The code checked was in the editor and hadn't been sent when it was read",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "at",
+          "fingerprint",
+          "matched"
+        ],
+        "title": "ConfirmedCheck",
+        "description": "The learner's last \"I've checked this\" before an unchecked ending (a time-out), compared with\nwhat the feedback then read: part by part, by label (Volume 16, prompt 3)."
+      },
       "ContentChange": {
         "properties": {
           "version": {
@@ -33795,6 +33943,41 @@
         "title": "FailureExplanation",
         "description": "Schema the model must fill when explaining a failed submission."
       },
+      "FeedbackCheckOut": {
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "At"
+          },
+          "fingerprint": {
+            "type": "string",
+            "title": "Fingerprint"
+          },
+          "labels": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Labels",
+            "description": "The parts of what the feedback reads that it covered"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "What happens if time runs out, in one sentence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "at",
+          "fingerprint",
+          "labels",
+          "text"
+        ],
+        "title": "FeedbackCheckOut",
+        "description": "The check kept: it replaces any earlier one. Confirming sends nothing, scores nothing and\ndoesn't stop the clock."
+      },
       "FeedbackComment": {
         "properties": {
           "sentence": {
@@ -34099,6 +34282,17 @@
               }
             ],
             "title": "Read By"
+          },
+          "confirmed": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConfirmedCheck"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A check confirmed before an unchecked ending, and whether it still matched"
           },
           "text": {
             "type": "string",
@@ -35614,6 +35808,44 @@
         ],
         "title": "InterviewEvaluation",
         "description": "End-of-interview feedback. Schema for the AI provider."
+      },
+      "InterviewFeedbackConfirm": {
+        "properties": {
+          "ending": {
+            "type": "string",
+            "enum": [
+              "finished",
+              "abandoned"
+            ],
+            "title": "Ending",
+            "default": "finished"
+          },
+          "code": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 20000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code",
+            "description": "Finish only: the editor's code"
+          },
+          "approved_context": {
+            "type": "string",
+            "maxLength": 128,
+            "title": "Approved Context",
+            "description": "The `context_fingerprint` of the feedback preview read; refused with 409 `context_changed` (and a fresh preview) if what the feedback would read has changed since"
+          }
+        },
+        "type": "object",
+        "required": [
+          "approved_context"
+        ],
+        "title": "InterviewFeedbackConfirm",
+        "description": "\"I've checked this\" (Volume 16, prompt 3): the preview the learner read, by its fingerprint.\nKept with the interview (its fingerprint, time and the labels it covered, never the text), so a\ntime-out can say whether what it read is what was checked."
       },
       "InterviewFeedbackPreview": {
         "properties": {

@@ -63,6 +63,7 @@ import type {
   ExplainFailureResponse,
   ExploreResult,
   ExploreSort,
+  FeedbackCheck,
   FeedbackInput,
   FeedbackReceipt,
   FollowUpOut,
@@ -74,6 +75,7 @@ import type {
   Impact,
   Interview,
   InterviewAnswer,
+  InterviewFeedbackConfirmRequest,
   InterviewFeedbackPreviewRequest,
   InterviewFormat,
   InterviewMessagePreviewRequest,
@@ -539,6 +541,9 @@ export const api = {
     apiRequest<CoachPreview>(`/api/v1/interviews/${encodeURIComponent(id)}/message/preview`, { method: "POST", body }),
   interviewFeedbackPreview: (id: string, body: InterviewFeedbackPreviewRequest) =>
     apiRequest<CoachPreview>(`/api/v1/interviews/${encodeURIComponent(id)}/feedback/preview`, { method: "POST", body }),
+  /** "I've checked this": kept with the interview so a time-out can say it was checked (docs/COACH_CONTEXT.md). */
+  confirmFeedbackCheck: (id: string, body: InterviewFeedbackConfirmRequest) =>
+    apiRequest<FeedbackCheck>(`/api/v1/interviews/${encodeURIComponent(id)}/feedback/confirm`, { method: "POST", body }),
   answerRoundQuestion: (id: string, body: { question_index: number; answer: string; source: AnswerSource }, traceparent?: string) =>
     apiRequest<Interview>(`/api/v1/interviews/${encodeURIComponent(id)}/answers`, { method: "POST", body, traceparent }),
   skipRoundQuestion: (id: string, question_index: number, traceparent?: string) =>

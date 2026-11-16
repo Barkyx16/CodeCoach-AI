@@ -4144,6 +4144,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/interviews/{interview_id}/feedback/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * I've checked this: keep the feedback preview read, so a time-out can say it was checked
+         * @description Keeps the preview's fingerprint, the time and the parts it covered (never the text), replacing
+         *     any earlier check; 409 `context_changed` with a fresh preview if what the feedback would read has
+         *     changed since. Sends nothing, scores nothing and doesn't stop the clock (docs/COACH_CONTEXT.md).
+         */
+        post: operations["confirm_feedback_api_v1_interviews__interview_id__feedback_confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/progress": {
         parameters: {
             query?: never;
@@ -6950,6 +6972,36 @@ export interface components {
              */
             interview_ids?: string[];
         };
+        /**
+         * ConfirmedCheck
+         * @description The learner's last "I've checked this" before an unchecked ending (a time-out), compared with
+         *     what the feedback then read: part by part, by label (Volume 16, prompt 3).
+         */
+        ConfirmedCheck: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Fingerprint */
+            fingerprint: string;
+            /**
+             * Matched
+             * @description What it read is what was checked (how it ended aside)
+             */
+            matched: boolean;
+            /**
+             * Changed
+             * @description The labels of the parts that changed after
+             */
+            changed?: string[];
+            /**
+             * Code Unsent
+             * @description The code checked was in the editor and hadn't been sent when it was read
+             * @default false
+             */
+            code_unsent: boolean;
+        };
         /** ContentChange */
         ContentChange: {
             /** Version */
@@ -8311,6 +8363,30 @@ export interface components {
              */
             confidence: "low" | "medium" | "high";
         };
+        /**
+         * FeedbackCheckOut
+         * @description The check kept: it replaces any earlier one. Confirming sends nothing, scores nothing and
+         *     doesn't stop the clock.
+         */
+        FeedbackCheckOut: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** Fingerprint */
+            fingerprint: string;
+            /**
+             * Labels
+             * @description The parts of what the feedback reads that it covered
+             */
+            labels: string[];
+            /**
+             * Text
+             * @description What happens if time runs out, in one sentence
+             */
+            text: string;
+        };
         /** FeedbackComment */
         FeedbackComment: {
             /**
@@ -8446,6 +8522,8 @@ export interface components {
             fingerprint?: string | null;
             /** Read By */
             read_by?: string | null;
+            /** @description A check confirmed before an unchecked ending, and whether it still matched */
+            confirmed?: components["schemas"]["ConfirmedCheck"] | null;
             /**
              * Text
              * @description What it says, in plain words
@@ -9149,6 +9227,30 @@ export interface components {
              * @enum {string}
              */
             confidence: "low" | "medium" | "high";
+        };
+        /**
+         * InterviewFeedbackConfirm
+         * @description "I've checked this" (Volume 16, prompt 3): the preview the learner read, by its fingerprint.
+         *     Kept with the interview (its fingerprint, time and the labels it covered, never the text), so a
+         *     time-out can say whether what it read is what was checked.
+         */
+        InterviewFeedbackConfirm: {
+            /**
+             * Ending
+             * @default finished
+             * @enum {string}
+             */
+            ending: "finished" | "abandoned";
+            /**
+             * Code
+             * @description Finish only: the editor's code
+             */
+            code?: string | null;
+            /**
+             * Approved Context
+             * @description The `context_fingerprint` of the feedback preview read; refused with 409 `context_changed` (and a fresh preview) if what the feedback would read has changed since
+             */
+            approved_context: string;
         };
         /**
          * InterviewFeedbackPreview
@@ -31836,6 +31938,86 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CoachPreview"];
+                };
+            };
+            /** @description Bad request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Conflict with current state */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Rate limit or AI budget exceeded */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+        };
+    };
+    confirm_feedback_api_v1_interviews__interview_id__feedback_confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                interview_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InterviewFeedbackConfirm"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackCheckOut"];
                 };
             };
             /** @description Bad request */

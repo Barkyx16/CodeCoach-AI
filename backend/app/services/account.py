@@ -66,6 +66,17 @@ from app.services.work_samples import WorkSamples
 EXPORT_VERSION = 1
 
 
+def _feedback_check(session: PracticeSession) -> dict | None:
+    check = (session.plan or {}).get("feedback_check")
+    if not isinstance(check, dict):
+        return None
+    return {
+        "at": check.get("at"),
+        "fingerprint": check.get("fingerprint"),
+        "labels": [p.get("label") for p in check.get("parts") or []],
+    }
+
+
 def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict:
     """Everything stored about the user, in one JSON document. Credentials (password hash,
     token version) are deliberately excluded. `with_ids` adds record ids to the sections that other
@@ -273,6 +284,9 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 "evaluation": s.evaluation,
                 # What the feedback read (labels and sizes), checked or not (docs/COACH_CONTEXT.md).
                 "feedback_read": (s.plan or {}).get("feedback_read"),
+                # Your last "I've checked this": its time, fingerprint and the parts it covered (never
+                # the text, nor the parts' digests).
+                "feedback_check": _feedback_check(s),
                 # A coding interview's in-app help and format, as its review shows them
                 # (docs/ATTEMPT_CONDITIONS.md); a career interview's answers carry their own.
                 "conditions": interview_conditions.get(s.id),

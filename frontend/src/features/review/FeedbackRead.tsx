@@ -1,4 +1,5 @@
 import type { FeedbackRead } from "@/api/types";
+import { formatDateTime } from "@/lib/format";
 
 /**
  * What an interview's feedback read, recorded when it was scored (Volume 15, prompt 8;
@@ -10,7 +11,10 @@ export function FeedbackReadSection({ read }: { read: FeedbackRead }) {
   return (
     <section className="card stack-sm feedback-read" aria-labelledby="feedback-read-title">
       <h2 className="section-title" id="feedback-read-title">What the feedback read</h2>
-      <p className={read.recorded && read.checked === false ? "banner banner--info" : "subtle"}>{read.text}</p>
+      <p className={read.recorded && read.checked === false ? "banner banner--info" : "subtle"}>
+        {read.text}
+        {read.confirmed && <> <span className="subtle">(checked <time dateTime={read.confirmed.at}>{formatDateTime(read.confirmed.at)}</time>)</span></>}
+      </p>
       {read.read_by && <p className="subtle">Read by: {read.read_by}.</p>}
       {(read.items ?? []).length > 0 && (
         <ul className="mini-list feedback-read__items">
