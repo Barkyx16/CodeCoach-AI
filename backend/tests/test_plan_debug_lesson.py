@@ -39,8 +39,8 @@ def test_an_exercise_tried_and_not_fixed_brings_the_lesson_naming_it(client):
     assert item["kind"] == "learn" and item["href"] == f"/learn/{UNIT}"
     assert item["reason"] == (
         f"A {UNIT_INDEX[UNIT].minutes}-minute lesson that prepares the debugging exercises, because "
-        f"“{LAB_TITLE}” isn't fixed yet."
-    )
+        f"“{LAB_TITLE}” isn't fixed yet. It's a generated draft, not reviewed yet."
+    )  # a draft says so (Volume 18, prompt 8)
     assert item["completion"] == "Pass the lesson's comprehension check. Reading it alone doesn't count."
     assert item["skill"] == "debugging exercises"  # not the written-answer skill "debugging"
     # The exercise itself is never suggested: it's evidence, not an activity.

@@ -33,6 +33,14 @@ optional `scope_note` for regulated careers, and `question_ids` it prepares for.
 3. **Review status is a claim.** `author_reviewed` means someone checked the unit against its
    references. Anything drafted by a model and not yet checked must be `generated_draft`; the page
    shows a "Generated draft: not reviewed yet" badge. Don't invent reviewers or credentials.
+   Since Volume 18, prompt 8, every lesson link carries its `review_status` too (`UnitLink`:
+   "Learn first" and prerequisites), so a draft's "Learn first" link says "Draft: not reviewed",
+   and the practice plan's reason for a draft it suggests ends "It's a generated draft, not
+   reviewed yet." **Fixing code from a failing test** (`se-failing-test`) is the one draft: it was
+   written in this repository with an AI coding assistant (Volume 17, prompt 5) and was labelled
+   `author_reviewed` when nobody had reviewed it; that was corrected here. Its review is the
+   project author's to do: check it against its references and the three exercises, then set
+   `review=_AUTHOR_REVIEW` with that day's date (no version bump: the meaning doesn't change).
 4. **Regulated careers.** Nursing and similar units carry a `scope_note`: interview education, not
    clinical guidance, with jurisdiction and facility policy named. Keep patient details generic.
 5. **Versioning.** Bump `version` and append to `changes` when the meaning changes (a fix, a new

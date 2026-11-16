@@ -16571,6 +16571,12 @@ export interface components {
             id: string;
             /** Title */
             title: string;
+            /**
+             * Review Status
+             * @description Whether the lesson has been reviewed; a generated draft says so wherever it's linked
+             * @enum {string}
+             */
+            review_status: "author_reviewed" | "generated_draft";
         };
         /** UnitOut */
         UnitOut: {

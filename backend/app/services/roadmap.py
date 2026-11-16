@@ -47,7 +47,7 @@ from app.careers.eligibility import eligibility, eligibility_columns, feedback_e
 from app.careers.questions import Question, get_question, questions_for
 from app.careers.skills import career_skills, question_skills, questions_by_skill
 from app.errors import AppError, ConflictError, NotFoundError
-from app.learn import units_for
+from app.learn import Unit, units_for
 from app.models import (
     InterviewStatus,
     InterviewTurn,
@@ -332,6 +332,12 @@ def news_text(
         else:
             text += f", {'one' if below == 1 else below} below 70"
     return text + "."
+
+
+def _draft_note(unit: Unit) -> str:
+    """A suggested lesson that hasn't been reviewed says so (docs/LEARN_CONTENT.md, rule 3; Volume 18,
+    prompt 8)."""
+    return " It's a generated draft, not reviewed yet." if unit.review.status == "generated_draft" else ""
 
 
 @dataclass
@@ -804,7 +810,7 @@ class Roadmap:
                         "learn",
                         skill,
                         f"Learn: {unit.title}",
-                        f"A {unit.minutes}-minute lesson on {skill}, because {why}.",
+                        f"A {unit.minutes}-minute lesson on {skill}, because {why}." + _draft_note(unit),
                         "Pass the lesson's comprehension check. Reading it alone doesn't count.",
                         unit.minutes,
                         {"unit_id": unit.id},
@@ -851,7 +857,7 @@ class Roadmap:
                         "debugging exercises",  # not the written-answer skill "debugging"
                         f"Learn: {unit.title}",
                         f"A {unit.minutes}-minute lesson that prepares the debugging exercises, because "
-                        f"“{latest.title}” isn't fixed yet.",
+                        f"“{latest.title}” isn't fixed yet." + _draft_note(unit),
                         "Pass the lesson's comprehension check. Reading it alone doesn't count.",
                         unit.minutes,
                         {"unit_id": unit.id},

@@ -16,7 +16,7 @@ export function sbarUnit(): LearnUnit {
   return {
     id: "rn-prioritization", track: "registered-nurse", title: "Prioritizing when several patients need you",
     skill: "Judgment under pressure", topics: [], minutes: 8, objective: "Explain how you decide who to see first.",
-    prerequisites: [{ id: "rn-sbar-handoff", title: "SBAR for handoffs and escalation" }], version: learnStore.version,
+    prerequisites: [{ id: "rn-sbar-handoff", title: "SBAR for handoffs and escalation", review_status: "author_reviewed" }], version: learnStore.version,
     review_status: "author_reviewed", regulated: true, career_title: "Registered Nurse",
     changes: learnStore.version === 1 ? ["First version."] : ["First version.", "Added a reassessment step."],
     scope_note: "Interview education, not clinical guidance. Follow your jurisdiction's scope of practice.",
@@ -82,7 +82,10 @@ export const learnHandlers = [
   }),
   http.get(`${API}/api/v1/learn/related`, ({ request }) => {
     const q = new URL(request.url).searchParams.get("question_id");
-    return HttpResponse.json(q === "m-pressure-0" ? [{ id: "rn-prioritization", title: "Prioritizing when several patients need you" }] : []);
+    return HttpResponse.json(q === "m-pressure-0" ? [
+      { id: "rn-prioritization", title: "Prioritizing when several patients need you", review_status: "author_reviewed" },
+      { id: "rn-draft", title: "A lesson drafted here", review_status: "generated_draft" },
+    ] : []);
   }),
   http.get(`${API}/api/v1/learn/units/:id`, ({ params }) => (params.id === "rn-prioritization"
     ? HttpResponse.json(sbarUnit())

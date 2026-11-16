@@ -76,7 +76,13 @@ def test_catalog_states_coverage_honestly(client):
         "software-engineer": 4,  # "Fixing code from a failing test" since Volume 17, prompt 5
     }
     prio = r["units"][2]
-    assert prio["prerequisites"] == [{"id": "rn-sbar-handoff", "title": "SBAR for handoffs and escalation"}]
+    assert prio["prerequisites"] == [
+        {
+            "id": "rn-sbar-handoff",
+            "title": "SBAR for handoffs and escalation",
+            "review_status": "author_reviewed",
+        }
+    ]
     assert prio["regulated"] and prio["review_status"] == "author_reviewed"
     none = client.get("/api/v1/learn", params={"track": "electrician"}).json()
     assert none["units"] == [] and "Electrician doesn't have any yet" in none["coverage_note"]

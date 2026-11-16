@@ -191,7 +191,8 @@ attempt at that version says "Solution revealed: The exercise's explanation and 
 again before the next attempt is the same opening (no second row). An opening at another version of
 the exercise doesn't count. A Learn lesson that prepares an exercise (`prepares: "debug:<slug>"`)
 counts by the lesson rule: since Volume 17, prompt 5, **Fixing code from a failing test**
-(`se-failing-test`, version 1, author-reviewed) prepares all three exercises, is offered under
+(`se-failing-test`, version 1; a generated draft, not yet reviewed by the project author, since
+Volume 18, prompt 8 corrected its label: docs/LEARN_CONTENT.md) prepares all three exercises, is offered under
 "Learn first" on each, and its read is help for the first attempt after it (reading it after an
 attempt is the next one's). Since Volume 18, prompt 7, the practice plan suggests it when an exercise
 was tried and not fixed and no other lesson is suggested (docs/PLAN_UPDATES.md, "A debugging exercise

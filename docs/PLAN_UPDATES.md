@@ -139,7 +139,11 @@ when the plan reads code (a software engineer's plan with coding among its forma
 
 > **Learn: Fixing code from a failing test** · 7 min
 > A 7-minute lesson that prepares the debugging exercises, because “Fix: Coldest Reading” isn't fixed
-> yet. Pass the lesson's comprehension check. Reading it alone doesn't count.
+> yet. It's a generated draft, not reviewed yet. Pass the lesson's comprehension check. Reading it
+> alone doesn't count.
+
+The draft sentence is there because the lesson hasn't been reviewed (Volume 18, prompt 8;
+docs/LEARN_CONTENT.md, rule 3); a reviewed lesson's reason reads as before.
 
 - Tried means a submission (submit, not run) the judge judged and didn't pass: failed tests, a
   compile error, a time-out. One the judge couldn't run isn't an attempt, as everywhere in the plan.

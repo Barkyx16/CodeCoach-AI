@@ -54343,12 +54343,22 @@
           "title": {
             "type": "string",
             "title": "Title"
+          },
+          "review_status": {
+            "type": "string",
+            "enum": [
+              "author_reviewed",
+              "generated_draft"
+            ],
+            "title": "Review Status",
+            "description": "Whether the lesson has been reviewed; a generated draft says so wherever it's linked"
           }
         },
         "type": "object",
         "required": [
           "id",
-          "title"
+          "title",
+          "review_status"
         ],
         "title": "UnitLink"
       },

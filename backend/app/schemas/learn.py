@@ -62,6 +62,9 @@ class PracticeOut(APIModel):
 class UnitLink(APIModel):
     id: str
     title: str
+    review_status: Literal["author_reviewed", "generated_draft"] = Field(
+        description="Whether the lesson has been reviewed; a generated draft says so wherever it's linked"
+    )
 
 
 class UnitSummary(APIModel):

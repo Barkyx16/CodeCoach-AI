@@ -1,4 +1,5 @@
-"""A reviewed lesson that prepares the debugging exercises (Volume 17, prompt 5;
+"""A lesson that prepares the debugging exercises (Volume 17, prompt 5; a generated draft until the
+project author reviews it, Volume 18, prompt 8;
 docs/ATTEMPT_CONDITIONS.md, docs/LEARN.md): "Fixing code from a failing test" prepares the three
 exercises through `debug:<slug>` links that the content gate checks (a link to an exercise that
 doesn't exist is refused); an exercise's page offers it under "Learn first"; reading it before an
@@ -22,9 +23,10 @@ def lesson_help(conditions) -> list[dict]:
     return [h for h in conditions["help"] if "Fixing code from a failing test" in h["detail"]]
 
 
-def test_the_lesson_is_reviewed_prepares_every_exercise_and_is_offered_on_each(client):
+def test_the_lesson_says_its_a_draft_prepares_every_exercise_and_is_offered_on_each(client):
     u = UNIT_INDEX[UNIT]
-    assert u.review.status == "author_reviewed" and u.review.by and u.version == 1
+    assert u.review.status == "generated_draft" and u.version == 1
+    assert "project author" not in u.review.by  # drafted here; nobody is named as having reviewed it
     assert set(u.prepares) == {
         "debug:debug-coldest-day",
         "debug:debug-count-at-most",
@@ -32,7 +34,7 @@ def test_the_lesson_is_reviewed_prepares_every_exercise_and_is_offered_on_each(c
     }
     for slug in ("debug-coldest-day", "debug-count-at-most", "debug-palindrome-sentence"):
         related = client.get("/api/v1/learn/related", params={"problem_slug": slug}).json()
-        assert {"id": UNIT, "title": u.title} in related
+        assert {"id": UNIT, "title": u.title, "review_status": "generated_draft"} in related
     # An ordinary problem isn't offered it.
     assert UNIT not in {
         x["id"] for x in client.get("/api/v1/learn/related", params={"problem_slug": "two-sum"}).json()

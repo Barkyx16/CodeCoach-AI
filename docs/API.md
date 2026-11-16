@@ -917,7 +917,9 @@ on these endpoints.
   worked example, mistakes, exercise with `guided_steps` and a `solution`, check questions
   **without answers**, `pass_rule`, practice link, references with `url: null` when no link is
   recorded, review status, scope note, version and `changes`).
-- `GET /api/v1/learn/related?track=&question_id=` or `?problem_slug=`: units that prepare for it.
+- `GET /api/v1/learn/related?track=&question_id=` or `?problem_slug=`: units that prepare for it,
+  each `{id, title, review_status}` (`review_status` since Volume 18, prompt 8, additive; a unit's
+  prerequisites carry it too).
 - `GET /api/v1/me/learn?track=` 🔒 and `GET /api/v1/me/learn/units/{id}` 🔒: progress per unit
   (`versions_used, started, read, check_attempts, check_passed, passed_versions, practiced,
   practiced_evidence, events, next_action`). Reading progress also records `practiced` once a

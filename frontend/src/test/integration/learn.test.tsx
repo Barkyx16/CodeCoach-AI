@@ -95,6 +95,16 @@ describe("Learn mode", () => {
     expect(screen.getByRole("link", { name: "Back to the question" })).toBeInTheDocument();
   });
 
+  it("a lesson that hasn't been reviewed says so beside its Learn first link; a reviewed one doesn't", async () => {
+    asNurse();
+    renderApp("/careers/registered-nurse/questions/m-pressure-0", { signedIn: true });
+    const links = await screen.findByRole("region", { name: "Learn first" });
+    const draft = within(links).getByRole("link", { name: "A lesson drafted here" }).closest("li")!;
+    expect(within(draft).getByText("Draft: not reviewed")).toBeInTheDocument();
+    const reviewed = within(links).getByRole("link", { name: "Prioritizing when several patients need you" }).closest("li")!;
+    expect(within(reviewed).queryByText("Draft: not reviewed")).toBeNull();
+  });
+
   it("a career without units says so instead of showing another career's", async () => {
     renderApp("/learn?career=software-engineer");
     expect(await screen.findByText("No lessons for Software Engineer yet")).toBeInTheDocument();

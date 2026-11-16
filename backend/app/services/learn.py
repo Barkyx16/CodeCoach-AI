@@ -73,7 +73,10 @@ def summary(u: Unit) -> UnitSummary:
         topics=list(u.topics),
         minutes=u.minutes,
         objective=u.objective,
-        prerequisites=[UnitLink(id=p, title=find_unit(p).title) for p in u.prerequisites],
+        prerequisites=[
+            UnitLink(id=p, title=find_unit(p).title, review_status=find_unit(p).review.status)
+            for p in u.prerequisites
+        ],
         version=u.version,
         review_status=u.review.status,
         regulated=u.scope_note is not None,
@@ -348,4 +351,4 @@ def related(
             or topics & set(u.topics)
             or f"debug:{problem_slug}" in u.prepares  # a debugging exercise it prepares (Volume 17, prompt 5)
         ]
-    return [UnitLink(id=u.id, title=u.title) for u in out]
+    return [UnitLink(id=u.id, title=u.title, review_status=u.review.status) for u in out]

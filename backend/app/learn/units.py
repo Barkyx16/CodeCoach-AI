@@ -21,6 +21,13 @@ _AUTHOR_REVIEW = Review(
     note="Checked against the references listed and the repository's own problems and rubrics. "
     "Not reviewed by an outside expert.",
 )
+_DRAFTED_HERE = Review(
+    status="generated_draft",
+    by="Drafted in this repository with an AI coding assistant",
+    on="2026-11-16",
+    note="Checked against the debugging exercises' tests and the references listed, and by a test that "
+    "no exercise's defect is in its words. Not yet reviewed by the project author or an outside expert.",
+)
 _NURSE_REVIEW = Review(
     status="author_reviewed",
     by="CodeCoach project author",
@@ -821,7 +828,9 @@ FAILING_TEST = Unit(
             url="https://git-scm.com/docs/git-bisect",
         ),
     ),
-    review=_AUTHOR_REVIEW,
+    # Drafted in this repository (Volume 17, prompt 5) and not yet reviewed by the project author:
+    # a draft says so (docs/LEARN_CONTENT.md, rule 3; Volume 18, prompt 8).
+    review=_DRAFTED_HERE,
     # The debugging exercises it prepares (Volume 17, prompt 5; docs/ATTEMPT_CONDITIONS.md).
     prepares=("debug:debug-coldest-day", "debug:debug-count-at-most", "debug:debug-palindrome-sentence"),
 )
