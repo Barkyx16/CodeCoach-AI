@@ -89,6 +89,8 @@ keys, sign-in tokens, password hashes, share secrets or server settings.
 | `bookmarks` | Bookmarks on questions, problems or drills | The same item is already bookmarked | Skipped, with the reason |
 | `applications` | Applications with their interview events, and a first stage-history entry "Restored from a backup" | The same employer, role, date applied and link | A time that's ambiguous or invalid in its time zone keeps the date only |
 | `collections` (version 2 files only) | Collections with their name and queue (its position, and when it started), and their items in the order of each item's `position` (not where it sits in the file), each with the version it was added at (only one the source has had; otherwise "not known", never the version now), its mark of done in the queue (never later than now) and its "Mark reviewed" (`source_reviews`). Under the collection's and each item's id in the file when the file is this account's and no one has the id; otherwise new ids (Volume 15, prompt 6) | The same collection (by id) is already here: never overwritten, counted as already there. Another collection with the same name (spacing and capitals aside): skipped and said ("it's never overwritten or merged") | An item whose question, problem or drill left the library is left out with the reason (never swapped for a similar one); a retired one is kept and shown as unavailable, as the collection shows it today; the same item twice in one collection is kept once. Items name library content, not bookmarks, so nothing of another account is ever linked |
+| `listed_names` (Volume 16, prompt 4) | Names you listed, each replaced with [name] wherever something leaves the app (docs/PRIVACY.md), with the time each was added | The same name in any letter case and spacing is already listed | The list holds up to 100: names over the limit are left out and counted ("Over the list's limit of 100 names"), never named. A name the list couldn't hold (no letter, too long) is skipped with the reason. Version 1 and 2 files alike: a name needs no id |
+| `dismissed_suggestions` (Volume 16, prompt 4) | Suggestions you dismissed, not offered again on any device, with the time each was dismissed | The same suggestion (its key) is already dismissed | A suggestion that's no longer offered (its question retired, its pair removed) is left out with the reason, never matched to a similar one. Version 1 and 2 files alike |
 | `accepted_actions` (version 2 files only) | Accepted improvements with their notes, recurrence, marks of done and archive date, under the id in the file, and their occurrences from `schedule.entries` (date, time, time zone, length, status and marks of done), under theirs; requirement reuse only for requirements in this account (Volume 14, prompt 5) | One from the same suggestion (interview and improvement key) is already there | Its interview isn't in this account: skipped with the reason. An id already used elsewhere gets a new one |
 
 Each record is checked against the same limits as the app's own forms (lengths, `http(s)` links,
@@ -137,13 +139,16 @@ is left alone. The result says how many were removed, kept and already gone. Rem
 nothing more. Notes are removed with the notebook's own delete. A collection counts as changed if it
 was renamed, reordered, its queue moved, an item was added, removed, marked done or reviewed since;
 the collections kept for that are named (`removal.kept_collections`), and removing one takes its
-items and their reviews with it.
+items and their reviews with it. A name renamed since is kept; a suggestion offered again since is
+already gone, so it stays offered.
 
 ## Privacy
 
 Restores are owner-only, recorded in the data export (`restores`), and deleted with the account.
 The file's content isn't stored: only a fingerprint of the file (to recognise it again) and which
-records each batch added.
+records each batch added. For a name, that record is a digest, never the name, and the preview,
+the result and the batch say how many, never which; no name reaches a log or a trace
+(`tests/test_restore_choices.py`).
 
 ## Verified, and not
 

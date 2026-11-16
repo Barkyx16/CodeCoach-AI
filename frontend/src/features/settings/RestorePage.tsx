@@ -15,12 +15,14 @@ const MAX_BYTES = 5 * 1024 * 1024;
 const LABEL: Record<string, string> = {
   notes: "Notes", stories: "Stories", bookmarks: "Bookmarks", applications: "Applications",
   accepted_actions: "Accepted improvements", collections: "Collections",
+  listed_names: "Names you listed", dismissed_suggestions: "Dismissed suggestions",
 };
 /** A section's short name; one this page doesn't know yet is named by its key, never a crash. */
 const labelOf = (key: string) => (LABEL[key] ?? key.replace(/_/g, " ")).toLowerCase();
 
 /**
- * Restore your own notes, stories, bookmarks, applications, accepted improvements and collections from a CodeCoach backup into this
+ * Restore your own notes, stories, bookmarks, applications, accepted improvements, collections, the names you listed and the
+ * suggestions you dismissed from a CodeCoach backup into this
  * account: check the file first, choose what to add, and undo a restore later (keeping edits).
  */
 export function RestorePage() {

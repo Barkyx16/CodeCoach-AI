@@ -13053,7 +13053,7 @@ export interface components {
              * Key
              * @enum {string}
              */
-            key: "notes" | "stories" | "bookmarks" | "applications" | "accepted_actions" | "collections";
+            key: "notes" | "stories" | "bookmarks" | "applications" | "accepted_actions" | "collections" | "listed_names" | "dismissed_suggestions";
             /** Label */
             label: string;
             /**

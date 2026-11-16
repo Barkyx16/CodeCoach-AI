@@ -48,9 +48,11 @@ from app.models import (
     ApplicationStageChange,
     Bookmark,
     CollectionItem,
+    DismissedSuggestion,
     ExperienceEntry,
     ImportBatch,
     ImportedRecord,
+    ListedName,
     Note,
     PracticeCollection,
     PracticeSession,
@@ -66,7 +68,11 @@ from app.schemas.notes import NoteIn, SourceIn
 from app.schemas.restore import RestoreBatch, RestoreCategory, RestorePreview, RestoreSkip, RestoreUnsupported
 from app.schemas.stories import StoryCreate
 from app.services.applications import MAX_APPLICATIONS
+from app.services.dismissals import parse as parse_suggestion
 from app.services.explore import IN_COLLECTION, MAX_COLLECTIONS, MAX_ITEMS, SAVED
+from app.services.listed_names import MAX_NAMES
+from app.services.listed_names import clean as clean_name
+from app.services.listed_names import fold as fold_name
 from app.services.note_freshness import (
     NOTE,
     SourceFreshness,
@@ -90,6 +96,9 @@ CATEGORIES: dict[str, str] = {
     "applications": "Applications and their events",
     "accepted_actions": "Accepted improvements, with their occurrences (version 2 files)",
     "collections": "Collections, with their items in order (version 2 files)",
+    # Volume 16, prompt 4: what the account chose, not only what it made.
+    "listed_names": "Names you listed: replaced with [name] wherever something leaves the app",
+    "dismissed_suggestions": "Suggestions you dismissed: not offered again, on any device",
 }
 _ACCOUNT = "Account details, sign-in and roles are never restored. Your account stays exactly as it is."
 _RESULTS = (
@@ -135,7 +144,6 @@ NOT_RESTORED: dict[str, str] = {
     "schedule": _EXPOSE,
     "content_reports": "Reports you sent stay with the original account's history.",
     "lab_reveals": "When you opened a debugging exercise's explanation isn't restored: it describes attempts that stay with the original account.",
-    "listed_names": "Names you listed aren't restored from a file: add them again in Settings → Names kept in.",
     "interview_kits": "Interview-day kits belong to interview events by id, so they aren't restored yet.",
     "interview_reflections": "Interview reflections belong to interview events by id, so they aren't restored yet.",
 }
@@ -360,7 +368,14 @@ class Restore:
             select(PracticeCollection.id, PracticeCollection.name).where(PracticeCollection.user_id == uid)
         ).all()
         self._collection_names = {collection_name_key(n) for _, n in collections}
+        names = self.db.scalars(select(ListedName.folded).where(ListedName.user_id == uid)).all()
+        self._listed_count = len(names)
+        dismissed = self.db.scalars(
+            select(DismissedSuggestion.key).where(DismissedSuggestion.user_id == uid)
+        ).all()
         return {
+            "listed_names": set(names),
+            "dismissed_suggestions": set(dismissed),
             "collections": {f"id:{c}" for c, _ in collections},
             "notes": {note_identity(*r) for r in notes},
             "stories": {story_identity(*r) for r in stories},
@@ -410,6 +425,12 @@ class Restore:
                     continue
                 seen[cat].add(checked["identity"])
                 plan.adds[cat].append(checked)
+        # The list of names holds up to MAX_NAMES: the rest are left out and counted, never named.
+        room = max(0, MAX_NAMES - self._listed_count)
+        if len(plan.adds["listed_names"]) > room:
+            over = len(plan.adds["listed_names"]) - room
+            plan.adds["listed_names"] = plan.adds["listed_names"][:room]
+            plan.skipped["listed_names"][f"Over the list's limit of {MAX_NAMES} names"] += over
         return plan
 
     # --- per-category checks: a dict to add, or the reason it's skipped ---------------------------
@@ -833,6 +854,59 @@ class Restore:
             "queue_started_at": _when(row.get("queue_started_at")),
             "items": items,
         }
+
+    def _check_listed_names(self, row: dict, plan: _Plan) -> dict | str:
+        """A name the learner listed, by its letter-case-free form: the same name in any case is the
+        one already here. Only counts are ever said about names; they're never in a log, a trace or
+        the restore's record (which keeps a digest)."""
+        plan.ignored_fields += len(set(row) - {"name", "created_at", "updated_at"})
+        try:
+            text = clean_name(_s(row.get("name")))
+        except AppError:
+            return "Not a name the list can hold"
+        return {"identity": fold_name(text), "name": text, "created_at": _when(row.get("created_at"))}
+
+    def _check_dismissed_suggestions(self, row: dict, plan: _Plan) -> dict | str:
+        """A dismissal by its suggestion's key, checked against the suggestions that exist now: one
+        whose question was retired or whose pair was removed is left out, never matched to a similar
+        one."""
+        plan.ignored_fields += len(set(row) - {"key", "kind", "offered_on", "dismissed_at"})
+        key = _s(row.get("key"))
+        try:
+            parsed = parse_suggestion(key)
+        except AppError:
+            return "The suggestion it dismissed isn't offered any more (a retired question or a removed pair)"
+        return {
+            "identity": key,
+            "kind": parsed.kind,
+            "offered_on": (_s(row.get("offered_on")) or None),
+            "dismissed_at": _when(row.get("dismissed_at")),
+        }
+
+    def _add_listed_names(self, item: dict) -> tuple[str, str, str]:
+        now = datetime.now(UTC)
+        row = ListedName(
+            user_id=self.user.id,
+            name=item["name"],
+            folded=item["identity"],
+            created_at=item["created_at"] or now,
+            updated_at=now,
+        )
+        self.db.add(row)
+        self.db.flush()
+        return "listed_name", row.id, _sha(["listed_name", row.folded])  # a digest: never the name
+
+    def _add_dismissed_suggestions(self, item: dict) -> tuple[str, str, str]:
+        row = DismissedSuggestion(
+            user_id=self.user.id,
+            key=item["identity"],
+            kind=item["kind"],
+            offered_on=(item["offered_on"] or "")[:200] or None,
+            dismissed_at=item["dismissed_at"] or datetime.now(UTC),
+        )
+        self.db.add(row)
+        self.db.flush()
+        return "dismissal", row.id, _sha(["dismissal", row.key])
 
     def _mine(self, cat: str) -> set[str]:
         return self._existing_cache[cat]
@@ -1281,6 +1355,12 @@ class Restore:
             elif r.kind == "collection":
                 row = self.db.get(PracticeCollection, r.record_id)
                 current = collection_full(row, self._item_reviews(row)) if row is not None else None
+            elif r.kind == "listed_name":
+                row = self.db.get(ListedName, r.record_id)  # renamed since: kept
+                current = _sha(["listed_name", row.folded]) if row is not None else None
+            elif r.kind == "dismissal":
+                row = self.db.get(DismissedSuggestion, r.record_id)  # offered again since: already gone
+                current = _sha(["dismissal", row.key]) if row is not None else None
             else:
                 row = self.db.get(Application, r.record_id)
                 current = application_full(row) if row is not None else None

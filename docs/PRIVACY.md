@@ -130,8 +130,11 @@ them, in what leaves CodeCoach only:
   the list goes as written.
 - **Private**: read only for the signed-in account (another account's list is never read, owner-only
   under row-level security), in the data export (`listed_names`) and the data summary, deleted with
-  the account, not restored from a backup file (add them again), and never written to a log or a
-  trace (`tests/test_listed_names.py`, a canary name through the packet, a hint and the list itself).
+  the account, restored from a backup file when you choose them (Volume 16, prompt 4;
+  docs/BACKUP_FORMAT.md: only names not already listed, up to the limit, the rest counted, never
+  named; the restore's own record keeps a digest, never the name), and never written to a log or a
+  trace (`tests/test_listed_names.py`, a canary name through the packet, a hint and the list itself;
+  `tests/test_restore_choices.py`, the same through a restore).
 
 ## Limits
 

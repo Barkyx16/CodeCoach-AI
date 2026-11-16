@@ -45317,7 +45317,9 @@
               "bookmarks",
               "applications",
               "accepted_actions",
-              "collections"
+              "collections",
+              "listed_names",
+              "dismissed_suggestions"
             ],
             "title": "Key"
           },

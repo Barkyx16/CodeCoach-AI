@@ -14,7 +14,16 @@ class RestoreSkip(APIModel):
 
 
 class RestoreCategory(APIModel):
-    key: Literal["notes", "stories", "bookmarks", "applications", "accepted_actions", "collections"]
+    key: Literal[
+        "notes",
+        "stories",
+        "bookmarks",
+        "applications",
+        "accepted_actions",
+        "collections",
+        "listed_names",
+        "dismissed_suggestions",
+    ]
     label: str
     found: int = Field(description="Records of this kind in the file")
     new: int = Field(description="Would be added")
