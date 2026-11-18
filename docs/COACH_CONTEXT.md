@@ -219,9 +219,33 @@ each part (never a line) and how many turns there were. When the interview is sc
 changed after the check says how, under the sentence above: **"The conversation so far: 2 messages
 sent after your check"**, or **"Your code: 4 lines added, 3 lines removed"**, with the added lines
 shown by number from the code the interview keeps (the first 20; the review's code view has the
-rest). The lines are matched in order (a line moved counts as removed and added). Only numbers and
-counts are recorded with the feedback (`confirmed.changes`), so the export carries them and no line
-of text. A check kept before this has no line digests: it names the parts, as it did.
+rest). The lines are matched in order (until Volume 19, prompt 8, a line moved counted as removed
+and added; see below). Only numbers and counts are recorded with the feedback (`confirmed.changes`),
+so the export carries them and no line of text. A check kept before this has no line digests: it
+names the parts, as it did.
+
+**A moved line is one change (Volume 19, prompt 8).** After the lines are matched in order (difflib
+over the digests), each removed line is paired with an added line of the same digest, one copy for
+one copy: a pair is a line **moved**, and leaves the added and removed counts. "Your code: 2 lines
+moved, 1 line added"; with nothing moved the words read exactly as before. The record gains `moved`
+and `moved_lines` (the moved lines' new numbers, the first 20), additive in the API, and the review
+lists the moved lines apart from the added ones, from your code. A change recorded before this has
+no `moved` and reads as it did. Worked example (each letter is one line's digest):
+
+| Before | After | Moved | Added | Removed | Why |
+|---|---|---|---|---|---|
+| a b c d e | a c d b e | b (line 4) | none | 0 | b left line 2 and is now line 4, unchanged |
+| a b c d e f | a d e f b c | b, c (lines 5, 6) | none | 0 | a block moves line by line |
+| x a b | a b x x | x (line 3) | x (line 4) | 0 | one copy of x left, two came: one is the move, the other is new |
+| a b c d | a c d B | none | B (line 4) | 1 | b moved **and** was edited: its digest changed, so nothing pairs with it; one removed, one added |
+| _ a b | a b _ | _ (line 3) | none | 0 | a blank line (_) follows the same rule as any other line |
+
+Still digests only: no line's text is kept with the check. These words are shown in the review only;
+they're worked out when the interview is scored, after the feedback, so nothing the coach reads
+changed (no prompt version, no evaluation gate). No score, ending or feedback-read record changes.
+Tests: `backend/tests/test_moved_lines.py` (the table above and more, a repeated line pairing once
+per copy, the words, an old record, an interview scored after a moved line),
+`frontend/src/test/integration/feedbackCheck.test.tsx` (+2: moved lines listed apart; an old record).
 
 ## When time runs out (Volume 17, prompt 1)
 

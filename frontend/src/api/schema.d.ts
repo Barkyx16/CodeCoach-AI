@@ -6446,6 +6446,16 @@ export interface components {
              * @description 1-based, in the part as read
              */
             added_lines?: number[];
+            /**
+             * Moved
+             * @description Lines removed in one place and added in another, the same line (Volume 19, prompt 8); not counted in added or removed. Null for a change recorded before moves were counted
+             */
+            moved?: number | null;
+            /**
+             * Moved Lines
+             * @description The moved lines' new numbers, 1-based in the part as read (at most 20)
+             */
+            moved_lines?: number[];
             /** Messages After */
             messages_after?: number | null;
             /**

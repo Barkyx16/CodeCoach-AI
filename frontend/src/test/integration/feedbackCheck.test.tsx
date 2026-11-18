@@ -133,6 +133,37 @@ describe("A check before time ran out", () => {
     expect(screen.queryByLabelText("Lines added to Your code after your check")).not.toBeInTheDocument();
   });
 
+  it("lines moved after the check are listed apart from the added ones, from your code (Volume 19, prompt 8)", () => {
+    const code = ["class Solution {", "  int b = 2;", "  int a = 1;", "  int c = a + b;", "}"].join("\n");
+    const read: FeedbackRead = {
+      recorded: true, ending: "time_expired", checked: false, fingerprint: "v1:read", read_by: null, items: [],
+      text: "You checked an earlier version before time ran out; it changed after: Your code.",
+      confirmed: {
+        at: "2026-11-18T09:13:00Z", fingerprint: "v1:first", matched: false, changed: ["Your code"], code_unsent: false,
+        changes: [{ label: "Your code", text: "Your code: 1 line moved, 1 line added", added: 1, removed: 0, added_lines: [4], moved: 1, moved_lines: [2], messages_after: null }],
+      },
+    };
+    render(<FeedbackReadSection read={read} code={code} />);
+    const list = screen.getByRole("list", { name: "What changed after your check" });
+    expect(list).toHaveTextContent("Your code: 1 line moved, 1 line added.");
+    expect(within(list).getByLabelText("Lines moved in Your code after your check")).toHaveTextContent(/^\s*2\s+int b = 2;$/);
+    expect(within(list).getByLabelText("Lines added to Your code after your check")).toHaveTextContent(/^\s*4\s+int c = a \+ b;$/);
+  });
+
+  it("a change recorded before moves were counted shows as it did", () => {
+    const read: FeedbackRead = {
+      recorded: true, ending: "time_expired", checked: false, fingerprint: "v1:read", read_by: null, items: [],
+      text: "You checked an earlier version before time ran out; it changed after: Your code.",
+      confirmed: {
+        at: "2026-11-16T09:13:00Z", fingerprint: "v1:first", matched: false, changed: ["Your code"], code_unsent: false,
+        changes: [{ label: "Your code", text: "Your code: 1 line added, 1 line removed", added: 1, removed: 1, added_lines: [1], messages_after: null }],
+      },
+    };
+    render(<FeedbackReadSection read={read} code="int x;" />);
+    expect(screen.getByRole("list", { name: "What changed after your check" })).toHaveTextContent("Your code: 1 line added, 1 line removed.");
+    expect(screen.queryByLabelText("Lines moved in Your code after your check")).not.toBeInTheDocument();
+  });
+
   it("a hint asked for after the check is listed among what changed, with no lines (Volume 18, prompt 3)", () => {
     const read: FeedbackRead = {
       recorded: true, ending: "time_expired", checked: false, fingerprint: "v1:read", read_by: null, items: [],

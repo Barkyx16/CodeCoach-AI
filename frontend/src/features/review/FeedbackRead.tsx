@@ -6,7 +6,8 @@ import { formatDateTime } from "@/lib/format";
  * docs/COACH_CONTEXT.md, "What the feedback read"): each part by its label and size, what was
  * replaced in it, who read it, and whether you checked it first. Never a copy of the text: the
  * transcript and your code are above, as you wrote them. When it changed after a check, each changed
- * part says how (Volume 17, prompt 1), and the lines added to your code are shown from that code.
+ * part says how (Volume 17, prompt 1), and the lines added to your code are shown from that code, with
+ * the lines moved in it apart (Volume 19, prompt 8).
  */
 export function FeedbackReadSection({ read, code }: { read: FeedbackRead; code?: string | null }) {
   const changes = read.confirmed?.changes ?? [];
@@ -31,6 +32,15 @@ export function FeedbackReadSection({ read, code }: { read: FeedbackRead; code?:
               )}
               {(c.added ?? 0) > (c.added_lines ?? []).length && (c.added_lines ?? []).length > 0 && (
                 <span className="subtle"> The first {(c.added_lines ?? []).length} added lines are shown.</span>
+              )}
+              {/* Lines moved, apart from the added ones (Volume 19, prompt 8): where each is now. */}
+              {code && (c.moved_lines ?? []).length > 0 && (
+                <pre className="feedback-read__lines" aria-label={`Lines moved in ${c.label} after your check`}>
+                  {(c.moved_lines ?? []).filter((n) => n <= codeLines.length).map((n) => `${String(n).padStart(3)}  ${codeLines[n - 1]}`).join("\n")}
+                </pre>
+              )}
+              {(c.moved ?? 0) > (c.moved_lines ?? []).length && (c.moved_lines ?? []).length > 0 && (
+                <span className="subtle"> The first {(c.moved_lines ?? []).length} moved lines are shown.</span>
               )}
             </li>
           ))}

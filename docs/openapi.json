@@ -29818,6 +29818,26 @@
             "title": "Added Lines",
             "description": "1-based, in the part as read"
           },
+          "moved": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Moved",
+            "description": "Lines removed in one place and added in another, the same line (Volume 19, prompt 8); not counted in added or removed. Null for a change recorded before moves were counted"
+          },
+          "moved_lines": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Moved Lines",
+            "description": "The moved lines' new numbers, 1-based in the part as read (at most 20)"
+          },
           "messages_after": {
             "anyOf": [
               {

@@ -38,6 +38,7 @@ import difflib
 import hashlib
 import hmac
 import logging
+from collections import Counter
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -158,7 +159,9 @@ def _plural_of(n: int, one: str, many: str) -> str:
 
 
 def change_text(change: dict[str, Any]) -> str:
-    """One changed part, said: "Your code: 3 lines added, 1 line removed"."""
+    """One changed part, said: "Your code: 3 lines added, 1 line removed", or with lines moved
+    (Volume 19, prompt 8) "Your code: 2 lines moved, 1 line added". A record from before moves were
+    counted has no `moved`, so it reads as it did."""
     if change.get("hints_after"):
         names = change["hints_after"]
         listed = names[0] if len(names) == 1 else ", ".join(names[:-1]) + " and " + names[-1]
@@ -168,7 +171,7 @@ def change_text(change: dict[str, Any]) -> str:
         return f"{change['label']}: {_plural_of(n, 'message', 'messages')} sent after your check"
     said = [
         f"{_plural_of(change[k], 'line', 'lines')} {word}"
-        for k, word in (("added", "added"), ("removed", "removed"))
+        for k, word in (("moved", "moved"), ("added", "added"), ("removed", "removed"))
         if change.get(k)
     ]
     return f"{change['label']}: {', '.join(said) or f'changed after its first {CHECK_LINES:,} lines'}"
@@ -200,22 +203,42 @@ def _check_changes(
         if item.key == "conversation" and isinstance(check.get("turns"), int):
             out.append({"label": item.label, "messages_after": max(len(session.turns) - check["turns"], 0)})
             continue
-        ops = difflib.SequenceMatcher(
-            a=kept[item.label]["lines"], b=_line_digests(item.text), autojunk=False
-        ).get_opcodes()
-        added = [
-            n + 1 for tag, _i1, _i2, j1, j2 in ops if tag in ("insert", "replace") for n in range(j1, j2)
-        ]
-        removed = sum(i2 - i1 for tag, i1, i2, _j1, _j2 in ops if tag in ("delete", "replace"))
+        added, removed, moved = line_moves(kept[item.label]["lines"], _line_digests(item.text))
         out.append(
             {
                 "label": item.label,
                 "added": len(added),
                 "removed": removed,
                 "added_lines": added[:SHOWN_LINES],
+                "moved": len(moved),
+                "moved_lines": moved[:SHOWN_LINES],
             }
         )
     return out
+
+
+def line_moves(before: list[str], after: list[str]) -> tuple[list[int], int, list[int]]:
+    """Lines matched in order (difflib over the digests), then each removed line paired with an added
+    line of the same digest, one copy for one copy (Volume 19, prompt 8): a pair is a line moved, not
+    one removed and one added. A line moved and edited has a new digest, so it stays one removed and
+    one added. Blank lines follow the same rule. Returns the added lines' new numbers, the removed
+    count and the moved lines' new numbers (1-based, in order)."""
+    ops = difflib.SequenceMatcher(a=before, b=after, autojunk=False).get_opcodes()
+    gone = Counter(
+        before[i] for tag, i1, i2, _j1, _j2 in ops if tag in ("delete", "replace") for i in range(i1, i2)
+    )
+    added: list[int] = []
+    moved: list[int] = []
+    for tag, _i1, _i2, j1, j2 in ops:
+        if tag not in ("insert", "replace"):
+            continue
+        for j in range(j1, j2):
+            if gone[after[j]] > 0:  # a copy removed elsewhere: this is it, moved
+                gone[after[j]] -= 1
+                moved.append(j + 1)
+            else:
+                added.append(j + 1)
+    return added, sum(gone.values()), moved
 
 
 def hints_during(session: PracticeSession) -> tuple[str, ...]:

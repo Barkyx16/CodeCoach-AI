@@ -334,6 +334,15 @@ class CheckChange(APIModel):
     added: int | None = None
     removed: int | None = None
     added_lines: list[int] = Field(default_factory=list, description="1-based, in the part as read")
+    moved: int | None = Field(
+        default=None,
+        description="Lines removed in one place and added in another, the same line (Volume 19, prompt 8); "
+        "not counted in added or removed. Null for a change recorded before moves were counted",
+    )
+    moved_lines: list[int] = Field(
+        default_factory=list,
+        description="The moved lines' new numbers, 1-based in the part as read (at most 20)",
+    )
     messages_after: int | None = None
     hints_after: list[str] = Field(
         default_factory=list,
