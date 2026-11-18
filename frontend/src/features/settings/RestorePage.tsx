@@ -17,13 +17,14 @@ const LABEL: Record<string, string> = {
   notes: "Notes", stories: "Stories", bookmarks: "Bookmarks", applications: "Applications",
   accepted_actions: "Accepted improvements", collections: "Collections",
   listed_names: "Names you listed", dismissed_suggestions: "Dismissed suggestions",
+  review_queue: "Questions saved for review",
 };
 /** A section's short name; one this page doesn't know yet is named by its key, never a crash. */
 const labelOf = (key: string) => (LABEL[key] ?? key.replace(/_/g, " ")).toLowerCase();
 
 /**
- * Restore your own notes, stories, bookmarks, applications, accepted improvements, collections, the names you listed and the
- * suggestions you dismissed from a CodeCoach backup into this
+ * Restore your own notes, stories, bookmarks, applications, accepted improvements, collections, the names you listed, the
+ * suggestions you dismissed and which questions you saved for review (each starting afresh) from a CodeCoach backup into this
  * account: check the file first, choose what to add, and undo a restore later (keeping edits).
  */
 export function RestorePage() {
@@ -142,6 +143,8 @@ export function RestorePage() {
                   {c.samples.length > 0 && <> · for example {c.samples.slice(0, 3).map((s) => `“${s}”`).join(", ")}</>}
                 </p>
                 {c.skipped.length > 0 && <ul className="mini-list subtle">{c.skipped.map((s) => <li key={s.reason}>{s.count} × {s.reason}</li>)}</ul>}
+                {/* What this kind brings back and what it doesn't, in the server's words (Volume 20, prompt 1). */}
+                {c.note && <p className="subtle restore-note">{c.note}</p>}
               </div>
             ))}
           </fieldset>

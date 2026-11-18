@@ -9,7 +9,9 @@ The contract (see docs/BACKUP_FORMAT.md):
 - Restorable: notes, stories, bookmarks, and applications with their events; from a version 2
   file (which keeps ids), accepted improvements with their occurrences, under their own ids
   (Volume 14, prompt 5), and collections with their items in order, each item's version and
-  reviews, under theirs (Volume 15, prompt 6). Everything else is listed as not restored, with the reason: account details and roles; practice results and any
+  reviews, under theirs (Volume 15, prompt 6); and which questions were saved for review, each as a
+  new item starting afresh (Volume 20, prompt 1: no ladder step, due date, score, review count or point
+  comes from a file). Everything else is listed as not restored, with the reason: account details and roles; practice results and any
   evaluation (they can't be verified from a file, so an edited backup can't create a passing
   verdict or a score); and shares, sessions and the schedule (they could expose data or trigger
   something).
@@ -28,7 +30,7 @@ import json
 import uuid
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from pydantic import ValidationError
@@ -57,6 +59,7 @@ from app.models import (
     PracticeCollection,
     PracticeSession,
     Problem,
+    ReviewItem,
     RoleTarget,
     ScheduleEntry,
     SourceReview,
@@ -82,6 +85,8 @@ from app.services.note_freshness import (
     problem_versions,
 )
 from app.services.notes import MAX_NOTES, Notebook, clean_tags
+from app.services.review_queue import LADDER
+from app.services.review_queue import MAX_ACTIVE as MAX_QUEUE
 from app.services.stories import MAX_STORIES, record_revision
 from app.services.timeutil import local_to_utc
 
@@ -99,6 +104,17 @@ CATEGORIES: dict[str, str] = {
     # Volume 16, prompt 4: what the account chose, not only what it made.
     "listed_names": "Names you listed: replaced with [name] wherever something leaves the app",
     "dismissed_suggestions": "Suggestions you dismissed: not offered again, on any device",
+    # Volume 20, prompt 1: which questions you saved for review (a choice, not a result).
+    "review_queue": "Questions saved for review, each starting afresh",
+}
+# What a category brings back and what it doesn't, said in the preview when it needs saying.
+NOTES: dict[str, str] = {
+    "review_queue": (
+        f"Only which questions you saved comes back. Each starts its review ladder afresh, first due "
+        f"{LADDER[0]} day after the restore, as a newly saved question is. Ladders, due dates, scores, review "
+        "counts and the points each was saved for aren't restored: they come from answers, and a file can't "
+        "prove those happened here."
+    ),
 }
 _ACCOUNT = "Account details, sign-in and roles are never restored. Your account stays exactly as it is."
 _RESULTS = (
@@ -118,7 +134,6 @@ NOT_RESTORED: dict[str, str] = {
     "goals": _RESULTS,
     "plans": _RESULTS,
     "retries": _RESULTS,
-    "review_queue": _RESULTS,
     "scenario_attempts": _RESULTS,
     "learn_events": _RESULTS,
     "progress_events": _RESULTS,
@@ -237,6 +252,31 @@ def collection_full(c: PracticeCollection, reviews: list[tuple[str, int]]) -> st
                 for i in sorted(c.items, key=lambda i: i.position)
             ],
             sorted(reviews),
+        ]
+    )
+
+
+def review_identity(track: str, question_id: str) -> str:
+    """A question saved for review is the same one by its career and question, whatever its ladder."""
+    return _sha(["review", track, question_id])
+
+
+def review_full(r: ReviewItem) -> str:
+    """A saved question as restored: fresh. Practised, snoozed, given a point or removed since, it's
+    changed, and removing the restore keeps it."""
+    return _sha(
+        [
+            r.track,
+            r.question_id,
+            r.step,
+            r.reviews,
+            r.last_score,
+            str(r.due_at),
+            r.snoozed,
+            r.criterion,
+            r.points,
+            r.removed_points,
+            r.removed,
         ]
     )
 
@@ -371,7 +411,16 @@ class Restore:
         dismissed = self.db.scalars(
             select(DismissedSuggestion.key).where(DismissedSuggestion.user_id == uid)
         ).all()
+        queue = self.db.execute(
+            select(ReviewItem.track, ReviewItem.question_id, ReviewItem.removed).where(
+                ReviewItem.user_id == uid
+            )
+        ).all()
+        active = {review_identity(t, q) for t, q, removed in queue if not removed}
+        # Taken out of the queue here (and not saved again): a file doesn't put it back.
+        self._queue_removed = {review_identity(t, q) for t, q, removed in queue if removed} - active
         return {
+            "review_queue": active,
             "listed_names": set(names),
             "dismissed_suggestions": set(dismissed),
             "collections": {f"id:{c}" for c, _ in collections},
@@ -881,6 +930,58 @@ class Restore:
             "dismissed_at": _when(row.get("dismissed_at")),
         }
 
+    def _check_review_queue(self, row: dict, plan: _Plan) -> dict | str:
+        """Which question was saved for review, and only that (Volume 20, prompt 1): its ladder, due date,
+        score, review count and points are read from nothing, so an edited file can't create progress.
+        A question removed from the queue in the file, or here, stays removed."""
+        plan.ignored_fields += len(
+            set(row)
+            - {
+                "career",
+                "question",
+                "due_at",
+                "step",
+                "last_score",
+                "reviews",
+                "removed",
+                "removed_at",
+                "created_at",
+                "saved_for_point",
+                "saved_for_points",
+                "points_removed",
+                "recounted",
+                "left_out_disputed",
+            }
+        )
+        track, ref = row.get("career"), row.get("question")
+        if not isinstance(track, str) or not isinstance(ref, str) or not track or not ref:
+            return "Malformed"
+        q = get_question(track, ref) if track in CATALOG else None
+        if q is None:
+            return "The question isn't in the library (it's never swapped for a similar one)"
+        if row.get("removed") is True:
+            return "Removed from the queue when the file was made: left out"
+        identity = review_identity(track, ref)
+        if identity in self._queue_removed:
+            return "Removed from your queue here: left as it is (put it back from Removed recently)"
+        return {"identity": identity, "track": track, "question": ref, "title": q.title}
+
+    def _add_review_queue(self, item: dict) -> tuple[str, str, str]:
+        """A new item, as saving the question now would make it: first rung, first due date, no score."""
+        now = datetime.now(UTC)
+        row = ReviewItem(
+            user_id=self.user.id,
+            track=item["track"],
+            question_id=item["question"],
+            step=0,
+            due_at=now + timedelta(days=LADDER[0]),
+            scheduled_at=now,
+            created_at=now,
+        )
+        self.db.add(row)
+        self.db.flush()
+        return "review_item", row.id, review_full(row)
+
     def _add_listed_names(self, item: dict) -> tuple[str, str, str]:
         now = datetime.now(UTC)
         row = ListedName(
@@ -1097,6 +1198,7 @@ class Restore:
             duplicates=plan.duplicates[key],
             skipped=skipped,
             samples=[s for s in samples if s],
+            note=NOTES.get(key),
         )
 
     # --- applying ---------------------------------------------------------------------------------
@@ -1184,6 +1286,12 @@ class Restore:
             "collections": (
                 MAX_COLLECTIONS,
                 select(func.count()).select_from(PracticeCollection).where(PracticeCollection.user_id == uid),
+            ),
+            "review_queue": (
+                MAX_QUEUE,
+                select(func.count())
+                .select_from(ReviewItem)
+                .where(ReviewItem.user_id == uid, ReviewItem.removed.is_(False)),
             ),
         }
         for cat, (limit, stmt) in checks.items():
@@ -1359,6 +1467,13 @@ class Restore:
             elif r.kind == "dismissal":
                 row = self.db.get(DismissedSuggestion, r.record_id)  # offered again since: already gone
                 current = _sha(["dismissal", row.key]) if row is not None else None
+            elif r.kind == "review_item":
+                # Removed from the queue since: already gone. Practised, snoozed, given a point or
+                # planned in the schedule since: changed, so kept.
+                row = self.db.get(ReviewItem, r.record_id)
+                current = review_full(row) if row is not None and not row.removed else None
+                if current is not None and self._scheduled(row.id):
+                    current = "scheduled"
             else:
                 row = self.db.get(Application, r.record_id)
                 current = application_full(row) if row is not None else None
@@ -1390,6 +1505,20 @@ class Restore:
             b.removal["kept_collections"] = sorted(kept_collections)  # changed since: kept, by name
         self.db.commit()
         return self._batch_out(b)
+
+    def _scheduled(self, review_item_id: str) -> bool:
+        return (
+            self.db.scalar(
+                select(func.count())
+                .select_from(ScheduleEntry)
+                .where(
+                    ScheduleEntry.user_id == self.user.id,
+                    ScheduleEntry.kind == "review_item",
+                    ScheduleEntry.ref == review_item_id,
+                )
+            )
+            or 0
+        ) > 0
 
     def _occurrences(self, action_id: str) -> list[ScheduleEntry]:
         return list(

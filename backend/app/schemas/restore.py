@@ -23,6 +23,7 @@ class RestoreCategory(APIModel):
         "collections",
         "listed_names",
         "dismissed_suggestions",
+        "review_queue",
     ]
     label: str
     found: int = Field(description="Records of this kind in the file")
@@ -30,6 +31,11 @@ class RestoreCategory(APIModel):
     duplicates: int = Field(description="Already in your account (or twice in the file): skipped")
     skipped: list[RestoreSkip]
     samples: list[str] = Field(description="A few titles, so you can recognise them")
+    note: str | None = Field(
+        None,
+        description="What restoring this kind brings back and what it doesn't, when that needs saying "
+        "(the review queue: only which questions were saved; each starts afresh)",
+    )
 
 
 class RestoreUnsupported(APIModel):

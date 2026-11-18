@@ -78,6 +78,11 @@ left out. The practice-labs line here says what each attempt is exported with. A
 stays version 1 by default and version 2 on request; a backup file still doesn't restore practice
 results (test-design runs included) and says so.
 
+A backup file now brings back which questions you saved for review (Volume 20, prompt 1;
+docs/BACKUP_FORMAT.md): each as a new item starting afresh, first due a day after the restore. Their
+ladders, due dates, scores, review counts and points stay with the account they came from, and the
+restore's preview says so beside the category.
+
 Export, restore and deletion stay where they are: the page links to Settings' **Download my data**,
 **Restore from a backup** and **Danger zone** (password and "DELETE"), and Settings now moves focus
 to the section a link names. No new way to export or delete.

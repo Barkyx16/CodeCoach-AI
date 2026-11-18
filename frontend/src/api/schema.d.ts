@@ -13590,7 +13590,7 @@ export interface components {
              * Key
              * @enum {string}
              */
-            key: "notes" | "stories" | "bookmarks" | "applications" | "accepted_actions" | "collections" | "listed_names" | "dismissed_suggestions";
+            key: "notes" | "stories" | "bookmarks" | "applications" | "accepted_actions" | "collections" | "listed_names" | "dismissed_suggestions" | "review_queue";
             /** Label */
             label: string;
             /**
@@ -13615,6 +13615,11 @@ export interface components {
              * @description A few titles, so you can recognise them
              */
             samples: string[];
+            /**
+             * Note
+             * @description What restoring this kind brings back and what it doesn't, when that needs saying (the review queue: only which questions were saved; each starts afresh)
+             */
+            note?: string | null;
         };
         /** RestoreIn */
         RestoreIn: {

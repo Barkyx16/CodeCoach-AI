@@ -46800,7 +46800,8 @@
               "accepted_actions",
               "collections",
               "listed_names",
-              "dismissed_suggestions"
+              "dismissed_suggestions",
+              "review_queue"
             ],
             "title": "Key"
           },
@@ -46837,6 +46838,18 @@
             "type": "array",
             "title": "Samples",
             "description": "A few titles, so you can recognise them"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note",
+            "description": "What restoring this kind brings back and what it doesn't, when that needs saying (the review queue: only which questions were saved; each starts afresh)"
           }
         },
         "type": "object",

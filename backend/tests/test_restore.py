@@ -179,6 +179,7 @@ def test_files_that_are_not_backups_are_refused_with_reasons(client):
         "collections": 0,  # read from version 2 files (Volume 15, prompt 6)
         "listed_names": 0,  # Volume 16, prompt 4
         "dismissed_suggestions": 0,
+        "review_queue": 0,  # which questions were saved, each afresh (Volume 20, prompt 1)
     }
     assert (
         body["ignored_fields"] == 1
