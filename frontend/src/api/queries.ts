@@ -856,9 +856,14 @@ export function useDataSummary() {
   return useQuery({ queryKey: ["me", "data-summary"], queryFn: api.dataSummary, staleTime: 0 });
 }
 
+/** What Continue your work can show beyond the kinds from before Volume 20 (prompt 6): debugging
+ * exercises tried and not fixed, and a scenario run's last step's time. A page cached from before
+ * doesn't send it, so the server never sends it a kind it can't open. */
+export const RECENT_WORK_SHOWS = "debug_exercise,last_step";
+
 /** Recent records to continue: read again whenever the dashboard shows, so deleted ones drop out. */
 export function useRecentWork(enabled = true) {
-  return useQuery({ queryKey: ["me", "recent-work"], queryFn: () => api.recentWork(6), staleTime: 0, enabled });
+  return useQuery({ queryKey: ["me", "recent-work"], queryFn: () => api.recentWork(6, RECENT_WORK_SHOWS), staleTime: 0, enabled });
 }
 
 /** Your own saved work matching some words. Keyed by account and the exact search, so an answer

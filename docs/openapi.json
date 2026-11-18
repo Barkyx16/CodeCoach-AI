@@ -22987,6 +22987,19 @@
               "default": 6,
               "title": "Limit"
             }
+          },
+          {
+            "name": "shows",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "What the page can show beyond the kinds from before Volume 20, comma-separated: debug_exercise, last_step. Unknown values are ignored; without it, the response is as before.",
+              "default": "",
+              "title": "Shows"
+            },
+            "description": "What the page can show beyond the kinds from before Volume 20, comma-separated: debug_exercise, last_step. Unknown values are ignored; without it, the response is as before."
           }
         ],
         "responses": {
@@ -44491,14 +44504,15 @@
               "application",
               "offer_comparison",
               "scenario_run",
-              "test_design_run"
+              "test_design_run",
+              "debug_exercise"
             ],
             "title": "Type"
           },
           "id": {
             "type": "string",
             "title": "Id",
-            "description": "The record's id; for a kit, its event's id"
+            "description": "The record's id; for a kit, its event's id; for a debugging exercise, its slug"
           },
           "parent_id": {
             "anyOf": [
@@ -44545,7 +44559,7 @@
               }
             ],
             "title": "Detail",
-            "description": "A short status: an application's stage, a kit's date, a test-design run's result in its run list's words"
+            "description": "A short status: an application's stage, a kit's date, a test-design run's result in its run list's words, a debugging exercise's newest attempt in the exercise page's words"
           },
           "at": {
             "type": "string",
@@ -44557,10 +44571,12 @@
             "enum": [
               "saved",
               "started",
-              "finished"
+              "finished",
+              "tried",
+              "last_step"
             ],
             "title": "At Meaning",
-            "description": "saved: last saved to your account; started/finished: the session's or run's own times. Nothing here means 'opened'."
+            "description": "saved: last saved to your account; started/finished: the session's or run's own times; tried: a debugging exercise's newest attempt; last_step: a scenario run's last step. Nothing here means 'opened'."
           }
         },
         "type": "object",

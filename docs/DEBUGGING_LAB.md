@@ -71,6 +71,11 @@ alternative repair through the real judge (`tests/test_judge_sandbox.py`, `e2e/j
   it with the reference text.
 - **History:** the code the attempt started from (with its version) and the code sent, apart from
   the verdict and any AI review.
+- **Continue your work** (Volume 20, prompt 6; docs/CONTINUE.md): an exercise none of whose
+  submitted attempts passed, tried in the last week, is listed as a "Debugging exercise", "tried" at
+  its newest attempt's time, with that attempt's verdict in this page's words ("Not fixed yet: 3 of 7
+  tests pass", "Saved, not checked"); Resume opens the exercise. Only its title, verdict and time are
+  read, never the code. One fixed drops out.
 
 ## Versions
 

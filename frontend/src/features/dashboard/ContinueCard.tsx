@@ -39,14 +39,19 @@ const LAST_STATUS: Record<string, string> = {
 const TYPE_LABEL: Record<RecentItem["type"], string> = {
   interview: "Interview", note: "Note", story: "Story", kit: "Interview-day kit",
   application: "Application", offer_comparison: "Offer comparison",
-  scenario_run: "Scenario run", test_design_run: "Test design run",
+  scenario_run: "Scenario run", test_design_run: "Test design run", debug_exercise: "Debugging exercise",
+};
+// What each time is (Volume 20, prompt 6 adds "tried" and a scenario run's "last step").
+const AT_LABEL: Record<RecentItem["at_meaning"], string> = {
+  saved: "saved", started: "started", finished: "finished", tried: "tried", last_step: "last step",
 };
 const STATE_LABEL: Record<NonNullable<RecentItem["state"]>, string> = {
   in_progress: "in progress", time_up: "time's up", finished: "finished", expired: "time ran out", ended_early: "ended early",
 };
 
 // Where each kind opens, and what its action is called. A scenario run in progress (Volume 19,
-// prompt 6) opens at its current step; a test-design run opens its report on the exercise's page.
+// prompt 6) opens at its current step; a test-design run opens its report on the exercise's page; a
+// debugging exercise not fixed yet (Volume 20, prompt 6) opens the exercise.
 const PATH: Record<RecentItem["type"], (id: string, parent: string) => string> = {
   interview: (id) => `/interviews/${id}`,
   note: (id) => `/notes/${id}`,
@@ -56,8 +61,14 @@ const PATH: Record<RecentItem["type"], (id: string, parent: string) => string> =
   offer_comparison: (id) => `/offers/compare/${id}`,
   scenario_run: (id) => `/scenarios/attempts/${id}`,
   test_design_run: (id, parent) => `/test-design/${parent}?attempt=${id}`,
+  debug_exercise: (id) => `/problems/${id}`,
 };
-const ACTION: Partial<Record<RecentItem["type"], string>> = { scenario_run: "Resume" };
+const ACTION: Partial<Record<RecentItem["type"], string>> = { scenario_run: "Resume", debug_exercise: "Resume" };
+
+/** A kind this page has a path for: one a newer server adds is left out here, never opened blindly. */
+function known(i: RecentItem): boolean {
+  return Object.prototype.hasOwnProperty.call(PATH, i.type);
+}
 
 function pathOf(i: RecentItem): string {
   return PATH[i.type](encodeURIComponent(i.id), encodeURIComponent(i.parent_id ?? ""));
@@ -166,9 +177,11 @@ export function ContinueCard() {
   }
 
   const live = iv && seconds > 0 ? iv : null;
-  const saved = (recent.data?.items ?? []).filter((i) => !(live && i.type === "interview" && i.id === live.id));
+  const saved = (recent.data?.items ?? []).filter((i) => known(i) && !(live && i.type === "interview" && i.id === live.id));
   const unfinished = resume.data?.unfinished_problem;
-  const showUnfinished = unfinished && unfinished.slug !== local.codingDraft?.slug;
+  // A debugging exercise listed as tried isn't listed again as the last unsolved problem.
+  const showUnfinished = unfinished && unfinished.slug !== local.codingDraft?.slug
+    && !saved.some((i) => i.type === "debug_exercise" && i.id === unfinished.slug);
   const last = resume.data?.last_question;
   const showLast = last && last.question_id !== local.answerDraft?.questionId;
   const deviceCount = (local.answerDraft ? 1 : 0) + (local.codingDraft ? 1 : 0);
@@ -218,7 +231,7 @@ export function ContinueCard() {
                 <Link to={pathOf(i)} className="rec">
                   <strong>{i.title}</strong>
                   <span className="subtle">
-                    {TYPE_LABEL[i.type]}{i.state ? ` · ${STATE_LABEL[i.state]}` : ""}{i.detail ? ` · ${i.detail}` : ""} · {i.at_meaning} {timeAgo(i.at)} · {actionOf(i)}
+                    {TYPE_LABEL[i.type]}{i.state ? ` · ${STATE_LABEL[i.state]}` : ""}{i.detail ? ` · ${i.detail}` : ""} · {AT_LABEL[i.at_meaning] ?? i.at_meaning} {timeAgo(i.at)} · {actionOf(i)}
                   </span>
                 </Link>
               </li>

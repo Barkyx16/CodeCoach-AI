@@ -42,7 +42,7 @@ test("Resume opens a scenario run at its current step, and a test-design run ope
   const run = saved.getByRole("link", { name: /Test design: Count in Range/ });
   await expect(run).toContainText(/Test design run · (Not run: this server can't run code|Waiting for the judge|Told apart \d of 4 faulty versions) · version 1 · (saved|finished) .* · Open/);
   const scenario = saved.getByRole("link", { name: /Two call lights at once/ });
-  await expect(scenario).toContainText(/Scenario run · started .* · Resume/);
+  await expect(scenario).toContainText(/Scenario run · last step .* · Resume/); // left after a decision (Volume 20, prompt 6)
   expect(posts).toEqual([]); // loading the section starts and resumes nothing
 
   await scenario.click();

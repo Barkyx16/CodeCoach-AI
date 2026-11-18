@@ -80,6 +80,42 @@ describe("Continue your work", () => {
     expect(requests.filter((r) => !r.startsWith("GET") && r !== "POST /api/v1/auth/refresh")).toEqual([]); // nothing resumed by loading
   });
 
+  it("lists a debugging exercise not fixed yet, a run at its last step, once each (Volume 20, prompt 6)", async () => {
+    const listed = [
+      { type: "debug_exercise", id: "debug-coldest-day", title: "Fix: Coldest Reading", detail: "Not fixed yet: 3 of 7 tests pass", at: hour(1), at_meaning: "tried", state: null, parent_id: null },
+      { type: "scenario_run", id: "sc-1", title: "Two patients, one nurse", at: hour(2), at_meaning: "last_step", state: null, detail: null, parent_id: null },
+      { type: "scenario_run", id: "sc-2", title: "Checkout is down", at: hour(3), at_meaning: "started", state: null, detail: null, parent_id: null },
+      // A kind a newer server might add: left out here, never opened blindly.
+      { type: "something_later", id: "x-1", title: "From a later version", at: hour(4), at_meaning: "saved", state: null, detail: null, parent_id: null },
+    ];
+    serve({ items: listed, unavailable: [] });
+    let asked = "";
+    server.use(
+      http.get(`${API}/api/v1/me/recent-work`, ({ request }) => {
+        asked = new URL(request.url).searchParams.get("shows") ?? "";
+        return HttpResponse.json({ items: listed, unavailable: [] });
+      }),
+      // The same exercise as the last unsolved problem: listed once, as tried.
+      http.get(`${API}/api/v1/me/resume`, () => HttpResponse.json({
+        interview: null, last_question: null,
+        unfinished_problem: { slug: "debug-coldest-day", title: "Fix: Coldest Reading", last_status: "failed", at: hour(1) },
+      })),
+    );
+    renderApp("/dashboard", { signedIn: true });
+    const saved = await within(await section()).findByRole("group", { name: "Saved to your account" });
+    const exercise = await within(saved).findByRole("link", { name: /Fix: Coldest Reading/ });
+    expect(exercise).toHaveAttribute("href", "/problems/debug-coldest-day");
+    expect(exercise).toHaveTextContent(/^Fix: Coldest ReadingDebugging exercise · Not fixed yet: 3 of 7 tests pass · tried .*hour.* ago · Resume$/);
+    expect(asked.split(",").sort()).toEqual(["debug_exercise", "last_step"]); // what this page can show
+    await waitFor(() => expect(requests).toContain("GET /api/v1/me/resume"));
+    expect(within(saved).getAllByRole("link", { name: /Fix: Coldest Reading/ })).toHaveLength(1);
+    expect(saved).not.toHaveTextContent("Coding problem");
+    expect(within(saved).getByRole("link", { name: /Two patients, one nurse/ })).toHaveTextContent(/Scenario run · last step .*hours? ago · Resume$/);
+    expect(within(saved).getByRole("link", { name: /Checkout is down/ })).toHaveTextContent(/Scenario run · started .*hours? ago · Resume$/);
+    expect(saved).not.toHaveTextContent("From a later version");
+    expect(requests.filter((r) => !r.startsWith("GET") && r !== "POST /api/v1/auth/refresh")).toEqual([]); // nothing started by loading
+  });
+
   it("checks an earlier action without sending it again, and shows where it went", async () => {
     serve();
     const story = keyForIntent(ME, "story", "new", "print-story").key;

@@ -12698,10 +12698,10 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "interview" | "note" | "story" | "kit" | "application" | "offer_comparison" | "scenario_run" | "test_design_run";
+            type: "interview" | "note" | "story" | "kit" | "application" | "offer_comparison" | "scenario_run" | "test_design_run" | "debug_exercise";
             /**
              * Id
-             * @description The record's id; for a kit, its event's id
+             * @description The record's id; for a kit, its event's id; for a debugging exercise, its slug
              */
             id: string;
             /**
@@ -12718,7 +12718,7 @@ export interface components {
             state?: ("in_progress" | "time_up" | "finished" | "expired" | "ended_early") | null;
             /**
              * Detail
-             * @description A short status: an application's stage, a kit's date, a test-design run's result in its run list's words
+             * @description A short status: an application's stage, a kit's date, a test-design run's result in its run list's words, a debugging exercise's newest attempt in the exercise page's words
              */
             detail?: string | null;
             /**
@@ -12728,10 +12728,10 @@ export interface components {
             at: string;
             /**
              * At Meaning
-             * @description saved: last saved to your account; started/finished: the session's or run's own times. Nothing here means 'opened'.
+             * @description saved: last saved to your account; started/finished: the session's or run's own times; tried: a debugging exercise's newest attempt; last_step: a scenario run's last step. Nothing here means 'opened'.
              * @enum {string}
              */
-            at_meaning: "saved" | "started" | "finished";
+            at_meaning: "saved" | "started" | "finished" | "tried" | "last_step";
         };
         /** RecentWorkOut */
         RecentWorkOut: {
@@ -33538,6 +33538,8 @@ export interface operations {
         parameters: {
             query?: {
                 limit?: number;
+                /** @description What the page can show beyond the kinds from before Volume 20, comma-separated: debug_exercise, last_step. Unknown values are ignored; without it, the response is as before. */
+                shows?: string;
             };
             header?: never;
             path?: never;

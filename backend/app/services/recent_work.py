@@ -9,20 +9,30 @@ Scenario runs in progress and test-design runs (Volume 19, prompt 6): a scenario
 (a finished one has nothing to continue), and a test-design run waiting for the judge, or finished in
 the last week, in the words its run list uses. Neither's steps, cases nor report are read: a run's
 result is two numbers taken from its report in the query, never the report itself.
+
+Debugging exercises tried and not fixed, and a scenario run's last step (Volume 20, prompt 6): an
+exercise none of whose submitted attempts passed (the plan's rule for "not fixed"), with its newest
+attempt in the last week, is listed as "tried" at that attempt's time, with its verdict in the
+exercise page's words; only titles, verdicts and times are read, never code. A scenario run in
+progress is listed at its last step's time, taken from the run in the query (nothing else of the
+steps is read), or at its start when it has none, and says which. Both are listed only for a page
+that says it can show them (`shows`): a page cached from before gets what it did.
 """
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, func, literal_column, select
 from sqlalchemy.orm import Session
 
 from app.models import (
     Application,
     ApplicationEvent,
+    ExecutionResult,
     ExperienceEntry,
     InterviewKit,
     InterviewStatus,
@@ -32,6 +42,9 @@ from app.models import (
     PracticeSession,
     Problem,
     ScenarioAttempt,
+    Submission,
+    SubmissionMode,
+    SubmissionStatus,
     TestDesignRun,
     User,
 )
@@ -41,13 +54,24 @@ logger = logging.getLogger("codecoach.recent_work")
 MAX_LIMIT = 12
 # A test-design run that's no longer waiting has nothing to continue; its report stays a week here.
 FINISHED_RUN_DAYS = 7
+# A debugging exercise not fixed stays while its newest attempt is less than a week old.
+TRIED_DAYS = 7
+# What a page can show beyond the eight kinds it showed before Volume 20 (prompt 6). A page that
+# doesn't say gets exactly what it did, so one cached from before never meets a kind it can't open.
+SHOWS = frozenset({"debug_exercise", "last_step"})
+
+
+@dataclass(frozen=True)
+class Options:
+    judge_enabled: bool = False
+    shows: frozenset[str] = field(default_factory=frozenset)
 
 
 def _aware(dt: datetime) -> datetime:
     return dt if dt.tzinfo else dt.replace(tzinfo=UTC)
 
 
-def _interviews(db: Session, user: User, n: int) -> list[dict]:
+def _interviews(db: Session, user: User, n: int, _opts: Options) -> list[dict]:
     now = datetime.now(UTC)
     rows = db.execute(
         select(
@@ -89,7 +113,7 @@ def _interviews(db: Session, user: User, n: int) -> list[dict]:
     return out
 
 
-def _notes(db: Session, user: User, n: int) -> list[dict]:
+def _notes(db: Session, user: User, n: int, _opts: Options) -> list[dict]:
     rows = db.execute(
         select(Note.id, Note.title, Note.updated_at)
         .where(Note.user_id == user.id, Note.deleted_at.is_(None), Note.archived.is_(False))
@@ -102,7 +126,7 @@ def _notes(db: Session, user: User, n: int) -> list[dict]:
     ]
 
 
-def _stories(db: Session, user: User, n: int) -> list[dict]:
+def _stories(db: Session, user: User, n: int, _opts: Options) -> list[dict]:
     rows = db.execute(
         select(ExperienceEntry.id, ExperienceEntry.title, ExperienceEntry.updated_at)
         .where(ExperienceEntry.user_id == user.id, ExperienceEntry.archived.is_(False))
@@ -115,7 +139,7 @@ def _stories(db: Session, user: User, n: int) -> list[dict]:
     ]
 
 
-def _kits(db: Session, user: User, n: int) -> list[dict]:
+def _kits(db: Session, user: User, n: int, _opts: Options) -> list[dict]:
     rows = db.execute(
         select(
             InterviewKit.event_id,
@@ -147,7 +171,7 @@ def _kits(db: Session, user: User, n: int) -> list[dict]:
     ]
 
 
-def _applications(db: Session, user: User, n: int) -> list[dict]:
+def _applications(db: Session, user: User, n: int, _opts: Options) -> list[dict]:
     rows = db.execute(
         select(
             Application.id,
@@ -173,7 +197,7 @@ def _applications(db: Session, user: User, n: int) -> list[dict]:
     ]
 
 
-def _offer_comparisons(db: Session, user: User, n: int) -> list[dict]:
+def _offer_comparisons(db: Session, user: User, n: int, _opts: Options) -> list[dict]:
     rows = db.execute(
         select(OfferComparison.id, OfferComparison.title, OfferComparison.updated_at)
         .where(OfferComparison.user_id == user.id, OfferComparison.archived.is_(False))
@@ -192,35 +216,120 @@ def _offer_comparisons(db: Session, user: User, n: int) -> list[dict]:
     ]
 
 
-def _scenario_runs(db: Session, user: User, n: int) -> list[dict]:
-    """Scenario runs left in progress: Resume opens the run at its current step."""
+def _last_step_at(db: Session) -> ColumnElement[str]:
+    """A run's last step's time as its step recorded it: only that value, taken in the query."""
+    if db.get_bind().dialect.name == "postgresql":
+        return ScenarioAttempt.steps.op("->")(literal_column("-1")).op("->>")(literal_column("'at'"))
+    return func.json_extract(ScenarioAttempt.steps, literal_column("'$[#-1].at'"))
+
+
+def _parsed(value: str | None) -> datetime | None:
+    try:
+        return datetime.fromisoformat(value) if value else None
+    except ValueError:
+        return None  # not a time: the run is listed at its start, and says so
+
+
+def _scenario_runs(db: Session, user: User, n: int, opts: Options) -> list[dict]:
+    """Scenario runs left in progress: Resume opens the run at its current step. At its last step's
+    time when the page can show it (its start when it has none), else at its start as before."""
     from app.scenarios import SCENARIO_INDEX
 
+    last = "last_step" in opts.shows
     rows = db.execute(
         select(
-            ScenarioAttempt.id, ScenarioAttempt.scenario_id, ScenarioAttempt.mode, ScenarioAttempt.created_at
+            ScenarioAttempt.id,
+            ScenarioAttempt.scenario_id,
+            ScenarioAttempt.mode,
+            ScenarioAttempt.created_at,
+            _last_step_at(db) if last else literal_column("NULL"),
         )
         .where(ScenarioAttempt.user_id == user.id, ScenarioAttempt.status == "in_progress")
-        .order_by(ScenarioAttempt.created_at.desc())
+        # A step sets the run's updated_at, so the runs stepped most recently are the ones kept.
+        .order_by((ScenarioAttempt.updated_at if last else ScenarioAttempt.created_at).desc())
         .limit(n)
     ).all()
     out = []
-    for i, scenario, mode, at in rows:
+    for i, scenario, mode, started, last_step in rows:
         found = SCENARIO_INDEX.get(scenario)
+        stepped = _parsed(last_step)
         out.append(
             {
                 "type": "scenario_run",
                 "id": i,
                 "title": found.title if found else "A scenario that's no longer offered",
                 "detail": "Exploration" if mode == "exploration" else None,
-                "at": at,
-                "at_meaning": "started",
+                "at": stepped or started,
+                "at_meaning": "last_step" if stepped else "started",
             }
         )
     return out
 
 
-def _test_design_runs(db: Session, user: User, n: int) -> list[dict]:
+def debug_verdict_words(
+    status: SubmissionStatus, passed: int | None, total: int | None, judge_enabled: bool
+) -> str:
+    """An attempt's verdict in the debugging exercise's own words (the page's debrief heading,
+    `DebugDebrief` in features/debugging/DebugLab.tsx; while it's judged, the status badge's)."""
+    if not judge_enabled:
+        return "Saved, not checked"
+    if not status.is_terminal:
+        return "Queued" if status == SubmissionStatus.QUEUED else "Running"
+    if status == SubmissionStatus.PASSED:
+        return "Fixed: every test passes"
+    if passed is None or total is None:
+        return "Not fixed yet"
+    return f"Not fixed yet: {passed} of {total} tests pass"
+
+
+def _debug_exercises(db: Session, user: User, n: int, opts: Options) -> list[dict]:
+    """Debugging exercises tried and not fixed: none of the submitted attempts passed (the plan's
+    rule), and the newest is less than a week old. Its title, verdict and time; never code."""
+    if "debug_exercise" not in opts.shows:
+        return []
+    since = datetime.now(UTC) - timedelta(days=TRIED_DAYS)
+    mine = (Submission.user_id == user.id, Submission.mode == SubmissionMode.SUBMIT)
+    fixed = select(Submission.problem_id).where(*mine, Submission.status == SubmissionStatus.PASSED)
+    newest = (
+        select(Submission.problem_id, func.max(Submission.created_at).label("at"))
+        .join(Problem, Problem.id == Submission.problem_id)
+        .where(*mine, Problem.kind == "debug")
+        .group_by(Submission.problem_id)
+        .subquery()
+    )
+    rows = db.execute(
+        select(
+            Problem.slug,
+            Problem.title,
+            Submission.status,
+            ExecutionResult.passed_count,
+            ExecutionResult.total_count,
+            Submission.created_at,
+        )
+        .join(newest, (newest.c.problem_id == Submission.problem_id) & (newest.c.at == Submission.created_at))
+        .join(Problem, Problem.id == Submission.problem_id)
+        .outerjoin(ExecutionResult, ExecutionResult.submission_id == Submission.id)
+        .where(*mine, Submission.problem_id.not_in(fixed), newest.c.at >= since)
+        .order_by(Submission.created_at.desc())
+        .limit(n)
+    ).all()
+    out: dict[str, dict] = {}
+    for slug, title, status, passed, total, at in rows:
+        out.setdefault(  # two attempts at the same instant: the exercise is listed once
+            slug,
+            {
+                "type": "debug_exercise",
+                "id": slug,
+                "title": title,
+                "detail": debug_verdict_words(status, passed, total, opts.judge_enabled),
+                "at": at,
+                "at_meaning": "tried",
+            },
+        )
+    return list(out.values())
+
+
+def _test_design_runs(db: Session, user: User, n: int, _opts: Options) -> list[dict]:
     """Test-design runs waiting for the judge, and those finished in the last week, in the words
     their run list uses. The result's two numbers are read from the report in the query."""
     from app.services.test_design import PENDING, outcome_words
@@ -265,7 +374,7 @@ def _test_design_runs(db: Session, user: User, n: int) -> list[dict]:
 
 
 # What each kind is called when it can't be read ("Your notes couldn't be loaded").
-SOURCES: dict[str, tuple[str, Callable[[Session, User, int], list[dict]]]] = {
+SOURCES: dict[str, tuple[str, Callable[[Session, User, int, Options], list[dict]]]] = {
     "interviews": ("interviews", _interviews),
     "notes": ("notes", _notes),
     "stories": ("stories", _stories),
@@ -274,17 +383,26 @@ SOURCES: dict[str, tuple[str, Callable[[Session, User, int], list[dict]]]] = {
     "offer_comparisons": ("offer comparisons", _offer_comparisons),
     "scenario_runs": ("scenario runs", _scenario_runs),
     "test_design_runs": ("test-design runs", _test_design_runs),
+    "debug_exercises": ("debugging exercises", _debug_exercises),
 }
 
 
-def recent_work(db: Session, user: User, limit: int = 6) -> dict:
+def recent_work(
+    db: Session,
+    user: User,
+    limit: int = 6,
+    *,
+    judge_enabled: bool = False,
+    shows: frozenset[str] = frozenset(),
+) -> dict:
     limit = max(1, min(limit, MAX_LIMIT))
+    opts = Options(judge_enabled=judge_enabled, shows=shows & SHOWS)
     items: list[dict] = []
     unavailable: list[str] = []
     for name, (label, read) in SOURCES.items():
         try:
             with db.begin_nested():  # a failing kind rolls back to here; the others still run
-                items.extend(read(db, user, limit))
+                items.extend(read(db, user, limit, opts))
         except Exception:
             logger.exception("recent work: %s couldn't be read", name)
             unavailable.append(label)

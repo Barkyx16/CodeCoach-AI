@@ -921,7 +921,8 @@ export const api = {
   // What's saved to the account, as counts (docs/YOUR_DATA.md)
   dataSummary: () => apiRequest<DataSummary>("/api/v1/me/data-summary"),
   // A few of your own records, newest first: titles and times only (docs/CONTINUE.md)
-  recentWork: (limit = 6) => apiRequest<RecentWork>("/api/v1/me/recent-work", { query: { limit } }),
+  // `shows`: what this page can show beyond the kinds from before Volume 20 (docs/CONTINUE.md).
+  recentWork: (limit = 6, shows?: string) => apiRequest<RecentWork>("/api/v1/me/recent-work", { query: { limit, shows } }),
   // Search your own saved work (docs/WORKSPACE_SEARCH.md). A POST: the words stay out of URLs and logs.
   searchWorkspace: (body: WorkspaceSearchBody, signal?: AbortSignal) =>
     apiRequest<WorkspaceSearch>("/api/v1/me/search", { method: "POST", body, signal }),

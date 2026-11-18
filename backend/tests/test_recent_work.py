@@ -125,7 +125,7 @@ def test_one_kind_failing_is_named_and_the_rest_are_still_listed(client, monkeyp
     h = nurse(client)
     seed(client, h)
 
-    def broken(db, user, n):
+    def broken(db, user, n, _opts):
         db.execute(
             rw.select(rw.func.count()).select_from(rw.Note).where(rw.Note.title == rw.func.no_such_function())
         )

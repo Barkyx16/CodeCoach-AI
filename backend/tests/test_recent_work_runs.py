@@ -126,7 +126,7 @@ def test_each_new_kind_failing_is_named_and_the_rest_still_show(client, monkeypa
     start(client, h)
     a_run(client, h)
 
-    def broken(db, user, n):
+    def broken(db, user, n, _opts):
         db.execute(
             rw.select(rw.func.count())
             .select_from(rw.ScenarioAttempt)
