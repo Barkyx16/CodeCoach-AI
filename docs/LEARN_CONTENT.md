@@ -33,6 +33,10 @@ optional `scope_note` for regulated careers, and `question_ids` it prepares for.
 3. **Review status is a claim.** `author_reviewed` means someone checked the unit against its
    references. Anything drafted by a model and not yet checked must be `generated_draft`; the page
    shows a "Generated draft: not reviewed yet" badge. Don't invent reviewers or credentials.
+   A format with no structured review, such as a test-design exercise, says it in its note: a note
+   saying its review is owed ("Its review is owed: not yet reviewed by the project author") is
+   listed as owed in the review report whatever checks it also names (Volume 20, prompt 9: Count
+   Pairs, drafted with an AI coding assistant and machine-checked).
    Since Volume 18, prompt 8, every lesson link carries its `review_status` too (`UnitLink`:
    "Learn first" and prerequisites), so a draft's "Learn first" link says "Draft: not reviewed",
    and the practice plan's reason for a draft it suggests ends "It's a generated draft, not
@@ -94,13 +98,19 @@ runs no check itself.
 | code-review exercise | the reviewed code fails exactly the public tests its defects cite, with the results they state, and the repair passes every test | `tests/test_code_reviews.py::test_each_authored_review_matches_what_the_code_does_on_the_tests` | the same | the same |
 | test-design exercise | every faulty version differs from the reference on its own witness case, and the reference gives each example's expected output | `tests/test_test_design.py::test_every_exercise_passes_the_jdk_check` | the same | the same |
 
-(The Backend job installs a JDK, so the `@java` tests run there; a test checks it.) Today's `--owed`:
+(The Backend job installs a JDK, so the `@java` tests run there; a test checks it.) Today's `--owed`, with the third test-design exercise (Volume 20, prompt 9) owed its review and naming its machine check:
 
 ```
-Review owed (drafted and not yet checked): 1
+Review owed (drafted and not yet checked): 2
   lesson · se-failing-test v1 · Fixing code from a failing test
       drafted, not yet reviewed by the project author. generated_draft (Drafted in this repository with an AI coding assistant, 2026-11-16). Checked against the debugging exercises' tests and the references listed, and by a test that no exercise's defect is in its words. Not yet reviewed by the project author or an outside expert.
       note: backend/app/learn/units.py: review
+  test-design exercise · tests-count-pairs v1 · Test design: Count Pairs
+      drafted, its review owed; machine-checked. Drafted in this repository with an AI coding assistant, 2026-11-18, and machine-checked: the reference and every faulty version were compiled and run with a real JDK, and each version's defect was shown on a case. Its review is owed: not yet reviewed by the project author.
+      check: every faulty version differs from the reference on its own witness case, and the reference gives each example's expected output
+        by backend/tests/test_test_design.py::test_every_exercise_passes_the_jdk_check and `python scripts/verify_reference_solutions.py`
+        run in CI: Backend (lint, types, SQLite tests, reference solutions) › Tests (SQLite); Backend (lint, types, SQLite tests, reference solutions) › Reference solutions pass every seeded test
+      note: backend/app/seed/testdesign/003-tests-count-pairs.json: review_status
 
 Claimed machine-checked, no check found here: 0
 

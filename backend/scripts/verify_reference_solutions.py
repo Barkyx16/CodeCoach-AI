@@ -256,7 +256,9 @@ def check_test_design_exercise(path: Path, timeout_s: float = 60.0) -> list[str]
     - the reference and every faulty version compile and finish on every input below (no hang);
     - the reference returns each example's expected output, and never throws on the examples, the
       witnesses or FUZZ_CASES seeded inputs within the limits (so it can decide any valid case);
-    - each faulty version differs from the reference on its own witness case (its defect shows);
+    - each faulty version differs from the reference on its own witness case (its defect shows), and
+      throws on none of the inputs (Volume 20, prompt 9: a faulty version gives a wrong answer, never a
+      crash, so telling it apart takes a case, not any input that reaches it);
     - the examples don't already tell every faulty version apart (something is left to find).
     Expected outputs come only from running the reference. Returns failures (empty means sound)."""
     from app.services.judge.harness import outputs_match, parse_driver_output
@@ -314,6 +316,12 @@ def check_test_design_exercise(path: Path, timeout_s: float = 60.0) -> list[str]
         return a.get("exception") != b.get("exception")
 
     for k, v in enumerate(ex.variants, start=1):
+        crash = next((i for i in range(n) if (r := result(k, i)) is not None and not r.get("ok")), None)
+        if crash is not None:
+            failures.append(
+                f"{slug}: faulty version {v.id} throws {result(k, crash).get('exception')} on {inputs[crash]} "  # type: ignore[union-attr]
+                "(a faulty version gives a wrong answer, never a crash)"
+            )
         if not differs(k, len(examples) + k - 1):
             failures.append(
                 f"{slug}: faulty version {v.id} gives the reference's answer on its own witness {v.witness}"

@@ -252,7 +252,7 @@ def test_every_machine_checked_item_today_names_its_existing_check():
             "ci": [f"{j} › {s}" for j, s in c.ci],
         }
     assert not [i for i in rs.report() if i.group == "unverified"]
-    assert not [i for i in rs.report() if i.check and not i.kind.startswith("machine-checked")]
+    assert not [i for i in rs.report() if i.check and "machine-checked" not in i.kind]
 
 
 def test_a_claim_with_no_check_here_is_listed_apart_never_as_reviewed(tmp_path, monkeypatch):

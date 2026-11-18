@@ -123,6 +123,9 @@ _KINDS: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"checked for (internal )?consistency", re.I), "checked for consistency"),
     (re.compile(r"^Reviewed \d{4}-\d{2}-\d{2}\b"), "a dated check (no reviewer named)"),
 )
+# A note that says its review is still owed is owed, whatever checks it also names (Volume 20, prompt 9:
+# an exercise drafted with an assistant and machine-checked here, awaiting the author's review).
+_OWED = re.compile(r"\breview is (still )?owed\b|\bnot yet reviewed by the project author\b", re.I)
 _NO_OUTSIDE = re.compile(r"\bnot (yet )?reviewed by (an? |the )?(outside|licensed|subject-matter)", re.I)
 
 
@@ -132,7 +135,11 @@ def _rel(path: Path) -> str:
 
 
 def _text_kind(text: str) -> tuple[Group, str]:
-    """A free-text note: reviewed with the kind it names, or owed when it names no check."""
+    """A free-text note: reviewed with the kind it names, or owed when it names no check or says its
+    review is owed (then the checks it names are said too: they're not a review)."""
+    if _OWED.search(text):
+        named = [kind for pattern, kind in _KINDS if pattern.search(text)]
+        return "owed", "drafted, its review owed" + "".join(f"; {k}" for k in named)
     for pattern, kind in _KINDS:
         if pattern.search(text):
             return "reviewed", kind + ("; no outside review" if _NO_OUTSIDE.search(text) else "")
@@ -304,11 +311,14 @@ FORMATS: dict[str, Callable[[], Iterator[Item]]] = {
 
 
 def _backed(item: Item) -> Item:
-    """A machine-checked claim names its check, or is listed as having none here. Nothing else changes."""
-    if item.group != "reviewed" or not item.kind.startswith("machine-checked"):
+    """A machine-checked claim names its check, or is listed as having none here. Nothing else changes:
+    an owed item that also names a machine check stays owed, with the check named."""
+    if "machine-checked" not in item.kind:
         return item
     check = MACHINE_CHECKS.get(item.format)
     if check is None:
+        if item.group != "reviewed":
+            return item
         return replace(item, group="unverified", kind=f"{item.kind}: claimed, no check found here")
     return replace(
         item,

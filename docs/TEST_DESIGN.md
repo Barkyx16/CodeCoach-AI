@@ -26,10 +26,20 @@ A file in `backend/app/seed/testdesign/` (loaded by `backend/app/testdesign/__in
 | `variants` | the faulty versions: `id`, `title`, `defect` (what's wrong), `gap` (a hint for a learner who missed it), `witness` (an input that shows the defect) and `code` |
 | `review_status` | how it was checked |
 
-The two exercises: **Count in Range** (four versions: `v < hi`, `v > lo`, the last value skipped, a
-reversed range treated as valid) and **Longest Run** (three: the final run ignored, an empty array
-said to have a run of 1, neighbours that differ by 1 treated as equal). Their examples tell no
-version apart; that's the starting point.
+The three exercises: **Count in Range** (four versions: `v < hi`, `v > lo`, the last value skipped, a
+reversed range treated as valid), **Longest Run** (three: the final run ignored, an empty array
+said to have a run of 1, neighbours that differ by 1 treated as equal) and, since Volume 20, prompt
+9, **Count Pairs** (`countPairs(nums, target)`: how many pairs of positions `i < j` add up to the
+target; four versions: a value paired with itself, stopping at the first pair, a set of values seen
+rather than how many times, the last value never paired). Their examples tell no version apart;
+that's the starting point. For Count Pairs, its four witnesses together tell all four apart, judged
+for real in CI's sandbox job (`test_judge_sandbox.py`, `e2e/test-design-count-pairs.spec.ts`).
+
+**Count Pairs is a draft.** It was drafted in this repository with an AI coding assistant and
+machine-checked here (the JDK check below); its note says so and that its review is owed, the page
+shows that note, and the content review report lists it as owed. Reviewing it is the project
+author's act: read the specification, each faulty version and its one-sentence defect, then change
+its `review_status` (docs/LEARN_CONTENT.md, "What's still owed a review"). Nobody has reviewed it yet.
 
 These exercises are not coding-bank problems and their runs never touch a bank problem's tests,
 hidden or public.
@@ -45,8 +55,10 @@ hidden or public.
   the limits (empty, one value, full length, extreme values, and random ones). It refuses an
   exercise when: something doesn't compile or doesn't finish; the reference throws on any of those
   inputs; an example's expected output isn't what the reference returns; a version gives the
-  reference's answer on its own witness (it isn't faulty, or the witness doesn't show it); or the
-  examples already tell every version apart. **Expected outputs come only from running the
+  reference's answer on its own witness (it isn't faulty, or the witness doesn't show it); a faulty
+  version throws on any of those inputs (Volume 20, prompt 9: a faulty version gives a wrong answer,
+  never a crash, so telling it apart takes a case, not any input that reaches it); or the examples
+  already tell every version apart. **Expected outputs come only from running the
   reference**, never from a person's or a model's guess.
 
 ## A run
@@ -134,9 +146,9 @@ earlier runs stay as they were.
 
 ## Limits
 
-- One input shape (`int[]` plus up to two `int`, returning `int` or `boolean`), Java only, two
-  exercises with seven faulty versions in all, written for practice and machine-checked but not
-  reviewed by an outside instructor.
+- One input shape (`int[]` plus up to two `int`, returning `int` or `boolean`), Java only, three
+  exercises with eleven faulty versions in all, written for practice and machine-checked but not
+  reviewed by an outside instructor; the third (Count Pairs) is also owed the project author's review.
 - Coverage is over the authored versions only; a set of cases that tells all of them apart can
   still miss other defects.
 - The 200 seeded inputs make a hang or a reference crash unlikely within the limits; they don't

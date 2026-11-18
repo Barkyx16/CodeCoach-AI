@@ -469,3 +469,42 @@ def test_test_design_in_the_real_judge(judge):
     assert rep["cases"][0]["distinguishes"] == ["A", "C"]
     assert rep["cases"][1]["status"] == "disagrees" and rep["cases"][1]["reference_output"] == "2"
     assert rep["caught"] == 2
+
+
+def test_the_third_test_design_exercise_in_the_real_judge(judge):
+    """Count Pairs (Volume 20, prompt 9) through API -> worker -> runner -> gVisor: its two examples
+    tell no faulty version apart, and its four witnesses, each with the answer the specification
+    gives, tell all four apart, each one telling apart at least its own version."""
+    c, h = judge.client, judge.headers
+    c.app.state.execution_health.probe = lambda: True
+    worker = JudgeWorker(
+        c.app.state.session_factory, HttpRunner(c.app.state.settings.runner_url, TOKEN), c.app.state.settings
+    )
+
+    def run(cases: list[dict]) -> dict:
+        made = c.post("/api/v1/me/test-design/tests-count-pairs/runs", json={"cases": cases}, headers=h)
+        assert made.status_code == 202, made.text
+        assert worker.process_one()
+        return c.get(f"/api/v1/me/test-design/runs/{made.json()['id']}", headers=h).json()
+
+    examples = run(
+        [
+            {"input": {"nums": [1, 5, 9], "target": 6}, "expected": 1},
+            {"input": {"nums": [3, 2, 8], "target": 5}, "expected": 1},
+        ]
+    )
+    assert examples["status"] == "done", examples
+    assert (examples["report"]["caught"], examples["report"]["total"]) == (0, 4)
+    witnesses = run(
+        [
+            {"input": {"nums": [3, 1], "target": 6}, "expected": 0},
+            {"input": {"nums": [1, 5, 2, 4], "target": 6}, "expected": 2},
+            {"input": {"nums": [2, 2, 2], "target": 4}, "expected": 3},
+            {"input": {"nums": [4, 7, 2], "target": 6}, "expected": 1},
+        ]
+    )
+    rep = witnesses["report"]
+    assert witnesses["status"] == "done", witnesses
+    assert (rep["caught"], rep["total"]) == (4, 4)
+    for letter, case in zip("ABCD", rep["cases"], strict=True):
+        assert case["status"] != "disagrees" and letter in case["distinguishes"], case

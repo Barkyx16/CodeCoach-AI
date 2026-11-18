@@ -1,0 +1,116 @@
+{
+  "slug": "tests-count-pairs",
+  "version": 1,
+  "title": "Test design: Count Pairs",
+  "summary": "How many pairs of positions add up to a target, each pair counted once.",
+  "spec": "`countPairs(nums, target)` returns how many pairs of **positions** `i < j` have `nums[i] + nums[j] == target`. For `[1, 5, 2, 4]` and a target of `6` that's `2` (1 + 5 and 2 + 4).\n\nEach pair of positions counts once, whichever order you read it in. Equal values at different positions are different positions: `[2, 2, 2]` with a target of `4` has `3` pairs. A value never pairs with itself. Fewer than two values give `0`.",
+  "signature": {
+    "method": "countPairs",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "target",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "limits": {
+    "max_cases": 12,
+    "max_length": 20,
+    "min_value": -1000,
+    "max_value": 1000
+  },
+  "examples": [
+    {
+      "input": {
+        "nums": [
+          1,
+          5,
+          9
+        ],
+        "target": 6
+      },
+      "expected": 1
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          2,
+          8
+        ],
+        "target": 5
+      },
+      "expected": 1
+    }
+  ],
+  "reference": "class Solution {\n    public int countPairs(int[] nums, int target) {\n        int count = 0;\n        for (int i = 0; i < nums.length; i++) {\n            for (int j = i + 1; j < nums.length; j++) {\n                if (nums[i] + nums[j] == target) {\n                    count++;\n                }\n            }\n        }\n        return count;\n    }\n}\n",
+  "variants": [
+    {
+      "id": "pairs-with-itself",
+      "title": "Lets a value pair with itself",
+      "defect": "The inner loop starts at i instead of i + 1, so a value equal to half the target is counted as a pair with itself.",
+      "gap": "In your cases, no value is exactly half the target. What happens when one is?",
+      "witness": {
+        "nums": [
+          3,
+          1
+        ],
+        "target": 6
+      },
+      "code": "class Solution {\n    public int countPairs(int[] nums, int target) {\n        int count = 0;\n        for (int i = 0; i < nums.length; i++) {\n            for (int j = i; j < nums.length; j++) {\n                if (nums[i] + nums[j] == target) {\n                    count++;\n                }\n            }\n        }\n        return count;\n    }\n}\n"
+    },
+    {
+      "id": "stops-at-first",
+      "title": "Stops at the first pair it finds",
+      "defect": "It returns 1 as soon as one pair adds up, so it answers whether a pair exists, never how many there are.",
+      "gap": "Every case of yours has at most one pair. Try an array where two different pairs add up to the target.",
+      "witness": {
+        "nums": [
+          1,
+          5,
+          2,
+          4
+        ],
+        "target": 6
+      },
+      "code": "class Solution {\n    public int countPairs(int[] nums, int target) {\n        for (int i = 0; i < nums.length; i++) {\n            for (int j = i + 1; j < nums.length; j++) {\n                if (nums[i] + nums[j] == target) {\n                    return 1;\n                }\n            }\n        }\n        return 0;\n    }\n}\n"
+    },
+    {
+      "id": "remembers-values-not-counts",
+      "title": "Remembers which values it has seen, not how many times",
+      "defect": "It keeps a set of the values seen so far, so with repeated values it misses pairs: [2, 2, 2] with a target of 4 has 3 pairs and it finds 2.",
+      "gap": "Your values are all different. Repeated values make more pairs than a set of values can count.",
+      "witness": {
+        "nums": [
+          2,
+          2,
+          2
+        ],
+        "target": 4
+      },
+      "code": "class Solution {\n    public int countPairs(int[] nums, int target) {\n        java.util.Set<Integer> seen = new java.util.HashSet<>();\n        int count = 0;\n        for (int v : nums) {\n            if (seen.contains(target - v)) {\n                count++;\n            }\n            seen.add(v);\n        }\n        return count;\n    }\n}\n"
+    },
+    {
+      "id": "never-pairs-the-last",
+      "title": "Never pairs anything with the last value",
+      "defect": "The inner loop runs j < nums.length - 1, so a pair that uses the last value is never counted.",
+      "gap": "In your cases, the pairs that add up are never at the end of the array. Put one there.",
+      "witness": {
+        "nums": [
+          4,
+          7,
+          2
+        ],
+        "target": 6
+      },
+      "code": "class Solution {\n    public int countPairs(int[] nums, int target) {\n        int count = 0;\n        for (int i = 0; i < nums.length; i++) {\n            for (int j = i + 1; j < nums.length - 1; j++) {\n                if (nums[i] + nums[j] == target) {\n                    count++;\n                }\n            }\n        }\n        return count;\n    }\n}\n"
+    }
+  ],
+  "lesson": null,
+  "review_status": "Drafted in this repository with an AI coding assistant, 2026-11-18, and machine-checked: the reference and every faulty version were compiled and run with a real JDK, and each version's defect was shown on a case. Its review is owed: not yet reviewed by the project author."
+}

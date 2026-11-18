@@ -321,7 +321,8 @@ jobs:
         # Through the launcher, like every other e2e run: it owns and stops what the run starts.
         # e2e/test-design-compared.spec.ts: judged test-design runs set beside the run before them
         # (Volume 19, prompt 4); its other test runs without the judge in the main e2e job.
-        run: npm run e2e -- e2e/judge.spec.ts e2e/test-design-compared.spec.ts
+        # e2e/test-design-count-pairs.spec.ts: the third exercise's witnesses judged (Volume 20, prompt 9).
+        run: npm run e2e -- e2e/judge.spec.ts e2e/test-design-compared.spec.ts e2e/test-design-count-pairs.spec.ts
       - name: A software engineer's journey, judged for real, twice on fresh accounts
         # docs/PREPARATION_JOURNEY.md, "The software engineer's journey" and "An engineer on two
         # devices" (Volume 16, prompt 10: the same engineer on a desktop and a phone) and "A second
