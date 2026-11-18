@@ -599,7 +599,31 @@ versions (report version 1), "Ran against the reference and every faulty version
 from the request to the result. Negative controls, each caught by the journey: a ladder taken from
 the file (step 4: its interval and due date weren't the first rung's), the paths ignored by the comparison rule (step 6:
 no "took different paths"), and the showing with a result not recorded (step 7: no "Solution
-revealed"). Its CI record is added when the sandbox job has run it.
+revealed").
+
+**In CI**: run 373 (`68ea135`; the pull request's merge commit `51f1f13`, its runtime inputs
+unchanged from the commit, as the launcher said), the sandbox job's step that runs the judged
+journeys twice on fresh accounts with the real judge (the `engineer-journey-record` artifact and the
+job's `[journey-record]` lines): **10 of 10 steps, both times**; the step's 18 tests passed in 7.3
+minutes, nothing flaky or skipped. Each run as the record gives it:
+
+| Run | Edited file's sha256 | Restore batch | Test-design run | Judged, from the request to the result |
+|---|---|---|---|---|
+| First | `da17a6ab…` | `81decbbc…` | `c4f51ecb…` | told apart 4 of 4 (report v1), 2.7 s |
+| Second | `28ca6c99…` | `e19ac3fb…` | `95dcb176…` | told apart 4 of 4 (report v1), 2.7 s |
+
+Both runs: the source account's queue held `e-good-0` and `e-steps-0`; the preview offered
+"Questions saved for review, each starting afresh: 2 new", and through the API both restored items
+were on the ladder's first rung, none of what the edited file claimed; the phone (412 × 839) listed
+"What good debugging looks like" and "Your approach to debugging"; the second scenario run's
+comparison read "Partly comparable: the runs took different paths: 2 of the decisions were the same,
+of 3 in the earlier run and 3 in this one; set the decisions side by side, not the counts.
+(Comparison rules v1)"; the second reading said "Solution revealed: The explanation was shown with
+an earlier reading's result before this was sent", at the first reading's time; the judge's words
+were "Ran against the reference and every faulty version."; the undo said "Removed 2; kept 0 you'd
+changed since; 0 were already gone." and left the two scenario runs, the two readings and the
+test-design run in place; the six pages fitted at 412 and 360 px; axe found nothing on the three new
+sections in either theme; the canary was not in the API's log.
 
 ## Limits
 
