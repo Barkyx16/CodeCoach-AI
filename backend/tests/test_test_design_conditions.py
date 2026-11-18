@@ -46,7 +46,8 @@ def reveals(client) -> int:
 
 
 def test_showing_them_is_recorded_once_per_version_and_signed_out_not_at_all(client):
-    assert client.get(f"/api/v1/test-design/{COUNT}/variants").status_code == 200
+    # The public route no longer shows them (Volume 20, prompt 4): only the recorded showing does.
+    assert client.get(f"/api/v1/test-design/{COUNT}/variants").status_code == 410
     assert reveals(client) == 0
     h = coder(client)
     first = show(client, h)

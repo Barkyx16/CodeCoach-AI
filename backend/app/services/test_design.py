@@ -120,8 +120,14 @@ class TestDesign:
             execution_enabled=execution_enabled,
         )
 
+    def exercise_known(self, slug: str) -> None:
+        """A 404 for an exercise that isn't offered; nothing else."""
+        self._exercise(slug)
+
     def variants(self, slug: str) -> list[TestDesignVariant]:
-        """The authored faulty versions and their defects: shown only when the learner asks."""
+        """The authored faulty versions and their defects: shown only when the learner asks, signed in,
+        through show_variants (which records it first); no public route serves them (Volume 20,
+        prompt 4)."""
         ex = self._exercise(slug)
         return [
             TestDesignVariant(key=variant_key(k), title=v.title, defect=v.defect)

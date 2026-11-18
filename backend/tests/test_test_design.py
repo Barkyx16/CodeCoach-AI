@@ -74,7 +74,9 @@ def test_the_exercise_shows_the_specification_but_not_the_faulty_versions(client
     for v in ex.variants:
         assert v.id not in text and v.title not in text and v.defect not in text and v.gap not in text
     assert "v < hi" not in text and "class Solution" not in text  # no code at all
-    shown = client.get(f"/api/v1/test-design/{COUNT}/variants").json()  # the deliberate reveal
+    # The deliberate reveal, recorded first, signed in (since Volume 20, prompt 4 the only way).
+    reviewer = auth_headers(register(client, email="reveal@example.com", career_track="software-engineer"))
+    shown = client.post(f"/api/v1/me/test-design/{COUNT}/variants", headers=reviewer).json()["variants"]
     assert [(v["key"], v["title"]) for v in shown] == [
         (variant_key(k), v.title) for k, v in enumerate(ex.variants)
     ]

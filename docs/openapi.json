@@ -14332,7 +14332,7 @@
         "tags": [
           "test design"
         ],
-        "summary": "The authored faulty versions and their defects (shown when the learner asks)",
+        "summary": "Gone: the faulty versions are shown only where the showing is recorded (signed in: POST /me/test-design/{slug}/variants)",
         "operationId": "variants_api_v1_test_design__slug__variants_get",
         "parameters": [
           {
@@ -14346,16 +14346,12 @@
           }
         ],
         "responses": {
-          "200": {
-            "description": "Successful Response",
+          "410": {
+            "description": "Error",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/TestDesignVariant"
-                  },
-                  "title": "Response Variants Api V1 Test Design  Slug  Variants Get"
+                  "$ref": "#/components/schemas/ErrorEnvelope"
                 }
               }
             }

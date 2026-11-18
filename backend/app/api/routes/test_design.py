@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app import tracing
 from app.api.deps import get_current_user, get_db, get_settings_dep
 from app.config import Settings
+from app.errors import GoneError
 from app.models import User
 from app.schemas.common import error_responses
 from app.schemas.test_design import (
@@ -14,7 +15,6 @@ from app.schemas.test_design import (
     TestDesignRunOut,
     TestDesignRunSummary,
     TestDesignSummary,
-    TestDesignVariant,
     TestDesignVariantsShown,
 )
 from app.services.judge.backends import JudgeUnavailableError
@@ -41,14 +41,26 @@ def exercise(slug: str, request: Request, db: Session = Depends(get_db)) -> Test
     return TestDesign(db).exercise(slug, request.app.state.execution_backend.enabled)
 
 
+# Volume 20, prompt 4: the faulty versions are shown only where the showing is
+# recorded (POST /me/test-design/{slug}/variants, signed in), so every run after it says so. This public
+# route served them with nothing recorded; it now answers 410 with that explanation, at the same path, so
+# an old page or client gets a clear answer rather than a broken one (docs/TEST_DESIGN.md, docs/API.md).
+VARIANTS_GONE = (
+    "The faulty versions are shown only to a signed-in learner, because showing them is recorded as help "
+    'for the runs after it. Sign in and use "Show the faulty versions" on the exercise\'s page.'
+)
+
+
 @router.get(
     PUBLIC + "/{slug}/variants",
-    response_model=list[TestDesignVariant],
-    responses=error_responses(404),
-    summary="The authored faulty versions and their defects (shown when the learner asks)",
+    status_code=410,
+    responses=error_responses(404, 410),
+    summary="Gone: the faulty versions are shown only where the showing is recorded "
+    "(signed in: POST /me/test-design/{slug}/variants)",
 )
-def variants(slug: str, db: Session = Depends(get_db)) -> list[TestDesignVariant]:
-    return TestDesign(db).variants(slug)
+def variants(slug: str, db: Session = Depends(get_db)) -> None:
+    TestDesign(db).exercise_known(slug)  # an unknown exercise is still a 404
+    raise GoneError(VARIANTS_GONE, code="faulty_versions_need_sign_in")
 
 
 @router.post(

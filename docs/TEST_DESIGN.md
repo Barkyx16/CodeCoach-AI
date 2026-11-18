@@ -111,7 +111,17 @@ earlier runs stay as they were.
   added to the learner's plan.
 - Showing the faulty versions, signed in, is recorded as help (Volume 19, prompt 3;
   docs/ATTEMPT_CONDITIONS.md, "Test-design runs"): every run after it at that version says "Solution
-  revealed", on its report, its row and in History. Signed out it's recorded nowhere.
+  revealed", on its report, its row and in History. Since Volume 20, prompt 4, that's the only way
+  they're shown: the public `GET /api/v1/test-design/{slug}/variants`, which served them with nothing
+  recorded, now answers **410** (`faulty_versions_need_sign_in`) with the reason ("shown only to a
+  signed-in learner, because showing them is recorded as help for the runs after it"), at the same
+  path so an old page or client gets a clear answer; an unknown exercise is still a 404. The
+  exercise's page already asks a signed-out visitor to sign in and brings them back. The public list
+  and exercise still give the specification, its shape and limits, and how many faulty versions
+  there are (`variant_count`), never a version's title or defect. The API compatibility check
+  (`backend/scripts/api_compat.py`) reports 0 breaking, because it compares response fields and this
+  route returned a bare list; for a client that read it, the change is breaking, which is why it
+  says why rather than disappearing.
 - In History since Volume 18, prompt 10 (docs/COMPARING_ATTEMPTS.md, "History, test-design runs"):
   each run is a row in the words "Your earlier runs" uses (`outcome_text` on the runs list, one rule
   for both), opening that run's report on this page (`?attempt=<id>`).

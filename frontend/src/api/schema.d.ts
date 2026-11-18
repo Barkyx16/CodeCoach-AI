@@ -2825,7 +2825,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The authored faulty versions and their defects (shown when the learner asks) */
+        /** Gone: the faulty versions are shown only where the showing is recorded (signed in: POST /me/test-design/{slug}/variants) */
         get: operations["variants_api_v1_test_design__slug__variants_get"];
         put?: never;
         post?: never;
@@ -27401,17 +27401,17 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Successful Response */
-            200: {
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TestDesignVariant"][];
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
-            /** @description Not found (also returned for resources owned by another user) */
-            404: {
+            /** @description Error */
+            410: {
                 headers: {
                     [name: string]: unknown;
                 };

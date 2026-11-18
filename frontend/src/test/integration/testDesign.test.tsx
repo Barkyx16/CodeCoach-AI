@@ -196,6 +196,27 @@ describe("test design", () => {
     expect(variantCalls).toBe(1);
   });
 
+  it("signed out the exercise asks you to sign in, and no page reads the public route (Volume 20, prompt 4)", async () => {
+    serve();
+    let publicCalls = 0;
+    server.use(http.get(`${API}/api/v1/test-design/:slug/variants`, () => {
+      publicCalls += 1;
+      return HttpResponse.json({ error: { code: "faulty_versions_need_sign_in", message: "Sign in." } }, { status: 410 });
+    }));
+    const out = renderApp(`/test-design/${SLUG}`);
+    // The sign-in page, which brings you back to the exercise afterwards.
+    expect(await screen.findByRole("heading", { level: 1, name: "Welcome back" })).toBeInTheDocument();
+    expect(out.router.state.location.pathname).toBe("/login");
+    expect(screen.queryByRole("button", { name: /Show the faulty versions/ })).not.toBeInTheDocument();
+    out.unmount();
+    // Signed in, only the recorded showing is asked.
+    const { user } = renderApp(`/test-design/${SLUG}`, { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Stuck? Show what the faulty versions get wrong" }));
+    await user.click(screen.getByRole("button", { name: "Show the faulty versions" }));
+    expect(await screen.findByText(/Version B: Leaves out values equal to lo\./)).toBeInTheDocument();
+    expect([variantCalls, publicCalls]).toEqual([1, 0]);
+  });
+
   it("a run's report and its row in the list say what help came before it (Volume 19, prompt 3)", async () => {
     const revealed = {
       labels: ["Solution revealed"], help: [{ label: "Solution revealed", detail: "The faulty versions were shown before these cases were written", at: "2026-11-18T09:00:00Z" }],
