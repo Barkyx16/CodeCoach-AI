@@ -79,7 +79,20 @@ def test_a_comparison_sent_after_its_explanation_was_opened_says_so(client):
     assert labels(plain["conditions"]) == ["No in-app help recorded"]
     early = a_comparison(client, h, OTHER_LESSON, early=True)
     assert labels(early["conditions"]) == ["Solution revealed"]
-    assert early["conditions"]["help"][0]["detail"] == "The explanation was opened before this was sent"
+    # Sent as opened with no opening recorded on the account (Volume 19, prompt 5): it says so, and
+    # that the time beside it is the reading's own.
+    assert early["conditions"]["help"][0]["detail"] == (
+        "The explanation was opened before this was sent (opening it wasn't recorded on your account, so "
+        "the time here is this reading's)"
+    )
+    # Opened through the page's recording route first: the plain words, with the opening's time.
+    opened = client.post(f"/api/v1/me/comparisons/{SPECIFIC}/explanation", json={}, headers=h).json()
+    recorded = a_comparison(client, h, SPECIFIC, early=True)
+    [help_] = recorded["conditions"]["help"]
+    assert help_["detail"] == "The explanation was opened before this was sent"
+    assert datetime.fromisoformat(help_["at"].replace("Z", "+00:00")) == datetime.fromisoformat(
+        opened["opened_at"].replace("Z", "+00:00")
+    )
 
 
 def test_a_lesson_that_prepares_a_comparison_is_help_for_the_first_attempt_after_it_only(client):
