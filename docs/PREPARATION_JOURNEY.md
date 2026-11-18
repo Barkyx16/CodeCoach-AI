@@ -480,6 +480,67 @@ exercise's conditions "In-app help before this attempt: Hint shown" with "Lesson
 failing test” read"; no sideways scroll at 412 or 360 px on any of the eight pages; the canary not
 in the API's log.
 
+## Kept and accounted for, on a phone
+
+Volume 19, prompt 10. Prompts 1–4 changed what survives a reload and how test design is recorded and
+compared; this proves them together on a phone (Chromium emulating a Pixel 7, 412 px wide) against
+the real API, with both test-design runs judged in the real sandbox.
+
+- The journey: `frontend/e2e/kept-journey-mobile.spec.ts` (the mobile project), recorded with the
+  shared helpers (`Recorder`, a check line per step).
+- Where it runs: CI's sandbox job, added to the step that already runs the engineer's specs twice on
+  fresh accounts with the real judge (`E2E_JUDGE=1`, `--repeat-each=2`); its record is in the step's
+  `[journey-record]` lines and the `engineer-journey-record` artifact. No new job, no retries.
+  Without the real judge it skips, saying why.
+
+| # | Step | What it checks |
+|---|---|---|
+| 1 | The judge is ready | `/capabilities`: code execution on, the judge "ready" |
+| 2 | Two collections and two saved questions, set up through the API | Not a learner's step, and the record says so: "Week 1" with three questions, "Week 2" with one, two questions saved for review |
+| 3 | A move between collections through a lost reply and a reload | Two moved to "Week 2"; the server moves them and the reply is cut off ("No reply came…"); after a reload the page reads the first reply: "2 moved. Nothing needs attention." ("These are what it did, and nothing was done twice."), one POST in all; through the API, "Week 2" holds each moved question once and "Week 1" the one left; axe on the notice in both themes |
+| 4 | A question removed from the review queue, the page reloaded, put back | The page's Undo gone with the reload; "Removed recently (1)" lists it ("Removed just now"); Put back says it's back "as it was", and through the API its due date is the one it had; axe on the section in both themes |
+| 5 | A first test-design run, judged for real | Ordinary cases (one with a canary in its note), judged in the sandbox; the report says how many of the 4 faulty versions it told apart, "Not compared: the first judged run of this exercise.", and no in-app help before it |
+| 6 | The faulty versions shown | "Show the faulty versions" records the showing on the account (its time kept for step 7), then lists them |
+| 7 | A second run, judged for real, after the faulty versions were shown | A boundary case; its help: "Solution revealed: The faulty versions were shown before these cases were written" at the showing's exact time; beside the first: "Partly comparable: the in-app help differed: before the earlier one, none recorded; before the later one, solution revealed…", both counts as given; axe on the comparison and the conditions in both themes |
+| 8 | History lists both runs, each opening its report | The second's row says "Partly comparable with the one before" and "In-app help: Solution revealed", the first's that it's the first; each opens its report |
+| 9 | Nothing typed reached the API's log | The canary isn't in it; every page checked at 412 and 360 px |
+
+**What isn't checked from the page, and what is instead.** The collections' contents after the move
+(the page shows only the collection it's on) and the review item's due date are read through the
+API; each run's result is read back from the API exactly as the judge gave it (status, the report's
+counts and version, its detail, and from the request to the result). Runs are found by the ids in
+their History links.
+
+**Negative controls, each caught by this journey with the real judge here:** the move's key lost on
+reload (step 3: the page can't say what it did); the removal's time not kept (step 4: nothing listed
+after the reload); and showing the faulty versions not recorded (the page using the public route;
+step 7: no "Solution revealed", and the run isn't partly comparable).
+
+### Its record
+
+**Before CI** (the development check, not the record): this machine, on 18 November 2026, with the
+real judge in gVisor, through the e2e launcher: this journey twice, 2 passed, 9 of 9 steps both
+times. Each run's result as the judge gave it (all `done`, report version 1, "Ran against the
+reference and every faulty version."), and from the request to the result:
+
+| Run | First run (ordinary cases) | Second run (a boundary case, after the showing) |
+|---|---|---|
+| First | told apart 0 of 4, 3.6 s | told apart 2 of 4, 3.5 s |
+| Second | told apart 0 of 4, 4.0 s | told apart 2 of 4, 3.9 s |
+
+Both times: the move read "2 moved. Nothing needs attention." after the reload with one POST; the
+review question came back with its due date; the second run's help named the showing's time and its
+comparison read "Partly comparable: the in-app help differed: before the earlier one, none recorded;
+before the later one, solution revealed. The counts are of the same authored faulty versions, so
+both are shown. Both counts are of the faulty versions written for this exercise only, not of every
+possible defect. (Comparison rules v1)"; History's row for it: "Test design: Count in Range ·
+Coding problems · 1 case · told apart 2 of 4 faulty versions · version 1 · Partly comparable with
+the one before · In-app help: Solution revealed · Completed"; no sideways scroll at 412 or 360 px on
+any of the five pages; axe found nothing on the four new sections in dark or light; the canary not in
+the API's log.
+
+**In CI**: to be recorded from the first run of the sandbox job after this commit.
+
 ## Limits
 
 - The nurse's path: one career, a registered nurse. The coach-context step is absent for it (above);
