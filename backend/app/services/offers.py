@@ -305,6 +305,8 @@ class Offers:
     def export(self) -> list[dict[str, Any]]:
         return [
             {
+                # Its id, which a retry's parent_id names (Volume 19, prompt 9: no attempt without one).
+                "id": r.id,
                 "case": r.case_id,
                 "case_version": r.case_version,
                 "goals": r.goals,

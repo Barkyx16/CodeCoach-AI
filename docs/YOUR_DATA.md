@@ -64,6 +64,20 @@ records are hashes; an email's content is cleared once sent). No text, title or 
 count (a test captures the statements). Every table holding a learner's rows is placed in exactly one
 category (a test fails on a new table that isn't). Owner-only; anonymous callers get 401.
 
+**Every attempt in the export has its id** (Volume 19, prompt 9): the id History and the attempt's
+own page name it by, and its conditions (the help before it), so a record in the file can be matched
+with the app. Test-design runs now carry theirs too: id, status and its detail, cases, report, when
+it was made and judged, the words its list uses (`outcome_text`), its conditions (from the same
+function as the bulk route History uses, so the two can't differ) and its comparison with the run
+before (`compared`, in the contract's words, or `not_compared`); offer rehearsals carry their id,
+which a retry's `parent_id` names. `app/services/export_walk.py` names, for every section, which
+field identifies its attempts or why it holds none; a test walks a real export and fails on any
+attempt without its id, on an attempt section without its conditions, on any record with
+`conditions` but no id, and on a section the walk doesn't name, so a format added later can't be
+left out. The practice-labs line here says what each attempt is exported with. Additive: the export
+stays version 1 by default and version 2 on request; a backup file still doesn't restore practice
+results (test-design runs included) and says so.
+
 Export, restore and deletion stay where they are: the page links to Settings' **Download my data**,
 **Restore from a backup** and **Danger zone** (password and "DELETE"), and Settings now moves focus
 to the section a link names. No new way to export or delete.

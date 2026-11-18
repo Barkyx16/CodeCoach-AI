@@ -55,6 +55,7 @@ TYPES = (
     "plan_activity",
     "review_item",
     "practice_session",
+    "test_design_run",
 )
 STATES = ("present", "missing", "public", "not_exported", "unknown")
 PUBLIC = {"question", "problem", "lesson", "drill"}
@@ -200,6 +201,7 @@ def _records(doc: dict) -> list[tuple[str, str, dict]]:
         ("accepted_actions", "accepted_action"),
         ("interview_reflections", "interview_reflection"),
         ("bookmarks", "bookmark"),
+        ("test_design_runs", "test_design_run"),  # by id since Volume 19, prompt 9
     ):
         for i, r in enumerate(doc.get(section) or []):
             out.append((kind, f"{section}[{i}]", r))

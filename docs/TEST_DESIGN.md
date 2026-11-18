@@ -103,7 +103,10 @@ earlier runs stay as they were.
 - Unsent cases are kept on this device (`test-design-draft:<account>:<slug>`) and cleared at
   sign-out.
 - In the data export as `test_design_runs`; not restored from a backup file, like other practice
-  results.
+  results. Since Volume 19, prompt 9 each run is exported as every other attempt is: its `id`,
+  `status` and `status_detail`, cases, report, `created_at` and `judged_at`, `outcome_text`, its
+  `conditions` and its comparison (`compared` or `not_compared`), and the version 2 check knows its
+  id (docs/YOUR_DATA.md).
 - No AI is involved. The page links to the debugging lab and code review explicitly; nothing is
   added to the learner's plan.
 - Showing the faulty versions, signed in, is recorded as help (Volume 19, prompt 3;

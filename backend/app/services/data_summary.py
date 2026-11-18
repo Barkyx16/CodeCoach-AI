@@ -116,6 +116,8 @@ CATEGORIES: tuple[Category, ...] = (
             "comparison_attempts",
             "scenario_attempts",
         ),
+        note="Each attempt is exported with its id and the help before it; a test-design run also with its "
+        "status detail, when it was judged and how it compares with the run before.",
     ),
     Category(
         "offers",

@@ -67,7 +67,8 @@ a target the file doesn't contain.
 missing or duplicate ids, unknown types or states, malformed links, links that say `present`
 but point nowhere (`dangling`) or to another kind of record (`wrong_type`), and links that say a
 target isn't here when it is (`inconsistent_state`). It can't tell whose a file is, and it changes
-nothing.
+nothing. Since Volume 19, prompt 9 it also checks test-design runs' ids (`test_design_run`): a file
+exported before then has runs without ids, and the check says so (`missing_id`).
 
 | | Version 1 | Version 2 |
 |---|---|---|

@@ -352,20 +352,52 @@ class TestDesign:
         return self._out(run)
 
     def export(self) -> list[dict[str, Any]]:
-        rows = list(self.db.scalars(select(TestDesignRun).where(TestDesignRun.user_id == self._me.id)))
+        """Each run as every other attempt is exported (Volume 19, prompt 9): its id (the one History
+        and its page name it by), status and detail, cases, report, times, the words its list uses,
+        its conditions (the bulk route's own function) and its comparison with the run before, in
+        the contract's words. Read only."""
+        from app.services.attempt_comparisons import COMPARED_SHORT, not_compared
+
+        rows = list(
+            self.db.scalars(
+                select(TestDesignRun)
+                .where(TestDesignRun.user_id == self._me.id)
+                .order_by(TestDesignRun.created_at, TestDesignRun.id)
+            )
+        )
         found = self._conditions(rows)
-        return [
-            {
-                "conditions": found[r.id].model_dump(mode="json") if r.id in found else None,
-                "exercise": r.exercise_slug,
-                "exercise_version": r.exercise_version,
-                "status": r.status,
-                "cases": r.cases,
-                "report": r.report,
-                "created_at": r.created_at.isoformat(),
-            }
-            for r in rows
-        ]
+        compared: dict[str, Any] = {}
+        for slug in sorted({r.exercise_slug for r in rows}):
+            compared |= self._compared(slug)
+        out = []
+        for r in rows:
+            c = compared.get(r.id)
+            out.append(
+                {
+                    "id": r.id,
+                    "conditions": found[r.id].model_dump(mode="json") if r.id in found else None,
+                    "exercise": r.exercise_slug,
+                    "exercise_version": r.exercise_version,
+                    "status": r.status,
+                    "status_detail": r.status_detail,
+                    "cases": r.cases,
+                    "report": r.report,
+                    "outcome_text": run_words(r),
+                    "compared": {
+                        "against": c.previous.id,
+                        "outcome": c.comparison.outcome,
+                        "text": COMPARED_SHORT[c.comparison.outcome],
+                        "explanation": c.comparison.explanation,
+                        "contract_version": c.comparison.contract_version,
+                    }
+                    if c is not None
+                    else None,
+                    "not_compared": not_compared("test_design", r, compared),
+                    "created_at": r.created_at.isoformat(),
+                    "judged_at": r.judged_at.isoformat() if r.judged_at else None,
+                }
+            )
+        return out
 
     def export_reveals(self) -> list[dict[str, Any]]:
         """When the faulty versions were first shown, by exercise and version (Volume 19, prompt 3)."""
