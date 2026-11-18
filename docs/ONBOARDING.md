@@ -52,6 +52,13 @@ Five steps on the real question page (written careers) or the real coding worksp
   continues at the same step. Leaving pauses it; the dashboard offers "Resume" once (dismissible)
   and Help can resume or replay it.
 - If saving fails (offline), the tour still moves and can always be left on that page.
+- **Steps are saved one at a time, in the order taken** (CI run 371). Each save is a step, not
+  "one more", so the server must apply them in order: two sent together could commit in either
+  order, and an earlier step finishing last was what it kept. The page still moves at once;
+  saves queue behind each other (`scope` on the mutation). Only the newest change's reply replaces
+  what's shown (CI run 277), and a read of the tour's state that overlaps a save still out, or
+  that began before a change, keeps what's shown, so a refresh (after an answer, say) can't bring
+  back a step already left behind.
 
 ## After a career change
 

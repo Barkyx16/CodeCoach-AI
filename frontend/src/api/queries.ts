@@ -695,8 +695,32 @@ export function useSkipFollowup(id: string) {
 
 // --- the optional first-session introduction --------------------------------------------------
 
+/**
+ * How many onboarding changes this app has sent, per query client. Each change's reply is the
+ * server's state as that change left it; while a newer change is on its way, an older reply is
+ * out of date (CI run 277: a late reply to "step 2" put the tour back from step 3).
+ */
+const onboardingChanges = new WeakMap<QueryClient, number>();
+const ONBOARDING_SAVE = ["me", "onboarding", "save"];
+
 export function useOnboarding(enabled = true) {
-  return useQuery({ queryKey: ["me", "onboarding"], queryFn: api.onboarding, enabled, staleTime: 30_000 });
+  const qc = useQueryClient();
+  return useQuery({
+    queryKey: ["me", "onboarding"],
+    // A read that overlaps a change being saved can describe the account from before it (CI run
+    // 371: an answer's refresh brought back a step the tour had moved past, so the next Next landed
+    // a step short). While a change is pending, or if one was made since this read began, what's
+    // shown stays: that change's own reply replaces it.
+    queryFn: async () => {
+      const before = onboardingChanges.get(qc) ?? 0;
+      const fresh = await api.onboarding();
+      const shown = qc.getQueryData<Onboarding>(["me", "onboarding"]);
+      const raced = (onboardingChanges.get(qc) ?? 0) !== before || qc.isMutating({ mutationKey: ONBOARDING_SAVE }) > 0;
+      return raced && shown ? shown : fresh;
+    },
+    enabled,
+    staleTime: 30_000,
+  });
 }
 
 /**
@@ -705,16 +729,14 @@ export function useOnboarding(enabled = true) {
  * (features/onboarding/finishIntent.ts): any reply from the server settles it, and so does a
  * definite refusal; a network failure or server error leaves it for the next load.
  */
-/**
- * How many onboarding changes this app has sent, per query client. Each change's reply is the
- * server's state as that change left it; while a newer change is on its way, an older reply is
- * out of date (CI run 277: a late reply to "step 2" put the tour back from step 3).
- */
-const onboardingChanges = new WeakMap<QueryClient, number>();
-
 export function useUpdateOnboarding(accountId?: string) {
   const qc = useQueryClient();
   return useMutation({
+    mutationKey: ONBOARDING_SAVE,
+    // One at a time, in the order chosen: each change is absolute (a step, not "one more"), so the
+    // server must apply them in that order or an earlier one, finishing last, is what it keeps (CI
+    // run 371: steps 2 and 3 sent together, step 2 committed last). The page still moves at once.
+    scope: { id: "me-onboarding" },
     mutationFn: (body: OnboardingUpdate) => api.updateOnboarding(body),
     onError: (error, body) => {
       if (body.tour !== "complete") return;
