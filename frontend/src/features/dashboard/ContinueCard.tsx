@@ -63,7 +63,7 @@ function actionOf(i: RecentItem): string {
 
 const INTENT_LABEL: Record<IntentKind, string> = {
   submission: "Code submission", run: "Code run", hint: "Hint request", review: "Code review request",
-  story: "Story save", note_copy: "Note copy",
+  story: "Story save", note_copy: "Note copy", transfer: "Copy or move between collections",
 };
 
 /** Where what an earlier request made can be seen. */
@@ -73,6 +73,12 @@ function outcomeLink(o: RequestOutcome): { to: string; label: string } | null {
   }
   if (o.kind === "story") return { to: `/stories/${encodeURIComponent(o.id)}`, label: "Open the story" };
   if (o.kind === "note") return { to: `/notes/${encodeURIComponent(o.id)}`, label: "Open the note" };
+  if (o.kind === "transfer") {
+    const other = o.transfer?.destination_id;
+    return other
+      ? { to: `/saved/collections/${encodeURIComponent(other)}`, label: "Open the other collection" }
+      : { to: `/saved/collections/${encodeURIComponent(o.id)}`, label: "Open the collection" };
+  }
   return null;
 }
 

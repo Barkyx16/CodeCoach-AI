@@ -12,7 +12,7 @@ import { forgetIntents, listIntents, type IntentKind, type PendingIntent } from 
 
 const INTENT_LABEL: Record<IntentKind, string> = {
   submission: "Code submission", run: "Code run", hint: "Hint request", review: "Code review request",
-  story: "Story save", note_copy: "Note copy",
+  story: "Story save", note_copy: "Note copy", transfer: "Copy or move between collections",
 };
 // Targets that are public problem names, safe to show; the others are record ids.
 const NAMED_TARGET = new Set<IntentKind>(["submission", "run", "hint", "review"]);

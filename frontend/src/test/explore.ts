@@ -21,6 +21,8 @@ export const store = {
   loseTransferReply: false,
   /** Each keyed copy or move's first results, as the server keeps them (Volume 18, prompt 5). */
   transferReplies: new Map<string, unknown[]>(),
+  /** Where each keyed copy or move went (Volume 19, prompt 1), as the server's receipt keeps it. */
+  transferMade: new Map<string, { source: string; to: string; move: boolean; at: string }>(),
 };
 
 export function resetExploreStore() {
@@ -31,6 +33,7 @@ export function resetExploreStore() {
   store.itemLimit = 200;
   store.loseTransferReply = false;
   store.transferReplies = new Map();
+  store.transferMade = new Map();
 }
 
 const err = (status: number, code: string, message: string) =>
@@ -261,9 +264,22 @@ export const exploreHandlers = [
         : { key, outcome: "not_there", message: `Not in “${src.name}” (any more).` });
     });
     const out = { source: fresh(src), destination: fresh(dst), results, replayed: false };
-    if (body.client_request_id) store.transferReplies.set(body.client_request_id, results);
+    if (body.client_request_id) {
+      store.transferReplies.set(body.client_request_id, results);
+      store.transferMade.set(body.client_request_id, { source: src.id, to: dst.id, move: body.move, at: new Date().toISOString() });
+    }
     if (store.loseTransferReply) { store.loseTransferReply = false; return HttpResponse.error(); }
     return HttpResponse.json(out);
+  }),
+  // What a key made (Volume 19, prompt 1): a keyed copy or move's receipt, read only.
+  http.get(`${API}/api/v1/me/requests/:key`, ({ params }) => {
+    const key = String(params.key);
+    const made = store.transferMade.get(key);
+    if (!made) return err(404, "request_not_found", "The server has no record of this request: it never arrived, or what it made has since been deleted.");
+    return HttpResponse.json({
+      kind: "transfer", state: "done", id: made.source, created_at: made.at, problem_slug: null, hint_level: null,
+      transfer: { source_id: made.source, destination_id: made.to, move: made.move, results: store.transferReplies.get(key) ?? [] },
+    });
   }),
   http.delete(`${API}/api/v1/me/collections/:id/items/:item`, ({ params }) => {
     const c = find(String(params.id));

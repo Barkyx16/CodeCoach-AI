@@ -18,7 +18,8 @@ import { newRequestKey } from "./requestKey";
  * - **Honest when storage fails.** `rememberIntent` says whether the record was kept; when it
  *   wasn't, the page doesn't promise recovery after a reload.
  */
-export type IntentKind = "submission" | "run" | "hint" | "review" | "story" | "note_copy";
+// "transfer": a copy or move between collections (Volume 19, prompt 1), its target the source collection.
+export type IntentKind = "submission" | "run" | "hint" | "review" | "story" | "note_copy" | "transfer";
 
 export interface PendingIntent {
   v: 1;

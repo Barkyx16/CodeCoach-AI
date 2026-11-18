@@ -20,6 +20,7 @@ from app.schemas.activity import (
     ResumeOut,
 )
 from app.schemas.common import APIModel, Page, error_responses
+from app.schemas.explore import TransferResult
 from app.schemas.progress import ProgressOut, Recommendation
 from app.services.account import export_user_data
 from app.services.activity import ActivityFilters, ActivityService
@@ -185,10 +186,21 @@ def resume(
     return _activity(request, db).resume(user)
 
 
+class TransferMade(APIModel):
+    """What a copy or move between collections did (Volume 19, prompt 1), as its first reply said."""
+
+    source_id: str
+    destination_id: str | None = Field(
+        description="The other collection; null for a request from before this was kept"
+    )
+    move: bool | None
+    results: list[TransferResult]
+
+
 class RequestOutcome(APIModel):
     """What a request sent with this key made, if anything (Volume 8, prompt 1)."""
 
-    kind: Literal["submission", "run", "hint", "review", "explain", "story", "answer", "note"]
+    kind: Literal["submission", "run", "hint", "review", "explain", "story", "answer", "note", "transfer"]
     state: Literal["done", "pending"] = Field(
         description="pending: a submission still queued or being judged"
     )
@@ -196,6 +208,10 @@ class RequestOutcome(APIModel):
     created_at: datetime
     problem_slug: str | None = None
     hint_level: int | None = None
+    transfer: TransferMade | None = Field(
+        default=None,
+        description="A copy or move between collections: what its first reply said each item did",
+    )
 
 
 @router.get(
@@ -276,6 +292,30 @@ def request_outcome(
     )
     if note is not None:
         return RequestOutcome(kind="note", state="done", id=note.id, created_at=note.created_at)
+    from app.models import LifecycleReceipt
+    from app.services.explore import TRANSFER_RECEIPT
+
+    receipt = db.scalar(
+        select(LifecycleReceipt).where(
+            LifecycleReceipt.user_id == user.id,
+            LifecycleReceipt.client_request_id == key,
+            LifecycleReceipt.action == TRANSFER_RECEIPT,
+        )
+    )
+    if receipt is not None:  # a copy or move between collections (Volume 19, prompt 1)
+        kept = receipt.impact or {}
+        return RequestOutcome(
+            kind="transfer",
+            state="done",
+            id=receipt.target_id,
+            created_at=receipt.created_at,
+            transfer=TransferMade(
+                source_id=receipt.target_id,
+                destination_id=kept.get("to"),
+                move=kept.get("move"),
+                results=[TransferResult.model_validate(r) for r in kept.get("results") or []],
+            ),
+        )
     from app.services.ai.service import CoachService
 
     if CoachService.turn_in_flight(db, user.id):

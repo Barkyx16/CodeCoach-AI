@@ -159,7 +159,10 @@ doesn't send again.
   the account's records. A session that lapsed keeps them for the same account; another account
   never reads them.
 - **The check is a read.** `GET /api/v1/me/requests/{key}` searches only the caller's own
-  submissions, AI requests, stories, answers and notes. It says what the key made (and whether a
+  submissions, AI requests, stories, answers and notes, and (since Volume 19, prompt 1) copies and
+  moves between collections (`kind: "transfer"`, with what the first reply said each item did, the
+  other collection and whether it was a move; a receipt from before that kept no destination says
+  `null`). It says what the key made (and whether a
   submission is still queued) or 404, "no record". A key is never permission for anything.
 - **What the learner sees** (`EarlierActionNotice`):
   - "Your submission from 21:04 arrived. Its result is below."

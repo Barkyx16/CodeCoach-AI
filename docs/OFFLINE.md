@@ -83,7 +83,7 @@ Nothing is ever graded, judged or scored on the device, and a draft is never sho
 | Unfinished goals, new target job, job posting and application details (Volume 9, prompt 2) | localStorage `form-draft:<account>:…`, at most 60,000 characters, 14 days | Saved and cleared, discarded, or **deleted when you sign out**. A session that ends by itself keeps them for that account |
 | Interview round, follow-up, chat and retry drafts | localStorage, keyed by interview (only its owner can open it) | Sent and cleared, or deleted when anyone signs out on this device |
 | Which account last used the device | localStorage `codecoach.device-user.v1` | On sign-out |
-| Actions waiting for a reply (kind, target, request key, a fingerprint; no content) | localStorage `codecoach.pending.v1.<account>` | Resolved, after 24 hours, chosen on Your data, or on sign-out |
+| Actions waiting for a reply (kind, target, request key, a fingerprint; no content; a copy or move between collections too, since Volume 19, prompt 1) | localStorage `codecoach.pending.v1.<account>` | Resolved, after 24 hours, chosen on Your data, or on sign-out |
 | Which copies were removed on purpose from Your data (key, number, time; no content) | localStorage `codecoach.removed.v2` | Over a day old when the next removal is recorded; the list on sign-out ([YOUR_DATA.md](YOUR_DATA.md)) |
 | Display, editor and voice preferences | localStorage | Kept: device settings, not account data |
 

@@ -13171,7 +13171,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "submission" | "run" | "hint" | "review" | "explain" | "story" | "answer" | "note";
+            kind: "submission" | "run" | "hint" | "review" | "explain" | "story" | "answer" | "note" | "transfer";
             /**
              * State
              * @description pending: a submission still queued or being judged
@@ -13192,6 +13192,8 @@ export interface components {
             problem_slug?: string | null;
             /** Hint Level */
             hint_level?: number | null;
+            /** @description A copy or move between collections: what its first reply said each item did */
+            transfer?: components["schemas"]["TransferMade"] | null;
         };
         /** RequirementChange */
         RequirementChange: {
@@ -16441,6 +16443,23 @@ export interface components {
              * @default 0
              */
             unknown: number;
+        };
+        /**
+         * TransferMade
+         * @description What a copy or move between collections did (Volume 19, prompt 1), as its first reply said.
+         */
+        TransferMade: {
+            /** Source Id */
+            source_id: string;
+            /**
+             * Destination Id
+             * @description The other collection; null for a request from before this was kept
+             */
+            destination_id: string | null;
+            /** Move */
+            move: boolean | null;
+            /** Results */
+            results: components["schemas"]["TransferResult"][];
         };
         /** TransferResult */
         TransferResult: {

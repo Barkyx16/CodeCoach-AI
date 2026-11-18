@@ -5,11 +5,15 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import { useCollection, useCollectionMutation, useCollections, useDeleteCollection, useLimit } from "@/api/queries";
-import type { Collection, CollectionItem } from "@/api/types";
+import type { Collection, CollectionItem, RequestOutcome } from "@/api/types";
 import { BackLink } from "@/components/BackLink";
 import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
+import { useAuth } from "@/auth/useAuth";
+import { EarlierActionNotice } from "@/features/recovery/EarlierActionNotice";
+import { useEarlierAction } from "@/features/recovery/useEarlierAction";
+import { fingerprint, forgetIntent, keyForIntent } from "@/lib/pendingIntents";
 import { useRequestKey } from "@/lib/requestKey";
 
 import { BulkOutcomes, NoReply, SelectBox } from "./bulk";
@@ -42,8 +46,14 @@ export function CollectionPage() {
   const copies = useQueryClient();
   const requestKey = useRequestKey();
   // One key per copy or move (Volume 18, prompt 5): sent again after a lost reply, the server gives back
-  // what the first request did.
+  // what the first request did. Kept on this device before sending (Volume 19, prompt 1), so after a
+  // reload the page asks what that key made instead of losing it; in memory only if this browser can't
+  // keep it.
   const transferKey = useRequestKey();
+  const { user } = useAuth();
+  const earlierTransfer = useEarlierAction("transfer", id || null);
+  const otherId = earlierTransfer.status === "found" ? earlierTransfer.outcome.transfer?.destination_id ?? "" : "";
+  const otherCollection = useCollection(otherId, !!otherId);
   const [duplicating, setDuplicating] = useState(false);
   const [copyName, setCopyName] = useState("");
   const [copyLost, setCopyLost] = useState(false);
@@ -165,10 +175,11 @@ export function CollectionPage() {
     setBulkLost(null);
     try {
       const items = chosen.map((i) => ({ item_type: i.item_type, track: i.track, ref_id: i.ref_id }));
-      const out = await api.transferCollectionItems(id, {
-        to: to.id, move: moving, items, client_request_id: transferKey.keyFor({ id, to: to.id, move: moving, items }),
-      });
+      const intent = user ? keyForIntent(user.id, "transfer", id, fingerprint(to.id, moving ? "move" : "copy", JSON.stringify(items))) : null;
+      const key = intent?.kept ? intent.key : transferKey.keyFor({ id, to: to.id, move: moving, items });
+      const out = await api.transferCollectionItems(id, { to: to.id, move: moving, items, client_request_id: key });
       transferKey.done();
+      forgetIntent(user?.id, "transfer", id, key);
       qc.setQueryData(["me", "collection", id], out.source);
       qc.setQueryData(["me", "collection", to.id], out.destination);
       void qc.invalidateQueries({ queryKey: ["me", "collections"] });
@@ -181,7 +192,10 @@ export function CollectionPage() {
       focusOutcomes.current = true;
     } catch (e) {
       if (e instanceof ApiError && (e.code === "network_error" || e.status >= 500)) setBulkLost({ kind: "transfer", to, move: moving, chosen });
-      else setBulkError(e);
+      else {
+        forgetIntent(user?.id, "transfer", id); // refused: nothing to ask about after a reload
+        setBulkError(e);
+      }
     } finally {
       setBulkBusy(false);
     }
@@ -316,6 +330,14 @@ export function CollectionPage() {
       )}
 
       <p className="visually-hidden" role="status">{announce}</p>
+      {/* A copy or move sent before the page reloaded, whose reply never came (Volume 19, prompt 1): what
+          its key made, read from the server, never sent again. */}
+      <EarlierActionNotice earlier={earlierTransfer} noun="copy or move"
+        found={earlierTransfer.status === "found" ? "These are what it did, and nothing was done twice." : null} />
+      {earlierTransfer.status === "found" && earlierTransfer.outcome.transfer && (
+        <EarlierTransfer made={earlierTransfer.outcome.transfer} other={otherCollection.data ?? null}
+          titleOf={(k) => [...items, ...(otherCollection.data?.item_list ?? [])].find((i) => itemKey(i) === k)?.title ?? "An item"} />
+      )}
       {items.length === 0 ? (
         <EmptyState title="This collection is empty" action={<Link className="btn btn--secondary btn--md" to="/problems?view=questions">Browse questions</Link>}>
           Open a question and use “Add to a collection”.
@@ -411,6 +433,20 @@ export function CollectionPage() {
 }
 
 /** After a copy or move: both collections, as they now are. */
+/** What an earlier copy or move did, as its first reply said: the same outcomes, and the other collection. */
+function EarlierTransfer({ made, other, titleOf }: {
+  made: NonNullable<RequestOutcome["transfer"]>; other: Collection | null; titleOf: (key: string) => string;
+}) {
+  const verb = made.move === false ? "copying" : made.move ? "moving" : "copying or moving";
+  return (
+    <div className="stack-sm">
+      <BulkOutcomes level={2} results={made.results} titleOf={titleOf}
+        verb={other ? `${verb} to “${other.name}”` : verb} />
+      {other && <p><Link to={`/saved/collections/${other.id}`}>Open “{other.name}”</Link></p>}
+    </div>
+  );
+}
+
 function TransferredLinks({ source, to, move, resent, replayed }: { source: Collection; to: Collection; move: boolean; resent: boolean; replayed: boolean }) {
   const count = (c: Collection) => `${c.items} ${c.items === 1 ? "item" : "items"}`;
   return (

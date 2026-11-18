@@ -45695,7 +45695,8 @@
               "explain",
               "story",
               "answer",
-              "note"
+              "note",
+              "transfer"
             ],
             "title": "Kind"
           },
@@ -45739,6 +45740,17 @@
               }
             ],
             "title": "Hint Level"
+          },
+          "transfer": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TransferMade"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A copy or move between collections: what its first reply said each item did"
           }
         },
         "type": "object",
@@ -54027,6 +54039,53 @@
           "total_questions"
         ],
         "title": "TrackProgress"
+      },
+      "TransferMade": {
+        "properties": {
+          "source_id": {
+            "type": "string",
+            "title": "Source Id"
+          },
+          "destination_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Destination Id",
+            "description": "The other collection; null for a request from before this was kept"
+          },
+          "move": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Move"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/TransferResult"
+            },
+            "type": "array",
+            "title": "Results"
+          }
+        },
+        "type": "object",
+        "required": [
+          "source_id",
+          "destination_id",
+          "move",
+          "results"
+        ],
+        "title": "TransferMade",
+        "description": "What a copy or move between collections did (Volume 19, prompt 1), as its first reply said."
       },
       "TransferResult": {
         "properties": {

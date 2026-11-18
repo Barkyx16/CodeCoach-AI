@@ -10,6 +10,7 @@ import { http, HttpResponse } from "msw";
 
 import type { Collection, CollectionItem } from "@/api/types";
 import { itemKey, transferWords } from "@/features/saved/transfer";
+import { keyForIntent, listIntents } from "@/lib/pendingIntents";
 
 import { resetExploreStore, store } from "../explore";
 import { renderApp } from "../render";
@@ -179,5 +180,79 @@ describe("Copying and moving on a collection's page", () => {
     expect(await screen.findByText("Collection not found")).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: /What happened/ })).not.toBeInTheDocument();
     expect(screen.getByRole("checkbox", { name: "Select: Question 1" })).toBeChecked();
+  });
+});
+
+describe("A copy or move whose reply was lost, then the page reloaded (Volume 19, prompt 1)", () => {
+  const twoCollections = () => [
+    collection("c-1", "Week 1", [item("c-1", 0), item("c-1", 1), item("c-1", 2)]),
+    collection("c-2", "Week 2", [item("c-2", 7)]),
+  ];
+  const sent = () => {
+    const bodies: { client_request_id?: string }[] = [];
+    server.events.on("request:start", ({ request }) => {
+      if (request.method === "POST" && request.url.endsWith("/items/transfer")) void request.clone().json().then((b) => bodies.push(b as never));
+    });
+    return bodies;
+  };
+
+  it("asks the server what its key made, shows the first reply, and sends nothing again", async () => {
+    store.collections = twoCollections();
+    store.loseTransferReply = true;
+    const bodies = sent();
+    const first = renderApp("/saved/collections/c-1", { signedIn: true });
+    await choose(first.user, ["Question 1", "Question 3"]);
+    await first.user.click(screen.getByRole("button", { name: "Move 2 to…" }));
+    const form = screen.getByRole("form", { name: "Move 2 items to another collection" });
+    await first.user.selectOptions(within(form).getByLabelText("To collection"), "c-2");
+    await first.user.click(await within(form).findByRole("button", { name: "Move 2 to “Week 2”" }));
+    await screen.findByRole("alert", {}, { timeout: 3000 });
+    // Kept on this device before it was sent, with the key it was sent with.
+    await waitFor(() => expect(bodies).toHaveLength(1));
+    const [kept] = listIntents("u-1");
+    expect(kept).toMatchObject({ kind: "transfer", target: "c-1", key: bodies[0]!.client_request_id });
+    first.unmount(); // the page reloads before the reply came
+
+    renderApp("/saved/collections/c-1", { signedIn: true });
+    const notice = await screen.findByText(/Your copy or move from .* arrived\./, {}, { timeout: 3000 });
+    expect(notice.closest(".earlier-action")).toHaveTextContent("These are what it did, and nothing was done twice.");
+    const outcomes = await screen.findByRole("region", { name: "What happened: moving to “Week 2”" }, { timeout: 3000 });
+    expect(within(outcomes).getByRole("status")).toHaveTextContent("2 moved. Nothing needs attention.");
+    expect(outcomes).toHaveTextContent("Question 1");
+    expect(screen.getByRole("link", { name: "Open “Week 2”" })).toHaveAttribute("href", "/saved/collections/c-2");
+    expect(outcomes.closest("p")).toBeNull(); // a list in its own place, not inside the notice's sentence
+    expect(bodies).toHaveLength(1); // asked, never sent again
+    await waitFor(() => expect(listIntents("u-1")).toEqual([])); // answered: forgotten
+  });
+
+  it("one that never arrived says nothing was copied or moved", async () => {
+    store.collections = twoCollections();
+    keyForIntent("u-1", "transfer", "c-1", "nothing-sent");
+    renderApp("/saved/collections/c-1", { signedIn: true });
+    expect(await screen.findByText(/The copy or move you sent at .* never arrived\./, {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: /What happened/ })).toBeNull();
+  });
+
+  it("an answered copy or move leaves nothing behind on the device", async () => {
+    store.collections = twoCollections();
+    const bodies = sent();
+    const { user } = renderApp("/saved/collections/c-1", { signedIn: true });
+    await choose(user, ["Question 2"]);
+    await user.click(screen.getByRole("button", { name: "Copy 1 to…" }));
+    const form = screen.getByRole("form", { name: "Copy 1 item to another collection" });
+    await user.selectOptions(within(form).getByLabelText("To collection"), "c-2");
+    await user.click(await within(form).findByRole("button", { name: "Copy 1 to “Week 2”" }));
+    await screen.findByRole("region", { name: "What happened: copying to “Week 2”" }, { timeout: 3000 });
+    expect(bodies[0]!.client_request_id).toMatch(/^[A-Za-z0-9_-]{8,64}$/);
+    expect(listIntents("u-1")).toEqual([]);
+  });
+
+  it("another account signed in on this browser never sees it", async () => {
+    store.collections = twoCollections();
+    keyForIntent("someone-else", "transfer", "c-1", "theirs");
+    renderApp("/saved/collections/c-1", { signedIn: true });
+    await screen.findByRole("heading", { name: "Week 1" });
+    expect(screen.queryByText(/copy or move you sent/)).toBeNull();
+    expect(screen.queryByText(/Your copy or move from/)).toBeNull();
   });
 });

@@ -1394,6 +1394,16 @@ interview sessions), so nothing is back-filled or counted twice. All scoped to t
   scale, kind of evaluator and recorded rubric, long enough to score; never merged), where each
   series' `attempts` and each week's `answers` are the average's denominator and `not_in_trend`
   counts the rest by reason, daily counts and `definitions` for every metric.
+- `GET /api/v1/me/requests/{key}` 🔒 says what a request you sent with this key made, a read that
+  never creates anything (docs/RECOVERY.md): `{kind, state, id, created_at, problem_slug, hint_level,
+  transfer}`, where `kind` is `submission | run | hint | review | explain | story | answer | note |
+  transfer`; for a copy or move between collections (since Volume 19, prompt 1) `id` is the source
+  collection and `transfer` is `{source_id, destination_id, move, results}`, the first reply's
+  outcomes. 404 `request_not_found` when nothing was made with it (or another account's key); 429
+  `request_in_progress` while a coaching request is still being answered.
+  `transfer` is a new `kind` value (consumer-sensitive in the compatibility check): only a page that
+  kept a copy or move's key ever asks about one, and pages from before kept none, so no older client
+  is sent it.
 - `GET /api/v1/me/resume` 🔒 returns the interview in progress (with its real
   `seconds_remaining`), the latest submitted-but-unsolved problem and the last answered question.
 - `GET /api/v1/me/ai-history/{id}` 🔒 returns one saved hint, review or failure explanation.

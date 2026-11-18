@@ -75,9 +75,16 @@ items selected, then the collection they go to. Within one account; nothing is s
   both collections as they are now, and the page says so ("This was sent again after no reply came:
   these are what the first request did, and nothing was done twice."). The same key for another
   request (other items, another collection, a copy instead of a move) is refused, `409
-  idempotency_key_reused`; another account's key is its own. The page keeps the key in memory: after
-  a reload, **Send again** resends the same items with a new key, and an item the first request
-  already did reads "Already there", as before. Two tabs sending the same items at once: the unique `(collection, item)`
+  idempotency_key_reused`; another account's key is its own. Since Volume 19, prompt 1, the key is
+  kept on this device before the request is sent (a `transfer` record among the device's pending
+  records, docs/RECOVERY.md: the source collection, the key and a fingerprint of the other
+  collection, copy or move and the items; never anything else). After a reload the page asks the
+  server what that key made (`GET /me/requests/{key}`, a read; nothing is sent again) and shows the
+  first reply's outcomes ("Your copy or move from 10:31 arrived. These are what it did, and nothing
+  was done twice.", then "2 moved", with a link to the other collection); one that never arrived
+  says so, and nothing was copied or moved. The dashboard's "Waiting for a reply" checks it the same
+  way. Answered, refused or checked, the record is forgotten. Where this browser can't keep it, the
+  key lasts as long as the page, as before. Two tabs sending the same items at once: the unique `(collection, item)`
   settles it, and the request that meets it is worked out once more against what's now there; two
   copies of one keyed request meet the receipt's unique key instead, and the second is given the
   first's reply. Shown with two real PostgreSQL transactions (Volume 18, prompt 6;

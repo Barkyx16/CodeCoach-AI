@@ -1146,6 +1146,10 @@ class Explorer:
                     impact={
                         "fingerprint": self._transfer_print(cid, body),
                         "results": [r.model_dump(mode="json") for r in results],
+                        # Where they went (Volume 19, prompt 1): a page reloaded before the reply asks
+                        # what its key made, and can link to the other collection.
+                        "to": body.to,
+                        "move": body.move,
                     },
                 )
             )
