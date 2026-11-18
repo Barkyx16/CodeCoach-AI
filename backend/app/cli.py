@@ -52,6 +52,10 @@ python -m app.cli revoke-admin EMAIL
 python -m app.cli check-answers [--limit-ids N]
                               # read-only checks of saved career answers: request keys, revision
                               # links, score eligibility (reason codes and ids, never answer text)
+python -m app.cli content review-status [--owed] [--json]
+                              # every content item and its review status, read from the content
+                              # files, grouped: review owed, reviewed, none recorded; a report,
+                              # not a gate: exits 0 (docs/LEARN_CONTENT.md)
 python -m app.cli validate-content [--run-reference] [--record]
                               # content quality gates; --run-reference compiles and runs the
                               # trusted reference solutions (local JDK); --record stores results
@@ -524,6 +528,17 @@ def main(argv: list[str]) -> int:
             checked = check(session)
         print(json.dumps(checked.summary(limit), indent=2, default=str))
         return 0 if checked.ok else 1
+    if command == "content" and argv[2:3] == ["review-status"]:
+        from app.content import review_status
+
+        items = review_status.report()
+        owed_only = "--owed" in argv
+        print(
+            review_status.as_json(items, owed_only=owed_only)
+            if "--json" in argv
+            else review_status.render(items, owed_only=owed_only)
+        )
+        return 0  # a report, not a gate
     if command == "validate-content":
         from app.content.validate import run
 

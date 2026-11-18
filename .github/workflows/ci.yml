@@ -150,6 +150,8 @@ jobs:
           alembic upgrade head
           python -m app.cli seed
           python -m app.cli validate-content
+          # What's still owed a review (Volume 19, prompt 7): a report, never a failure.
+          python -m app.cli content review-status --owed
 
   frontend:
     name: Frontend (lint, types, unit tests, build, API contract)

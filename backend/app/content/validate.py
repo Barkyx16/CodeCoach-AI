@@ -123,9 +123,25 @@ def _db_content(db: Session, report: Report, seed_slugs: set[str]) -> None:
     report.counts["corrections"] = sum(len(v) for v in versions.values())
 
 
+# A reviewer that is a drafting tool: an author_reviewed lesson can't name one (Volume 19, prompt 7;
+# docs/LEARN_CONTENT.md, rule 3). A draft says generated_draft until the author has checked it.
+DRAFTING_TOOL = re.compile(
+    r"\b(AI|assistant|LLM|GPT|Claude|Copilot|Gemini|chatbot|language model|generated|drafted)\b", re.I
+)
+
+
+def _review_names_a_tool(where: str, status: str, by: str, report: Report) -> None:
+    if status == "author_reviewed" and DRAFTING_TOOL.search(by):
+        report.errors.append(
+            f"{where}: its review says author_reviewed but names a drafting tool as its reviewer ({by!r}); "
+            "a draft is generated_draft until the author has checked it"
+        )
+
+
 def _learn(report: Report, retired: set[tuple[str, str]], seed_slugs: set[str]) -> None:
     for unit in UNIT_INDEX.values():
         where = f"lesson {unit.id}"
+        _review_names_a_tool(where, unit.review.status, unit.review.by, report)
         if unit.track not in CATALOG:
             report.errors.append(f"{where}: unknown career {unit.track!r}")
         for pre in unit.prerequisites:
@@ -188,6 +204,7 @@ def _scenarios(report: Report) -> None:
             report.errors.append(f"scenario {scenario.id}: {exc}")
         if scenario.track not in CATALOG:
             report.errors.append(f"scenario {scenario.id}: unknown career {scenario.track!r}")
+        _review_names_a_tool(f"scenario {scenario.id}", scenario.review.status, scenario.review.by, report)
     report.counts["scenarios"] = len(SCENARIO_INDEX)
 
 
