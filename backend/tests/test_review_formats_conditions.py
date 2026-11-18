@@ -75,8 +75,6 @@ def test_a_code_review_written_after_the_authored_review_was_shown_says_so(clien
 
 def test_a_comparison_sent_after_its_explanation_was_opened_says_so(client):
     h = nurse(client)
-    plain = a_comparison(client, h, OTHER_LESSON)
-    assert labels(plain["conditions"]) == ["No in-app help recorded"]
     early = a_comparison(client, h, OTHER_LESSON, early=True)
     assert labels(early["conditions"]) == ["Solution revealed"]
     # Sent as opened with no opening recorded on the account (Volume 19, prompt 5): it says so, and
@@ -85,6 +83,11 @@ def test_a_comparison_sent_after_its_explanation_was_opened_says_so(client):
         "The explanation was opened before this was sent (opening it wasn't recorded on your account, so "
         "the time here is this reading's)"
     )
+    # Its result showed the explanation (Volume 20, prompt 3): the next reading says so, with that time.
+    plain = a_comparison(client, h, OTHER_LESSON)
+    [seen] = plain["conditions"]["help"]
+    assert seen["detail"] == "The explanation was shown with an earlier reading's result before this was sent"
+    assert seen["at"] == early["created_at"]
     # Opened through the page's recording route first: the plain words, with the opening's time.
     opened = client.post(f"/api/v1/me/comparisons/{SPECIFIC}/explanation", json={}, headers=h).json()
     recorded = a_comparison(client, h, SPECIFIC, early=True)
@@ -102,7 +105,10 @@ def test_a_lesson_that_prepares_a_comparison_is_help_for_the_first_attempt_after
     assert labels(first["conditions"]) == ["Hint shown"]
     assert first["conditions"]["help"][0]["detail"].startswith("Lesson “Structuring a behavioral answer")
     second = a_comparison(client, h)
-    assert labels(second["conditions"]) == ["No in-app help recorded"]
+    # The lesson isn't help for it; the first reading's result, which showed the explanation, is
+    # (Volume 20, prompt 3).
+    assert labels(second["conditions"]) == ["Solution revealed"]
+    assert "shown with an earlier reading's result" in second["conditions"]["help"][0]["detail"]
     # A lesson that prepares a different comparison isn't help for this one.
     assert labels(a_comparison(client, h, OTHER_LESSON)["conditions"]) == ["No in-app help recorded"]
 

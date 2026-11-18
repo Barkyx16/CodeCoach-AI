@@ -67,6 +67,10 @@ sample anything but "Answer A/B/C", or is a tradeoff with a preferred answer.
   is asked once more with the same key, and if no reply comes the explanation still shows and the
   page says the opening wasn't recorded, so the reading gives its own time and says so
   (docs/ATTEMPT_CONDITIONS.md). Signed out nothing is recorded: the page asks to sign in.
+- A reading's result shows the explanation, so since Volume 20, prompt 3 that counts as seen too: the
+  next reading of that version says "The explanation was shown with an earlier reading's result
+  before this was sent", with the earlier reading's time; opening it afterwards says "First seen …,
+  with your earlier reading's result". The first reading's own help is unchanged.
 - Unsent marks are kept on this device (`compare-draft:<account>:<lesson>:v<version>`, cleared at
   sign-out) and offered back after a reload; a failed send keeps them on the page.
 

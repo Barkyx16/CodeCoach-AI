@@ -109,6 +109,7 @@ class Comparisons:
             explanation=self.explanation(row.lesson_id) if row.lesson_id in BY_ID else {},
             lesson_version=row.lesson_version,
             opened_at=row.created_at,
+            source="with_result" if row.source == "with_result" else "opened",
         )
 
     def export_openings(self) -> list[dict[str, Any]]:
@@ -119,6 +120,8 @@ class Comparisons:
                 "lesson": r.lesson_id,
                 "lesson_version": r.lesson_version,
                 "at": r.created_at.isoformat(),
+                # Opened on its own, or shown with a reading's result (Volume 20, prompt 3).
+                "source": r.source,
             }
             for r in self._db.scalars(
                 select(ComparisonOpening)
@@ -182,6 +185,7 @@ class Comparisons:
                 "You've reached the limit of saved attempts for this lesson.", code="too_many_attempts"
             )
         snapshot = ls.snapshot()
+        now = datetime.now(UTC)
         a = ComparisonAttempt(
             user_id=self._me.id,
             lesson_id=ls.id,
@@ -191,10 +195,42 @@ class Comparisons:
             choice=body.choice,
             feedback=evaluate(snapshot, selections, body.choice),
             revealed_early=body.revealed_early,
+            created_at=now,
         )
         self._db.add(a)
+        self._shown_with_result(ls, now)
         self._db.commit()
         return self._out(a)
+
+    def _shown_with_result(self, ls: Lesson, at: datetime) -> None:
+        """The result a reading returns shows the explanation, so it's seen from then (Volume 20, prompt
+        3): recorded at this reading's time, as the first time at this version, unless it was opened
+        or shown before (that earlier time stands). This reading's own help is unchanged: it was sent
+        before the result showed it. In a savepoint, so another tab recording it at the same moment
+        leaves that one and keeps this reading."""
+        me = self._me
+        known = self._db.scalar(
+            select(ComparisonOpening.id).where(
+                ComparisonOpening.user_id == me.id,
+                ComparisonOpening.lesson_id == ls.id,
+                ComparisonOpening.lesson_version == ls.version,
+            )
+        )
+        if known is not None:
+            return
+        try:
+            with self._db.begin_nested():
+                self._db.add(
+                    ComparisonOpening(
+                        user_id=me.id,
+                        lesson_id=ls.id,
+                        lesson_version=ls.version,
+                        created_at=at,
+                        source="with_result",
+                    )
+                )
+        except IntegrityError:
+            pass  # recorded by another tab first: that time stands
 
     def _out(self, a: ComparisonAttempt) -> ComparisonAttemptOut:
         current = BY_ID.get(a.lesson_id)

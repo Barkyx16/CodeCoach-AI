@@ -106,6 +106,8 @@ TEST_DESIGN_REVEALS_FROM = datetime(2026, 11, 18, tzinfo=UTC)
 # prompt 5); readings sent before keep their words, with their own time beside them.
 OPENINGS_FROM = datetime(2026, 11, 18, tzinfo=UTC)
 OPENED = "The explanation was opened before this was sent"
+# Shown with an earlier reading's result (Volume 20, prompt 3): seen as surely as opened.
+SHOWN_WITH_RESULT = "The explanation was shown with an earlier reading's result before this was sent"
 
 
 def _aware(dt: datetime) -> datetime:
@@ -806,21 +808,25 @@ class Conditions:
         rows = list(rows)
         lessons = {r.lesson_id for r in rows}
         earlier = self._times(ComparisonAttempt, ComparisonAttempt.lesson_id, lessons)
-        first: dict[tuple[str, int], datetime] = {}
+        first: dict[tuple[str, int], tuple[datetime, str]] = {}
         if lessons:
-            for lesson, version, at in self.db.execute(
+            for lesson, version, at, source in self.db.execute(
                 select(
                     ComparisonOpening.lesson_id,
                     ComparisonOpening.lesson_version,
                     ComparisonOpening.created_at,
+                    ComparisonOpening.source,
                 ).where(ComparisonOpening.user_id == self.user.id, ComparisonOpening.lesson_id.in_(lessons))
             ):
-                first[(lesson, version)] = _aware(at)
+                first[(lesson, version)] = (_aware(at), source)
         shown: dict[str, list[HelpShown]] = {}
         for r in rows:
-            opened = first.get((r.lesson_id, r.lesson_version))
-            if opened is not None and opened < _aware(r.created_at):
-                shown[r.id] = [HelpShown(label="Solution revealed", detail=OPENED, at=opened)]
+            seen = first.get((r.lesson_id, r.lesson_version))
+            opened = seen[0] if seen else None
+            if seen is not None and opened is not None and opened < _aware(r.created_at):
+                # Opened on its own, or shown with an earlier reading's result (Volume 20, prompt 3).
+                detail = SHOWN_WITH_RESULT if seen[1] == "with_result" else OPENED
+                shown[r.id] = [HelpShown(label="Solution revealed", detail=detail, at=opened)]
             elif r.revealed_early and _aware(r.created_at) < OPENINGS_FROM:
                 shown[r.id] = [HelpShown(label="Solution revealed", detail=OPENED, at=r.created_at)]
             elif r.revealed_early:

@@ -1764,7 +1764,8 @@ class TestDesignReveal(Base):
 
 
 class ComparisonOpening(Base):
-    """A sample-answer lesson's explanation, opened before a reading was sent (Volume 19, prompt 5;
+    """A sample-answer lesson's explanation, opened (or, since Volume 20, prompt 3, shown with a
+    reading's result) before a reading was sent (Volume 19, prompt 5;
     docs/ATTEMPT_CONDITIONS.md): the first time at each version of the lesson, signed in. It can't be
     unread, so every reading sent after it at that version says "Solution revealed" with this time,
     not the reading's. Sent with a request key, so a lost reply sent again is the same opening.
@@ -1782,6 +1783,9 @@ class ComparisonOpening(Base):
     lesson_version: Mapped[int] = mapped_column(Integer)
     client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+    # How it was seen (Volume 20, prompt 3): "opened" on its own, or "with_result": shown with a
+    # reading's own result, at that reading's time, so the next reading counts it as seen.
+    source: Mapped[str] = mapped_column(String(16), default="opened", server_default="opened")
 
 
 class DrillAttempt(Base):

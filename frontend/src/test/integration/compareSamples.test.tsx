@@ -178,6 +178,33 @@ describe("compare sample answers", () => {
     expect(publicReads).toBe(0); // the recording route serves it
   });
 
+  it("says when the explanation was first seen with an earlier reading's result (Volume 20, prompt 3)", async () => {
+    serve();
+    server.use(http.post(`${API}/api/v1/me/comparisons/:id/explanation`, () => HttpResponse.json({ explanation, lesson_version: 1, opened_at: "2026-11-18T08:00:00Z", source: "with_result" })));
+    const { user } = renderApp(`/compare/${ID}`, { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Show the explanation now" }));
+    await user.click(screen.getByRole("button", { name: "Show the explanation" }));
+    const shown = await screen.findByRole("region", { name: "The explanation" });
+    expect(within(shown).getByRole("status")).toHaveTextContent(/^First seen .*, with your earlier reading's result: a reading of this version you send now says the explanation was seen then\.$/);
+  });
+
+  it("a second reading says the explanation was shown with the first one's result, with its time", async () => {
+    serve();
+    const SHOWN = "The explanation was shown with an earlier reading's result before this was sent";
+    server.use(http.post(`${API}/api/v1/me/comparisons/:id/attempts`, async ({ request }) => {
+      const body = (await request.json()) as Sent;
+      sends.push(body);
+      return HttpResponse.json(attemptFor(body, { conditions: revealedConditions(SHOWN) }), { status: 201 });
+    }));
+    const { user } = renderApp(`/compare/${ID}`, { signedIn: true });
+    await user.click((await screen.findAllByRole("button", { name: "Strength" }))[0]!);
+    await user.type(screen.getByLabelText("Why is it a strength?"), "it sounds confident enough");
+    await user.click(screen.getByRole("button", { name: "Compare with the explanation" }));
+    const result = (await screen.findByRole("heading", { name: "Your reading and the explanation" })).closest("section")!;
+    expect(within(result).getByText(/In-app help before this attempt:/).closest("p")).toHaveTextContent("In-app help before this attempt: Solution revealed");
+    expect(within(result).getByText(SHOWN, { exact: false })).toBeInTheDocument();
+  });
+
   it("a lost reply is asked once more with the same key; with no reply at all the explanation still shows, and says it wasn't recorded", async () => {
     serve();
     server.use(http.post(`${API}/api/v1/me/comparisons/:id/explanation`, async ({ request }) => {

@@ -100,6 +100,11 @@ class ExplanationOpened(APIModel):
         description="The first opening at this version of the lesson: every reading sent after it at this "
         "version says the explanation was opened then. Opening it again doesn't move it."
     )
+    source: Literal["opened", "with_result"] = Field(
+        default="opened",
+        description="How it was first seen at this version: opened on its own, or shown with an earlier "
+        "reading's result (Volume 20, prompt 3), whose time `opened_at` then is",
+    )
 
 
 class ComparisonAttemptSummary(APIModel):

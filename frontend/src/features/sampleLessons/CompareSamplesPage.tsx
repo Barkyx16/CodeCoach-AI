@@ -132,7 +132,10 @@ function Compare({ lesson }: { lesson: ComparisonLesson }) {
         try {
           const opened = await record(openKey.keyFor({ lesson: lesson.id, version: lesson.version }));
           setExplanation(opened.explanation);
-          setOpening(`Opened ${formatDateTime(opened.opened_at)}, recorded on your account: a reading of this version you send now says the explanation was opened then.`);
+          // First seen with an earlier reading's result (Volume 20, prompt 3): that time stands, and says so.
+          setOpening(opened.source === "with_result"
+            ? `First seen ${formatDateTime(opened.opened_at)}, with your earlier reading's result: a reading of this version you send now says the explanation was seen then.`
+            : `Opened ${formatDateTime(opened.opened_at)}, recorded on your account: a reading of this version you send now says the explanation was opened then.`);
           openKey.done();
         } catch (e) {
           if (e instanceof ApiError && e.status !== 0 && e.status < 500) throw e; // refused: said below

@@ -78,6 +78,12 @@ def test_a_reading_without_a_recorded_opening_reads_as_before_or_says_whose_time
     h = auth_headers(register(client))
     plain = read(client, h)
     assert plain["conditions"]["labels"] == ["No in-app help recorded"]
+    # An opening after a reading doesn't reach back to it.
+    open_it(client, h)
+    again = client.get(f"{MINE}/attempts/{plain['id']}", headers=h).json()
+    assert again["conditions"]["labels"] == ["No in-app help recorded"]
+    # A first reading on another account that the page said came after opening it: its own time.
+    h = auth_headers(register(client, email="cy@example.com"))
     early = read(client, h, early=True)
     assert help_of(early) == [("Solution revealed", UNRECORDED, when(early["created_at"]))]
     # A reading from before recording began keeps its words exactly.
@@ -90,10 +96,6 @@ def test_a_reading_without_a_recorded_opening_reads_as_before_or_says_whose_time
         db.commit()
     old = client.get(f"{MINE}/attempts/{early['id']}", headers=h).json()
     assert help_of(old) == [("Solution revealed", OPENED, datetime(2026, 11, 10, 9, 0, tzinfo=UTC))]
-    # An opening after a reading doesn't reach back to it.
-    open_it(client, h)
-    again = client.get(f"{MINE}/attempts/{plain['id']}", headers=h).json()
-    assert again["conditions"]["labels"] == ["No in-app help recorded"]
 
 
 def test_another_version_is_a_new_first_opening_and_never_counts_for_this_one(client, monkeypatch):
@@ -108,7 +110,9 @@ def test_another_version_is_a_new_first_opening_and_never_counts_for_this_one(cl
     monkeypatch.setitem(BY_ID, SPECIFIC, dataclasses.replace(BY_ID[SPECIFIC], version=2))
     second = open_it(client, h, "open-key-0002")
     assert second["lesson_version"] == 2 and when(second["opened_at"]) > when(first["opened_at"])
-    assert openings(client) == 2
+    assert second["source"] == "opened"
+    # Version 0's opening, version 1's showing with the reading's result (Volume 20, prompt 3), and 2's.
+    assert openings(client) == 3
 
 
 def test_a_lost_reply_sent_again_with_its_key_is_the_same_opening(client, monkeypatch):
@@ -123,9 +127,11 @@ def test_a_lost_reply_sent_again_with_its_key_is_the_same_opening(client, monkey
 def test_another_accounts_opening_never_counts(client):
     open_it(client, auth_headers(register(client, email="bea@example.com")), "open-key-0001")
     h = auth_headers(register(client))
-    assert read(client, h)["conditions"]["labels"] == ["No in-app help recorded"]
     early = read(client, h, early=True)
     assert help_of(early) == [("Solution revealed", UNRECORDED, when(early["created_at"]))]
+    # The next reading counts this account's showing with a result (Volume 20, prompt 3), never Bea's.
+    later = read(client, h)
+    assert [at for _, _, at in help_of(later)] == [when(early["created_at"])]
 
 
 def test_the_reading_its_list_the_bulk_route_and_the_export_say_the_same(client):
