@@ -3030,6 +3030,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/comparisons/{lesson_id}/explanation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open the explanation, recorded on your account first (the first opening per version) */
+        post: operations["open_explanation_api_v1_me_comparisons__lesson_id__explanation_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/comparisons/{lesson_id}/attempts": {
         parameters: {
             query?: never;
@@ -8473,6 +8490,32 @@ export interface components {
              * @default Explanations are based only on the public tests and compiler output. Hidden test inputs are never shown to the AI or to you.
              */
             disclaimer: string;
+        };
+        /** ExplanationOpenIn */
+        ExplanationOpenIn: {
+            /**
+             * Client Request Id
+             * @description A key for this opening: sent again after a lost reply, it's the same opening
+             */
+            client_request_id?: string | null;
+        };
+        /**
+         * ExplanationOpened
+         * @description The explanation, opened on your account first (Volume 19, prompt 5).
+         */
+        ExplanationOpened: {
+            /** Explanation */
+            explanation: {
+                [key: string]: unknown;
+            };
+            /** Lesson Version */
+            lesson_version: number;
+            /**
+             * Opened At
+             * Format: date-time
+             * @description The first opening at this version of the lesson: every reading sent after it at this version says the explanation was opened then. Opening it again doesn't move it.
+             */
+            opened_at: string;
         };
         /** ExploreFacets */
         ExploreFacets: {
@@ -28023,6 +28066,59 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    open_explanation_api_v1_me_comparisons__lesson_id__explanation_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                lesson_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ExplanationOpenIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExplanationOpened"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Request validation failed */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

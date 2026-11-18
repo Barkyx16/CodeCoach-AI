@@ -6,21 +6,24 @@ here changes a plan, a score or progress."""
 from __future__ import annotations
 
 import re
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.comparisons import BY_ID, LESSONS, Lesson
 from app.comparisons.feedback import evaluate
 from app.errors import AppError, NotFoundError
-from app.models import ComparisonAttempt, User
+from app.models import ComparisonAttempt, ComparisonOpening, User
 from app.schemas.comparisons import (
     ComparisonAttemptIn,
     ComparisonAttemptOut,
     ComparisonAttemptSummary,
     ComparisonLesson,
     ComparisonSummary,
+    ExplanationOpened,
 )
 from app.services.conditions import Conditions
 
@@ -66,6 +69,63 @@ class Comparisons:
     @staticmethod
     def explanation(lesson_id: str) -> dict[str, Any]:
         return dict(_lesson(lesson_id).explanation)
+
+    def open_explanation(self, lesson_id: str, key: str | None) -> ExplanationOpened:
+        """The explanation, recorded first as opened on your account (Volume 19, prompt 5): the first
+        opening at this version of the lesson is kept, and opening it again is the same one. Sent
+        again with its key after a lost reply, it's the opening that key made (even if the lesson
+        has a new version since). Two tabs at once meet the unique key and keep the first."""
+        ls = _lesson(lesson_id)
+        me = self._me
+        by_key = (
+            select(ComparisonOpening).where(
+                ComparisonOpening.user_id == me.id, ComparisonOpening.client_request_id == key
+            )
+            if key
+            else None
+        )
+        first = select(ComparisonOpening).where(
+            ComparisonOpening.user_id == me.id,
+            ComparisonOpening.lesson_id == ls.id,
+            ComparisonOpening.lesson_version == ls.version,
+        )
+        row = (self._db.scalar(by_key) if by_key is not None else None) or self._db.scalar(first)
+        if row is None:
+            row = ComparisonOpening(
+                user_id=me.id,
+                lesson_id=ls.id,
+                lesson_version=ls.version,
+                client_request_id=key,
+                created_at=datetime.now(UTC),
+            )
+            self._db.add(row)
+            try:
+                self._db.commit()
+            except IntegrityError:  # another tab, or the same key, recorded it first: that one stands
+                self._db.rollback()
+                row = (self._db.scalar(by_key) if by_key is not None else None) or self._db.scalar(first)
+                assert row is not None
+        return ExplanationOpened(
+            explanation=self.explanation(row.lesson_id) if row.lesson_id in BY_ID else {},
+            lesson_version=row.lesson_version,
+            opened_at=row.created_at,
+        )
+
+    def export_openings(self) -> list[dict[str, Any]]:
+        """When each lesson's explanation was first opened, by version (Volume 19, prompt 5)."""
+        return [
+            {
+                "id": r.id,
+                "lesson": r.lesson_id,
+                "lesson_version": r.lesson_version,
+                "at": r.created_at.isoformat(),
+            }
+            for r in self._db.scalars(
+                select(ComparisonOpening)
+                .where(ComparisonOpening.user_id == self._me.id)
+                .order_by(ComparisonOpening.created_at)
+            )
+        ]
 
     @property
     def _db(self) -> Session:

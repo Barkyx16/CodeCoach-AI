@@ -574,6 +574,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         "work_samples": WorkSamples(db, user).export(),
         # Sample-answer comparisons: the excerpts you marked, your reasons and what they matched.
         "comparisons": Comparisons(db, user).export(),
+        "comparison_openings": Comparisons(db, user).export_openings(),
         # Offer-conversation rehearsals: the fictional card, your goals, every turn and the debrief.
         "offer_rehearsals": Offers(db, user).export(),
         # Offer comparisons: the terms you entered, your factors, ratings, weights and rates.

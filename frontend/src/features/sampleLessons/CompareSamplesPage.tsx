@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { ApiError } from "@/api/client";
 import { api } from "@/api/endpoints";
 import { useSampleLesson, useSampleReadings } from "@/api/queries";
 import type { ComparisonAttempt, ComparisonExplanation, ComparisonFeedback, ComparisonLesson } from "@/api/types";
@@ -14,6 +15,7 @@ import { LINKED_MISSING, useLinkedAttempt } from "@/hooks/useLinkedAttempt";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { formatDateTime } from "@/lib/format";
 import { dropCopy, useCopySince, writeCopy } from "@/lib/deviceCopies";
+import { useRequestKey } from "@/lib/requestKey";
 import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
 import { conditionsSummary } from "@/features/conditions/summary";
 
@@ -48,6 +50,8 @@ function Compare({ lesson }: { lesson: ComparisonLesson }) {
   const [marks, setMarks] = useState<Marks>(restored?.marks ?? {});
   const [choice, setChoice] = useState<string | null>(restored?.choice ?? null);
   const [explanation, setExplanation] = useState<ComparisonExplanation | null>(null);
+  const [opening, setOpening] = useState(""); // whether opening it was recorded on the account
+  const openKey = useRequestKey();
   const [asking, setAsking] = useState(false);
   const [result, setResult] = useState<ComparisonAttempt | null>(null);
   const [error, setError] = useState<unknown>(null);
@@ -109,9 +113,35 @@ function Compare({ lesson }: { lesson: ComparisonLesson }) {
     }
   }
 
-  async function revealNow() {
+  // Signed in, opening it is recorded on the account first, with a key (Volume 19, prompt 5): a lost
+  // reply is asked once more with the same key, which is the same opening. If no reply comes, the
+  // explanation is still shown, from the public route, and the page says the opening wasn't recorded.
+  async function record(key: string) {
     try {
-      setExplanation(await api.sampleLessonExplanation(lesson.id));
+      return await api.openSampleLessonExplanation(lesson.id, key);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 0) return api.openSampleLessonExplanation(lesson.id, key);
+      throw e;
+    }
+  }
+
+  async function revealNow() {
+    setError(null);
+    try {
+      if (user) {
+        try {
+          const opened = await record(openKey.keyFor({ lesson: lesson.id, version: lesson.version }));
+          setExplanation(opened.explanation);
+          setOpening(`Opened ${formatDateTime(opened.opened_at)}, recorded on your account: a reading of this version you send now says the explanation was opened then.`);
+          openKey.done();
+        } catch (e) {
+          if (e instanceof ApiError && e.status !== 0 && e.status < 500) throw e; // refused: said below
+          setExplanation(await api.sampleLessonExplanation(lesson.id));
+          setOpening("Opening it couldn't be recorded on your account (no reply came), so a reading you send now says the explanation was opened, with the reading's own time.");
+        }
+      } else {
+        setExplanation(await api.sampleLessonExplanation(lesson.id));
+      }
       setAsking(false);
       focusAfter.current = "cmp-explanation";
     } catch (e) {
@@ -232,6 +262,7 @@ function Compare({ lesson }: { lesson: ComparisonLesson }) {
       {shownExplanation && (
         <section className="card stack-sm" aria-labelledby="cmp-explanation">
           <h2 className="section-title" id="cmp-explanation" tabIndex={-1}>The explanation</h2>
+          {opening && !result && <p className="subtle" role="status">{opening}</p>}
           <p>{shownExplanation.summary}</p>
           {Object.entries(shownExplanation.samples).map(([sid, n]) => (
             <div key={sid} className="stack-sm">

@@ -52,6 +52,7 @@ from app.models import (
     AIInteraction,
     CodeReviewAttempt,
     ComparisonAttempt,
+    ComparisonOpening,
     ContentVersion,
     DrillAttempt,
     InterviewStatus,
@@ -101,6 +102,10 @@ NOTE = (
 REVEAL_TIMES_FROM = "16 Nov 2026"
 # The day showing a test-design exercise's faulty versions began to be recorded (Volume 19, prompt 3).
 TEST_DESIGN_REVEALS_FROM = datetime(2026, 11, 18, tzinfo=UTC)
+# Opening a sample-answer lesson's explanation is recorded on the account from here (Volume 19,
+# prompt 5); readings sent before keep their words, with their own time beside them.
+OPENINGS_FROM = datetime(2026, 11, 18, tzinfo=UTC)
+OPENED = "The explanation was opened before this was sent"
 
 
 def _aware(dt: datetime) -> datetime:
@@ -792,20 +797,41 @@ class Conditions:
         )
 
     def for_comparisons(self, rows: Iterable[ComparisonAttempt]) -> dict[str, AttemptConditions]:
-        """Lessons that prepare the comparison, and its explanation when it was opened first."""
+        """Lessons that prepare the comparison, and its explanation when it was opened first. Since
+        Volume 19, prompt 5 the opening is recorded on the account (one statement for every reading
+        here): a reading sent after it at its version says so with the opening's time, as a code
+        review after the authored review does (it can't be unread). A reading the page said was sent
+        after opening it, with no opening recorded, says so with its own time and says that's whose
+        time it is; one from before recording began keeps its words."""
         rows = list(rows)
-        earlier = self._times(ComparisonAttempt, ComparisonAttempt.lesson_id, {r.lesson_id for r in rows})
-        shown = {
-            r.id: [
-                HelpShown(
-                    label="Solution revealed",
-                    detail="The explanation was opened before this was sent",
-                    at=r.created_at,
-                )
-            ]
-            for r in rows
-            if r.revealed_early
-        }
+        lessons = {r.lesson_id for r in rows}
+        earlier = self._times(ComparisonAttempt, ComparisonAttempt.lesson_id, lessons)
+        first: dict[tuple[str, int], datetime] = {}
+        if lessons:
+            for lesson, version, at in self.db.execute(
+                select(
+                    ComparisonOpening.lesson_id,
+                    ComparisonOpening.lesson_version,
+                    ComparisonOpening.created_at,
+                ).where(ComparisonOpening.user_id == self.user.id, ComparisonOpening.lesson_id.in_(lessons))
+            ):
+                first[(lesson, version)] = _aware(at)
+        shown: dict[str, list[HelpShown]] = {}
+        for r in rows:
+            opened = first.get((r.lesson_id, r.lesson_version))
+            if opened is not None and opened < _aware(r.created_at):
+                shown[r.id] = [HelpShown(label="Solution revealed", detail=OPENED, at=opened)]
+            elif r.revealed_early and _aware(r.created_at) < OPENINGS_FROM:
+                shown[r.id] = [HelpShown(label="Solution revealed", detail=OPENED, at=r.created_at)]
+            elif r.revealed_early:
+                shown[r.id] = [
+                    HelpShown(
+                        label="Solution revealed",
+                        detail=f"{OPENED} (opening it wasn't recorded on your account, so the time here is "
+                        "this reading's)",
+                        at=r.created_at,
+                    )
+                ]
         return self._practice(
             [(r.id, f"comparison:{r.lesson_id}", r.lesson_version, r.created_at, "") for r in rows],
             earlier,

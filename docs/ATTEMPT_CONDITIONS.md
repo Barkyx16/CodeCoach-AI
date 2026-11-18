@@ -20,7 +20,7 @@ now says what in-app help came before it.
 | Branching scenarios | Learn lessons that prepare the scenario (the prioritizing and SBAR lessons prepare "Two call lights at once") | 15 Nov 2026 | lesson reads, by the scenario's version; assessed runs and "try another approach" explorations counted apart |
 | Whiteboards | None: no lesson prepares a system-design prompt, and the prompt's points are shown to everyone with it | 15 Nov 2026 | (nothing to find: "No in-app help recorded") |
 | Code-review exercises | The exercise's authored review, shown before the review was written ("Solution revealed"); Learn lessons that prepare the exercise (none yet) | 15 Nov 2026 (the authored review shown first: always kept) | the attempt's own `after_reveal`; lesson reads, by the exercise's version |
-| Sample-answer comparisons | The comparison's explanation, opened before the reading was sent ("Solution revealed"); Learn lessons that prepare it (the STAR lesson prepares "Specific evidence or general claims?") | 15 Nov 2026 (the explanation opened first: always kept) | the attempt's own `revealed_early`, as the page reported it when sending; lesson reads, by the comparison's version |
+| Sample-answer comparisons | The comparison's explanation, opened before the reading was sent ("Solution revealed"); Learn lessons that prepare it (the STAR lesson prepares "Specific evidence or general claims?") | 15 Nov 2026 (the explanation opened first: always kept); when it was opened, 18 Nov 2026 | the first opening on the account at the lesson's version (`comparison_openings`, since Volume 19, prompt 5), else the attempt's own `revealed_early`, as the page reported it when sending; lesson reads, by the comparison's version |
 | Work samples | None: no lesson prepares a brief yet, and each section's hint is shown to everyone with the brief | 15 Nov 2026 | (nothing to find: "No in-app help recorded") |
 | Debugging exercises | Hints for the exercise (as for any coding problem); its explanation and repair, opened before the attempt ("Solution revealed"); Learn lessons that prepare it (“Fixing code from a failing test” prepares all three, since Volume 17, prompt 5) | hints 14 Nov 2026; the explanation opened, 16 Nov 2026 | the saved hints; `lab_reveals`, by the exercise's version; lesson reads (`debug:<slug>`) |
 | Test-design runs | The exercise's faulty versions, shown before the run at its version ("Solution revealed", since Volume 19, prompt 3; they can't be unseen, so every later run at that version says so, with the first showing's time); Learn lessons that prepare it (none yet) | 18 Nov 2026 (runs from 15 Nov say showing them wasn't recorded yet) | `test_design_reveals`, by the exercise's version; lesson reads (`test_design:<slug>`) |
@@ -142,8 +142,21 @@ Volume 15, prompt 3. Two kinds of help, by the rule every format uses:
   (`code_review_drafts.revealed_at`, copied onto each review written after it); showing it again
   doesn't move it, and a new version of the exercise is a new first showing. A review from before,
   with only the flag, says "(when wasn't recorded before 16 Nov 2026; the time here is this
-  review's)". A comparison's explanation is opened on the page, which reports it when the reading is
-  sent, so its time is still the reading's. Unlike a hint, the authored review stays seen: every later
+  review's)". Since Volume 19, prompt 5, opening a comparison's explanation, signed in, is recorded on
+  the account first (`POST /me/comparisons/{lesson}/explanation`, with a request key: a lost reply
+  asked again is the same opening; `comparison_openings`, owner-only under row-level security), once
+  per version of the lesson: opening it again doesn't move the time, and a new version is a new first
+  opening. A reading sent after it at its version says **Solution revealed** with the opening's time,
+  whatever the page reported (it can't be unread); an opening at another version, or another
+  account's, never counts, and one after a reading doesn't reach back to it. A reading the page said
+  came after opening it with nothing recorded (no reply came; the page still shows the explanation and
+  says so) reads "The explanation was opened before this was sent (opening it wasn't recorded on your
+  account, so the time here is this reading's)". Readings from before 18 Nov 2026 keep their words
+  exactly. The reading, its list, the bulk route History uses (one read of the openings for every
+  reading asked for) and the export (each reading's `conditions`, and `comparison_openings`) say the
+  same. The explanation stays public: signed out, opening it is recorded nowhere (the page itself
+  asks to sign in). The explanation shown with a reading's own result isn't an opening: it comes with
+  the reading, so a later reading after only that says none. Unlike a hint, the authored review stays seen: every later
   review of the same exercise says so, as it always has.
 - **A Learn lesson that prepares it**, read before the attempt and since the previous one, at the
   attempt's version: **Hint shown**, for the first attempt after the read only. The STAR lesson

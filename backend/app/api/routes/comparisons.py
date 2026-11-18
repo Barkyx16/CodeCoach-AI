@@ -14,6 +14,8 @@ from app.schemas.comparisons import (
     ComparisonAttemptSummary,
     ComparisonLesson,
     ComparisonSummary,
+    ExplanationOpened,
+    ExplanationOpenIn,
 )
 from app.services.comparisons import Comparisons
 
@@ -45,6 +47,21 @@ def lesson(lesson_id: str) -> ComparisonLesson:
 )
 def explanation(lesson_id: str) -> dict[str, Any]:
     return Comparisons.explanation(lesson_id)
+
+
+@router.post(
+    MINE + "/{lesson_id}/explanation",
+    response_model=ExplanationOpened,
+    responses=error_responses(401, 404, 422),
+    summary="Open the explanation, recorded on your account first (the first opening per version)",
+)
+def open_explanation(
+    lesson_id: str,
+    body: ExplanationOpenIn,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ExplanationOpened:
+    return Comparisons(db, user).open_explanation(lesson_id, body.client_request_id)
 
 
 @router.post(

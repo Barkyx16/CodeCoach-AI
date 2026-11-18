@@ -5,7 +5,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 
-from app.schemas.common import APIModel
+from app.schemas.common import APIModel, OptionalKey
 from app.schemas.conditions import AttemptConditions
 
 
@@ -78,6 +78,27 @@ class ComparisonAttemptOut(APIModel):
     created_at: datetime
     conditions: AttemptConditions | None = Field(
         default=None, description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+    )
+
+
+class ExplanationOpenIn(APIModel):
+    client_request_id: OptionalKey = Field(
+        default=None,
+        min_length=8,
+        max_length=64,
+        pattern=r"^[A-Za-z0-9_-]+$",
+        description="A key for this opening: sent again after a lost reply, it's the same opening",
+    )
+
+
+class ExplanationOpened(APIModel):
+    """The explanation, opened on your account first (Volume 19, prompt 5)."""
+
+    explanation: dict[str, Any]
+    lesson_version: int
+    opened_at: datetime = Field(
+        description="The first opening at this version of the lesson: every reading sent after it at this "
+        "version says the explanation was opened then. Opening it again doesn't move it."
     )
 
 

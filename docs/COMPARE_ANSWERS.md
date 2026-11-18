@@ -62,6 +62,11 @@ sample anything but "Answer A/B/C", or is a tradeoff with a preferred answer.
 - In a clear lesson, "Which answer is more useful? (optional)": A, B or Not sure. A tradeoff lesson
   says "No single best answer" and asks for nothing.
 - "Show the explanation now" asks first; if you read it before sending, the reading says so.
+  Since Volume 19, prompt 5 the opening is recorded on your account first, once per version of the
+  lesson, so the reading says when you opened it ("Opened …, recorded on your account"); a lost reply
+  is asked once more with the same key, and if no reply comes the explanation still shows and the
+  page says the opening wasn't recorded, so the reading gives its own time and says so
+  (docs/ATTEMPT_CONDITIONS.md). Signed out nothing is recorded: the page asks to sign in.
 - Unsent marks are kept on this device (`compare-draft:<account>:<lesson>:v<version>`, cleared at
   sign-out) and offered back after a reload; a failed send keeps them on the page.
 

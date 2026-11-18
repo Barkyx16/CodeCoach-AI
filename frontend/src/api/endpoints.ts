@@ -829,6 +829,9 @@ export const api = {
   sampleLessons: () => apiRequest<ComparisonSummary[]>("/api/v1/comparisons", { auth: false }),
   sampleLesson: (id: string) => apiRequest<ComparisonLesson>(`/api/v1/comparisons/${encodeURIComponent(id)}`, { auth: false }),
   sampleLessonExplanation: (id: string) => apiRequest<ComparisonExplanation>(`/api/v1/comparisons/${encodeURIComponent(id)}/explanation`, { auth: false }),
+  // Signed in, the opening is recorded on the account first (Volume 19, prompt 5); the same key again is the same opening.
+  openSampleLessonExplanation: (id: string, key: string) =>
+    apiRequest<{ explanation: ComparisonExplanation; lesson_version: number; opened_at: string }>(`/api/v1/me/comparisons/${encodeURIComponent(id)}/explanation`, { method: "POST", body: { client_request_id: key } }),
   sendSampleReading: (id: string, body: { selections: ComparisonSelectionIn[]; choice: string | null; revealed_early: boolean }) =>
     apiRequest<ComparisonAttempt>(`/api/v1/me/comparisons/${encodeURIComponent(id)}/attempts`, { method: "POST", body }),
   sampleReadings: (id: string) => apiRequest<ComparisonAttemptSummary[]>(`/api/v1/me/comparisons/${encodeURIComponent(id)}/attempts`),

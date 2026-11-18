@@ -142,6 +142,16 @@ from the career catalog, so they're referenced by `(track, question_id)`, not a 
 | `exercise_version` | int | Its version when the faulty versions were shown |
 | `created_at` | timestamptz | The first showing at that version; unique per account, exercise and version |
 
+### `comparison_openings`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | varchar(36) PK | UUID4 |
+| `user_id` | FK → users (cascade) | Owner-only under row-level security (migration `f7a9b1c3d5e8`, Volume 19, prompt 5) |
+| `lesson_id` | varchar(64) | The sample-answer lesson whose explanation was opened before a reading |
+| `lesson_version` | int | Its version then: only readings at that version count it |
+| `client_request_id` | varchar(64), nullable | The request key it was sent with; unique per account, so a resend is the same opening |
+| `created_at` | timestamptz | The first opening at that version; unique per account, lesson and version |
+
 ### `refresh_tokens`
 | Column | Type | Notes |
 |---|---|---|

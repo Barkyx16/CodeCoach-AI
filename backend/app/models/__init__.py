@@ -1763,6 +1763,27 @@ class TestDesignReveal(Base):
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 
+class ComparisonOpening(Base):
+    """A sample-answer lesson's explanation, opened before a reading was sent (Volume 19, prompt 5;
+    docs/ATTEMPT_CONDITIONS.md): the first time at each version of the lesson, signed in. It can't be
+    unread, so every reading sent after it at that version says "Solution revealed" with this time,
+    not the reading's. Sent with a request key, so a lost reply sent again is the same opening.
+    Deleted with the account."""
+
+    __tablename__ = "comparison_openings"
+    __table_args__ = (
+        UniqueConstraint("user_id", "lesson_id", "lesson_version", name="uq_comparison_opening"),
+        UniqueConstraint("user_id", "client_request_id", name="uq_comparison_opening_request"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    lesson_id: Mapped[str] = mapped_column(String(64))
+    lesson_version: Mapped[int] = mapped_column(Integer)
+    client_request_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
 class DrillAttempt(Base):
     """One go at a communication drill: the words sent (typed, or a transcript the learner checked
     and edited), how they were given, and the feedback. Attempts are never changed afterwards."""

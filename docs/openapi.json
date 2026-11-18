@@ -15287,6 +15287,83 @@
         }
       }
     },
+    "/api/v1/me/comparisons/{lesson_id}/explanation": {
+      "post": {
+        "tags": [
+          "comparisons"
+        ],
+        "summary": "Open the explanation, recorded on your account first (the first opening per version)",
+        "operationId": "open_explanation_api_v1_me_comparisons__lesson_id__explanation_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "lesson_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Lesson Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ExplanationOpenIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExplanationOpened"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Request validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/comparisons/{lesson_id}/attempts": {
       "post": {
         "tags": [
@@ -34427,6 +34504,54 @@
           "cached"
         ],
         "title": "ExplainFailureResponse"
+      },
+      "ExplanationOpenIn": {
+        "properties": {
+          "client_request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "minLength": 8,
+                "pattern": "^[A-Za-z0-9_-]+$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Request Id",
+            "description": "A key for this opening: sent again after a lost reply, it's the same opening"
+          }
+        },
+        "type": "object",
+        "title": "ExplanationOpenIn"
+      },
+      "ExplanationOpened": {
+        "properties": {
+          "explanation": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Explanation"
+          },
+          "lesson_version": {
+            "type": "integer",
+            "title": "Lesson Version"
+          },
+          "opened_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Opened At",
+            "description": "The first opening at this version of the lesson: every reading sent after it at this version says the explanation was opened then. Opening it again doesn't move it."
+          }
+        },
+        "type": "object",
+        "required": [
+          "explanation",
+          "lesson_version",
+          "opened_at"
+        ],
+        "title": "ExplanationOpened",
+        "description": "The explanation, opened on your account first (Volume 19, prompt 5)."
       },
       "ExploreFacets": {
         "properties": {

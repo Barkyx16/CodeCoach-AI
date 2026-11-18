@@ -162,6 +162,13 @@ CATEGORIES: tuple[Category, ...] = (
         note="Your runs of that exercise version after it say the solution was revealed before them.",
     ),
     Category(
+        "comparison_openings",
+        "work",
+        "Sample-answer lessons whose explanation you opened before sending a reading",
+        ("comparison_openings",),
+        note="Your readings of that lesson version after it say the solution was revealed then.",
+    ),
+    Category(
         "listed_names",
         "account",
         "Names you listed, to be replaced in what leaves the app",

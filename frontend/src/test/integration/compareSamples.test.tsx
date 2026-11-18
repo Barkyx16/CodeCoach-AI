@@ -48,6 +48,8 @@ const tradeoff: ComparisonLesson = {
 type Sent = { selections: { sample: string; sentence: string; kind: string; reason: string }[]; choice: string | null; revealed_early: boolean };
 let sends: Sent[] = [];
 let failNext = false;
+let openKeys: string[] = [];
+let publicReads = 0;
 function attemptFor(body: Sent, over: Partial<ComparisonAttempt> = {}): ComparisonAttempt {
   return {
     id: `cmp-att-${sends.length}`, lesson_id: ID, lesson_version: 1, current_version: 1, title: lesson.title, question: lesson.question,
@@ -69,11 +71,18 @@ function attemptFor(body: Sent, over: Partial<ComparisonAttempt> = {}): Comparis
 function serve() {
   sends = [];
   failNext = false;
+  openKeys = [];
+  publicReads = 0;
   server.use(
+    // Opened signed in, it's recorded on the account first (Volume 19, prompt 5).
+    http.post(`${API}/api/v1/me/comparisons/:id/explanation`, async ({ request }) => {
+      openKeys.push(((await request.json()) as { client_request_id: string }).client_request_id);
+      return HttpResponse.json({ explanation, lesson_version: 1, opened_at: "2026-11-18T09:00:00Z" });
+    }),
     http.get(`${API}/api/v1/comparisons`, () => HttpResponse.json([lesson, tradeoff].map(({ id, title, teaching_goal }) => ({ id, title, teaching_goal })))),
     http.get(`${API}/api/v1/comparisons/${ID}`, () => HttpResponse.json(lesson)),
     http.get(`${API}/api/v1/comparisons/cmp-tradeoffs`, () => HttpResponse.json(tradeoff)),
-    http.get(`${API}/api/v1/comparisons/:id/explanation`, () => HttpResponse.json(explanation)),
+    http.get(`${API}/api/v1/comparisons/:id/explanation`, () => { publicReads += 1; return HttpResponse.json(explanation); }),
     http.get(`${API}/api/v1/me/comparisons/:id/attempts`, () => HttpResponse.json([])),
     http.post(`${API}/api/v1/me/comparisons/:id/attempts`, async ({ request }) => {
       if (failNext) { failNext = false; return HttpResponse.json({ error: { code: "internal_error", message: "Something went wrong." } }, { status: 500 }); }
@@ -154,6 +163,50 @@ describe("compare sample answers", () => {
     await user.click(screen.getByRole("button", { name: "Compare with the explanation" }));
     await screen.findByRole("heading", { name: "Your reading and the explanation" });
     expect(sends[0]!.revealed_early).toBe(true);
+  });
+
+  it("opening the explanation is recorded on the account once, with a key, before it's shown (Volume 19, prompt 5)", async () => {
+    serve();
+    const { user } = renderApp(`/compare/${ID}`, { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Show the explanation now" }));
+    await user.click(screen.getByRole("button", { name: "Show the explanation" }));
+    const shown = await screen.findByRole("region", { name: "The explanation" });
+    expect(shown).toHaveTextContent(explanation.summary);
+    expect(within(shown).getByRole("status")).toHaveTextContent(/^Opened .*, recorded on your account: a reading of this version you send now says the explanation was opened then\.$/);
+    expect(openKeys).toHaveLength(1);
+    expect(openKeys[0]).toMatch(/^[A-Za-z0-9_-]{8,64}$/);
+    expect(publicReads).toBe(0); // the recording route serves it
+  });
+
+  it("a lost reply is asked once more with the same key; with no reply at all the explanation still shows, and says it wasn't recorded", async () => {
+    serve();
+    server.use(http.post(`${API}/api/v1/me/comparisons/:id/explanation`, async ({ request }) => {
+      openKeys.push(((await request.json()) as { client_request_id: string }).client_request_id);
+      return HttpResponse.error();
+    }));
+    const { user } = renderApp(`/compare/${ID}`, { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Show the explanation now" }));
+    await user.click(screen.getByRole("button", { name: "Show the explanation" }));
+    const shown = await screen.findByRole("region", { name: "The explanation" }, { timeout: 3000 });
+    expect(shown).toHaveTextContent(explanation.summary);
+    expect(within(shown).getByRole("status")).toHaveTextContent("Opening it couldn't be recorded on your account (no reply came), so a reading you send now says the explanation was opened, with the reading's own time.");
+    expect(openKeys).toHaveLength(2);
+    expect(openKeys[1]).toBe(openKeys[0]); // the same opening, asked again
+    expect(publicReads).toBe(1);
+    // The reading still says the explanation came first.
+    await user.click(screen.getAllByRole("button", { name: "Strength" })[0]!);
+    await user.type(screen.getByLabelText("Why is it a strength?"), "it sounds confident enough");
+    await user.click(screen.getByRole("button", { name: "Compare with the explanation" }));
+    await screen.findByRole("heading", { name: "Your reading and the explanation" });
+    expect(sends[0]!.revealed_early).toBe(true);
+  });
+
+  it("signed out, the page asks to sign in and nothing is recorded", async () => {
+    serve();
+    const { router } = renderApp(`/compare/${ID}`);
+    await waitFor(() => expect(router.state.location.pathname).toBe("/login"));
+    expect(openKeys).toHaveLength(0);
+    expect(publicReads).toBe(0);
   });
 
   it("unsent marks survive a reload and a failed send, and reasons are shown as text", async () => {
