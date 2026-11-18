@@ -14,6 +14,12 @@ Be precise about this; the labels are.
 | Learn lessons (6) | Authored; each states its own review status and sources (docs/LEARN_CONTENT.md) | References and links between lessons, questions and problems | As stated per lesson; nursing lessons are not clinically validated |
 | Branching scenarios (2) | Authored, fictional | The graph validator | As stated per scenario; not clinically validated |
 
+A "machine-checked" note names the check that backs it (Volume 20, prompt 8): the debugging,
+code-review and test-design exercises' notes are backed by `scripts/verify_reference_solutions.py`
+and a JDK test each, both run in CI's Backend job; `python -m app.cli content review-status` prints
+the check, what it proves and the CI steps beside each item, and lists a claim with no check here
+apart (docs/LEARN_CONTENT.md, "What's still owed a review").
+
 Nothing in CodeCoach claims expert, clinical or employer review, reviewer credentials, citations
 it doesn't have, or employer associations. Passing the validation command is **automated
 validation, not expert review**.

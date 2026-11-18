@@ -7,10 +7,13 @@ The content gate refuses an author_reviewed lesson that names a drafting tool as
 
 from __future__ import annotations
 
+import ast
 import dataclasses
 import json
+from pathlib import Path
 
 import pytest
+import yaml
 
 import app.careers
 import app.drills
@@ -167,3 +170,139 @@ def test_the_gate_refuses_an_author_reviewed_lesson_that_names_a_drafting_tool(m
         report = validate.Report()
         validate._learn(report, set(), set())
         assert not [e for e in report.errors if "drafting tool" in e]
+
+
+# --- a claim names its check (Volume 20, prompt 8) -------------------------------------------------
+
+
+REPO = Path(__file__).resolve().parents[2]
+WORKFLOW = REPO / ".github" / "workflows" / "ci.yml"
+
+
+def stale(checks: dict[str, rs.Check], workflow: str) -> list[str]:
+    """What a mapped check names that isn't there: a test, a command's script, or a CI step that runs it."""
+    problems: list[str] = []
+    jobs = {job.get("name", key): job for key, job in yaml.safe_load(workflow)["jobs"].items()}
+    for fmt, c in checks.items():
+        path, _, func = c.test.partition("::")
+        file = REPO / path
+        if not file.exists():
+            problems.append(f"{fmt}: {path} doesn't exist")
+        elif func not in {
+            n.name for n in ast.walk(ast.parse(file.read_text())) if isinstance(n, ast.FunctionDef)
+        }:
+            problems.append(f"{fmt}: {path} has no test {func}")
+        script = c.command.split()[1]
+        if not (REPO / "backend" / script).exists():
+            problems.append(f"{fmt}: {script} doesn't exist")
+        runs = {"pytest": False, "command": False}
+        for job_name, step_name in c.ci:
+            job = jobs.get(job_name)
+            step = next((s for s in (job or {}).get("steps", []) if s.get("name") == step_name), None)
+            if step is None:
+                problems.append(f"{fmt}: no CI step {job_name!r} › {step_name!r}")
+                continue
+            if any("setup-java" in str(s.get("uses", "")) for s in job["steps"]) is False:
+                problems.append(f"{fmt}: {job_name!r} installs no JDK, so the check would be skipped")
+            run = str(step.get("run", "")).strip()
+            runs["pytest"] |= run.split()[:1] == ["pytest"]
+            runs["command"] |= run == c.command
+        if not runs["pytest"]:
+            problems.append(f"{fmt}: no mapped CI step runs pytest (the test)")
+        if not runs["command"]:
+            problems.append(f"{fmt}: no mapped CI step runs `{c.command}`")
+    return problems
+
+
+def test_every_mapped_check_exists_and_ci_runs_it():
+    assert stale(rs.MACHINE_CHECKS, WORKFLOW.read_text()) == []
+
+
+def test_a_renamed_ci_step_or_test_fails_the_tables_test():
+    renamed = WORKFLOW.read_text().replace(
+        "- name: Reference solutions pass every seeded test", "- name: Reference solutions pass"
+    )
+    assert any("Reference solutions pass every seeded test" in p for p in stale(rs.MACHINE_CHECKS, renamed))
+    gone = {
+        "debugging exercise": dataclasses.replace(
+            rs.MACHINE_CHECKS["debugging exercise"], test="backend/tests/test_debugging_lab.py::test_renamed"
+        )
+    }
+    assert stale(gone, WORKFLOW.read_text()) == [
+        "debugging exercise: backend/tests/test_debugging_lab.py has no test test_renamed"
+    ]
+
+
+def test_every_format_is_mapped_or_named_as_having_no_machine_check():
+    assert set(rs.MACHINE_CHECKS) | set(rs.NO_MACHINE_CHECK) == FORMATS
+    assert not set(rs.MACHINE_CHECKS) & set(rs.NO_MACHINE_CHECK)
+    assert all(rs.NO_MACHINE_CHECK.values()) and all(c.proves for c in rs.MACHINE_CHECKS.values())
+
+
+def test_every_machine_checked_item_today_names_its_existing_check():
+    claimed = [i for i in rs.report() if i.kind.startswith("machine-checked")]
+    assert {i.format for i in claimed} == set(rs.MACHINE_CHECKS)
+    for i in claimed:
+        assert i.group == "reviewed" and i.check is not None, i.id
+        c = rs.MACHINE_CHECKS[i.format]
+        assert i.check == {
+            "proves": c.proves,
+            "test": c.test,
+            "command": c.command,
+            "ci": [f"{j} › {s}" for j, s in c.ci],
+        }
+    assert not [i for i in rs.report() if i.group == "unverified"]
+    assert not [i for i in rs.report() if i.check and not i.kind.startswith("machine-checked")]
+
+
+def test_a_claim_with_no_check_here_is_listed_apart_never_as_reviewed(tmp_path, monkeypatch):
+    _fixture(tmp_path, monkeypatch)
+    sample = tmp_path / "seed" / "worksamples" / "001.json"
+    sample.write_text(
+        json.dumps(
+            {"id": "ws-x", "title": "W", "version": 1, "review_status": "Machine-checked by a script."}
+        ),
+        encoding="utf-8",
+    )
+    got = {i.format: i for i in rs.report()}
+    claim = got["work sample"]
+    assert claim.group == "unverified" and claim.check is None
+    assert claim.kind == "machine-checked: claimed, no check found here"
+    assert got["code-review exercise"].group == "reviewed" and got["code-review exercise"].check
+    text = rs.render(rs.report(), owed_only=True)  # what CI's content gate prints
+    assert "Claimed machine-checked, no check found here: 1" in text and "ws-x" in text
+    assert "rv-x" not in text  # a backed claim isn't among what's owed
+
+
+def test_an_authors_review_is_never_reported_as_machine_checked(monkeypatch):
+    reviewed = next(u for u in app.learn.UNIT_INDEX.values() if u.review.status == "author_reviewed")
+    said = dataclasses.replace(reviewed.review, note="Machine-checked against every case.")
+    monkeypatch.setattr(app.learn, "UNIT_INDEX", {reviewed.id: dataclasses.replace(reviewed, review=said)})
+    [lesson] = [i for i in rs.report() if i.format == "lesson"]
+    assert (lesson.group, lesson.kind.split(";")[0], lesson.check) == (
+        "reviewed",
+        "the author's review",
+        None,
+    )
+
+
+def test_the_report_prints_the_check_and_json_carries_it(capsys):
+    assert cli.main(["app.cli", "content", "review-status"]) == 0
+    out = capsys.readouterr().out
+    c = rs.MACHINE_CHECKS["test-design exercise"]
+    assert f"check: {c.proves}" in out and f"by {c.test} and `{c.command}`" in out
+    assert "run in CI: Backend (lint, types, SQLite tests, reference solutions) › Tests (SQLite)" in out
+    assert cli.main(["app.cli", "content", "review-status", "--json"]) == 0
+    doc = json.loads(capsys.readouterr().out)
+    designs = [i for i in doc["items"] if i["format"] == "test-design exercise"]
+    assert designs and all(i["check"]["test"] == c.test for i in designs) and doc["unverified"] == 0
+
+
+def test_cis_content_gate_prints_what_isnt_backed():
+    gate = next(
+        s
+        for j in yaml.safe_load(WORKFLOW.read_text())["jobs"].values()
+        for s in j.get("steps", [])
+        if str(s.get("name", "")).startswith("Content quality gates")
+    )
+    assert "python -m app.cli content review-status --owed" in gate["run"]

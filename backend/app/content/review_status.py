@@ -16,6 +16,12 @@ note lives (the file and the field), so the author can find it:
 Nothing is inferred or upgraded: a kind is named only when the note says it, and an unknown note is
 listed as owed. It's a report, not a gate: the exit code is 0 whatever it finds. Every collector
 reads its format's own field directly, so a renamed field raises instead of dropping a format.
+
+A claim names its check (Volume 20, prompt 8): a note that says "machine-checked" is listed as
+reviewed only when its format is in `MACHINE_CHECKS`, which names the test and the command in this
+repository that do the check, the CI steps that run them, and what the check proves; the report
+prints that beside each item. A claim in a format with no mapped check is listed apart, "claimed,
+no check found here". The report runs no check itself, and changes no content's status.
 """
 
 from __future__ import annotations
@@ -23,13 +29,14 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Callable, Iterator
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Literal
 
-Group = Literal["owed", "reviewed", "none"]
+Group = Literal["owed", "unverified", "reviewed", "none"]
 GROUP_TITLE: dict[Group, str] = {
     "owed": "Review owed (drafted and not yet checked)",
+    "unverified": "Claimed machine-checked, no check found here",
     "reviewed": "Reviewed",
     "none": "No review recorded",
 }
@@ -48,6 +55,66 @@ class Item:
     status: str  # the content's own words: its review status and note, as authored
     where: str  # the file and field that hold its review note
     count: int | None = None  # for a counted bank: how many items share this line
+    check: dict | None = None  # for a machine-checked claim: the check that backs it (MACHINE_CHECKS)
+
+
+@dataclass(frozen=True)
+class Check:
+    """A check in this repository that does what a "machine-checked" note claims."""
+
+    proves: str  # what it proves, in a short phrase
+    test: str  # the pytest that runs it: "backend/tests/<file>.py::<function>"
+    command: str  # the command that runs it, from backend/
+    ci: tuple[
+        tuple[str, str], ...
+    ]  # (job, step) in .github/workflows/ci.yml that run the test and the command
+
+
+_BACKEND_JOB = "Backend (lint, types, SQLite tests, reference solutions)"
+_RUNS = ((_BACKEND_JOB, "Tests (SQLite)"), (_BACKEND_JOB, "Reference solutions pass every seeded test"))
+_VERIFY = "python scripts/verify_reference_solutions.py"
+
+# Each format whose notes can say "machine-checked", and the check that backs the claim. A test
+# fails when a named test, command or CI step no longer exists, so this can't go stale silently.
+MACHINE_CHECKS: dict[str, Check] = {
+    "debugging exercise": Check(
+        "the faulty starter fails exactly its reproduction cases, and the repair and every alternative "
+        "pass every test",
+        "backend/tests/test_debugging_lab.py::test_each_starter_shows_its_defect_and_each_repair_passes",
+        _VERIFY,
+        _RUNS,
+    ),
+    "code-review exercise": Check(
+        "the reviewed code fails exactly the public tests its defects cite, with the results they state, "
+        "and the repair passes every test",
+        "backend/tests/test_code_reviews.py::test_each_authored_review_matches_what_the_code_does_on_the_tests",
+        _VERIFY,
+        _RUNS,
+    ),
+    "test-design exercise": Check(
+        "every faulty version differs from the reference on its own witness case, and the reference gives "
+        "each example's expected output",
+        "backend/tests/test_test_design.py::test_every_exercise_passes_the_jdk_check",
+        _VERIFY,
+        _RUNS,
+    ),
+}
+# Every other format the report knows, and why no machine check is mapped for it. A test checks each
+# format is in one of the two; a "machine-checked" claim in one of these is listed as unverified.
+NO_MACHINE_CHECK: dict[str, str] = {
+    "lesson": "the author's review or a draft (its Review); no machine check is claimed",
+    "scenario": "the author's review or a draft (its Review); no machine check is claimed",
+    "sample-answer lesson": "checked for consistency by its author; no machine check here",
+    "work sample": "checked for consistency by its author; no machine check here",
+    "offer case": "checked for consistency by its author; no machine check here",
+    "question follow-up": "a dated check of the relationship; no machine check here",
+    "problem follow-up": "a dated check of the relationship; no machine check here",
+    "drill": "no review field",
+    "whiteboard prompt": "no review field",
+    "career questions": "generated; no review recorded",
+    "coding problems": "generated; each reference solution is run by scripts/verify_reference_solutions.py, "
+    "but no review is claimed",
+}
 
 
 # What a note says it was, by its own words; nothing else is read into it.
@@ -236,14 +303,32 @@ FORMATS: dict[str, Callable[[], Iterator[Item]]] = {
 }
 
 
+def _backed(item: Item) -> Item:
+    """A machine-checked claim names its check, or is listed as having none here. Nothing else changes."""
+    if item.group != "reviewed" or not item.kind.startswith("machine-checked"):
+        return item
+    check = MACHINE_CHECKS.get(item.format)
+    if check is None:
+        return replace(item, group="unverified", kind=f"{item.kind}: claimed, no check found here")
+    return replace(
+        item,
+        check={
+            "proves": check.proves,
+            "test": check.test,
+            "command": check.command,
+            "ci": [f"{job} › {step}" for job, step in check.ci],
+        },
+    )
+
+
 def report() -> list[Item]:
-    return [item for read in FORMATS.values() for item in read()]
+    return [_backed(item) for read in FORMATS.values() for item in read()]
 
 
 def render(items: list[Item], *, owed_only: bool = False) -> str:
     lines: list[str] = []
-    for group in ("owed", "reviewed", "none"):
-        if owed_only and group != "owed":
+    for group in ("owed", "unverified", "reviewed", "none"):
+        if owed_only and group not in ("owed", "unverified"):  # --owed: what isn't backed, too
             continue
         rows = [i for i in items if i.group == group]
         lines.append(f"{GROUP_TITLE[group]}: {len(rows)}")
@@ -256,6 +341,10 @@ def render(items: list[Item], *, owed_only: bool = False) -> str:
             version = f" v{i.version}" if i.version is not None else ""
             lines.append(f"  {i.format} · {i.id}{version} · {i.title}")
             lines.append(f"      {i.kind}. {i.status}".rstrip())
+            if i.check:
+                lines.append(f"      check: {i.check['proves']}")
+                lines.append(f"        by {i.check['test']} and `{i.check['command']}`")
+                lines.append(f"        run in CI: {'; '.join(i.check['ci'])}")
             lines.append(f"      note: {i.where}")
         for fmt, first in counted.items():
             lines.append(f"  {fmt}: {first.kind}. {first.status}")
@@ -268,5 +357,12 @@ def render(items: list[Item], *, owed_only: bool = False) -> str:
 
 
 def as_json(items: list[Item], *, owed_only: bool = False) -> str:
-    rows = [asdict(i) for i in items if not owed_only or i.group == "owed"]
-    return json.dumps({"items": rows, "owed": sum(1 for i in items if i.group == "owed")}, indent=2)
+    rows = [asdict(i) for i in items if not owed_only or i.group in ("owed", "unverified")]
+    return json.dumps(
+        {
+            "items": rows,
+            "owed": sum(1 for i in items if i.group == "owed"),
+            "unverified": sum(1 for i in items if i.group == "unverified"),
+        },
+        indent=2,
+    )

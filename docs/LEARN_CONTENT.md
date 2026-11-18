@@ -73,10 +73,28 @@ groups:
   bank.
 
 Nothing is inferred or upgraded: a kind is named only when its note says it, and a note naming no
-check is listed as owed. `--owed` prints only what's owed; `--json` prints the same report for a
+check is listed as owed. `--owed` prints only what's owed (and any claim with no check here); `--json` prints the same report for a
 script. It's a report, not a gate: it exits 0 whatever it finds, and CI's content-gate step runs it
 (`--owed`) so its output is in every run's log. It changes no status: marking something reviewed
-stays the author's act, in the file the line names. Today's `--owed`:
+stays the author's act, in the file the line names.
+
+**A claim names its check** (Volume 20, prompt 8). A note that says "machine-checked" is listed as
+reviewed only when its format is in `MACHINE_CHECKS` (`app/content/review_status.py`), one table
+naming, for each such format, the test and the command in this repository that do the check, the
+CI steps that run them, and what the check proves; the report prints that under the item and
+`--json` carries it (`check`). A claim in a format with no mapped check is listed apart, **Claimed
+machine-checked, no check found here**, never among the reviewed; `--owed` prints it with what's
+owed, so CI's content-gate step logs what isn't backed. Every other format is named in
+`NO_MACHINE_CHECK` with why (an author's review is never reported as machine-checked). The report
+runs no check itself.
+
+| Format | What its check proves | The test | The command | CI steps that run them |
+|---|---|---|---|---|
+| debugging exercise | the faulty starter fails exactly its reproduction cases, and the repair and every alternative pass every test | `tests/test_debugging_lab.py::test_each_starter_shows_its_defect_and_each_repair_passes` | `python scripts/verify_reference_solutions.py` | Backend › Tests (SQLite); Backend › Reference solutions pass every seeded test |
+| code-review exercise | the reviewed code fails exactly the public tests its defects cite, with the results they state, and the repair passes every test | `tests/test_code_reviews.py::test_each_authored_review_matches_what_the_code_does_on_the_tests` | the same | the same |
+| test-design exercise | every faulty version differs from the reference on its own witness case, and the reference gives each example's expected output | `tests/test_test_design.py::test_every_exercise_passes_the_jdk_check` | the same | the same |
+
+(The Backend job installs a JDK, so the `@java` tests run there; a test checks it.) Today's `--owed`:
 
 ```
 Review owed (drafted and not yet checked): 1
@@ -84,13 +102,31 @@ Review owed (drafted and not yet checked): 1
       drafted, not yet reviewed by the project author. generated_draft (Drafted in this repository with an AI coding assistant, 2026-11-16). Checked against the debugging exercises' tests and the references listed, and by a test that no exercise's defect is in its words. Not yet reviewed by the project author or an outside expert.
       note: backend/app/learn/units.py: review
 
+Claimed machine-checked, no check found here: 0
+
 This is a report of what the content says, not a review: marking something reviewed is the author's act.
+```
+
+and one machine-checked item from the full report:
+
+```
+  test-design exercise · tests-count-in-range v1 · Test design: Count in Range
+      machine-checked. Written for practice and machine-checked: the reference and every faulty version were compiled and run with a real JDK, and each version's defect was shown on a case.
+      check: every faulty version differs from the reference on its own witness case, and the reference gives each example's expected output
+        by backend/tests/test_test_design.py::test_every_exercise_passes_the_jdk_check and `python scripts/verify_reference_solutions.py`
+        run in CI: Backend (lint, types, SQLite tests, reference solutions) › Tests (SQLite); Backend (lint, types, SQLite tests, reference solutions) › Reference solutions pass every seeded test
+      note: backend/app/seed/testdesign/001-tests-count-in-range.json: review_status
 ```
 
 Tests: `tests/test_content_review_status.py` (every draft lesson owed and no reviewed one; every
 format present, each note's file existing; `--owed`, `--json` and the exit code; an unknown note
 never upgraded; a fixture with one item per format landing in its group, and a renamed review field
-failing loudly for each file-based format; the gate's refusal).
+failing loudly for each file-based format; the gate's refusal; since Volume 20, prompt 8: every
+mapped check's test, command and CI steps exist and the job installs a JDK, a renamed step or test
+failing the table's test, every format in one of the two lists, every machine-checked item today
+naming its check, a claim with no check here listed apart and printed by `--owed`, an author's
+review never machine-checked, the check printed and in `--json`, and CI's content gate running
+`--owed`).
 
 ## Adding a unit
 
