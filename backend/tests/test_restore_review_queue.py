@@ -85,7 +85,10 @@ def test_the_preview_offers_the_saved_questions_and_says_what_isnt_restored(clie
     assert "A time patient assessment mattered" in cat["samples"]
     # It's offered, so it's no longer among what isn't restored; other categories carry no note.
     assert "review_queue" not in {u["key"] for u in body["not_restored"]}
-    assert all(c["note"] is None for c in body["categories"] if c["key"] != "review_queue")
+    # Only the categories that need it say what they don't bring back (kit templates since prompt 7).
+    assert all(
+        c["note"] is None for c in body["categories"] if c["key"] not in ("review_queue", "kit_templates")
+    )
     assert rows(client, "bea@example.com") == {}  # the preview changes nothing
 
 

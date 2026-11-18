@@ -9,9 +9,10 @@ The contract (see docs/BACKUP_FORMAT.md):
 - Restorable: notes, stories, bookmarks, and applications with their events; from a version 2
   file (which keeps ids), accepted improvements with their occurrences, under their own ids
   (Volume 14, prompt 5), and collections with their items in order, each item's version and
-  reviews, under theirs (Volume 15, prompt 6); and which questions were saved for review, each as a
+  reviews, under theirs (Volume 15, prompt 6); which questions were saved for review, each as a
   new item starting afresh (Volume 20, prompt 1: no ladder step, due date, score, review count or point
-  comes from a file). Everything else is listed as not restored, with the reason: account details and roles; practice results and any
+  comes from a file); and kit templates, each checked as saving one is and starting at revision 1
+  (Volume 20, prompt 7). Everything else is listed as not restored, with the reason: account details and roles; practice results and any
   evaluation (they can't be verified from a file, so an edited backup can't create a passing
   verdict or a score); and shares, sessions and the schedule (they could expose data or trigger
   something).
@@ -54,6 +55,7 @@ from app.models import (
     ExperienceEntry,
     ImportBatch,
     ImportedRecord,
+    KitTemplate,
     ListedName,
     Note,
     PracticeCollection,
@@ -67,12 +69,15 @@ from app.models import (
     User,
 )
 from app.schemas.applications import ApplicationCreate, ApplicationEventIn
+from app.schemas.kit_templates import MAX_TEMPLATE_ITEMS, KitTemplateCreate
 from app.schemas.notes import NoteIn, SourceIn
 from app.schemas.restore import RestoreBatch, RestoreCategory, RestorePreview, RestoreSkip, RestoreUnsupported
 from app.schemas.stories import StoryCreate
 from app.services.applications import MAX_APPLICATIONS
 from app.services.dismissals import parse as parse_suggestion
 from app.services.explore import IN_COLLECTION, MAX_COLLECTIONS, MAX_ITEMS, SAVED, collection_name_key
+from app.services.kit_templates import MAX_TEMPLATES
+from app.services.kit_templates import checked as checked_template
 from app.services.listed_names import MAX_NAMES
 from app.services.listed_names import clean as clean_name
 from app.services.listed_names import fold as fold_name
@@ -106,6 +111,8 @@ CATEGORIES: dict[str, str] = {
     "dismissed_suggestions": "Suggestions you dismissed: not offered again, on any device",
     # Volume 20, prompt 1: which questions you saved for review (a choice, not a result).
     "review_queue": "Questions saved for review, each starting afresh",
+    # Volume 20, prompt 7: your own checklists and questions, which link to nothing by id.
+    "kit_templates": "Kit templates: checklist items and questions to start a kit from",
 }
 # What a category brings back and what it doesn't, said in the preview when it needs saying.
 NOTES: dict[str, str] = {
@@ -114,6 +121,11 @@ NOTES: dict[str, str] = {
         f"{LADDER[0]} day after the restore, as a newly saved question is. Ladders, due dates, scores, review "
         "counts and the points each was saved for aren't restored: they come from answers, and a file can't "
         "prove those happened here."
+    ),
+    "kit_templates": (
+        "Each comes back as a new template at revision 1, checked as saving one is; its earlier revisions "
+        "and times stay with the account it came from. One with the same name, checklist and questions as a "
+        "template already here, in the same order, isn't added twice. No kit is made from one."
     ),
 }
 _ACCOUNT = "Account details, sign-in and roles are never restored. Your account stays exactly as it is."
@@ -145,7 +157,6 @@ NOT_RESTORED: dict[str, str] = {
     "comparisons": _RESULTS,
     "offer_rehearsals": _RESULTS,
     "offer_comparisons": "Offer comparisons aren't restored from a file: they hold pay you entered privately; re-enter them.",
-    "kit_templates": "Kit templates aren't restored yet: save them again from a kit.",
     "source_reviews": "Decisions about changed stories aren't restored: they belong to kits and links that aren't restored yet.",
     # A note's and a saved item's "Mark reviewed" travel inside them (notes[].source_reviews,
     # bookmarks[].source_reviews): a restore keeps the version each was captured or saved at (never
@@ -281,6 +292,19 @@ def review_full(r: ReviewItem) -> str:
     )
 
 
+def template_identity(name: str, checklist: list[dict], questions: list[dict]) -> str:
+    """The same template: the same name, checklist and questions, in the same order, as saving one
+    keeps them (cleaned, blank and repeated lines dropped). Revision and times don't count."""
+    return _sha(
+        ["kit_template", name, [c["text"] for c in checklist], [[q["text"], q["group"]] for q in questions]]
+    )
+
+
+def template_full(t: KitTemplate) -> str:
+    """As restored: renamed, edited (its revision moves) or anything else changed since, it's kept."""
+    return _sha(["kit_template_full", t.name, t.checklist, t.questions, t.revision])
+
+
 def application_identity(employer: str, role_title: str, applied_on: Any, link: Any) -> str:
     return _sha(
         [
@@ -326,6 +350,26 @@ def application_full(a: Application) -> str:
             [(e.kind, e.title, str(e.on_date), e.local_time, e.timezone, e.notes) for e in a.events],
         ]
     )
+
+
+def _template_refusal(e: ValidationError) -> str:
+    """Why a file's template can't be saved, with the limit it's over, as the page's form would say."""
+    for err in e.errors():
+        loc, kind = err.get("loc", ()), err.get("type", "")
+        if loc == ("name",) and kind == "string_too_long":
+            return "A name longer than 80 characters"
+        if loc in (("checklist",), ("questions",)) and kind == "too_long":
+            what = "checklist items" if loc[0] == "checklist" else "questions"
+            return f"More than {MAX_TEMPLATE_ITEMS} {what}"
+        if len(loc) == 3 and loc[2] == "text" and kind == "string_too_long":
+            return (
+                "A checklist item longer than 200 characters"
+                if loc[0] == "checklist"
+                else "A question longer than 300 characters"
+            )
+        if kind == "value_error":
+            return "No checklist item or question"
+    return "Malformed"
 
 
 @dataclass
@@ -416,10 +460,17 @@ class Restore:
                 ReviewItem.user_id == uid
             )
         ).all()
+        templates = self.db.execute(
+            select(KitTemplate.name, KitTemplate.checklist, KitTemplate.questions).where(
+                KitTemplate.user_id == uid
+            )
+        ).all()
+        self._template_count = len(templates)
         active = {review_identity(t, q) for t, q, removed in queue if not removed}
         # Taken out of the queue here (and not saved again): a file doesn't put it back.
         self._queue_removed = {review_identity(t, q) for t, q, removed in queue if removed} - active
         return {
+            "kit_templates": {template_identity(n, c or [], q or []) for n, c, q in templates},
             "review_queue": active,
             "listed_names": set(names),
             "dismissed_suggestions": set(dismissed),
@@ -472,6 +523,12 @@ class Restore:
                     continue
                 seen[cat].add(checked["identity"])
                 plan.adds[cat].append(checked)
+        # Up to MAX_TEMPLATES kit templates, counting those already here: the rest are left out, with the limit.
+        room = max(0, MAX_TEMPLATES - self._template_count)
+        if len(plan.adds["kit_templates"]) > room:
+            over = len(plan.adds["kit_templates"]) - room
+            plan.adds["kit_templates"] = plan.adds["kit_templates"][:room]
+            plan.skipped["kit_templates"][f"Over the limit of {MAX_TEMPLATES} kit templates"] += over
         # The list of names holds up to MAX_NAMES: the rest are left out and counted, never named.
         room = max(0, MAX_NAMES - self._listed_count)
         if len(plan.adds["listed_names"]) > room:
@@ -982,6 +1039,45 @@ class Restore:
         self.db.flush()
         return "review_item", row.id, review_full(row)
 
+    def _check_kit_templates(self, row: dict, plan: _Plan) -> dict | str:
+        """Checked as saving a new template is (the same schema and the same cleaning), so a file can't
+        make one the page couldn't; a refusal is said with its limit. Its revision and times aren't read."""
+        plan.ignored_fields += len(
+            set(row) - {"name", "checklist", "questions"} - {"revision", "created_at", "updated_at", "id"}
+        )
+        data = {k: row.get(k) for k in ("name", "checklist", "questions") if row.get(k) is not None}
+        try:
+            body = KitTemplateCreate.model_validate(data)
+            name, checklist, questions = checked_template(body)
+        except ValidationError as e:
+            return _template_refusal(e)
+        except AppError as e:
+            return {"missing_name": "No name", "empty_template": "No checklist item or question"}.get(
+                e.code, "Malformed"
+            )
+        return {
+            "identity": template_identity(name, checklist, questions),
+            "name": name,
+            "title": name,  # the preview's samples
+            "checklist": checklist,
+            "questions": questions,
+        }
+
+    def _add_kit_templates(self, item: dict) -> tuple[str, str, str]:
+        now = datetime.now(UTC)
+        t = KitTemplate(
+            user_id=self.user.id,
+            name=item["name"],
+            checklist=item["checklist"],
+            questions=item["questions"],
+            revision=1,
+            created_at=now,
+            updated_at=now,
+        )
+        self.db.add(t)
+        self.db.flush()
+        return "kit_template", t.id, template_full(t)
+
     def _add_listed_names(self, item: dict) -> tuple[str, str, str]:
         now = datetime.now(UTC)
         row = ListedName(
@@ -1474,6 +1570,11 @@ class Restore:
                 current = review_full(row) if row is not None and not row.removed else None
                 if current is not None and self._scheduled(row.id):
                     current = "scheduled"
+            elif r.kind == "kit_template":
+                row = self.db.get(
+                    KitTemplate, r.record_id
+                )  # edited since: kept; kits made from it keep theirs
+                current = template_full(row) if row is not None else None
             else:
                 row = self.db.get(Application, r.record_id)
                 current = application_full(row) if row is not None else None

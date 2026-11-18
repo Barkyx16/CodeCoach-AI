@@ -128,6 +128,39 @@ describe("restoring from a backup", () => {
     expect(await screen.findByText("Restored: 1 questions saved for review.")).toBeInTheDocument();
   });
 
+  it("offers kit templates with what comes back and the limits a file's are over, and restores only them (Volume 20, prompt 7)", async () => {
+    setup();
+    const NOTE = "Each comes back as a new template at revision 1, checked as saving one is; its earlier revisions and times stay with the account it came from. One with the same name, checklist and questions as a template already here, in the same order, isn't added twice. No kit is made from one.";
+    const withTemplates: RestorePreview = {
+      ...preview,
+      categories: [
+        ...preview.categories,
+        { key: "kit_templates", label: "Kit templates: checklist items and questions to start a kit from", found: 4, new: 2, duplicates: 1,
+          samples: ["Panel day", "Phone screen"], skipped: [{ reason: "More than 40 checklist items", count: 1 }], note: NOTE },
+      ],
+    };
+    const done: RestoreBatch = { ...batch, categories: ["kit_templates"], counts: { kit_templates: { added: 2, duplicates: 1, skipped: 1 } } };
+    let applied = "";
+    server.use(
+      http.post(`${P}/preview`, () => HttpResponse.json(withTemplates)),
+      http.post(P, ({ request }) => { applied = request.url; return HttpResponse.json(done, { status: 201 }); }),
+      http.get(`${P}/batches`, () => HttpResponse.json([])),
+    );
+    const { user } = renderApp("/settings/restore", { signedIn: true });
+    fireEvent.change(await screen.findByLabelText("Backup file"), { target: { files: [new File([FILE], "codecoach-data.json", { type: "application/json" })] } });
+    const region = await screen.findByRole("region", { name: "2. Check what would be added" });
+    const box = within(region).getByRole("checkbox", { name: "Kit templates: checklist items and questions to start a kit from: 2 new" });
+    expect(within(region).getByText(NOTE)).toBeInTheDocument();
+    expect(within(region).getByText(/1 × More than 40 checklist items/)).toBeInTheDocument(); // the limit, said
+    expect(region).toHaveTextContent("for example “Panel day”, “Phone screen”");
+    await user.click(within(region).getByRole("checkbox", { name: "Notes: 1 new" }));
+    if (!(box as HTMLInputElement).checked) await user.click(box);
+    await user.click(within(region).getByRole("button", { name: "Restore kit templates" }));
+    await waitFor(() => expect(applied).toContain("categories=kit_templates"));
+    expect(applied).not.toContain("categories=notes");
+    expect(await screen.findByText("Restored: 2 kit templates.")).toBeInTheDocument();
+  });
+
   it("refuses an oversized file before sending it, and shows the server's reason for a bad one", async () => {
     setup();
     let calls = 0;

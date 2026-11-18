@@ -17,14 +17,14 @@ const LABEL: Record<string, string> = {
   notes: "Notes", stories: "Stories", bookmarks: "Bookmarks", applications: "Applications",
   accepted_actions: "Accepted improvements", collections: "Collections",
   listed_names: "Names you listed", dismissed_suggestions: "Dismissed suggestions",
-  review_queue: "Questions saved for review",
+  review_queue: "Questions saved for review", kit_templates: "Kit templates",
 };
 /** A section's short name; one this page doesn't know yet is named by its key, never a crash. */
 const labelOf = (key: string) => (LABEL[key] ?? key.replace(/_/g, " ")).toLowerCase();
 
 /**
  * Restore your own notes, stories, bookmarks, applications, accepted improvements, collections, the names you listed, the
- * suggestions you dismissed and which questions you saved for review (each starting afresh) from a CodeCoach backup into this
+ * suggestions you dismissed, which questions you saved for review (each starting afresh) and your kit templates from a CodeCoach backup into this
  * account: check the file first, choose what to add, and undo a restore later (keeping edits).
  */
 export function RestorePage() {

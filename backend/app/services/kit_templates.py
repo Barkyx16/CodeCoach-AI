@@ -64,6 +64,19 @@ def _items(checklist: list[TemplateChecklistItem], questions: list[TemplateQuest
     return ticks, asks
 
 
+def checked(body: KitTemplateCreate) -> tuple[str, list[dict], list[dict]]:
+    """What saving a new template keeps: its name and items cleaned, blank and repeated lines dropped,
+    in the order given; or the reason it can't be saved. A restore uses this too (Volume 20, prompt
+    7), so a backup file can't make a template the page couldn't."""
+    name = clean(body.name)
+    checklist, questions = _items(body.checklist, body.questions)
+    if not name:
+        raise AppError("Give the template a name.", code="missing_name")
+    if not checklist and not questions:
+        raise AppError("A template needs at least one checklist item or question.", code="empty_template")
+    return name, checklist, questions
+
+
 class KitTemplates:
     def __init__(self, db: Session, user: User):
         self.db = db
@@ -128,12 +141,7 @@ class KitTemplates:
         if key and (made := self._by_request(key)):
             request_keys.check(made.request_fingerprint, print_, "template")
             return self._out(made)
-        name = clean(body.name)
-        checklist, questions = _items(body.checklist, body.questions)
-        if not name:
-            raise AppError("Give the template a name.", code="missing_name")
-        if not checklist and not questions:
-            raise AppError("A template needs at least one checklist item or question.", code="empty_template")
+        name, checklist, questions = checked(body)
         n = (
             self.db.scalar(
                 select(func.count()).select_from(KitTemplate).where(KitTemplate.user_id == self.user.id)

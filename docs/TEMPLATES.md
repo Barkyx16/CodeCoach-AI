@@ -52,7 +52,28 @@ is generated for you either: a template holds only words you wrote or kept.
 Another account's template is 404 for every call. Stored in `kit_templates` (migration
 `c3f7a9d2e614`), under row-level security on PostgreSQL, deleted with the account, included in your
 data export (names, items, revision, dates), counted under "Interview-day kits, your kit templates,
-and reflections" in Your data. Restoring a backup doesn't restore templates yet (it says so).
+and reflections" in Your data.
+
+## Restoring from a backup file (Volume 20, prompt 7)
+
+A backup file brings templates back (docs/BACKUP_FORMAT.md, `kit_templates`): a template is your
+own checklist and questions and links to nothing by id. The restore page previews them (how many are
+new, already here, or not restored and why, with a few names) and says beside the category what
+comes back. Each is checked as saving one is: the same schema (a name up to 80 characters, up to
+40 checklist items of up to 200 characters and 40 questions of up to 300, each in one of the
+groups) and the same cleaning (`kit_templates.checked`: control characters removed, blank and
+repeated lines dropped, nothing evaluated), so a file can't make a template this page couldn't.
+One that's refused is listed as not restored with the limit it's over ("More than 40 checklist
+items", "A question longer than 300 characters", "No name"); past 30 templates on the account, the
+rest are listed "Over the limit of 30 kit templates". **The same** as one already here means the
+same name, checklist and questions, in the same order, after that cleaning; it isn't added twice,
+and a template already here is never changed. A restored one starts at revision 1 with the
+restore's time: its earlier revisions and times stay with the account it came from. Lines keep
+their order and groups as the file gives them. No kit or interview event is made from one.
+Removing the restore takes away the templates it added and still as added; one renamed or edited
+since is kept. Kits made from one before that keep their items (they were copied, not linked).
+Names you listed are still replaced in what leaves the app, a kit started from a restored template
+included. Version 1 and 2 files alike.
 
 ## On the page
 
@@ -82,4 +103,4 @@ and notes unchanged, rename and delete, axe in both themes).
 - Kits only, and only their checklist and questions.
 - No archive for templates (delete only); no editing a template's items on the list page (save a
   new one from a kit instead).
-- Not restored from a backup file yet.
+- A restored template's earlier revisions aren't carried: it starts at revision 1.

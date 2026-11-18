@@ -24,6 +24,7 @@ class RestoreCategory(APIModel):
         "listed_names",
         "dismissed_suggestions",
         "review_queue",
+        "kit_templates",
     ]
     label: str
     found: int = Field(description="Records of this kind in the file")

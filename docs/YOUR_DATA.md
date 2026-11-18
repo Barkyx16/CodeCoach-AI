@@ -91,6 +91,11 @@ docs/BACKUP_FORMAT.md): each as a new item starting afresh, first due a day afte
 ladders, due dates, scores, review counts and points stay with the account they came from, and the
 restore's preview says so beside the category.
 
+A backup file now brings back kit templates too (Volume 20, prompt 7; docs/TEMPLATES.md): each checked
+as saving one is, at revision 1, the same one never added twice; its earlier revisions stay with the
+account it came from. They're still counted under "Interview-day kits, your kit templates, and
+reflections".
+
 Export, restore and deletion stay where they are: the page links to Settings' **Download my data**,
 **Restore from a backup** and **Danger zone** (password and "DELETE"), and Settings now moves focus
 to the section a link names. No new way to export or delete.

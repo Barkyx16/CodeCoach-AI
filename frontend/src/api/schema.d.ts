@@ -13597,7 +13597,7 @@ export interface components {
              * Key
              * @enum {string}
              */
-            key: "notes" | "stories" | "bookmarks" | "applications" | "accepted_actions" | "collections" | "listed_names" | "dismissed_suggestions" | "review_queue";
+            key: "notes" | "stories" | "bookmarks" | "applications" | "accepted_actions" | "collections" | "listed_names" | "dismissed_suggestions" | "review_queue" | "kit_templates";
             /** Label */
             label: string;
             /**

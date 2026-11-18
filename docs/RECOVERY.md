@@ -72,7 +72,7 @@ isn't read out every second. Nothing replaces the page.
 | Note "Keep both" after a conflict | `client_request_id` per decision + `copy_of`, and a copy receipt (Volume 8 prompt 4) | the same copy. Made, then deleted: 410 `copy_deleted`, not made again |
 | Story, note, kit, whiteboard draft, reflection (update) | `client_request_id` per save, and a receipt kept with the update (migration `7045bdb6a532`, Volume 8 prompt 3) | "your save went through as version N". Changed since: both versions, compared |
 | Explain a failure | cached per submission | the same explanation |
-| Restore | the same file changes nothing | no change |
+| Restore | the same file changes nothing; a kit template already here (the same name, checklist and questions) isn't added again (Volume 20, prompt 7) | no change |
 | Guest start, register (new) | this browser's HttpOnly anchor cookie, recorded with the account (Volume 8 prompt 6) | the same guest; the same account, with the right password, and no second email. Without the anchor: as before (below) |
 
 **Can't yet be retried safely** (a repeat may do something twice or misread itself):
