@@ -16315,6 +16315,13 @@ export interface components {
             judged_at: string | null;
             /** @description The in-app help before this run (Volume 19, prompt 3; docs/ATTEMPT_CONDITIONS.md) */
             conditions?: components["schemas"]["AttemptConditions"] | null;
+            /** @description Beside the previous judged run of the same exercise, by the one comparison contract (docs/COMPARING_ATTEMPTS.md, Volume 19, prompt 4); null when there's none */
+            compared?: components["schemas"]["PracticeComparison"] | null;
+            /**
+             * Not Compared
+             * @description Why it isn't compared, in the words History uses too; null when it is
+             */
+            not_compared?: string | null;
         };
         /** TestDesignRunSummary */
         TestDesignRunSummary: {
@@ -16337,6 +16344,13 @@ export interface components {
             outcome_text: string;
             /** @description The in-app help before this run */
             conditions?: components["schemas"]["AttemptConditions"] | null;
+            /** @description Beside the previous judged run of the same exercise, by the one comparison contract (docs/COMPARING_ATTEMPTS.md, Volume 19, prompt 4); null when there's none */
+            compared?: components["schemas"]["PracticeComparison"] | null;
+            /**
+             * Not Compared
+             * @description Why it isn't compared, in the words History uses too; null when it is
+             */
+            not_compared?: string | null;
             /**
              * Created At
              * Format: date-time

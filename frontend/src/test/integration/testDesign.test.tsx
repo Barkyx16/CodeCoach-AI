@@ -213,6 +213,43 @@ describe("test design", () => {
     expect(earlier).toHaveTextContent("In-app help: Solution revealed");
   });
 
+  it("a run is set beside the run before it, with a link to that run's report, and the list says the same (Volume 19, prompt 4)", async () => {
+    const first = run({ id: "run-1", created_at: "2026-11-18T09:00:00Z", not_compared: "Not compared: the first judged run of this exercise" } as Partial<TestDesignRun>);
+    const explanation = "Partly comparable: the in-app help differed: before the earlier one, none recorded; before the later one, solution revealed. The counts are of the same authored faulty versions, so both are shown. Both counts are of the faulty versions written for this exercise only, not of every possible defect. (Comparison rules v1)";
+    const compared = {
+      previous: { id: "run-1", created_at: "2026-11-18T09:00:00Z", result: "told apart 1 of 4 faulty versions" },
+      result: "told apart 2 of 4 faulty versions",
+      comparison: { against: "run-1", outcome: "partially_comparable" as const, scores_comparable: true, points_comparable: true, reasons: [{ rule: "help", kind: "partial_conditions" as const, text: "the in-app help differed" }], explanation, contract_version: 1 },
+    };
+    const second = run({ id: "run-2", created_at: "2026-11-18T10:00:00Z", compared } as Partial<TestDesignRun>);
+    serve();
+    server.use(
+      http.get(`${API}/api/v1/me/test-design/runs/:id`, ({ params }) => HttpResponse.json(params.id === "run-1" ? first : second)),
+      http.get(`${API}/api/v1/me/test-design/${SLUG}/runs`, () => HttpResponse.json([
+        { id: "run-2", exercise_version: 1, status: "done", cases: 2, caught: 2, total: 4, outcome_text: "2 cases · told apart 2 of 4 faulty versions · version 1", compared, not_compared: null, created_at: "2026-11-18T10:00:00Z" },
+        { id: "run-1", exercise_version: 1, status: "done", cases: 2, caught: 1, total: 4, outcome_text: "2 cases · told apart 1 of 4 faulty versions · version 1", compared: null, not_compared: "Not compared: the first judged run of this exercise", created_at: "2026-11-18T09:00:00Z" },
+      ])),
+    );
+    const { user } = renderApp(`/test-design/${SLUG}?attempt=run-2`, { signedIn: true });
+    const beside = await screen.findByRole("region", { name: "Compared with your previous attempt" }, { timeout: 3000 });
+    expect(beside).toHaveTextContent("told apart 1 of 4 faulty versions");
+    expect(beside).toHaveTextContent("This one: told apart 2 of 4 faulty versions");
+    expect(beside).toHaveTextContent(explanation);
+    expect(beside).not.toHaveTextContent(/improv|better/i);
+    // The earlier run is named by its time; the list's rows say the contract's short words, as History does.
+    expect(within(beside).getByText(/^Earlier,/).querySelector("time")).toHaveAttribute("dateTime", "2026-11-18T09:00:00Z");
+    const earlier = await screen.findByRole("region", { name: "Your earlier runs" });
+    const rows = within(earlier).getAllByRole("listitem");
+    expect(rows[0]).toHaveTextContent("2 cases · told apart 2 of 4 faulty versions · version 1 · Partly comparable with the one before");
+    expect(rows[1]).toHaveTextContent("· Not compared: the first judged run of this exercise");
+    // Its link opens the earlier run's report.
+    const link = within(beside).getByRole("link", { name: "Open that run's report" });
+    expect(link).toHaveAttribute("href", `/test-design/${SLUG}?attempt=run-1`);
+    await user.click(link);
+    expect(await screen.findByText("Not compared: the first judged run of this exercise.", { selector: "p" }, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Compared with your previous attempt" })).not.toBeInTheDocument();
+  });
+
   it("the server's per-case messages are shown next to the case", async () => {
     serve();
     server.use(http.post(`${API}/api/v1/me/test-design/${SLUG}/runs`, () => HttpResponse.json(

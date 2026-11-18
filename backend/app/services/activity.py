@@ -151,8 +151,8 @@ PRACTICE: dict[str, tuple[Checklist, Any, Any]] = {
     "work_sample_attempt": ("work_sample", WorkSampleAttempt, WorkSampleAttempt.brief_id),
 }
 # Scenario runs, code reviews and sample-answer comparisons in History (Volume 17, prompt 2). Their
-# own pages list their attempts; the contract covers code reviews (Volume 18, prompt 4), and for the
-# others the row says it doesn't.
+# own pages list their attempts; the contract covers code reviews (Volume 18, prompt 4) and test-design
+# runs (Volume 19, prompt 4), and for the others the row says it doesn't.
 OTHERS: dict[str, tuple[str, Any, Any]] = {
     "scenario_attempt": ("scenario", ScenarioAttempt, ScenarioAttempt.scenario_id),
     "code_review_attempt": ("code_review", CodeReviewAttempt, CodeReviewAttempt.exercise_slug),
@@ -184,7 +184,6 @@ GONE = {
 NOT_COMPARED = {
     "scenario": "Not compared: scenario runs aren't compared with each other",
     "comparison": "Not compared: readings of sample answers aren't compared with each other yet",
-    "test_design": "Not compared: test-design runs aren't compared with each other yet",
 }
 # Where the content's careers come from: the attempt (a drill), the content (these), the coding
 # problems (a code review), or none (a sample-answer lesson is for every career).
@@ -211,7 +210,7 @@ def _plural(n: int, one: str, many: str | None = None) -> str:
 
 def other_detail(kind: str, r: Any, outcome: str | None = None) -> str:
     """What its own page's list says of it, in the same words, then how it compares with the one
-    before (a code review's, by the contract) or why it isn't compared."""
+    before (a code review's or a test-design run's, by the contract) or why it isn't compared."""
     if kind == "scenario":
         end = next((st for st in r.steps or [] if st.get("kind") == "ending"), None)
         said = (end or {}).get("outcome") if r.status == "completed" else None
@@ -775,8 +774,9 @@ class ActivityService:
                 self.db.scalars(select(model).where(*conds).order_by(model.created_at.desc()).limit(limit))
             )
             compared: dict[str, Any] = {}
-            checklist = cast(Checklist, kind)  # only read for drills, whiteboards, work samples, code reviews
-            if type_ in PRACTICE or kind == "code_review":
+            # Only read for drills, whiteboards, work samples, code reviews and test-design runs.
+            checklist = cast(Checklist, kind)
+            if type_ in PRACTICE or kind in ("code_review", "test_design"):
                 comparisons = AttemptComparisons(self.db, user)
                 compared = comparisons.checklist_compared(
                     checklist, comparisons.all_attempts(checklist, {getattr(r, col.key) for r in rows})
@@ -804,7 +804,7 @@ class ActivityService:
                         else not_compared(checklist, r, compared)
                     )
                     detail = f"{checklist_text(checklist, r.feedback)} · {outcome}"
-                elif kind == "code_review":
+                elif kind in ("code_review", "test_design"):
                     detail = other_detail(
                         kind,
                         r,

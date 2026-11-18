@@ -227,13 +227,13 @@ another rubric; a checklist's ticks against other points don't. So:
   out. Each run is a row (type `test_design_run`) in the words the exercise page's "Your earlier
   runs" list uses, served once for both (`outcome_text`, one rule): "2 cases · told apart 2 of 4
   faulty versions · version 1", or "not run: this server can't run code", "waiting for the judge",
-  "the judge couldn't run it"; then "Not compared: test-design runs aren't compared with each other
-  yet". Its status is History's: completed, waiting for the judge, saved but not judged, or
+  "the judge couldn't run it"; then how it compares with the run before (since Volume 19, prompt 4:
+  "Test-design runs" below). Its status is History's: completed, waiting for the judge, saved but not judged, or
   evaluation unavailable, and the status filter and facets count it so. It's a coding problem's (the
   coding filter shows it), and it opens that run's report on the exercise page
   (`/test-design/<slug>?attempt=<id>`, focus on the report); a run of another exercise, or not
-  yours, says it couldn't be opened. No in-app help is recorded for test design, so none is asked
-  for. Reading History still doesn't grow with the number of runs.
+  yours, says it couldn't be opened. Its help is asked for with the other rows' (Volume 19, prompt 3).
+  Reading History still doesn't grow with the number of runs.
 - **Never**: a result changed, "improved", "better", an average or a trend, within a format or across
   formats.
 - **Rules version**: still v1. No written answer's or submission's classification changed; these are
@@ -263,14 +263,48 @@ the exercise's (its authored defects are versioned with it), its help the condit
 - Tests: `backend/tests/test_code_review_comparisons.py` (6, SQLite and PostgreSQL),
   `frontend/src/test/integration/codeReview.test.tsx` (+1).
 
+## Test-design runs (Volume 19, prompt 4)
+
+Each **judged** test-design run is set beside the **previous judged run of the same exercise**, by
+the same checklist rules. Its result is how many of the exercise's authored faulty versions its cases
+told apart, as its report counted them ("told apart 2 of 4 faulty versions"), shown as given for
+both; its item is the exercise, its version the exercise's (the faulty versions are versioned with
+it), its rules the report's version, its evaluator the judge, its help the conditions it records
+(docs/ATTEMPT_CONDITIONS.md, "Test-design runs").
+
+- **Every explanation repeats the report's caveat**: "Both counts are of the faulty versions written
+  for this exercise only, not of every possible defect."
+- **The same version and the same help** is comparable ("Comparable: the same exercise and version,
+  run against the same authored faulty versions by the same rules, with the same in-app help").
+- **After the faulty versions were shown**, a run beside one from before is **partly comparable**
+  and says why ("the in-app help differed: before the earlier one, none recorded; before the later
+  one, solution revealed"); both counts are still shown. Two runs after it are comparable.
+- **Another version** of the exercise isn't comparable ("the exercise's faulty versions changed in
+  between (version 1, now 2); each keeps its own result").
+- **A run that wasn't run, is waiting or failed** isn't compared and is never "the one before": it
+  says why ("Not compared: it wasn't run (this server can't run code), so there's no result", "…
+  it's waiting for the judge, so there's no result yet", "… the judge couldn't run it, so there's no
+  result"). The first judged run says "Not compared: the first judged run of this exercise".
+- **Where it shows**: the run's report ("Compared with your previous attempt": the earlier run by its
+  time, with a link to its report, both results and the explanation), the exercise's "Your earlier
+  runs" list ("· Partly comparable with the one before") and History's row, in the same words.
+  `compared` and `not_compared` on the run and its list item (additive). Another account's run is
+  never the one before. Comparisons are read, never stored.
+- **Never** "improved", "better" or a trend. **Rules version**: still v1; no earlier classification
+  changed. The report and its counts are unchanged.
+- Tests: `backend/tests/test_test_design_comparisons.py` (7, SQLite and PostgreSQL),
+  `testDesign.test.tsx` (+1), `historyPractice.test.tsx`, `e2e/test-design-compared.spec.ts` (judged
+  for real in CI's sandbox job: an ordinary case, a boundary case, then a run after the faulty
+  versions were shown; without the judge, two saved runs say why they aren't compared).
+
 ## Not covered yet
 
 Every list of coding submissions now says how each compares with the one before: History, a
 submission's page and the workspace's result, an improvement's related practice, a requirement, and
 your submissions list (`GET /me/submissions`, `outcome_text`), which the dashboard's "Recent
 attempts" shows, linking to the comparison (the first says it's the first; one still being judged,
-or that the judge couldn't run, says nothing). Code reviews are compared since Volume 18, prompt 4 (above). Scenario runs, sample-answer
-comparisons and test-design runs are listed in History (Volume 17, prompt 2; Volume 18, prompt 10)
-but not compared: they, and the other formats,
+or that the judge couldn't run, says nothing). Code reviews are compared since Volume 18, prompt 4,
+and test-design runs since Volume 19, prompt 4 (above). Scenario runs and sample-answer comparisons
+are listed in History (Volume 17, prompt 2) but not compared: they, and the other formats,
 keep their own rules for now (docs/SCENARIOS.md, docs/CODE_REVIEWS.md, docs/COMPARE_ANSWERS.md and others) and adopt
 this contract later. Help outside the app isn't known.

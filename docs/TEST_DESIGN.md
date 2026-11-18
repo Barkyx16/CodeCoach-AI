@@ -111,8 +111,13 @@ earlier runs stay as they were.
   revealed", on its report, its row and in History. Signed out it's recorded nowhere.
 - In History since Volume 18, prompt 10 (docs/COMPARING_ATTEMPTS.md, "History, test-design runs"):
   each run is a row in the words "Your earlier runs" uses (`outcome_text` on the runs list, one rule
-  for both), opening that run's report on this page (`?attempt=<id>`). Not compared with the run
-  before.
+  for both), opening that run's report on this page (`?attempt=<id>`).
+- Each judged run is set beside the previous judged run of the exercise (Volume 19, prompt 4;
+  docs/COMPARING_ATTEMPTS.md, "Test-design runs"): on its report ("Compared with your previous
+  attempt", linking to that run's report), its row and in History. Another version isn't
+  comparable; a run after the faulty versions were shown is partly comparable with one before; a
+  run that wasn't run, is waiting or failed says why it isn't compared. Every comparison repeats
+  that the counts are of the authored versions only.
 
 ## Limits
 

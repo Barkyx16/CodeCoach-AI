@@ -25,6 +25,13 @@ all (a written answer's text still compares under another rubric; a checklist's 
 help is partly comparable, as it is everywhere. No earlier classification changes, so the version
 stays.
 
+Test-design runs too (Volume 19, prompt 4): the exercise for the question, its version for the
+question's version (the authored faulty versions are versioned with it), the judge as the evaluator,
+the report's version as the rules, and whether the judge finished. Their result is how many of the
+authored faulty versions the run's cases told apart, so they're checklists, and every explanation
+repeats the report's caveat: the counts are of those authored versions only. No earlier
+classification changes, so the version stays.
+
 The rules are versioned (``CONTRACT_VERSION``); every result says which version decided it, so an
 export keeps the classification it was made with. Pure: the facts are gathered elsewhere
 (app/services/comparisons_of_attempts.py), the decision is made only here.
@@ -41,7 +48,7 @@ CONTRACT_VERSION = 1
 Outcome = Literal["comparable", "partially_comparable", "incompatible", "unknown"]
 Format = Literal["single", "interview", "retry", "submit", "run"]
 Source = Literal["rules", "ai", "person", "judge"]
-Kind = Literal["written", "code", "drill", "whiteboard", "work_sample", "code_review"]
+Kind = Literal["written", "code", "drill", "whiteboard", "work_sample", "code_review", "test_design"]
 
 # Who graded it, by the recorded coach name: only names that are known. Anything else is unknown.
 SOURCES: dict[str, Source] = {"built-in (offline)": "rules"}
@@ -61,8 +68,9 @@ FORMAT_LABEL: dict[str, str] = {
 HELP_NONE = "No in-app help recorded"
 # Formats whose result is a checklist of the item's points, checked by built-in rules. A code
 # review's are the exercise's authored defects, matched to its findings by fixed rules (Volume 18,
-# prompt 4).
-CHECKLISTS: frozenset[str] = frozenset({"drill", "whiteboard", "work_sample", "code_review"})
+# prompt 4). A test-design run's are the exercise's authored faulty versions, told apart or not by its
+# cases (Volume 19, prompt 4).
+CHECKLISTS: frozenset[str] = frozenset({"drill", "whiteboard", "work_sample", "code_review", "test_design"})
 KIND_NOUN: dict[str, str] = {
     "written": "a written answer",
     "code": "code",
@@ -70,13 +78,21 @@ KIND_NOUN: dict[str, str] = {
     "whiteboard": "a whiteboard design",
     "work_sample": "a work sample",
     "code_review": "a code review",
+    "test_design": "a test-design run",
 }
 ITEM: dict[str, str] = {
     "drill": "drill",
     "whiteboard": "prompt",
     "work_sample": "brief",
     "code_review": "exercise",
+    "test_design": "exercise",
 }
+# What changes with a checklist item's version, where it isn't the item's points.
+POINTS: dict[str, str] = {"test_design": "faulty versions"}
+# Said with every test-design comparison, as its report says it (app/testdesign/report.py).
+TEST_DESIGN_CAVEAT = (
+    "Both counts are of the faulty versions written for this exercise only, not of every possible defect."
+)
 
 
 @dataclass(frozen=True)
@@ -227,7 +243,7 @@ def classify(a: AttemptFacts, b: AttemptFacts) -> Classification:
             Reason(
                 "question_version",
                 "incompatible",
-                f"the {item}'s points changed in between (version {a.question_version}, now "
+                f"the {item}'s {POINTS.get(a.kind, 'points')} changed in between (version {a.question_version}, now "
                 f"{b.question_version}); each keeps its own result",
             )
         )
@@ -325,6 +341,11 @@ _SAME_SCORES = {
     "code": ". The counts are from the same tests, so both are shown",
 }
 _SAME_CHECKS = ". The results are from the same checks by the same fixed rules, so both are shown"
+_TEST_DESIGN_COMPARABLE = (
+    "Comparable: the same exercise and version, run against the same authored faulty versions by the same "
+    "rules, with the same in-app help"
+)
+_TEST_DESIGN_SAME = ". The counts are of the same authored faulty versions, so both are shown"
 
 
 def _result(
@@ -333,19 +354,22 @@ def _result(
     body = "; ".join(r.text for r in reasons)
     if outcome == "comparable" and kind == "code":
         lead = _CODE_COMPARABLE
+    elif outcome == "comparable" and kind == "test_design":
+        lead = _TEST_DESIGN_COMPARABLE
     elif outcome == "comparable" and kind in CHECKLISTS:
         lead = _CHECKLIST_COMPARABLE.format(item=ITEM[kind])
     else:
         lead = _LEAD[outcome]
     text = f"{lead}: {body}" if body else lead
     if outcome == "partially_comparable" and scores:
-        text += _SAME_SCORES.get(kind, _SAME_CHECKS)
+        text += _TEST_DESIGN_SAME if kind == "test_design" else _SAME_SCORES.get(kind, _SAME_CHECKS)
+    caveat = f" {TEST_DESIGN_CAVEAT}" if kind == "test_design" else ""
     return Classification(
         outcome=outcome,
         scores_comparable=scores,
         points_comparable=points,
         reasons=reasons,
-        explanation=f"{text}. (Comparison rules v{CONTRACT_VERSION})",
+        explanation=f"{text}.{caveat} (Comparison rules v{CONTRACT_VERSION})",
         rules=tuple(r.rule for r in reasons),
     )
 

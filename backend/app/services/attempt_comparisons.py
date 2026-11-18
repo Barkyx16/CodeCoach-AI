@@ -6,6 +6,7 @@ progress chart's list) gets its classifications here, so the same pair always re
 submissions too (Volume 14, prompt 1): the submission page, the workspace's result and History. And
 drills, whiteboard designs and work samples (Volume 15, prompt 4): each attempt's own page and list.
 And code reviews (Volume 18, prompt 4): defects raised of the exercise's authored ones, by its rules.
+And test-design runs (Volume 19, prompt 4): the authored faulty versions a run's cases told apart.
 """
 
 from __future__ import annotations
@@ -36,6 +37,7 @@ from app.models import (
     Submission,
     SubmissionMode,
     SubmissionStatus,
+    TestDesignRun,
     User,
     WhiteboardAttempt,
     WorkSampleAttempt,
@@ -43,7 +45,13 @@ from app.models import (
 from app.schemas.careers import AttemptComparison, ComparedAttempt, ComparisonReason, PracticeComparison
 from app.schemas.conditions import AttemptConditions
 from app.schemas.submission import ComparedSubmission, SubmissionComparison
-from app.services.conditions import FORMATS_RECORDED_FROM, RECORDED_FROM, Conditions, problem_versions
+from app.services.conditions import (
+    FORMATS_RECORDED_FROM,
+    RECORDED_FROM,
+    TEST_DESIGN_REVEALS_FROM,
+    Conditions,
+    problem_versions,
+)
 
 # Written answers are graded 0-100 by the coach (app/careers/grading.py): the scale belongs to the
 # kind of attempt, not a guess about one.
@@ -66,8 +74,10 @@ VERDICTS = frozenset(
 
 # Drills, whiteboard designs and work samples: the result is how many of the item's points the
 # built-in rules found, as stored with the attempt. Code reviews (Volume 18, prompt 4): how many of
-# the exercise's authored defects the review raised, as its rules matched them.
-Checklist = Literal["drill", "whiteboard", "work_sample", "code_review"]
+# the exercise's authored defects the review raised, as its rules matched them. Test-design runs
+# (Volume 19, prompt 4): how many of the exercise's authored faulty versions the run's cases told apart,
+# as its report counted them; a run the judge didn't finish has no result.
+Checklist = Literal["drill", "whiteboard", "work_sample", "code_review", "test_design"]
 _FOUND: dict[str, str] = {
     "drill": "there",
     "whiteboard": "addressed",
@@ -76,9 +86,19 @@ _FOUND: dict[str, str] = {
 }
 
 
+def stored(kind: Checklist, row: Any) -> dict | None:
+    """What an attempt's result is read from: its feedback, or a finished test-design run's report."""
+    if kind == "test_design":
+        return row.report if row.status == "done" else None
+    return row.feedback
+
+
 def checklist_result(kind: Checklist, feedback: dict | None) -> tuple[int, int] | None:
     """(points found, the item's points) as stored, or None when no result was stored."""
     fb = feedback or {}
+    if kind == "test_design":
+        total = int(fb.get("total") or 0)
+        return (int(fb.get("caught") or 0), total) if total else None
     if kind == "drill":
         rows = fb.get("observations") or []
         return (sum(1 for o in rows if o.get("present")), len(rows)) if rows else None
@@ -95,11 +115,26 @@ def checklist_result(kind: Checklist, feedback: dict | None) -> tuple[int, int] 
 
 def checklist_text(kind: Checklist, feedback: dict | None) -> str:
     got = checklist_result(kind, feedback)
+    if kind == "test_design":
+        # In the words the run's list and History use (run_words).
+        return (
+            f"told apart {got[0]} of {got[1]} faulty version{'' if got[1] == 1 else 's'}"
+            if got
+            else "No result"
+        )
     noun = "authored defects" if kind == "code_review" else "points"
     return f"{got[0]} of {got[1]} {noun} {_FOUND[kind]}" if got else "No result stored"
 
 
 _FIRST = {"drill": "drill", "whiteboard": "prompt", "work_sample": "brief", "code_review": "exercise"}
+# Why a test-design run has no result to compare (Volume 19, prompt 4), by its status.
+UNJUDGED_RUN = {
+    "queued": "Not compared: it's waiting for the judge, so there's no result yet",
+    "running": "Not compared: it's waiting for the judge, so there's no result yet",
+    "not_run": "Not compared: it wasn't run (this server can't run code), so there's no result",
+    "failed": "Not compared: the judge couldn't run it, so there's no result",
+}
+FIRST_TEST_DESIGN_RUN = "Not compared: the first judged run of this exercise"
 
 
 def not_compared(kind: Checklist, row: Any, compared: dict[str, Any]) -> str | None:
@@ -107,13 +142,17 @@ def not_compared(kind: Checklist, row: Any, compared: dict[str, Any]) -> str | N
     (Volume 16, prompt 6); None when it is."""
     if row.id in compared:
         return None
+    if kind == "test_design":
+        if checklist_result(kind, stored(kind, row)) is None:
+            return UNJUDGED_RUN.get(row.status, "Not compared: no result was stored")
+        return FIRST_TEST_DESIGN_RUN
     if checklist_result(kind, row.feedback) is None:
         return "Not compared: no result was stored"
     return f"Not compared: the first checked attempt at this {_FIRST[kind]}"
 
 
 def _item(kind: Checklist, row: Any) -> str:
-    if kind == "code_review":
+    if kind in ("code_review", "test_design"):
         return str(row.exercise_slug)
     return row.drill_id if kind == "drill" else row.prompt_id if kind == "whiteboard" else row.brief_id
 
@@ -360,14 +399,17 @@ class AttemptComparisons:
             if kind == "whiteboard"
             else finder.for_code_reviews(rows)
             if kind == "code_review"
+            else finder.for_test_design_runs(rows)
+            if kind == "test_design"
             else finder.for_work_samples(rows)
         )
         self.conditions.update(help)
         out: dict[str, AttemptFacts] = {}
         for r in rows:
-            fb = r.feedback or {}
+            fb = stored(kind, r) or {}
             got = checklist_result(kind, fb)
             rubric: str | None
+            since = FORMATS_RECORDED_FROM.date()
             if kind == "drill":
                 track, version, rubric = r.track, r.rubric_version, "the drill's points"
             elif kind == "whiteboard":
@@ -376,6 +418,12 @@ class AttemptComparisons:
                 # The authored defects are the exercise's, versioned with it; the rules that match a
                 # finding to one are fixed (app/services/code_reviews.py, evaluate).
                 track, version, rubric = "code_review", r.exercise_version, "the exercise's authored review"
+            elif kind == "test_design":
+                # The faulty versions are the exercise's, versioned with it; the report's rules count
+                # which ones the cases told apart (app/testdesign/report.py, REPORT_VERSION).
+                rules = fb.get("report_version")
+                track, version, rubric = "test_design", r.exercise_version, f"v{rules}" if rules else None
+                since = TEST_DESIGN_REVEALS_FROM.date()
             else:
                 rules = fb.get("rules_version")
                 track, version, rubric = "work_sample", r.brief_version, f"v{rules}" if rules else None
@@ -385,13 +433,18 @@ class AttemptComparisons:
                 track=track,
                 question_id=_item(kind, r),
                 question_version=version,
-                scale=f"0-{got[1]} points" if got else None,
+                scale=(f"0-{got[1]} faulty versions" if kind == "test_design" else f"0-{got[1]} points")
+                if got
+                else None,
                 rubric=rubric,
-                source="rules",
+                source="judge" if kind == "test_design" else "rules",
                 scoring="scored" if got else "not_judged",
                 format="single",
                 help=None if labels is None or labels == ("Not recorded",) else labels,
-                help_recorded_from=help[r.id].recorded_from if r.id in help else FORMATS_RECORDED_FROM.date(),
+                # A test-design run's help is recorded from when showing the faulty versions was.
+                help_recorded_from=since
+                if kind == "test_design" or r.id not in help
+                else help[r.id].recorded_from,
                 kind=kind,
             )
         return out
@@ -423,9 +476,9 @@ class AttemptComparisons:
         return {
             aid: PracticeComparison(
                 previous=ComparedAttempt(
-                    id=prev.id, created_at=prev.created_at, result=checklist_text(kind, prev.feedback)
+                    id=prev.id, created_at=prev.created_at, result=checklist_text(kind, stored(kind, prev))
                 ),
-                result=checklist_text(kind, by_id[aid].feedback),
+                result=checklist_text(kind, stored(kind, by_id[aid])),
                 comparison=comparison_out(prev.id, c),
             )
             for aid, (prev, c) in self.checklist_pairs(kind, rows).items()
@@ -440,6 +493,8 @@ class AttemptComparisons:
             if kind == "whiteboard"
             else CodeReviewAttempt
             if kind == "code_review"
+            else TestDesignRun
+            if kind == "test_design"
             else WorkSampleAttempt
         )
         col = (
@@ -449,6 +504,8 @@ class AttemptComparisons:
             if kind == "whiteboard"
             else CodeReviewAttempt.exercise_slug
             if kind == "code_review"
+            else TestDesignRun.exercise_slug
+            if kind == "test_design"
             else WorkSampleAttempt.brief_id
         )
         if not items:

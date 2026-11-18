@@ -13,7 +13,8 @@ import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
-import { conditionsSummary } from "@/features/conditions/summary";
+import { PracticeCompared } from "@/features/conditions/PracticeCompared";
+import { COMPARED_SHORT, conditionsSummary } from "@/features/conditions/summary";
 import { LINKED_MISSING, useLinkedAttempt } from "@/hooks/useLinkedAttempt";
 import { formatArgs, formatDateTime, formatValue } from "@/lib/format";
 import { useCopySince, writeCopy } from "@/lib/deviceCopies";
@@ -247,6 +248,10 @@ function Designer({ ex }: { ex: TestDesignExercise }) {
           <h2 className="section-title" id="td-result" tabIndex={-1}>Report</h2>
           <RunReport run={run.data} />
           <AttemptConditionsView conditions={run.data.conditions} noun="run" />
+          {/* Beside the previous judged run, by the one contract (Volume 19, prompt 4). */}
+          {run.data.compared ? (
+            <PracticeCompared compared={run.data.compared} previousHref={`/test-design/${ex.slug}?attempt=${run.data.compared.previous.id}`} />
+          ) : run.data.not_compared ? <p className="subtle">{run.data.not_compared}.</p> : null}
         </section>
       )}
 
@@ -276,7 +281,8 @@ function Designer({ ex }: { ex: TestDesignExercise }) {
             {runs.data.map((r) => (
               <li key={r.id} className="row">
                 {/* The server's words, which History uses too (Volume 18, prompt 10). */}
-                <span>{formatDateTime(r.created_at)} · {r.outcome_text}{r.conditions ? ` · In-app help: ${conditionsSummary(r.conditions)}` : ""}</span>
+                <span>{formatDateTime(r.created_at)} · {r.outcome_text}{r.conditions ? ` · In-app help: ${conditionsSummary(r.conditions)}` : ""}
+                  {r.compared ? ` · ${COMPARED_SHORT[r.compared.comparison.outcome]}` : r.not_compared ? ` · ${r.not_compared}` : ""}</span>
                 <Button size="sm" variant="ghost" onClick={() => { setRunId(r.id); focusAfter.current = "td-result"; }}>Show its report</Button>
                 <Button size="sm" variant="ghost" onClick={async () => {
                   const full = await api.testRun(r.id).catch(() => null);

@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 import type { PracticeComparison } from "@/api/types";
 import { formatDateTime } from "@/lib/format";
 
@@ -5,9 +7,10 @@ import { formatDateTime } from "@/lib/format";
  * A drill, whiteboard design or work sample beside the previous assessed attempt at the same item, by
  * the one comparison contract (docs/COMPARING_ATTEMPTS.md, "Drills, whiteboards and work samples").
  * Both results are shown as they were given; the explanation says whether they compare and why.
- * Nothing here says one improved on the other.
+ * Nothing here says one improved on the other. `previousHref`, where given, opens the earlier attempt
+ * (a test-design run's report, Volume 19, prompt 4), so both can be read.
  */
-export function PracticeCompared({ compared }: { compared: PracticeComparison }) {
+export function PracticeCompared({ compared, previousHref }: { compared: PracticeComparison; previousHref?: string }) {
   const prev = compared.previous;
   return (
     <section className="submission-compared stack-sm" aria-label="Compared with your previous attempt">
@@ -16,6 +19,7 @@ export function PracticeCompared({ compared }: { compared: PracticeComparison })
         <li>
           <span className="submission-compared__when">Earlier, <time dateTime={prev.created_at}>{formatDateTime(prev.created_at)}</time>:</span>{" "}
           {prev.result}
+          {previousHref && <> · <Link to={previousHref}>Open that run's report</Link></>}
         </li>
         <li><span className="submission-compared__when">This one:</span> {compared.result}</li>
       </ul>

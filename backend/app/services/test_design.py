@@ -283,8 +283,19 @@ class TestDesign:
 
         return Conditions(self.db, self._me).for_test_design_runs(rows) if rows else {}
 
+    def _compared(self, slug: str) -> dict[str, Any]:
+        """Each judged run of this exercise beside the previous judged one, by the one comparison
+        contract (Volume 19, prompt 4): every run of it, so the earlier one is there."""
+        from app.services.attempt_comparisons import AttemptComparisons
+
+        comparisons = AttemptComparisons(self.db, self._me)
+        return comparisons.checklist_compared("test_design", comparisons.all_attempts("test_design", {slug}))
+
     def _out(self, run: TestDesignRun) -> TestDesignRunOut:
+        from app.services.attempt_comparisons import not_compared
+
         current = BY_SLUG.get(run.exercise_slug)
+        compared = self._compared(run.exercise_slug)
         return TestDesignRunOut(
             id=run.id,
             slug=run.exercise_slug,
@@ -297,6 +308,8 @@ class TestDesign:
             created_at=run.created_at,
             judged_at=run.judged_at,
             conditions=self._conditions([run]).get(run.id),
+            compared=compared.get(run.id),
+            not_compared=not_compared("test_design", run, compared),
         )
 
     def runs(self, slug: str) -> list[TestDesignRunSummary]:
@@ -306,7 +319,10 @@ class TestDesign:
             .where(TestDesignRun.user_id == self._me.id, TestDesignRun.exercise_slug == slug)
             .order_by(TestDesignRun.created_at.desc())
         ).all()
+        from app.services.attempt_comparisons import not_compared
+
         found = self._conditions(list(rows))
+        compared = self._compared(slug)
         return [
             TestDesignRunSummary(
                 id=r.id,
@@ -317,6 +333,8 @@ class TestDesign:
                 total=(r.report or {}).get("total"),
                 outcome_text=run_words(r),
                 conditions=found.get(r.id),
+                compared=compared.get(r.id),
+                not_compared=not_compared("test_design", r, compared),
                 created_at=r.created_at,
             )
             for r in rows

@@ -5,6 +5,7 @@ from typing import Any, Literal
 
 from pydantic import Field
 
+from app.schemas.careers import PracticeComparison
 from app.schemas.common import APIModel, OptionalKey
 from app.schemas.conditions import AttemptConditions
 
@@ -103,6 +104,14 @@ class TestDesignRunOut(APIModel):
         default=None,
         description="The in-app help before this run (Volume 19, prompt 3; docs/ATTEMPT_CONDITIONS.md)",
     )
+    compared: PracticeComparison | None = Field(
+        default=None,
+        description="Beside the previous judged run of the same exercise, by the one comparison contract "
+        "(docs/COMPARING_ATTEMPTS.md, Volume 19, prompt 4); null when there's none",
+    )
+    not_compared: str | None = Field(
+        default=None, description="Why it isn't compared, in the words History uses too; null when it is"
+    )
 
 
 class TestDesignRunSummary(APIModel):
@@ -117,4 +126,12 @@ class TestDesignRunSummary(APIModel):
         description="What the run's list and its History row say of it, in the same words (Volume 18, prompt 10)"
     )
     conditions: AttemptConditions | None = Field(default=None, description="The in-app help before this run")
+    compared: PracticeComparison | None = Field(
+        default=None,
+        description="Beside the previous judged run of the same exercise, by the one comparison contract "
+        "(docs/COMPARING_ATTEMPTS.md, Volume 19, prompt 4); null when there's none",
+    )
+    not_compared: str | None = Field(
+        default=None, description="Why it isn't compared, in the words History uses too; null when it is"
+    )
     created_at: datetime

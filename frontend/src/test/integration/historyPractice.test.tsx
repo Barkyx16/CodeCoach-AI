@@ -80,11 +80,11 @@ describe("Drills, whiteboard designs and work samples in History", () => {
     expect(asked).toEqual([{ submission_ids: [], answer_ids: [], interview_ids: [], scenario_attempt_ids: ["s-1"], code_review_attempt_ids: ["r-1"], comparison_attempt_ids: ["c-1"] }]);
   });
 
-  it("lists test-design runs in their page's words, each opening that run, with their help (Volumes 18 and 19)", async () => {
+  it("lists test-design runs in their page's words, each opening that run, with their help and comparison (Volumes 18 and 19)", async () => {
     const asked: unknown[] = [];
     const runs = [
-      { ...row("t-1", "test_design_run", "Test design: Count in Range", "2 cases · told apart 2 of 4 faulty versions · version 1 · Not compared: test-design runs aren't compared with each other yet", "/test-design/tests-count-in-range?attempt=t-1"), career: "coding", career_title: "Coding problems" },
-      { ...row("t-2", "test_design_run", "Test design: Count in Range", "1 case · waiting for the judge · version 1 · Not compared: test-design runs aren't compared with each other yet", "/test-design/tests-count-in-range?attempt=t-2"), career: "coding", career_title: "Coding problems", status: "awaiting_judge" as const, status_label: "Waiting for the judge" },
+      { ...row("t-1", "test_design_run", "Test design: Count in Range", "2 cases · told apart 2 of 4 faulty versions · version 1 · Partly comparable with the one before", "/test-design/tests-count-in-range?attempt=t-1"), career: "coding", career_title: "Coding problems" },
+      { ...row("t-2", "test_design_run", "Test design: Count in Range", "1 case · waiting for the judge · version 1 · Not compared: it's waiting for the judge, so there's no result yet", "/test-design/tests-count-in-range?attempt=t-2"), career: "coding", career_title: "Coding problems", status: "awaiting_judge" as const, status_label: "Waiting for the judge" },
     ];
     server.use(
       http.get(`${API}/api/v1/me/activity`, () => HttpResponse.json({ items: runs, total: runs.length, page: 1, page_size: 20 })),
@@ -97,10 +97,13 @@ describe("Drills, whiteboard designs and work samples in History", () => {
     const done = (await screen.findByText(/told apart 2 of 4 faulty versions/)).closest("a")!;
     expect(done).toHaveAttribute("href", "/test-design/tests-count-in-range?attempt=t-1");
     expect(done).toHaveTextContent("Test design");
+    // The contract's short words, as the run's own list says them (Volume 19, prompt 4).
+    expect(done).toHaveTextContent("· Partly comparable with the one before");
     await waitFor(() => expect(done).toHaveTextContent("In-app help: Solution revealed"));
     const waiting = screen.getByText(/waiting for the judge/).closest("a")!;
     expect(waiting).toHaveAttribute("href", "/test-design/tests-count-in-range?attempt=t-2");
     expect(waiting).toHaveTextContent("Waiting for the judge");
+    expect(waiting).toHaveTextContent("Not compared: it's waiting for the judge, so there's no result yet");
     // Asked for with the rows on screen (Volume 19, prompt 3), in the one request.
     expect(asked).toEqual([{ submission_ids: [], answer_ids: [], interview_ids: [], test_design_run_ids: ["t-1", "t-2"] }]);
   });

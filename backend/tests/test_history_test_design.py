@@ -1,7 +1,8 @@
 """Test-design runs in History (Volume 18, prompt 10; docs/COMPARING_ATTEMPTS.md, History): the one
 practice format History left out. Each run is a row with its date, the exercise, and its result in
-the words its own page's list uses (one rule, `run_words`, serves both), then why it isn't compared
-with the run before; it links to that run on the exercise's page. Its status is History's: waiting
+the words its own page's list uses (one rule, `run_words`, serves both), then how it compares with
+the run before or why it isn't compared (Volume 19, prompt 4: tests/test_test_design_comparisons.py
+covers the pairs); it links to that run on the exercise's page. Its status is History's: waiting
 for the judge, completed, saved but not run (no judge here), or the judge couldn't run it. The type,
 status, career ("Coding problems") and search filters, the counts and the facets include it; reading
 History stays bounded; another account's runs never appear. Synthetic data only; the judge isn't
@@ -18,7 +19,10 @@ from tests.test_history_practice import feed
 from tests.test_test_design import COUNT, MINE, NORMAL, case
 
 ACTIVITY = "/api/v1/me/activity"
-NOT_COMPARED = "Not compared: test-design runs aren't compared with each other yet"
+NOT_RUN = "Not compared: it wasn't run (this server can't run code), so there's no result"
+FIRST = "Not compared: the first judged run of this exercise"
+WAITING = "Not compared: it's waiting for the judge, so there's no result yet"
+FAILED = "Not compared: the judge couldn't run it, so there's no result"
 
 
 def coder(client, email="ada@example.com"):
@@ -51,7 +55,7 @@ def test_a_run_is_a_row_in_its_pages_words_linking_to_that_run(client):
     [row] = rows(client, h)
     words = listed(client, h)[run["id"]]["outcome_text"]
     assert words == "1 case · not run: this server can't run code · version 1"
-    assert row["detail"] == f"{words} · {NOT_COMPARED}"
+    assert row["detail"] == f"{words} · {NOT_RUN}"
     assert row["title"] == BY_SLUG[COUNT].title and row["career"] == "coding"
     assert row["career_title"] == "Coding problems"
     assert (row["status"], row["status_label"]) == ("saved_not_judged", "Saved, not judged")
@@ -62,7 +66,7 @@ def test_a_run_is_a_row_in_its_pages_words_linking_to_that_run(client):
 def test_each_status_reads_as_historys_in_the_same_words_as_its_list(client):
     h = coder(client)
     done, waiting, failed = a_run(client, h, 2), a_run(client, h), a_run(client, h, 3)
-    as_worker(client, done["id"], status="done", report={"caught": 2, "total": 3})
+    as_worker(client, done["id"], status="done", report={"report_version": 1, "caught": 2, "total": 3})
     as_worker(client, waiting["id"], status="queued")
     as_worker(client, failed["id"], status="failed")
     by_id = {r["target"]["attempt_id"]: r for r in rows(client, h)}
@@ -71,9 +75,9 @@ def test_each_status_reads_as_historys_in_the_same_words_as_its_list(client):
     assert words[waiting["id"]] == "1 case · waiting for the judge · version 1"
     assert words[failed["id"]] == "3 cases · the judge couldn't run it · version 1"
     assert {k: (r["status"], r["detail"]) for k, r in by_id.items()} == {
-        done["id"]: ("completed", f"{words[done['id']]} · {NOT_COMPARED}"),
-        waiting["id"]: ("awaiting_judge", f"{words[waiting['id']]} · {NOT_COMPARED}"),
-        failed["id"]: ("evaluation_unavailable", f"{words[failed['id']]} · {NOT_COMPARED}"),
+        done["id"]: ("completed", f"{words[done['id']]} · {FIRST}"),
+        waiting["id"]: ("awaiting_judge", f"{words[waiting['id']]} · {WAITING}"),
+        failed["id"]: ("evaluation_unavailable", f"{words[failed['id']]} · {FAILED}"),
     }
 
 
