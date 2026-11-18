@@ -539,7 +539,25 @@ the one before · In-app help: Solution revealed · Completed"; no sideways scro
 any of the five pages; axe found nothing on the four new sections in dark or light; the canary not in
 the API's log.
 
-**In CI**: to be recorded from the first run of the sandbox job after this commit.
+**In CI**: run 367 (`2b1b96d`; the pull request's merge commit `e984df3`, its runtime inputs
+unchanged from the commit, as the launcher said), the sandbox job's step that runs the engineer's
+specs and this one twice on fresh accounts with the real judge (the `engineer-journey-record`
+artifact and the job's `[journey-record]` lines): **9 of 9 steps, both times**; the step's 16 tests
+passed in 9.2 minutes. Each run's result as the judge gave it (all `done`, report version 1, "Ran
+against the reference and every faulty version."), and from the request to the result:
+
+| Run | First run (ordinary cases) | Faulty versions shown at | Second run (a boundary case, after the showing) |
+|---|---|---|---|
+| First | `0cee1573…` told apart 0 of 4, 3.3 s | 06:04:31Z | `47f00995…` told apart 2 of 4, 3.2 s |
+| Second | `a84365da…` told apart 0 of 4, 3.4 s | 06:05:46Z | `31d84ada…` told apart 2 of 4, 3.4 s |
+
+Both runs, on a 412 × 839 phone: the move read "2 moved. Nothing needs attention." after the reload;
+"Removed recently" listed "What good debugging looks like · Software Engineer · Removed just now"
+with Put back; the second run's comparison read, word for word as here, "Partly comparable: the
+in-app help differed: before the earlier one, none recorded; before the later one, solution
+revealed…" and History's row for it "… told apart 2 of 4 faulty versions · version 1 · Partly
+comparable with the one before · In-app help: Solution revealed · Completed"; the five pages fitted
+at 412 and 360 px; axe found nothing on the four new sections; the canary not in the API's log.
 
 ## Limits
 
