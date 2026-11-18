@@ -44,12 +44,15 @@ A few of the caller's own records, newest first, for a "Continue your work" star
 | `kit` | "Interview-day kit: <event> (<employer>)" | `saved` | `id` is the event, `parent_id` the application; `detail` the interview date |
 | `application` | "<role> at <employer>" | `saved` | `detail` the stage |
 | `offer_comparison` | its title | `saved` | |
+| `scenario_run` (Volume 19, prompt 6) | its scenario's title | `started` | only runs in progress: a finished one has nothing to continue; Resume opens the run at the step it was left on (`/scenarios/attempts/<id>`); `detail` "Exploration" for an exploration run |
+| `test_design_run` (Volume 19, prompt 6) | its exercise's title | `saved` while waiting for the judge or saved without one; `finished` once the judge finished or failed | `detail` in its run list's words ("Waiting for the judge · version 1", "Told apart 2 of 4 faulty versions · version 1", "The judge couldn't run it · …", "Not run: this server can't run code · …"); `parent_id` the exercise; Open shows its report (`/test-design/<slug>?attempt=<id>`). One that's no longer waiting drops out a week after its time (`FINISHED_RUN_DAYS`), the only kind with such a window; one waiting stays |
 
 - **Nothing here means "opened".** The app doesn't record opening these records, so no time claims it.
 - **An interview whose clock is running comes first**, then everything else by its time, newest
   first; `limit` is 1–12 (default 6).
 - **Titles and times only.** No note body, story text, application notes, kit contents, offer
-  terms or transcript is read; a test captures the SQL to check.
+  terms or transcript is read, nor a scenario run's steps or a test-design run's cases or report (a
+  run's result is two numbers taken from its report in the query); a test captures the SQL to check.
 - **Owner only.** Every query filters by the caller (and PostgreSQL row-level security applies on
   the tables it covers); another account's records are never listed; anonymous callers get 401.
 - **One kind failing doesn't take the rest down.** Each kind is read in its own savepoint; one that
@@ -71,6 +74,8 @@ round, an earlier story save checked and opened, Back, axe in dark and light) an
 
 ## Limits
 
-- Six kinds of record; others (drills, labs, reflections) aren't listed yet.
+- Eight kinds of record (scenario runs and test-design runs since Volume 19, prompt 6); others
+  (drills, labs, reflections) aren't listed yet. A page cached from before them shows those two
+  without a label until it updates (the response's `type` gained two values).
 - Only actions this browser recorded can be checked; one sent from another device isn't known here.
 - Hiding is per device, not per account.

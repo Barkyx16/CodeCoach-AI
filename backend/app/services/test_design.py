@@ -53,22 +53,27 @@ class CaseErrors(AppError):
     code = "invalid_cases"
 
 
+def outcome_words(status: str, caught: int | None, total: int | None, version: int) -> str:
+    """What a run found, or why it found nothing, and its exercise version: the words its list, its
+    History row (after the cases) and Continue your work (Volume 19, prompt 6) all use."""
+    if status == "done":
+        text = f"told apart {caught} of {total} faulty version{'' if total == 1 else 's'}"
+    elif status == "not_run":
+        text = "not run: this server can't run code"
+    elif status == "failed":
+        text = "the judge couldn't run it"
+    else:
+        text = "waiting for the judge"
+    return f"{text} · version {version}"
+
+
 def run_words(r: TestDesignRun) -> str:
     """What a run's list on its page and its History row say of it (Volume 18, prompt 10): the cases,
     and what the run found, or why it found nothing."""
     n = len(r.cases or [])
-    text = f"{n} case{'' if n == 1 else 's'}"
     report = r.report or {}
-    if r.status == "done":
-        caught, total = report.get("caught"), report.get("total")
-        text += f" · told apart {caught} of {total} faulty version{'' if total == 1 else 's'}"
-    elif r.status == "not_run":
-        text += " · not run: this server can't run code"
-    elif r.status == "failed":
-        text += " · the judge couldn't run it"
-    else:
-        text += " · waiting for the judge"
-    return f"{text} · version {r.exercise_version}"
+    words = outcome_words(r.status, report.get("caught"), report.get("total"), r.exercise_version)
+    return f"{n} case{'' if n == 1 else 's'} · {words}"
 
 
 def _now() -> datetime:

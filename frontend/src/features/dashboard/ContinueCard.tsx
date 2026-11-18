@@ -39,26 +39,33 @@ const LAST_STATUS: Record<string, string> = {
 const TYPE_LABEL: Record<RecentItem["type"], string> = {
   interview: "Interview", note: "Note", story: "Story", kit: "Interview-day kit",
   application: "Application", offer_comparison: "Offer comparison",
+  scenario_run: "Scenario run", test_design_run: "Test design run",
 };
 const STATE_LABEL: Record<NonNullable<RecentItem["state"]>, string> = {
   in_progress: "in progress", time_up: "time's up", finished: "finished", expired: "time ran out", ended_early: "ended early",
 };
 
+// Where each kind opens, and what its action is called. A scenario run in progress (Volume 19,
+// prompt 6) opens at its current step; a test-design run opens its report on the exercise's page.
+const PATH: Record<RecentItem["type"], (id: string, parent: string) => string> = {
+  interview: (id) => `/interviews/${id}`,
+  note: (id) => `/notes/${id}`,
+  story: (id) => `/stories/${id}`,
+  kit: (id, parent) => `/applications/${parent}/events/${id}/kit`,
+  application: (id) => `/applications/${id}`,
+  offer_comparison: (id) => `/offers/compare/${id}`,
+  scenario_run: (id) => `/scenarios/attempts/${id}`,
+  test_design_run: (id, parent) => `/test-design/${parent}?attempt=${id}`,
+};
+const ACTION: Partial<Record<RecentItem["type"], string>> = { scenario_run: "Resume" };
+
 function pathOf(i: RecentItem): string {
-  const id = encodeURIComponent(i.id);
-  switch (i.type) {
-    case "interview": return `/interviews/${id}`;
-    case "note": return `/notes/${id}`;
-    case "story": return `/stories/${id}`;
-    case "kit": return `/applications/${encodeURIComponent(i.parent_id ?? "")}/events/${id}/kit`;
-    case "application": return `/applications/${id}`;
-    case "offer_comparison": return `/offers/compare/${id}`;
-  }
+  return PATH[i.type](encodeURIComponent(i.id), encodeURIComponent(i.parent_id ?? ""));
 }
 
 function actionOf(i: RecentItem): string {
-  if (i.type !== "interview") return "Open";
-  return i.state === "in_progress" ? "Resume" : "See results";
+  if (i.type === "interview") return i.state === "in_progress" ? "Resume" : "See results";
+  return ACTION[i.type] ?? "Open";
 }
 
 const INTENT_LABEL: Record<IntentKind, string> = {

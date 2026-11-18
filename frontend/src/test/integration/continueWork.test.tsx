@@ -61,6 +61,25 @@ describe("Continue your work", () => {
     expect(requests.filter((r) => !r.startsWith("GET") && r !== "POST /api/v1/auth/refresh")).toEqual([]);
   });
 
+  it("takes you back to a scenario run in progress and to a test-design run waiting or finished (Volume 19, prompt 6)", async () => {
+    serve({ items: [
+      { type: "scenario_run", id: "sc-1", title: "Two patients, one nurse", at: hour(1), at_meaning: "started", state: null, detail: null, parent_id: null },
+      { type: "test_design_run", id: "td-1", parent_id: "tests-count-in-range", title: "Test design: Count in Range", detail: "Waiting for the judge · version 1", at: hour(2), at_meaning: "saved", state: null },
+      { type: "test_design_run", id: "td-2", parent_id: "tests-count-in-range", title: "Test design: Count in Range", detail: "Told apart 2 of 4 faulty versions · version 1", at: hour(3), at_meaning: "finished", state: null },
+    ], unavailable: [] });
+    renderApp("/dashboard", { signedIn: true });
+    const saved = await within(await section()).findByRole("group", { name: "Saved to your account" });
+    const scenario = await within(saved).findByRole("link", { name: /Two patients, one nurse/ });
+    expect(scenario).toHaveAttribute("href", "/scenarios/attempts/sc-1");
+    expect(scenario).toHaveTextContent(/Scenario run · started .*hour.* ago · Resume$/);
+    const [waiting, judged] = within(saved).getAllByRole("link", { name: /Test design: Count in Range/ });
+    expect(waiting).toHaveAttribute("href", "/test-design/tests-count-in-range?attempt=td-1");
+    expect(waiting).toHaveTextContent(/Test design run · Waiting for the judge · version 1 · saved .* ago · Open$/);
+    expect(judged).toHaveAttribute("href", "/test-design/tests-count-in-range?attempt=td-2");
+    expect(judged).toHaveTextContent(/Test design run · Told apart 2 of 4 faulty versions · version 1 · finished .* ago · Open$/);
+    expect(requests.filter((r) => !r.startsWith("GET") && r !== "POST /api/v1/auth/refresh")).toEqual([]); // nothing resumed by loading
+  });
+
   it("checks an earlier action without sending it again, and shows where it went", async () => {
     serve();
     const story = keyForIntent(ME, "story", "new", "print-story").key;

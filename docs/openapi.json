@@ -44463,7 +44463,9 @@
               "story",
               "kit",
               "application",
-              "offer_comparison"
+              "offer_comparison",
+              "scenario_run",
+              "test_design_run"
             ],
             "title": "Type"
           },
@@ -44482,7 +44484,7 @@
               }
             ],
             "title": "Parent Id",
-            "description": "For a kit: its application's id"
+            "description": "For a kit: its application's id; for a test-design run: its exercise"
           },
           "title": {
             "type": "string",
@@ -44517,7 +44519,7 @@
               }
             ],
             "title": "Detail",
-            "description": "A short status: an application's stage, a kit's date"
+            "description": "A short status: an application's stage, a kit's date, a test-design run's result in its run list's words"
           },
           "at": {
             "type": "string",
@@ -44532,7 +44534,7 @@
               "finished"
             ],
             "title": "At Meaning",
-            "description": "saved: last saved to your account; started/finished: the session's own times. Nothing here means 'opened'."
+            "description": "saved: last saved to your account; started/finished: the session's or run's own times. Nothing here means 'opened'."
           }
         },
         "type": "object",

@@ -12681,7 +12681,7 @@ export interface components {
              * Type
              * @enum {string}
              */
-            type: "interview" | "note" | "story" | "kit" | "application" | "offer_comparison";
+            type: "interview" | "note" | "story" | "kit" | "application" | "offer_comparison" | "scenario_run" | "test_design_run";
             /**
              * Id
              * @description The record's id; for a kit, its event's id
@@ -12689,7 +12689,7 @@ export interface components {
             id: string;
             /**
              * Parent Id
-             * @description For a kit: its application's id
+             * @description For a kit: its application's id; for a test-design run: its exercise
              */
             parent_id?: string | null;
             /** Title */
@@ -12701,7 +12701,7 @@ export interface components {
             state?: ("in_progress" | "time_up" | "finished" | "expired" | "ended_early") | null;
             /**
              * Detail
-             * @description A short status: an application's stage, a kit's date
+             * @description A short status: an application's stage, a kit's date, a test-design run's result in its run list's words
              */
             detail?: string | null;
             /**
@@ -12711,7 +12711,7 @@ export interface components {
             at: string;
             /**
              * At Meaning
-             * @description saved: last saved to your account; started/finished: the session's own times. Nothing here means 'opened'.
+             * @description saved: last saved to your account; started/finished: the session's or run's own times. Nothing here means 'opened'.
              * @enum {string}
              */
             at_meaning: "saved" | "started" | "finished";

@@ -4,13 +4,18 @@ are read: no note body, story text, transcript or terms. An interview in progres
 Each kind of record is read on its own, in a savepoint: one that fails is named in `unavailable`
 and the others are still listed. Archived records (and kits of archived applications) aren't
 listed: archiving takes a record out of active views (docs/ARCHIVE.md).
+
+Scenario runs in progress and test-design runs (Volume 19, prompt 6): a scenario run left in progress
+(a finished one has nothing to continue), and a test-design run waiting for the judge, or finished in
+the last week, in the words its run list uses. Neither's steps, cases nor report are read: a run's
+result is two numbers taken from its report in the query, never the report itself.
 """
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -26,12 +31,16 @@ from app.models import (
     PracticeMode,
     PracticeSession,
     Problem,
+    ScenarioAttempt,
+    TestDesignRun,
     User,
 )
 from app.services.activity import career_title
 
 logger = logging.getLogger("codecoach.recent_work")
 MAX_LIMIT = 12
+# A test-design run that's no longer waiting has nothing to continue; its report stays a week here.
+FINISHED_RUN_DAYS = 7
 
 
 def _aware(dt: datetime) -> datetime:
@@ -183,6 +192,78 @@ def _offer_comparisons(db: Session, user: User, n: int) -> list[dict]:
     ]
 
 
+def _scenario_runs(db: Session, user: User, n: int) -> list[dict]:
+    """Scenario runs left in progress: Resume opens the run at its current step."""
+    from app.scenarios import SCENARIO_INDEX
+
+    rows = db.execute(
+        select(
+            ScenarioAttempt.id, ScenarioAttempt.scenario_id, ScenarioAttempt.mode, ScenarioAttempt.created_at
+        )
+        .where(ScenarioAttempt.user_id == user.id, ScenarioAttempt.status == "in_progress")
+        .order_by(ScenarioAttempt.created_at.desc())
+        .limit(n)
+    ).all()
+    out = []
+    for i, scenario, mode, at in rows:
+        found = SCENARIO_INDEX.get(scenario)
+        out.append(
+            {
+                "type": "scenario_run",
+                "id": i,
+                "title": found.title if found else "A scenario that's no longer offered",
+                "detail": "Exploration" if mode == "exploration" else None,
+                "at": at,
+                "at_meaning": "started",
+            }
+        )
+    return out
+
+
+def _test_design_runs(db: Session, user: User, n: int) -> list[dict]:
+    """Test-design runs waiting for the judge, and those finished in the last week, in the words
+    their run list uses. The result's two numbers are read from the report in the query."""
+    from app.services.test_design import PENDING, outcome_words
+    from app.testdesign import BY_SLUG
+
+    since = datetime.now(UTC) - timedelta(days=FINISHED_RUN_DAYS)
+    when = func.coalesce(TestDesignRun.judged_at, TestDesignRun.created_at)
+    rows = db.execute(
+        select(
+            TestDesignRun.id,
+            TestDesignRun.exercise_slug,
+            TestDesignRun.exercise_version,
+            TestDesignRun.status,
+            TestDesignRun.report["caught"].as_integer(),
+            TestDesignRun.report["total"].as_integer(),
+            TestDesignRun.created_at,
+            TestDesignRun.judged_at,
+        )
+        .where(
+            TestDesignRun.user_id == user.id,
+            TestDesignRun.status.in_(PENDING) | (when >= since),
+        )
+        .order_by(when.desc())
+        .limit(n)
+    ).all()
+    out = []
+    for i, slug, version, status, caught, total, created, judged in rows:
+        found = BY_SLUG.get(slug)
+        words = outcome_words(status, caught, total, version)
+        out.append(
+            {
+                "type": "test_design_run",
+                "id": i,
+                "parent_id": slug,
+                "title": found.title if found else "A test-design exercise that's no longer offered",
+                "detail": words[:1].upper() + words[1:],
+                "at": judged or created,
+                "at_meaning": "finished" if judged is not None else "saved",
+            }
+        )
+    return out
+
+
 # What each kind is called when it can't be read ("Your notes couldn't be loaded").
 SOURCES: dict[str, tuple[str, Callable[[Session, User, int], list[dict]]]] = {
     "interviews": ("interviews", _interviews),
@@ -191,6 +272,8 @@ SOURCES: dict[str, tuple[str, Callable[[Session, User, int], list[dict]]]] = {
     "kits": ("interview-day kits", _kits),
     "applications": ("applications", _applications),
     "offer_comparisons": ("offer comparisons", _offer_comparisons),
+    "scenario_runs": ("scenario runs", _scenario_runs),
+    "test_design_runs": ("test-design runs", _test_design_runs),
 }
 
 
