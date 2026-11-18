@@ -223,7 +223,7 @@ jobs:
           CI: "true"
           PYTHON: python
         run: npm run e2e -- e2e/device-journey.spec.ts --project=desktop --repeat-each=2
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: device-journey-record
@@ -236,7 +236,7 @@ jobs:
         run: scripts/rehearse_web_csp.sh
         env:
           PYTHON: python
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-traces
@@ -337,7 +337,7 @@ jobs:
           PYTHON: python
           E2E_JUDGE: "1"
         run: npm run e2e -- e2e/engineer-journey.spec.ts e2e/engineer-branches.spec.ts e2e/engineer-journey-mobile.spec.ts e2e/engineer-devices.spec.ts e2e/engineer-second-problem-mobile.spec.ts e2e/kept-journey-mobile.spec.ts e2e/brought-back-journey.spec.ts --repeat-each=2
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: engineer-journey-record
@@ -346,7 +346,7 @@ jobs:
             frontend/test-results/e2e-provenance.json
           retention-days: 30
           if-no-files-found: warn
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: sandbox-traces
