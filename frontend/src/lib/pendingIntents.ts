@@ -21,6 +21,15 @@ import { newRequestKey } from "./requestKey";
 // "transfer": a copy or move between collections (Volume 19, prompt 1), its target the source collection.
 export type IntentKind = "submission" | "run" | "hint" | "review" | "story" | "note_copy" | "transfer";
 
+/** A copy or move's request, by ids only (Volume 20, prompt 5): which items (as the server names them
+ * in the library: never a title, a note or anything typed), the other collection, and copy or move. So a
+ * request that never arrived can be offered again after a reload, with its own key. */
+export interface TransferRequest {
+  to: string;
+  move: boolean;
+  items: { item_type: "question" | "problem" | "drill"; track: string; ref_id: string }[];
+}
+
 export interface PendingIntent {
   v: 1;
   kind: IntentKind;
@@ -28,6 +37,19 @@ export interface PendingIntent {
   key: string;
   fingerprint: string;
   sentAt: number;
+  transfer?: TransferRequest;
+}
+
+const isId = (v: unknown) => typeof v === "string" && v.length <= 200;
+const ITEM_TYPES: readonly unknown[] = ["question", "problem", "drill"];
+
+/** Only the shape above is kept; anything else in the record is dropped, never read. */
+function transferOf(v: unknown): TransferRequest | undefined {
+  const t = v as Partial<TransferRequest> | undefined;
+  if (!t || typeof t !== "object" || !isId(t.to) || typeof t.move !== "boolean" || !Array.isArray(t.items) || t.items.length > 500) return undefined;
+  const items = t.items.filter((i) => i && ITEM_TYPES.includes(i.item_type) && isId(i.track) && isId(i.ref_id))
+    .map((i) => ({ item_type: i.item_type, track: i.track, ref_id: i.ref_id }));
+  return items.length === t.items.length ? { to: t.to!, move: t.move, items } : undefined;
 }
 
 const PREFIX = "codecoach.pending.v1.";
@@ -49,7 +71,8 @@ function read(userId: string): Store {
       const i = r as Partial<PendingIntent>;
       if (i && i.v === 1 && typeof i.key === "string" && typeof i.fingerprint === "string" && typeof i.sentAt === "number"
           && typeof i.kind === "string" && typeof i.target === "string" && now - i.sentAt < INTENT_TTL_MS) {
-        kept[k] = i as PendingIntent;
+        const transfer = i.kind === "transfer" ? transferOf(i.transfer) : undefined;
+        kept[k] = { v: 1, kind: i.kind, target: i.target, key: i.key, fingerprint: i.fingerprint, sentAt: i.sentAt, ...(transfer ? { transfer } : {}) };
       }
     }
     return kept;
@@ -94,16 +117,24 @@ export function findIntent(userId: string | null | undefined, kind: IntentKind, 
  * this tab, another tab, or before a reload) is reused; otherwise a new one. Then the record is
  * written, before anything is sent. `kept` is false when this browser couldn't store it.
  */
-export function keyForIntent(userId: string, kind: IntentKind, target: string, print: string): { key: string; kept: boolean } {
+export function keyForIntent(
+  userId: string, kind: IntentKind, target: string, print: string,
+  extra?: { transfer?: TransferRequest }, useKey?: string,
+): { key: string; kept: boolean } {
   const store = read(userId);
   const earlier = store[slot(kind, target)];
-  const key = earlier && earlier.fingerprint === print ? earlier.key : newRequestKey();
-  store[slot(kind, target)] = { v: 1, kind, target, key, fingerprint: print, sentAt: earlier?.key === key ? earlier.sentAt : Date.now() };
+  // `useKey`: a request that never arrived, sent again with its own key (Volume 20, prompt 5).
+  const key = useKey ?? (earlier && earlier.fingerprint === print ? earlier.key : newRequestKey());
+  const transfer = kind === "transfer" ? transferOf(extra?.transfer) : undefined;
+  store[slot(kind, target)] = {
+    v: 1, kind, target, key, fingerprint: print, sentAt: earlier?.key === key ? earlier.sentAt : Date.now(),
+    ...(transfer ? { transfer } : {}),
+  };
   const kept = write(userId, store);
   // Another tab may have written the same intent a moment ago: whichever key is stored now wins,
   // so both tabs send the same one.
   const now = read(userId)[slot(kind, target)];
-  return { key: kept && now && now.fingerprint === print ? now.key : key, kept };
+  return { key: useKey ?? (kept && now && now.fingerprint === print ? now.key : key), kept };
 }
 
 /** The action is resolved (answered, refused, or checked): forget it. Only the same key is removed. */

@@ -256,3 +256,77 @@ describe("A copy or move whose reply was lost, then the page reloaded (Volume 19
     expect(screen.queryByText(/Your copy or move from/)).toBeNull();
   });
 });
+
+describe("A copy or move that never arrived, offered again after a reload (Volume 20, prompt 5)", () => {
+  const twoCollections = () => [
+    collection("c-1", "Week 1", [item("c-1", 0), item("c-1", 1), item("c-1", 2)]),
+    collection("c-2", "Week 2", [item("c-2", 7)]),
+  ];
+  const sent = () => {
+    const bodies: { client_request_id?: string; items: unknown[] }[] = [];
+    server.events.on("request:start", ({ request }) => {
+      if (request.method === "POST" && request.url.endsWith("/items/transfer")) void request.clone().json().then((b) => bodies.push(b as never));
+    });
+    return bodies;
+  };
+  async function moveTwoThatNeverArrive() {
+    store.collections = twoCollections();
+    store.dropTransferRequest = true;
+    const first = renderApp("/saved/collections/c-1", { signedIn: true });
+    await choose(first.user, ["Question 1", "Question 3"]);
+    await first.user.click(screen.getByRole("button", { name: "Move 2 to…" }));
+    const form = screen.getByRole("form", { name: "Move 2 items to another collection" });
+    await first.user.selectOptions(within(form).getByLabelText("To collection"), "c-2");
+    await first.user.click(await within(form).findByRole("button", { name: "Move 2 to “Week 2”" }));
+    await screen.findByRole("alert", {}, { timeout: 3000 });
+    first.unmount(); // the page reloads; the server never had the request
+  }
+
+  it("keeps only ids with the record, then offers it again with the same key and moves each once", async () => {
+    const bodies = sent();
+    await moveTwoThatNeverArrive();
+    const [kept] = listIntents("u-1");
+    expect(kept!.transfer).toEqual({ to: "c-2", move: true, items: [
+      { item_type: "question", track: "registered-nurse", ref_id: "q-0" },
+      { item_type: "question", track: "registered-nurse", ref_id: "q-2" },
+    ] });
+    expect(JSON.stringify(kept)).not.toContain("Question 1"); // no titles or anything typed
+    const firstKey = bodies[0]!.client_request_id;
+
+    const { user } = renderApp("/saved/collections/c-1", { signedIn: true });
+    const notice = await screen.findByText(/The move you sent at .* never arrived\./, {}, { timeout: 3000 });
+    const panel = notice.closest(".earlier-action") as HTMLElement;
+    const again = await within(panel).findByRole("button", { name: "Send again: move 2 items to “Week 2”" });
+    expect(panel).toHaveTextContent("It was a move of 2 items to “Week 2”. All of them are still in this collection.");
+    await user.click(again);
+    const outcomes = await screen.findByRole("region", { name: "What happened: moving to “Week 2”" }, { timeout: 3000 });
+    expect(within(outcomes).getByRole("status")).toHaveTextContent("2 moved.");
+    expect(bodies).toHaveLength(2);
+    expect(bodies[1]!.client_request_id).toBe(firstKey); // its own key
+    expect(store.collections.find((c) => c.id === "c-2")!.item_list.map((i) => i.ref_id).sort()).toEqual(["q-0", "q-2", "q-7"]);
+    await waitFor(() => expect(listIntents("u-1")).toEqual([]));
+  });
+
+  it("leaves out items removed since, and says so before sending", async () => {
+    const bodies = sent();
+    await moveTwoThatNeverArrive();
+    store.collections[0]!.item_list = store.collections[0]!.item_list.filter((i) => i.ref_id !== "q-2");
+    const { user } = renderApp("/saved/collections/c-1", { signedIn: true });
+    const panel = (await screen.findByText(/never arrived\./, {}, { timeout: 3000 })).closest(".earlier-action") as HTMLElement;
+    const again = await within(panel).findByRole("button", { name: "Send again: move 1 item to “Week 2”" });
+    expect(panel).toHaveTextContent("1 of them is still in this collection. 1 item has been removed from it since, so it's left out.");
+    await user.click(again);
+    await screen.findByRole("region", { name: "What happened: moving to “Week 2”" }, { timeout: 3000 });
+    expect(bodies[1]!.items).toEqual([{ item_type: "question", track: "registered-nurse", ref_id: "q-0" }]);
+  });
+
+  it("when the other collection was deleted since, says so and offers nothing to send", async () => {
+    await moveTwoThatNeverArrive();
+    store.collections = store.collections.filter((c) => c.id !== "c-2");
+    renderApp("/saved/collections/c-1", { signedIn: true });
+    const panel = (await screen.findByText(/never arrived\./, {}, { timeout: 3000 })).closest(".earlier-action") as HTMLElement;
+    expect(await within(panel).findByText("The other collection was deleted since, so there's nothing to send.")).toBeInTheDocument();
+    expect(within(panel).queryByRole("button", { name: /Send again/ })).toBeNull();
+  });
+});
+

@@ -78,6 +78,11 @@ left out. The practice-labs line here says what each attempt is exported with. A
 stays version 1 by default and version 2 on request; a backup file still doesn't restore practice
 results (test-design runs included) and says so.
 
+A copy or move's record among this device's actions waiting for a reply now keeps its request by ids
+only (Volume 20, prompt 5; docs/BULK_ACTIONS.md): the other collection, copy or move, and each item
+as the library names it; no title, note or anything typed. It still goes after 24 hours, when
+answered, on sign-out, or when chosen here.
+
 The export's `comparison_openings` now say how each was first seen (`source`: `opened`, or
 `with_result` when the explanation was shown with a reading's result; Volume 20, prompt 3).
 

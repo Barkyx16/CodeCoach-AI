@@ -13,7 +13,8 @@ import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/
 import { useAuth } from "@/auth/useAuth";
 import { EarlierActionNotice } from "@/features/recovery/EarlierActionNotice";
 import { useEarlierAction } from "@/features/recovery/useEarlierAction";
-import { fingerprint, forgetIntent, keyForIntent } from "@/lib/pendingIntents";
+import { formatTime } from "@/lib/format";
+import { fingerprint, forgetIntent, keyForIntent, type TransferRequest } from "@/lib/pendingIntents";
 import { useRequestKey } from "@/lib/requestKey";
 
 import { BulkOutcomes, NoReply, SelectBox } from "./bulk";
@@ -169,14 +170,18 @@ export function CollectionPage() {
   // Each item goes as it was (its version, when it was added, its "Mark reviewed"); a move takes it out
   // of here only once it's in the other collection. Sent again after a lost reply, nothing changes twice:
   // an item the first request already copied or moved reads "Already there".
-  async function transferSelected(chosen: CollectionItem[], to: Collection, moving: boolean, resent = false) {
+  // `useKey`: a copy or move that never arrived, sent again after a reload with its own key (Volume 20,
+  // prompt 5): the server never had it, so the same key now makes it once.
+  async function transferSelected(chosen: CollectionItem[], to: Collection, moving: boolean, resent = false, useKey?: string) {
     setBulkBusy(true);
     setBulkError(null);
     setBulkLost(null);
     try {
       const items = chosen.map((i) => ({ item_type: i.item_type, track: i.track, ref_id: i.ref_id }));
-      const intent = user ? keyForIntent(user.id, "transfer", id, fingerprint(to.id, moving ? "move" : "copy", JSON.stringify(items))) : null;
-      const key = intent?.kept ? intent.key : transferKey.keyFor({ id, to: to.id, move: moving, items });
+      // Kept on this device with the request by ids only (which items, the other collection, copy or move).
+      const intent = user ? keyForIntent(user.id, "transfer", id, fingerprint(to.id, moving ? "move" : "copy", JSON.stringify(items)),
+        { transfer: { to: to.id, move: moving, items } }, useKey) : null;
+      const key = intent?.kept ? intent.key : (useKey ?? transferKey.keyFor({ id, to: to.id, move: moving, items }));
       const out = await api.transferCollectionItems(id, { to: to.id, move: moving, items, client_request_id: key });
       transferKey.done();
       forgetIntent(user?.id, "transfer", id, key);
@@ -332,8 +337,14 @@ export function CollectionPage() {
       <p className="visually-hidden" role="status">{announce}</p>
       {/* A copy or move sent before the page reloaded, whose reply never came (Volume 19, prompt 1): what
           its key made, read from the server, never sent again. */}
-      <EarlierActionNotice earlier={earlierTransfer} noun="copy or move"
-        found={earlierTransfer.status === "found" ? "These are what it did, and nothing was done twice." : null} />
+      {earlierTransfer.status === "not_found" && earlierTransfer.intent.transfer ? (
+        <NeverArrived request={earlierTransfer.intent.transfer} sentAt={earlierTransfer.intent.sentAt} here={items} busy={bulkBusy}
+          onSend={(chosen, to) => void transferSelected(chosen, to, earlierTransfer.intent.transfer!.move, true, earlierTransfer.intent.key).then(earlierTransfer.dismiss)}
+          onDismiss={earlierTransfer.dismiss} />
+      ) : (
+        <EarlierActionNotice earlier={earlierTransfer} noun="copy or move"
+          found={earlierTransfer.status === "found" ? "These are what it did, and nothing was done twice." : null} />
+      )}
       {earlierTransfer.status === "found" && earlierTransfer.outcome.transfer && (
         <EarlierTransfer made={earlierTransfer.outcome.transfer} other={otherCollection.data ?? null}
           titleOf={(k) => [...items, ...(otherCollection.data?.item_list ?? [])].find((i) => itemKey(i) === k)?.title ?? "An item"} />
@@ -434,6 +445,42 @@ export function CollectionPage() {
 
 /** After a copy or move: both collections, as they now are. */
 /** What an earlier copy or move did, as its first reply said: the same outcomes, and the other collection. */
+/**
+ * A copy or move that never reached the server, found after a reload (Volume 20, prompt 5): what it was
+ * for, by the ids the device kept, and Send again with its own key, for the items still in this
+ * collection. Nothing is sent until it's pressed.
+ */
+function NeverArrived({ request, sentAt, here, busy, onSend, onDismiss }: {
+  request: TransferRequest; sentAt: number; here: CollectionItem[]; busy: boolean;
+  onSend: (chosen: CollectionItem[], to: Collection) => void; onDismiss: () => void;
+}) {
+  const other = useCollection(request.to, true);
+  const wanted = new Set(request.items.map(itemKey));
+  const still = here.filter((i) => wanted.has(itemKey(i)));
+  const gone = request.items.length - still.length;
+  const verb = request.move ? "move" : "copy";
+  const n = (k: number) => `${k} ${k === 1 ? "item" : "items"}`;
+  const deleted = other.error instanceof ApiError && other.error.status === 404;
+  return (
+    <div className="earlier-action banner banner--info stack-sm" role="status">
+      <p><strong>The {verb} you sent at {formatTime(new Date(sentAt).toISOString())} never arrived.</strong> The server has no record of
+        it, so nothing was {request.move ? "moved" : "copied"}.</p>
+      <p>It was a {verb} of {n(request.items.length)}{other.data ? <> to “{other.data.name}”</> : null}.{" "}
+        {still.length ? `${still.length === request.items.length ? "All" : still.length} of them ${still.length === 1 ? "is" : "are"} still in this collection.` : "None of them is in this collection any more."}
+        {gone > 0 && still.length > 0 ? ` ${n(gone)} ${gone === 1 ? "has" : "have"} been removed from it since, so ${gone === 1 ? "it's" : "they're"} left out.` : ""}</p>
+      {deleted && <p>The other collection was deleted since, so there's nothing to send.</p>}
+      <span className="row">
+        {other.data && still.length > 0 && !deleted && (
+          <Button size="sm" loading={busy} onClick={() => onSend(still, other.data!)}>
+            Send again: {request.move ? "move" : "copy"} {n(still.length)} to “{other.data.name}”
+          </Button>
+        )}
+        <Button size="sm" variant="ghost" onClick={onDismiss}>{other.data && still.length > 0 && !deleted ? "Not now" : "OK"}</Button>
+      </span>
+    </div>
+  );
+}
+
 function EarlierTransfer({ made, other, titleOf }: {
   made: NonNullable<RequestOutcome["transfer"]>; other: Collection | null; titleOf: (key: string) => string;
 }) {

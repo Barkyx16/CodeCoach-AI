@@ -82,7 +82,15 @@ items selected, then the collection they go to. Within one account; nothing is s
   server what that key made (`GET /me/requests/{key}`, a read; nothing is sent again) and shows the
   first reply's outcomes ("Your copy or move from 10:31 arrived. These are what it did, and nothing
   was done twice.", then "2 moved", with a link to the other collection); one that never arrived
-  says so, and nothing was copied or moved. The dashboard's "Waiting for a reply" checks it the same
+  says so, and nothing was copied or moved. Since Volume 20, prompt 5, the record also keeps the
+  request by ids only (the other collection's id, copy or move, and each item as the server names it
+  in the library: never a title, a note or anything typed), so one that never arrived is offered
+  again: the page names what it was for ("It was a move of 2 items to “Week 2”. All of them are
+  still in this collection."), leaves out items removed since and says so ("1 item has been removed
+  from it since, so it's left out"), and **Send again** sends the rest with the request's own key
+  (the server never had it, so the key makes it once). Nothing is sent until it's pressed; when the
+  other collection was deleted since, it says so and offers nothing to send. One that did arrive is
+  shown, never sent again. The dashboard's "Waiting for a reply" checks it the same
   way. Answered, refused or checked, the record is forgotten. Where this browser can't keep it, the
   key lasts as long as the page, as before. Two tabs sending the same items at once: the unique `(collection, item)`
   settles it, and the request that meets it is worked out once more against what's now there; two

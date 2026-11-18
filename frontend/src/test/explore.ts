@@ -19,6 +19,8 @@ export const store = {
   itemLimit: 200,
   /** Apply the next copy or move, then lose its reply (the client sees a network error). */
   loseTransferReply: false,
+  /** The next copy or move never reaches the server (Volume 20, prompt 5): nothing is done, no receipt. */
+  dropTransferRequest: false,
   /** Each keyed copy or move's first results, as the server keeps them (Volume 18, prompt 5). */
   transferReplies: new Map<string, unknown[]>(),
   /** Where each keyed copy or move went (Volume 19, prompt 1), as the server's receipt keeps it. */
@@ -32,6 +34,7 @@ export function resetExploreStore() {
   store.seq = 0;
   store.itemLimit = 200;
   store.loseTransferReply = false;
+  store.dropTransferRequest = false;
   store.transferReplies = new Map();
   store.transferMade = new Map();
 }
@@ -226,6 +229,7 @@ export const exploreHandlers = [
   // at the end of the other one; already there is never doubled (a move just takes it out of here);
   // past the limit, "full"; a queue mark isn't carried.
   http.post(`${API}/api/v1/me/collections/:id/items/transfer`, async ({ params, request }) => {
+    if (store.dropTransferRequest) { store.dropTransferRequest = false; return HttpResponse.error(); }
     const src = find(String(params.id));
     const body = (await request.json()) as { to: string; move: boolean; items: SavedItemRef[]; client_request_id?: string };
     const dst = find(body.to);
