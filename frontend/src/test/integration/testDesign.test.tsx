@@ -60,9 +60,10 @@ function serve({ enabled = true, first = run({ status: "queued", report: null })
   server.use(
     http.get(`${API}/api/v1/test-design`, () => HttpResponse.json([{ slug: SLUG, title: "Test design: Count in Range", summary: "Count the values between two bounds.", variant_count: 4 }])),
     http.get(`${API}/api/v1/test-design/${SLUG}`, () => HttpResponse.json(exercise(enabled))),
-    http.get(`${API}/api/v1/test-design/${SLUG}/variants`, () => {
+    // Shown to you and recorded first (Volume 19, prompt 3): the page asks the recording route.
+    http.post(`${API}/api/v1/me/test-design/${SLUG}/variants`, () => {
       variantCalls += 1;
-      return HttpResponse.json([{ key: "A", title: "Leaves out values equal to hi", defect: "v < hi" }, { key: "B", title: "Leaves out values equal to lo", defect: "v > lo" }]);
+      return HttpResponse.json({ recorded_at: "2026-11-18T09:00:00Z", variants: [{ key: "A", title: "Leaves out values equal to hi", defect: "v < hi" }, { key: "B", title: "Leaves out values equal to lo", defect: "v > lo" }] });
     }),
     http.post(`${API}/api/v1/me/test-design/${SLUG}/runs`, async ({ request }) => { posted.push(await request.json()); return HttpResponse.json(first, { status: 202 }); }),
     http.get(`${API}/api/v1/me/test-design/runs/:id`, () => { polls += 1; return HttpResponse.json(polls > 1 ? later : first); }),
@@ -193,6 +194,23 @@ describe("test design", () => {
     await user.click(screen.getByRole("button", { name: "Show the faulty versions" }));
     expect(await screen.findByText(/Version B: Leaves out values equal to lo\./)).toBeInTheDocument();
     expect(variantCalls).toBe(1);
+  });
+
+  it("a run's report and its row in the list say what help came before it (Volume 19, prompt 3)", async () => {
+    const revealed = {
+      labels: ["Solution revealed"], help: [{ label: "Solution revealed", detail: "The faulty versions were shown before these cases were written", at: "2026-11-18T09:00:00Z" }],
+      recorded_from: "2026-11-15", note: "Only help shown in CodeCoach is recorded.", round: null, interview: null, unrecorded: null,
+    };
+    const withHelp = run({ conditions: revealed } as Partial<TestDesignRun>);
+    serve({ first: withHelp, later: withHelp });
+    server.use(http.get(`${API}/api/v1/me/test-design/${SLUG}/runs`, () => HttpResponse.json([
+      { id: "run-1", exercise_version: 1, status: "done", cases: 2, caught: 2, total: 4, outcome_text: "2 cases · told apart 2 of 4 faulty versions · version 1", conditions: revealed, created_at: "2026-11-18T10:00:00Z" },
+    ])));
+    renderApp(`/test-design/${SLUG}?attempt=run-1`, { signedIn: true });
+    expect(await screen.findByText("In-app help before this run:", {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.getByText(/The faulty versions were shown before these cases were written/)).toBeInTheDocument();
+    const earlier = await screen.findByRole("region", { name: "Your earlier runs" });
+    expect(earlier).toHaveTextContent("In-app help: Solution revealed");
   });
 
   it("the server's per-case messages are shown next to the case", async () => {

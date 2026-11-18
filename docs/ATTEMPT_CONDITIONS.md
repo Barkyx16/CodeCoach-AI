@@ -23,6 +23,7 @@ now says what in-app help came before it.
 | Sample-answer comparisons | The comparison's explanation, opened before the reading was sent ("Solution revealed"); Learn lessons that prepare it (the STAR lesson prepares "Specific evidence or general claims?") | 15 Nov 2026 (the explanation opened first: always kept) | the attempt's own `revealed_early`, as the page reported it when sending; lesson reads, by the comparison's version |
 | Work samples | None: no lesson prepares a brief yet, and each section's hint is shown to everyone with the brief | 15 Nov 2026 | (nothing to find: "No in-app help recorded") |
 | Debugging exercises | Hints for the exercise (as for any coding problem); its explanation and repair, opened before the attempt ("Solution revealed"); Learn lessons that prepare it (“Fixing code from a failing test” prepares all three, since Volume 17, prompt 5) | hints 14 Nov 2026; the explanation opened, 16 Nov 2026 | the saved hints; `lab_reveals`, by the exercise's version; lesson reads (`debug:<slug>`) |
+| Test-design runs | The exercise's faulty versions, shown before the run at its version ("Solution revealed", since Volume 19, prompt 3; they can't be unseen, so every later run at that version says so, with the first showing's time); Learn lessons that prepare it (none yet) | 18 Nov 2026 (runs from 15 Nov say showing them wasn't recorded yet) | `test_design_reveals`, by the exercise's version; lesson reads (`test_design:<slug>`) |
 | Coding interviews | Hints for the interview's problem, before or during it; plus its format (never help): the time limit, how it ended, each message and the feedback checked before it left CodeCoach | hints 14 Nov 2026; checked messages 16 Nov 2026 | the saved hints, by the problem's version when it started; what the interview stores |
 
 Offer comparisons and story help aren't practice attempts, so they have no conditions (below).
@@ -227,6 +228,28 @@ checked when it was sent with its preview's fingerprint (`interview_turns.meta.c
 2026; before, "whether messages were checked before they were sent wasn't recorded then"); the
 feedback, from `plan.feedback_read` (docs/COACH_CONTEXT.md). Nothing is said while it runs. A career
 interview isn't described as a whole: each answer has its own (interview rounds, above).
+
+## Test-design runs
+
+Volume 19, prompt 3. A test-design exercise's page shows "what every faulty version gets wrong" after
+a confirmed ask: the exercise's answer. Signed in, the page now asks for them through
+`POST /api/v1/me/test-design/{slug}/variants`, which records the first showing at that version of
+the exercise (`test_design_reveals`, migration `e6f8a0b2c4d7`, owner-only under row-level security,
+deleted with the account) before sending them; asking again is the same showing, and two tabs at
+once keep the first. Every run after it at that version says **Solution revealed** ("The faulty
+versions were shown before these cases were written"), with the showing's time, as a code review
+written after the authored review does: they can't be unseen. A showing at another version doesn't
+count; another account's never does. A Learn lesson that prepares an exercise (`prepares:
+"test_design:<slug>"`) counts by the lesson rule; none does yet. A run from before 18 Nov 2026 with
+nothing found is **Not recorded**, and says "Showing the faulty versions wasn't recorded before 18
+Nov 2026, so whether they were shown before this run isn't known". The public
+`GET /api/v1/test-design/{slug}/variants` still serves them and records nothing, so showing them
+signed out is recorded nowhere. Shown on the run's report ("In-app help before this run"), its row in
+"Your earlier runs", its History row (the bulk route's `test_design_run_ids`) and the export (each
+run's `conditions`, and `test_design_reveals`). The report and every count are unchanged. Checked by
+`backend/tests/test_test_design_conditions.py` (6, SQLite and PostgreSQL), `testDesign.test.tsx`,
+`historyPractice.test.tsx` and `e2e/test-design-help.spec.ts` (the real API: a run before and a run
+after the showing; axe in both themes).
 
 ## What isn't a practice attempt
 

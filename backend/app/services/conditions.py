@@ -65,6 +65,8 @@ from app.models import (
     ScenarioAttempt,
     Submission,
     TestCase,
+    TestDesignReveal,
+    TestDesignRun,
     TurnRole,
     User,
     WhiteboardAttempt,
@@ -97,6 +99,8 @@ NOTE = (
 
 # The day a code review's reveal time began to be kept (Volume 18, prompt 9).
 REVEAL_TIMES_FROM = "16 Nov 2026"
+# The day showing a test-design exercise's faulty versions began to be recorded (Volume 19, prompt 3).
+TEST_DESIGN_REVEALS_FROM = datetime(2026, 11, 18, tzinfo=UTC)
 
 
 def _aware(dt: datetime) -> datetime:
@@ -122,7 +126,8 @@ def problem_versions(db: Session, problem_ids: set[int]) -> dict[int, int]:
 
 def practice_version(ref: str) -> int | None:
     """The version now of what a lesson prepares ("scenario:<id>", "drill:<id>",
-    "whiteboard:<id>", "code_review:<slug>", "comparison:<id>", "work_sample:<id>", "debug:<slug>"),
+    "whiteboard:<id>", "code_review:<slug>", "comparison:<id>", "work_sample:<id>", "debug:<slug>",
+    "test_design:<slug>"),
     or None if there's no such thing."""
     from app.comparisons import BY_ID as COMPARISONS
     from app.drills import BY_ID as DRILLS
@@ -144,6 +149,11 @@ def practice_version(ref: str) -> int | None:
     if kind == "code_review":
         ex = REVIEWS.get(cid)
         return ex.version if ex is not None else None
+    if kind == "test_design":
+        from app.testdesign import BY_SLUG as TEST_DESIGNS
+
+        td = TEST_DESIGNS.get(cid)
+        return td.version if td is not None else None
     if kind == "comparison":
         ls = COMPARISONS.get(cid)
         return ls.version if ls is not None else None
@@ -801,6 +811,54 @@ class Conditions:
             earlier,
             shown,
         )
+
+    def for_test_design_runs(self, rows: Iterable[TestDesignRun]) -> dict[str, AttemptConditions]:
+        """The help before a test-design run (Volume 19, prompt 3): the exercise's faulty versions,
+        shown before the run at its version (they can't be unseen, so every later run at that version
+        says so, with the first showing's time, as code reviews do), and lessons that prepare it. A
+        run from before showing them was recorded says so; nothing is guessed."""
+        rows = list(rows)
+        slugs = {r.exercise_slug for r in rows}
+        first: dict[tuple[str, int], datetime] = {}
+        if slugs:
+            for slug, version, at in self.db.execute(
+                select(
+                    TestDesignReveal.exercise_slug,
+                    TestDesignReveal.exercise_version,
+                    TestDesignReveal.created_at,
+                ).where(TestDesignReveal.user_id == self.user.id, TestDesignReveal.exercise_slug.in_(slugs))
+            ):
+                first[(slug, version)] = _aware(at)
+        earlier = self._times(TestDesignRun, TestDesignRun.exercise_slug, slugs)
+        items = [(r.id, f"test_design:{r.exercise_slug}", r.exercise_version, r.created_at, "") for r in rows]
+        found = self._lesson_help(items, earlier)
+        out: dict[str, AttemptConditions] = {}
+        for r in rows:
+            shown, unknown = found.get(r.id, ([], False))
+            revealed = first.get((r.exercise_slug, r.exercise_version))
+            if revealed is not None and revealed < _aware(r.created_at):
+                shown = [
+                    HelpShown(
+                        label="Solution revealed",
+                        detail="The faulty versions were shown before these cases were written",
+                        at=revealed,
+                    ),
+                    *shown,
+                ]
+            before = _aware(r.created_at) < TEST_DESIGN_REVEALS_FROM
+            out[r.id] = conditions(
+                shown,
+                r.created_at,
+                unknown=unknown,
+                recorded_from=FORMATS_RECORDED_FROM,
+                unrecorded=(
+                    "Showing the faulty versions wasn't recorded before 18 Nov 2026, so whether they were "
+                    "shown before this run isn't known"
+                    if before
+                    else None
+                ),
+            )
+        return out
 
     def for_work_samples(self, rows: Iterable[WorkSampleAttempt]) -> dict[str, AttemptConditions]:
         """Lessons that prepare the brief (none yet). Its section hints are shown to everyone."""

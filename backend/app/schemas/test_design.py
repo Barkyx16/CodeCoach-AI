@@ -6,6 +6,7 @@ from typing import Any, Literal
 from pydantic import Field
 
 from app.schemas.common import APIModel, OptionalKey
+from app.schemas.conditions import AttemptConditions
 
 Label = Literal["boundary", "equivalence", "edge", "other"]
 
@@ -62,6 +63,16 @@ class TestDesignVariant(APIModel):
     defect: str
 
 
+class TestDesignVariantsShown(APIModel):
+    """The faulty versions, shown to a signed-in learner and recorded as help (Volume 19, prompt 3)."""
+
+    __test__ = False
+    variants: list[TestDesignVariant]
+    recorded_at: datetime = Field(
+        description="When they were first shown to you at this version: every later run at it says so"
+    )
+
+
 class TestCaseIn(APIModel):
     __test__ = False
     input: dict[str, Any]
@@ -88,6 +99,10 @@ class TestDesignRunOut(APIModel):
     report: dict[str, Any] | None
     created_at: datetime
     judged_at: datetime | None
+    conditions: AttemptConditions | None = Field(
+        default=None,
+        description="The in-app help before this run (Volume 19, prompt 3; docs/ATTEMPT_CONDITIONS.md)",
+    )
 
 
 class TestDesignRunSummary(APIModel):
@@ -101,4 +116,5 @@ class TestDesignRunSummary(APIModel):
     outcome_text: str = Field(
         description="What the run's list and its History row say of it, in the same words (Volume 18, prompt 10)"
     )
+    conditions: AttemptConditions | None = Field(default=None, description="The in-app help before this run")
     created_at: datetime

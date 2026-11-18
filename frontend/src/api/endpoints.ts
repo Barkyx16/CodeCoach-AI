@@ -806,6 +806,9 @@ export const api = {
   testDesigns: () => apiRequest<TestDesignSummary[]>("/api/v1/test-design", { auth: false }),
   testDesign: (slug: string) => apiRequest<TestDesignExercise>(`/api/v1/test-design/${encodeURIComponent(slug)}`, { auth: false }),
   testDesignVariants: (slug: string) => apiRequest<TestDesignVariant[]>(`/api/v1/test-design/${encodeURIComponent(slug)}/variants`, { auth: false }),
+  // Shown to you and recorded as help for your runs after it (Volume 19, prompt 3).
+  showTestDesignVariants: (slug: string) =>
+    apiRequest<{ variants: TestDesignVariant[]; recorded_at: string }>(`/api/v1/me/test-design/${encodeURIComponent(slug)}/variants`, { method: "POST" }),
   startTestRun: (slug: string, body: TestDesignRunIn) =>
     apiRequest<TestDesignRun>(`/api/v1/me/test-design/${encodeURIComponent(slug)}/runs`, { method: "POST", body }),
   testRuns: (slug: string) => apiRequest<TestDesignRunSummary[]>(`/api/v1/me/test-design/${encodeURIComponent(slug)}/runs`),

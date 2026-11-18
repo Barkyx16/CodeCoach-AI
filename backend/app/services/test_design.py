@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.errors import AppError, NotFoundError, RateLimitedError
-from app.models import TestDesignRun, User
+from app.models import TestDesignReveal, TestDesignRun, User
 from app.schemas.test_design import (
     TestDesignExample,
     TestDesignExercise,
@@ -33,6 +33,7 @@ from app.schemas.test_design import (
     TestDesignRunSummary,
     TestDesignSummary,
     TestDesignVariant,
+    TestDesignVariantsShown,
 )
 from app.services import request_keys
 from app.services.judge.backends import JudgeBusyError, lock_admission
@@ -123,6 +124,31 @@ class TestDesign:
         ]
 
     # -- runs ---------------------------------------------------------------------------------
+
+    def show_variants(self, slug: str) -> TestDesignVariantsShown:
+        """The faulty versions, recorded first as shown to you at this version (Volume 19, prompt 3):
+        the first showing is kept; showing them again is the same one. Two tabs at once meet the
+        unique key and keep the first."""
+        ex = self._exercise(slug)
+        me = self._me
+        find = select(TestDesignReveal).where(
+            TestDesignReveal.user_id == me.id,
+            TestDesignReveal.exercise_slug == ex.slug,
+            TestDesignReveal.exercise_version == ex.version,
+        )
+        row = self.db.scalar(find)
+        if row is None:
+            row = TestDesignReveal(
+                user_id=me.id, exercise_slug=ex.slug, exercise_version=ex.version, created_at=_now()
+            )
+            self.db.add(row)
+            try:
+                self.db.commit()
+            except IntegrityError:  # another tab recorded it first: that one stands
+                self.db.rollback()
+                row = self.db.scalar(find)
+                assert row is not None
+        return TestDesignVariantsShown(variants=self.variants(slug), recorded_at=row.created_at)
 
     @property
     def _me(self) -> User:
@@ -252,6 +278,11 @@ class TestDesign:
             return self._replay(existing, slug, cases), False
         return self._out(run), True
 
+    def _conditions(self, rows: list[TestDesignRun]) -> dict[str, Any]:
+        from app.services.conditions import Conditions
+
+        return Conditions(self.db, self._me).for_test_design_runs(rows) if rows else {}
+
     def _out(self, run: TestDesignRun) -> TestDesignRunOut:
         current = BY_SLUG.get(run.exercise_slug)
         return TestDesignRunOut(
@@ -265,6 +296,7 @@ class TestDesign:
             report=run.report,
             created_at=run.created_at,
             judged_at=run.judged_at,
+            conditions=self._conditions([run]).get(run.id),
         )
 
     def runs(self, slug: str) -> list[TestDesignRunSummary]:
@@ -274,6 +306,7 @@ class TestDesign:
             .where(TestDesignRun.user_id == self._me.id, TestDesignRun.exercise_slug == slug)
             .order_by(TestDesignRun.created_at.desc())
         ).all()
+        found = self._conditions(list(rows))
         return [
             TestDesignRunSummary(
                 id=r.id,
@@ -283,6 +316,7 @@ class TestDesign:
                 caught=(r.report or {}).get("caught"),
                 total=(r.report or {}).get("total"),
                 outcome_text=run_words(r),
+                conditions=found.get(r.id),
                 created_at=r.created_at,
             )
             for r in rows
@@ -295,8 +329,11 @@ class TestDesign:
         return self._out(run)
 
     def export(self) -> list[dict[str, Any]]:
+        rows = list(self.db.scalars(select(TestDesignRun).where(TestDesignRun.user_id == self._me.id)))
+        found = self._conditions(rows)
         return [
             {
+                "conditions": found[r.id].model_dump(mode="json") if r.id in found else None,
                 "exercise": r.exercise_slug,
                 "exercise_version": r.exercise_version,
                 "status": r.status,
@@ -304,5 +341,21 @@ class TestDesign:
                 "report": r.report,
                 "created_at": r.created_at.isoformat(),
             }
-            for r in self.db.scalars(select(TestDesignRun).where(TestDesignRun.user_id == self._me.id))
+            for r in rows
+        ]
+
+    def export_reveals(self) -> list[dict[str, Any]]:
+        """When the faulty versions were first shown, by exercise and version (Volume 19, prompt 3)."""
+        return [
+            {
+                "id": r.id,
+                "exercise": r.exercise_slug,
+                "exercise_version": r.exercise_version,
+                "at": r.created_at.isoformat(),
+            }
+            for r in self.db.scalars(
+                select(TestDesignReveal)
+                .where(TestDesignReveal.user_id == self._me.id)
+                .order_by(TestDesignReveal.created_at)
+            )
         ]

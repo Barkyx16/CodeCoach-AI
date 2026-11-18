@@ -144,6 +144,7 @@ NOT_RESTORED: dict[str, str] = {
     "schedule": _EXPOSE,
     "content_reports": "Reports you sent stay with the original account's history.",
     "lab_reveals": "When you opened a debugging exercise's explanation isn't restored: it describes attempts that stay with the original account.",
+    "test_design_reveals": "When a test-design exercise's faulty versions were shown isn't restored: it describes runs that stay with the original account.",
     "interview_kits": "Interview-day kits belong to interview events by id, so they aren't restored yet.",
     "interview_reflections": "Interview reflections belong to interview events by id, so they aren't restored yet.",
 }

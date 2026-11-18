@@ -133,6 +133,15 @@ from the career catalog, so they're referenced by `(track, question_id)`, not a 
 | `lab_version` | int | The exercise's version then: only an attempt at that version counts it |
 | `created_at` | timestamptz | When it was opened; one row until the learner's next attempt (index on `user_id, problem_id, created_at`) |
 
+### `test_design_reveals`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | varchar(36) PK | UUID4 |
+| `user_id` | FK → users (cascade) | Owner-only under row-level security (migration `e6f8a0b2c4d7`, Volume 19, prompt 3) |
+| `exercise_slug` | varchar(64) | The test-design exercise |
+| `exercise_version` | int | Its version when the faulty versions were shown |
+| `created_at` | timestamptz | The first showing at that version; unique per account, exercise and version |
+
 ### `refresh_tokens`
 | Column | Type | Notes |
 |---|---|---|

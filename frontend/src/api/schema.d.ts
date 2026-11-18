@@ -2835,6 +2835,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/test-design/{slug}/variants": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Show the faulty versions, recorded as help for your runs after it (docs/ATTEMPT_CONDITIONS.md)
+         * @description The same authored versions as the public GET, recorded for you first (Volume 19, prompt 3):
+         *     every run after it at this version of the exercise says "Solution revealed", with when they were
+         *     first shown. Showing them again is the same showing. It changes no report or count.
+         */
+        post: operations["show_variants_api_v1_me_test_design__slug__variants_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/test-design/{slug}/runs": {
         parameters: {
             query?: never;
@@ -7158,6 +7180,10 @@ export interface components {
             comparison_attempts?: {
                 [key: string]: components["schemas"]["AttemptConditions"];
             };
+            /** Test Design Runs */
+            test_design_runs?: {
+                [key: string]: components["schemas"]["AttemptConditions"];
+            };
             /** Work Sample Attempts */
             work_sample_attempts?: {
                 [key: string]: components["schemas"]["AttemptConditions"];
@@ -7185,6 +7211,8 @@ export interface components {
             whiteboard_attempt_ids?: string[];
             /** Code Review Attempt Ids */
             code_review_attempt_ids?: string[];
+            /** Test Design Run Ids */
+            test_design_run_ids?: string[];
             /** Comparison Attempt Ids */
             comparison_attempt_ids?: string[];
             /** Work Sample Attempt Ids */
@@ -16285,6 +16313,8 @@ export interface components {
             created_at: string;
             /** Judged At */
             judged_at: string | null;
+            /** @description The in-app help before this run (Volume 19, prompt 3; docs/ATTEMPT_CONDITIONS.md) */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
         };
         /** TestDesignRunSummary */
         TestDesignRunSummary: {
@@ -16305,6 +16335,8 @@ export interface components {
              * @description What the run's list and its History row say of it, in the same words (Volume 18, prompt 10)
              */
             outcome_text: string;
+            /** @description The in-app help before this run */
+            conditions?: components["schemas"]["AttemptConditions"] | null;
             /**
              * Created At
              * Format: date-time
@@ -16333,6 +16365,20 @@ export interface components {
             title: string;
             /** Defect */
             defect: string;
+        };
+        /**
+         * TestDesignVariantsShown
+         * @description The faulty versions, shown to a signed-in learner and recorded as help (Volume 19, prompt 3).
+         */
+        TestDesignVariantsShown: {
+            /** Variants */
+            variants: components["schemas"]["TestDesignVariant"][];
+            /**
+             * Recorded At
+             * Format: date-time
+             * @description When they were first shown to you at this version: every later run at it says so
+             */
+            recorded_at: string;
         };
         /** TodayOut */
         TodayOut: {
@@ -27276,6 +27322,55 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TestDesignVariant"][];
+                };
+            };
+            /** @description Not found (also returned for resources owned by another user) */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    show_variants_api_v1_me_test_design__slug__variants_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                slug: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestDesignVariantsShown"];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
             /** @description Not found (also returned for resources owned by another user) */

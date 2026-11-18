@@ -80,7 +80,7 @@ describe("Drills, whiteboard designs and work samples in History", () => {
     expect(asked).toEqual([{ submission_ids: [], answer_ids: [], interview_ids: [], scenario_attempt_ids: ["s-1"], code_review_attempt_ids: ["r-1"], comparison_attempt_ids: ["c-1"] }]);
   });
 
-  it("lists test-design runs in their page's words, each opening that run, with no help to ask for (Volume 18, prompt 10)", async () => {
+  it("lists test-design runs in their page's words, each opening that run, with their help (Volumes 18 and 19)", async () => {
     const asked: unknown[] = [];
     const runs = [
       { ...row("t-1", "test_design_run", "Test design: Count in Range", "2 cases · told apart 2 of 4 faulty versions · version 1 · Not compared: test-design runs aren't compared with each other yet", "/test-design/tests-count-in-range?attempt=t-1"), career: "coding", career_title: "Coding problems" },
@@ -90,17 +90,18 @@ describe("Drills, whiteboard designs and work samples in History", () => {
       http.get(`${API}/api/v1/me/activity`, () => HttpResponse.json({ items: runs, total: runs.length, page: 1, page_size: 20 })),
       http.post(`${API}/api/v1/me/attempt-conditions`, async ({ request }) => {
         asked.push(await request.json());
-        return HttpResponse.json({ submissions: {}, answers: {} });
+        return HttpResponse.json({ submissions: {}, answers: {}, test_design_runs: { "t-1": { ...hinted, labels: ["Solution revealed"] } } });
       }),
     );
     renderApp("/history", { signedIn: true });
     const done = (await screen.findByText(/told apart 2 of 4 faulty versions/)).closest("a")!;
     expect(done).toHaveAttribute("href", "/test-design/tests-count-in-range?attempt=t-1");
     expect(done).toHaveTextContent("Test design");
-    expect(done.textContent).not.toMatch(/In-app help/);
+    await waitFor(() => expect(done).toHaveTextContent("In-app help: Solution revealed"));
     const waiting = screen.getByText(/waiting for the judge/).closest("a")!;
     expect(waiting).toHaveAttribute("href", "/test-design/tests-count-in-range?attempt=t-2");
     expect(waiting).toHaveTextContent("Waiting for the judge");
-    expect(asked).toEqual([]); // no conditions are recorded for test design, so none are asked for
+    // Asked for with the rows on screen (Volume 19, prompt 3), in the one request.
+    expect(asked).toEqual([{ submission_ids: [], answer_ids: [], interview_ids: [], test_design_run_ids: ["t-1", "t-2"] }]);
   });
 });

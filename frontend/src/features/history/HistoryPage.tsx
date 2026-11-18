@@ -75,6 +75,8 @@ export function HistoryPage() {
   const scenarioIds = attemptsOf("scenario_attempt");
   const codeReviewIds = attemptsOf("code_review_attempt");
   const comparisonIds = attemptsOf("comparison_attempt");
+  // Test-design runs (Volume 19, prompt 3): the faulty versions shown before a run.
+  const testDesignIds = attemptsOf("test_design_run");
   const practiceIds = {
     ...(drillIds.length ? { drill_attempt_ids: drillIds } : {}),
     ...(whiteboardIds.length ? { whiteboard_attempt_ids: whiteboardIds } : {}),
@@ -82,6 +84,7 @@ export function HistoryPage() {
     ...(scenarioIds.length ? { scenario_attempt_ids: scenarioIds } : {}),
     ...(codeReviewIds.length ? { code_review_attempt_ids: codeReviewIds } : {}),
     ...(comparisonIds.length ? { comparison_attempt_ids: comparisonIds } : {}),
+    ...(testDesignIds.length ? { test_design_run_ids: testDesignIds } : {}),
   };
   const practiceCount = Object.values(practiceIds).reduce((n, ids) => n + ids.length, 0);
   const conditions = useQuery({
@@ -210,7 +213,8 @@ function labelsFor(found: ConditionsOut, item: ActivityItem): string | null {
             : item.type === "work_sample_attempt" ? found.work_sample_attempts?.[item.target.attempt_id ?? ""]
               : item.type === "scenario_attempt" ? found.scenario_attempts?.[item.target.attempt_id ?? ""]
                 : item.type === "code_review_attempt" ? found.code_review_attempts?.[item.target.attempt_id ?? ""]
-                  : item.type === "comparison_attempt" ? found.comparison_attempts?.[item.target.attempt_id ?? ""] : undefined;
+                  : item.type === "comparison_attempt" ? found.comparison_attempts?.[item.target.attempt_id ?? ""]
+                    : item.type === "test_design_run" ? found.test_design_runs?.[item.target.attempt_id ?? ""] : undefined;
   return conditionsSummary(c);
 }
 

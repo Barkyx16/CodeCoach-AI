@@ -245,7 +245,8 @@ Summary (🔒 = requires `Authorization: Bearer …`):
 | DELETE | `/api/v1/me/listed-names/{id}` | 🔒 | Remove one (`204`) |
 | DELETE | `/api/v1/me/dismissals?key=` | 🔒 | Offer a dismissed suggestion again; it then follows its own rules |
 | GET | `/api/v1/me/careers/{slug}/analytics/attempts?since=&until=&offset=&limit≤100` | 🔒 | Every answer in an analytics range: in the trend or why not, each with its comparison with the answer before it (docs/COMPARING_ATTEMPTS.md) |
-| POST | `/api/v1/me/attempt-conditions` | 🔒 | The in-app help shown before each of up to 50 submissions, answers, drill attempts, scenario runs, whiteboard attempts, code reviews, comparison readings, work-sample attempts and finished coding interviews (docs/ATTEMPT_CONDITIONS.md) |
+| POST | `/api/v1/me/attempt-conditions` | 🔒 | The in-app help shown before each of up to 50 submissions, answers, drill attempts, scenario runs, whiteboard attempts, code reviews, comparison readings, work-sample attempts, test-design runs (`test_design_run_ids`, Volume 19, prompt 3) and finished coding interviews (docs/ATTEMPT_CONDITIONS.md) |
+| POST | `/api/v1/me/test-design/{slug}/variants` | 🔒 | The faulty versions, recorded first as shown to you at this version: every later run at it says "Solution revealed" (`{variants, recorded_at}`); runs, their list and the export carry `conditions` (Volume 19, prompt 3) |
 | POST | `/api/v1/ai/hint` | 🔒 | Progressive hint |
 | POST | `/api/v1/ai/review/preview` | 🔒 | What a review would send, exactly (no coach call, no budget) |
 | POST | `/api/v1/ai/review` | 🔒 | Structured code review |

@@ -106,6 +106,9 @@ earlier runs stay as they were.
   results.
 - No AI is involved. The page links to the debugging lab and code review explicitly; nothing is
   added to the learner's plan.
+- Showing the faulty versions, signed in, is recorded as help (Volume 19, prompt 3;
+  docs/ATTEMPT_CONDITIONS.md, "Test-design runs"): every run after it at that version says "Solution
+  revealed", on its report, its row and in History. Signed out it's recorded nowhere.
 - In History since Volume 18, prompt 10 (docs/COMPARING_ATTEMPTS.md, "History, test-design runs"):
   each run is a row in the words "Your earlier runs" uses (`outcome_text` on the runs list, one rule
   for both), opening that run's report on this page (`?attempt=<id>`). Not compared with the run

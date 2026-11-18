@@ -155,6 +155,13 @@ CATEGORIES: tuple[Category, ...] = (
         note="Your next attempt at that exercise says the solution was revealed before it.",
     ),
     Category(
+        "test_design_reveals",
+        "work",
+        "Test-design exercises whose faulty versions you had shown",
+        ("test_design_reveals",),
+        note="Your runs of that exercise version after it say the solution was revealed before them.",
+    ),
+    Category(
         "listed_names",
         "account",
         "Names you listed, to be replaced in what leaves the app",

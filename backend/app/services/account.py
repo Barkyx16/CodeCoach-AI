@@ -569,6 +569,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         "code_reviews": CodeReviews(db, user).export(),
         # Test design: each set of cases you ran, the exercise version and what it showed.
         "test_design_runs": TestDesign(db, user).export(),
+        "test_design_reveals": TestDesign(db, user).export_reveals(),
         # Work samples: drafts, and each artifact sent for feedback with the brief version.
         "work_samples": WorkSamples(db, user).export(),
         # Sample-answer comparisons: the excerpts you marked, your reasons and what they matched.

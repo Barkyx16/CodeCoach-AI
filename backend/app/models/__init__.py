@@ -1744,6 +1744,25 @@ class TestDesignRun(Base):
     judged_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
 
 
+class TestDesignReveal(Base):
+    """A test-design exercise's faulty versions, shown because the learner asked (Volume 19, prompt 3;
+    docs/ATTEMPT_CONDITIONS.md): the first time at each version of the exercise. They can't be unseen,
+    so every run after it at that version says "Solution revealed", with this time, as a code review
+    written after the authored review does. Deleted with the account."""
+
+    __tablename__ = "test_design_reveals"
+    __test__ = False  # stop pytest trying to collect this class
+    __table_args__ = (
+        UniqueConstraint("user_id", "exercise_slug", "exercise_version", name="uq_test_design_reveal"),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_id)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    exercise_slug: Mapped[str] = mapped_column(String(64))
+    exercise_version: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
+
+
 class DrillAttempt(Base):
     """One go at a communication drill: the words sent (typed, or a transcript the learner checked
     and edited), how they were given, and the feedback. Attempts are never changed afterwards."""

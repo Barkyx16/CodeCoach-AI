@@ -15,6 +15,7 @@ from app.schemas.test_design import (
     TestDesignRunSummary,
     TestDesignSummary,
     TestDesignVariant,
+    TestDesignVariantsShown,
 )
 from app.services.judge.backends import JudgeUnavailableError
 from app.services.judge.health import MESSAGES
@@ -48,6 +49,21 @@ def exercise(slug: str, request: Request, db: Session = Depends(get_db)) -> Test
 )
 def variants(slug: str, db: Session = Depends(get_db)) -> list[TestDesignVariant]:
     return TestDesign(db).variants(slug)
+
+
+@router.post(
+    MINE + "/{slug}/variants",
+    response_model=TestDesignVariantsShown,
+    responses=error_responses(401, 404),
+    summary="Show the faulty versions, recorded as help for your runs after it (docs/ATTEMPT_CONDITIONS.md)",
+)
+def show_variants(
+    slug: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> TestDesignVariantsShown:
+    """The same authored versions as the public GET, recorded for you first (Volume 19, prompt 3):
+    every run after it at this version of the exercise says "Solution revealed", with when they were
+    first shown. Showing them again is the same showing. It changes no report or count."""
+    return TestDesign(db, user).show_variants(slug)
 
 
 @router.post(

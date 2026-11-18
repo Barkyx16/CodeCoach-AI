@@ -14,6 +14,7 @@ from app.models import (
     PracticeSession,
     ScenarioAttempt,
     Submission,
+    TestDesignRun,
     User,
     WhiteboardAttempt,
     WorkSampleAttempt,
@@ -68,6 +69,7 @@ def attempt_conditions(
         code_review_attempts=finder.for_code_reviews(mine(CodeReviewAttempt, body.code_review_attempt_ids)),
         comparison_attempts=finder.for_comparisons(mine(ComparisonAttempt, body.comparison_attempt_ids)),
         work_sample_attempts=finder.for_work_samples(mine(WorkSampleAttempt, body.work_sample_attempt_ids)),
+        test_design_runs=finder.for_test_design_runs(mine(TestDesignRun, body.test_design_run_ids)),
         # Coding interviews only (a career interview's answers have their own), once they're over.
         interviews=finder.for_interviews(mine(PracticeSession, body.interview_ids)),
     )

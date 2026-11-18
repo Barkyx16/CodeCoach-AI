@@ -9,8 +9,9 @@ import { formatDateTime } from "@/lib/format";
  */
 export function AttemptConditionsView({ conditions, noun = "attempt", brief = false }: {
   conditions: AttemptConditions | null | undefined;
-  /** "answer" for an answer given in an interview round; "interview" for a coding interview. */
-  noun?: "attempt" | "answer" | "interview";
+  /** "answer" for an answer given in an interview round; "interview" for a coding interview; "run" for a
+   * test-design run (Volume 19, prompt 3). */
+  noun?: "attempt" | "answer" | "interview" | "run";
   /** One line (a round's results): the labels and the format, without the details. */
   brief?: boolean;
 }) {

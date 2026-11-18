@@ -91,6 +91,7 @@ class ConditionsQuery(APIModel):
     scenario_attempt_ids: list[str] = Field(default_factory=list, max_length=50)
     whiteboard_attempt_ids: list[str] = Field(default_factory=list, max_length=50)
     code_review_attempt_ids: list[str] = Field(default_factory=list, max_length=50)
+    test_design_run_ids: list[str] = Field(default_factory=list, max_length=50)
     comparison_attempt_ids: list[str] = Field(default_factory=list, max_length=50)
     work_sample_attempt_ids: list[str] = Field(default_factory=list, max_length=50)
     interview_ids: list[str] = Field(
@@ -108,5 +109,6 @@ class ConditionsOut(APIModel):
     whiteboard_attempts: dict[str, AttemptConditions] = Field(default_factory=dict)
     code_review_attempts: dict[str, AttemptConditions] = Field(default_factory=dict)
     comparison_attempts: dict[str, AttemptConditions] = Field(default_factory=dict)
+    test_design_runs: dict[str, AttemptConditions] = Field(default_factory=dict)
     work_sample_attempts: dict[str, AttemptConditions] = Field(default_factory=dict)
     interviews: dict[str, AttemptConditions] = Field(default_factory=dict)

@@ -12,6 +12,8 @@ import { BackLink } from "@/components/BackLink";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
+import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
+import { conditionsSummary } from "@/features/conditions/summary";
 import { LINKED_MISSING, useLinkedAttempt } from "@/hooks/useLinkedAttempt";
 import { formatArgs, formatDateTime, formatValue } from "@/lib/format";
 import { useCopySince, writeCopy } from "@/lib/deviceCopies";
@@ -131,8 +133,10 @@ function Designer({ ex }: { ex: TestDesignExercise }) {
 
   async function reveal() {
     try {
-      setVariants(await api.testDesignVariants(ex.slug));
+      // Recorded first (Volume 19, prompt 3): your runs after this say the faulty versions were shown.
+      setVariants((await api.showTestDesignVariants(ex.slug)).variants);
       setAsking(false);
+      void runs.refetch();
       focusAfter.current = "td-variants";
     } catch (e) {
       setError(e);
@@ -242,6 +246,7 @@ function Designer({ ex }: { ex: TestDesignExercise }) {
         <section className="card stack" aria-labelledby="td-result">
           <h2 className="section-title" id="td-result" tabIndex={-1}>Report</h2>
           <RunReport run={run.data} />
+          <AttemptConditionsView conditions={run.data.conditions} noun="run" />
         </section>
       )}
 
@@ -271,7 +276,7 @@ function Designer({ ex }: { ex: TestDesignExercise }) {
             {runs.data.map((r) => (
               <li key={r.id} className="row">
                 {/* The server's words, which History uses too (Volume 18, prompt 10). */}
-                <span>{formatDateTime(r.created_at)} · {r.outcome_text}</span>
+                <span>{formatDateTime(r.created_at)} · {r.outcome_text}{r.conditions ? ` · In-app help: ${conditionsSummary(r.conditions)}` : ""}</span>
                 <Button size="sm" variant="ghost" onClick={() => { setRunId(r.id); focusAfter.current = "td-result"; }}>Show its report</Button>
                 <Button size="sm" variant="ghost" onClick={async () => {
                   const full = await api.testRun(r.id).catch(() => null);

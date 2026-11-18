@@ -14383,6 +14383,74 @@
         }
       }
     },
+    "/api/v1/me/test-design/{slug}/variants": {
+      "post": {
+        "tags": [
+          "test design"
+        ],
+        "summary": "Show the faulty versions, recorded as help for your runs after it (docs/ATTEMPT_CONDITIONS.md)",
+        "description": "The same authored versions as the public GET, recorded for you first (Volume 19, prompt 3):\nevery run after it at this version of the exercise says \"Solution revealed\", with when they were\nfirst shown. Showing them again is the same showing. It changes no report or count.",
+        "operationId": "show_variants_api_v1_me_test_design__slug__variants_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestDesignVariantsShown"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found (also returned for resources owned by another user)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/me/test-design/{slug}/runs": {
       "post": {
         "tags": [
@@ -31367,6 +31435,13 @@
             "type": "object",
             "title": "Comparison Attempts"
           },
+          "test_design_runs": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/AttemptConditions"
+            },
+            "type": "object",
+            "title": "Test Design Runs"
+          },
           "work_sample_attempts": {
             "additionalProperties": {
               "$ref": "#/components/schemas/AttemptConditions"
@@ -31438,6 +31513,14 @@
             "type": "array",
             "maxItems": 50,
             "title": "Code Review Attempt Ids"
+          },
+          "test_design_run_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Test Design Run Ids"
           },
           "comparison_attempt_ids": {
             "items": {
@@ -53626,6 +53709,17 @@
               }
             ],
             "title": "Judged At"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help before this run (Volume 19, prompt 3; docs/ATTEMPT_CONDITIONS.md)"
           }
         },
         "type": "object",
@@ -53687,6 +53781,17 @@
             "type": "string",
             "title": "Outcome Text",
             "description": "What the run's list and its History row say of it, in the same words (Volume 18, prompt 10)"
+          },
+          "conditions": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AttemptConditions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The in-app help before this run"
           },
           "created_at": {
             "type": "string",
@@ -53758,6 +53863,30 @@
           "defect"
         ],
         "title": "TestDesignVariant"
+      },
+      "TestDesignVariantsShown": {
+        "properties": {
+          "variants": {
+            "items": {
+              "$ref": "#/components/schemas/TestDesignVariant"
+            },
+            "type": "array",
+            "title": "Variants"
+          },
+          "recorded_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Recorded At",
+            "description": "When they were first shown to you at this version: every later run at it says so"
+          }
+        },
+        "type": "object",
+        "required": [
+          "variants",
+          "recorded_at"
+        ],
+        "title": "TestDesignVariantsShown",
+        "description": "The faulty versions, shown to a signed-in learner and recorded as help (Volume 19, prompt 3)."
       },
       "TodayOut": {
         "properties": {
