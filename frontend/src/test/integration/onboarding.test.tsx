@@ -196,9 +196,13 @@ describe("the tour", () => {
     await user.click(await screen.findByRole("button", { name: "Next" }));
     await user.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.getByText("Introduction · step 3 of 5")).toBeInTheDocument();
-    await waitFor(() => expect(sent).toHaveLength(2));
-    release(); // "step 2" arrives after "step 3" was answered
+    // The second change waits for the first's reply (CI run 371), so the server applies them in order.
+    await waitFor(() => expect(sent).toHaveLength(1));
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(sent).toHaveLength(1);
+    release(); // "step 2" is answered after "step 3" was taken on the page
     await waitFor(() => expect(firstReplied).toBe(true));
+    await waitFor(() => expect(sent).toHaveLength(2));
     await new Promise((resolve) => setTimeout(resolve, 20));
     expect(screen.getByText("Introduction · step 3 of 5")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Next" }));
@@ -207,6 +211,49 @@ describe("the tour", () => {
     expect(sent.map((b) => b.tour_step)).toEqual([1, 2, 3, 4]);
     await user.click(screen.getByRole("button", { name: "Finish" }));
     await waitFor(() => expect(screen.queryByText(/Introduction · step/)).toBeNull());
+  });
+
+  it("sends steps one at a time, and a refresh during a save doesn't bring back a step left behind", async () => {
+    // CI run 371: steps 2 and 3 were sent together and step 2 committed last, so the server kept it;
+    // the refresh after an answer then showed step 2 and the next Next landed a step short.
+    asUser();
+    let state = onboardingState({ tour_status: "in_progress", tour_kind: "written", tour_step: 0, format: "written", starter: nurseStarter });
+    const sent: number[] = [];
+    let inFlight = 0;
+    let most = 0;
+    let slow!: () => void;
+    const held = new Promise<void>((resolve) => { slow = resolve; });
+    let reads = 0;
+    server.use(
+      http.get(`${API}/api/v1/me/onboarding`, () => { reads += 1; return HttpResponse.json(state); }),
+      http.patch(`${API}/api/v1/me/onboarding`, async ({ request }) => {
+        const body = (await request.json()) as OnboardingUpdate;
+        inFlight += 1;
+        most = Math.max(most, inFlight);
+        sent.push(body.tour_step ?? -1);
+        if (sent.length === 1) await held; // the first save is slow, as one under load
+        // Applied when it finishes, as a request that commits last wins.
+        if (body.tour === "step") state = { ...state, tour_step: Math.min(body.tour_step ?? 0, 4) };
+        inFlight -= 1;
+        return HttpResponse.json(state);
+      }),
+    );
+    const { user, queryClient } = renderApp(QUESTION, { signedIn: true });
+    await user.click(await screen.findByRole("button", { name: "Next" }));
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Introduction · step 3 of 5")).toBeInTheDocument();
+    // A refresh while the first save is still out (an answer's, say): the server still says step 1.
+    const before = reads;
+    await queryClient.invalidateQueries({ queryKey: ["me", "onboarding"] });
+    await waitFor(() => expect(reads).toBeGreaterThan(before));
+    expect(screen.getByText("Introduction · step 3 of 5")).toBeInTheDocument();
+    slow();
+    await waitFor(() => expect(sent).toEqual([1, 2]));
+    await waitFor(() => expect(state.tour_step).toBe(2)); // the server keeps the step chosen last
+    expect(most).toBe(1); // never two at once
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.getByText("Introduction · step 4 of 5")).toBeInTheDocument();
+    await waitFor(() => expect(sent).toEqual([1, 2, 3]));
   });
 
   it("doesn't run on a page of the other kind", async () => {
