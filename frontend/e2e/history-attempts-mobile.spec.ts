@@ -49,7 +49,8 @@ test("scenario runs, code reviews and comparisons are History rows that open the
     await page.goto("/history");
     await expect(page.getByRole("heading", { level: 1, name: "History" })).toBeVisible();
     await expect(rowFor(rows.scenario)).toContainText("In progress");
-    await expect(rowFor(rows.scenario)).toContainText("Not compared: scenario runs aren't compared with each other");
+    // Compared since Volume 20, prompt 2: one in progress says why it isn't yet.
+    await expect(rowFor(rows.scenario)).toContainText("Not compared: it isn't finished, so there's no result yet");
     await expect(rowFor(rows.review)).toContainText("points at");
     await expect(rowFor(rows.reading)).toContainText("matching the explanation");
     expect(await noSideways(), `no sideways scroll at ${width} px`).toBe(true);

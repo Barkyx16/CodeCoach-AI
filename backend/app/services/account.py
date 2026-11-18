@@ -37,7 +37,7 @@ from app.services import lab_reveals
 from app.services.actions import Actions
 from app.services.answer_review import AnswerReview
 from app.services.applications import Applications
-from app.services.attempt_comparisons import AttemptComparisons, comparison_out
+from app.services.attempt_comparisons import COMPARED_SHORT, AttemptComparisons, comparison_out, not_compared
 from app.services.code_reviews import CodeReviews
 from app.services.comparisons import Comparisons
 from app.services.conditions import Conditions
@@ -136,6 +136,20 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
         select(ScenarioAttempt).where(ScenarioAttempt.user_id == user.id).order_by(ScenarioAttempt.created_at)
     ).all()
     scenario_conditions = Conditions(db, user).for_scenarios(scenario_attempts)
+    scenario_pairs = AttemptComparisons(db, user).checklist_compared("scenario", scenario_attempts)
+
+    def scenario_compared(attempt_id: str) -> dict | None:
+        c = scenario_pairs.get(attempt_id)
+        if c is None:
+            return None
+        return {
+            "against": c.previous.id,
+            "outcome": c.comparison.outcome,
+            "text": COMPARED_SHORT[c.comparison.outcome],
+            "explanation": c.comparison.explanation,
+            "contract_version": c.comparison.contract_version,
+        }
+
     notes = db.scalars(
         select(Note).where(Note.user_id == user.id, Note.deleted_at.is_(None)).order_by(Note.created_at)
     ).all()
@@ -666,6 +680,10 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
                 "created_at": iso(a.created_at),
                 "completed_at": iso(a.completed_at),
                 "conditions": scenario_conditions[a.id].model_dump(mode="json"),
+                # Beside the previous finished, assessed run of the scenario, by the one contract
+                # (Volume 20, prompt 2), or why it isn't: the words its page and History use.
+                "compared": scenario_compared(a.id),
+                "not_compared": not_compared("scenario", a, scenario_pairs),
             }
             for a in scenario_attempts
         ],

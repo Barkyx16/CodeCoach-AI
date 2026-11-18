@@ -26,7 +26,8 @@ def test_a_scenario_run_is_a_row_in_progress_then_finished_as_its_page_says(clie
     [row] = rows(client, h, "scenario_attempt")
     assert row["status"] == "in_progress" and row["status_label"] == "In progress"
     assert row["detail"].startswith("In progress · version ")
-    assert row["detail"].endswith("Not compared: scenario runs aren't compared with each other")
+    # Scenario runs are compared since Volume 20, prompt 2; one in progress says why it isn't yet.
+    assert row["detail"].endswith("Not compared: it isn't finished, so there's no result yet")
     assert row["target"] == {**row["target"], "href": f"/scenarios/attempts/{a['id']}", "attempt_id": a["id"]}
     assert row["career"] == "registered-nurse" and row["title"]
     done = finish(client, h, a)

@@ -444,3 +444,6 @@ fieldset.field { border: none; padding: 0; margin: 0; }
 .oc-list__views { display: flex; flex-wrap: wrap; gap: 6px; }
 .oc-list__item { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; }
 .oc-list__item > span { min-width: 0; overflow-wrap: anywhere; }
+/* A comparison's link to the earlier attempt sits in a line of text: underlined, so it isn't told apart
+   by colour alone (axe link-in-text-block; Volume 20, prompt 2). */
+.submission-compared a { text-decoration: underline; text-underline-offset: 2px; }

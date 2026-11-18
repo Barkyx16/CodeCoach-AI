@@ -11,6 +11,7 @@ import { Badge } from "@/components/Badge";
 import { Button } from "@/components/Button";
 import { Card } from "@/components/Card";
 import { AttemptConditionsView } from "@/features/conditions/AttemptConditions";
+import { PracticeCompared } from "@/features/conditions/PracticeCompared";
 import { ErrorState, InlineError, LoadingState } from "@/components/States";
 import { PrivateUnavailable } from "@/components/Unavailable";
 import { isGone } from "@/lib/errors";
@@ -183,6 +184,10 @@ function Player({ attempt: a }: { attempt: ScenarioAttempt }) {
             <h3 className="section-title">Your path</h3>
             <ol className="learn-walkthrough">{a.debrief.path.map((p, i) => <li key={i}>{p}</li>)}</ol>
           </Card>
+          {/* Beside the previous finished, assessed run, by the one contract (Volume 20, prompt 2), or why not. */}
+          {a.compared
+            ? <PracticeCompared compared={a.compared} previousHref={`/scenarios/attempts/${a.compared.previous.id}`} previousLabel="Open that run" />
+            : a.not_compared && <p className="subtle scenario-not-compared">{a.not_compared}</p>}
           {a.debrief.plans && a.debrief.plans.length > 0 && (
             <section className="stack-sm" aria-labelledby="debrief-plans">
               <h3 className="section-title" id="debrief-plans">Your plans</h3>

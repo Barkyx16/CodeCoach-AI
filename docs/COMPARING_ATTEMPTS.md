@@ -297,6 +297,48 @@ it), its rules the report's version, its evaluator the judge, its help the condi
   for real in CI's sandbox job: an ordinary case, a boundary case, then a run after the faulty
   versions were shown; without the judge, two saved runs say why they aren't compared).
 
+## Scenario runs (Volume 20, prompt 2)
+
+Each **finished, assessed** scenario run is set beside the **previous finished, assessed run of the
+same scenario**, by the same checklist rules. A scenario has no score, so what's set side by side is
+written down here as the rule:
+
+- **Its result**, as its steps recorded it, shown as given for both: how many of its choices had each
+  authored quality ("2 strong, 0 acceptable, 0 risky"), how many of its orders broke a hard
+  constraint (in a work-queue scenario: "1 order broke a hard constraint", or "no order broke…"),
+  and the ending it reached ("ended: Escalated promptly (simulated)").
+- **Its item** is the scenario, **its version** the scenario's (the choices' qualities are authored
+  with it), **its rules** the scenario's authored qualities, **its evaluator** those fixed rules, and
+  **its help** the conditions it records (docs/ATTEMPT_CONDITIONS.md).
+- **Its path**: each run can take its own path, so the decisions a run faced (every step that asked
+  something of the learner, in order) are a fact too. **The same decisions, version and help** is
+  comparable ("Comparable: the same scenario and version, the same decisions faced, with the same
+  in-app help"). **A different path** is partly comparable and says how far the paths agree ("the
+  runs took different paths: 1 of the decisions were the same, of 3 in the earlier run and 3 in this
+  one; set the decisions side by side, not the counts"): the counts are of different decisions, so
+  they aren't comparable, and the explanation says so.
+- **Different help** with the same path is partly comparable, and both results still compare ("The
+  choices were the same decisions with the same authored qualities, so both are shown").
+- **Another version** of the scenario isn't comparable ("the scenario's decisions changed in between
+  (version 1, now 2); each keeps its own result").
+- **Not compared**, and never "the one before": a "try another approach" run ("Not compared: a "try
+  another approach" run explores, so it isn't assessed") and one in progress ("Not compared: it
+  isn't finished, so there's no result yet"). The first finished, assessed run says "Not compared:
+  the first finished run of this scenario".
+- **Where it shows**: the run's debrief ("Compared with your previous attempt": the earlier run by
+  its time, with a link to it, both results and the explanation), History's row ("· Partly
+  comparable with the one before") and the export (`scenario_attempts[].compared` with the contract's
+  words and `not_compared`), in the same words. `compared` and `not_compared` on the run (additive).
+  Another account's run is never the one before. Comparisons are read, never stored.
+- **Runs from before this** are compared too, from what they recorded: one from before its help was
+  recorded (Volume 14, prompt 4) reads "Can't tell whether these compare" with the reason, never a
+  guess. **Never** "improved", "better" or a trend. **Rules version**: still v1; no earlier
+  classification changed.
+- Tests: `backend/tests/test_scenario_comparisons.py` (11: a table of five pairs through the rule;
+  the same path twice, comparable; a different path; an exploration and a run in progress; another
+  version; History and the export; another account), `scenarios.test.tsx` (+2),
+  `e2e/scenario-compared.spec.ts` (the real API: the imperfect path, then the strong path).
+
 ## Not covered yet
 
 Every list of coding submissions now says how each compares with the one before: History, a
@@ -304,7 +346,7 @@ submission's page and the workspace's result, an improvement's related practice,
 your submissions list (`GET /me/submissions`, `outcome_text`), which the dashboard's "Recent
 attempts" shows, linking to the comparison (the first says it's the first; one still being judged,
 or that the judge couldn't run, says nothing). Code reviews are compared since Volume 18, prompt 4,
-and test-design runs since Volume 19, prompt 4 (above). Scenario runs and sample-answer comparisons
-are listed in History (Volume 17, prompt 2) but not compared: they, and the other formats,
-keep their own rules for now (docs/SCENARIOS.md, docs/CODE_REVIEWS.md, docs/COMPARE_ANSWERS.md and others) and adopt
-this contract later. Help outside the app isn't known.
+test-design runs since Volume 19, prompt 4, and scenario runs since Volume 20, prompt 2 (above).
+Sample-answer comparisons are listed in History (Volume 17, prompt 2) but not compared: they, and the
+other formats, keep their own rules for now (docs/COMPARE_ANSWERS.md and others) and adopt this
+contract later. Help outside the app isn't known.

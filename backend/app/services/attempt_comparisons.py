@@ -7,6 +7,8 @@ submissions too (Volume 14, prompt 1): the submission page, the workspace's resu
 drills, whiteboard designs and work samples (Volume 15, prompt 4): each attempt's own page and list.
 And code reviews (Volume 18, prompt 4): defects raised of the exercise's authored ones, by its rules.
 And test-design runs (Volume 19, prompt 4): the authored faulty versions a run's cases told apart.
+And scenario runs (Volume 20, prompt 2): the authored qualities of the choices a finished, assessed run
+made, its orders that broke a hard constraint and its ending, with the decisions it faced as its path.
 """
 
 from __future__ import annotations
@@ -34,6 +36,7 @@ from app.models import (
     InterviewTurn,
     PracticeAnswer,
     PracticeSession,
+    ScenarioAttempt,
     Submission,
     SubmissionMode,
     SubmissionStatus,
@@ -77,7 +80,12 @@ VERDICTS = frozenset(
 # the exercise's authored defects the review raised, as its rules matched them. Test-design runs
 # (Volume 19, prompt 4): how many of the exercise's authored faulty versions the run's cases told apart,
 # as its report counted them; a run the judge didn't finish has no result.
-Checklist = Literal["drill", "whiteboard", "work_sample", "code_review", "test_design"]
+Checklist = Literal["drill", "whiteboard", "work_sample", "code_review", "test_design", "scenario"]
+# A scenario run's decisions are every step that asked something of the learner (not a page of
+# information, not the ending); its result is read only once it's finished and assessed.
+DECISIONS = ("choice", "written", "prioritize")
+QUALITIES = ("strong", "acceptable", "risky")
+SCENARIO_RULES = "the scenario's authored qualities"
 _FOUND: dict[str, str] = {
     "drill": "there",
     "whiteboard": "addressed",
@@ -90,12 +98,40 @@ def stored(kind: Checklist, row: Any) -> dict | None:
     """What an attempt's result is read from: its feedback, or a finished test-design run's report."""
     if kind == "test_design":
         return row.report if row.status == "done" else None
+    if kind == "scenario":
+        return scenario_result(row)
     return row.feedback
+
+
+def scenario_path(row: Any) -> tuple[str, ...]:
+    """The decisions a scenario run faced, in order: the path it took."""
+    return tuple(st["node_id"] for st in row.steps or [] if st.get("kind") in DECISIONS)
+
+
+def scenario_result(row: Any) -> dict | None:
+    """What a finished, assessed scenario run is set beside the one before by: how many of its choices
+    had each authored quality, how many of its orders broke a hard constraint, and the ending it
+    reached, as its steps recorded them. None for a run in progress or an exploration."""
+    if row.status != "completed" or row.mode != "assessed":
+        return None
+    steps = row.steps or []
+    choices = [st.get("quality") for st in steps if st.get("kind") == "choice"]
+    end: dict = next((st for st in steps if st.get("kind") == "ending"), {})
+    return {
+        "qualities": {q: choices.count(q) for q in QUALITIES},
+        "choices": len(choices),
+        "orders": sum(1 for st in steps if st.get("kind") == "prioritize"),
+        "broken": sum(1 for st in steps if st.get("kind") == "prioritize" and st.get("violations")),
+        "ending": end.get("outcome"),
+    }
 
 
 def checklist_result(kind: Checklist, feedback: dict | None) -> tuple[int, int] | None:
     """(points found, the item's points) as stored, or None when no result was stored."""
     fb = feedback or {}
+    if kind == "scenario":
+        # A result to set beside another; a scenario has no score, so (strong choices, choices).
+        return (int(fb["qualities"]["strong"]), int(fb["choices"])) if fb else None
     if kind == "test_design":
         total = int(fb.get("total") or 0)
         return (int(fb.get("caught") or 0), total) if total else None
@@ -115,6 +151,8 @@ def checklist_result(kind: Checklist, feedback: dict | None) -> tuple[int, int] 
 
 def checklist_text(kind: Checklist, feedback: dict | None) -> str:
     got = checklist_result(kind, feedback)
+    if kind == "scenario":
+        return scenario_text(feedback)
     if kind == "test_design":
         # In the words the run's list and History use (run_words).
         return (
@@ -126,6 +164,27 @@ def checklist_text(kind: Checklist, feedback: dict | None) -> str:
     return f"{got[0]} of {got[1]} {noun} {_FOUND[kind]}" if got else "No result stored"
 
 
+def scenario_text(result: dict | None) -> str:
+    """A scenario run's result in words: each authored quality its choices had, any order that broke a
+    hard constraint, and the ending it reached."""
+    if not result:
+        return "No result yet"
+    q = result["qualities"]
+    parts = []
+    if result["choices"]:
+        parts.append(f"{q['strong']} strong, {q['acceptable']} acceptable, {q['risky']} risky")
+    if result["orders"]:
+        broke = result["broken"]
+        parts.append(
+            "no order broke a hard constraint"
+            if not broke
+            else f"{broke} order{'' if broke == 1 else 's'} broke a hard constraint"
+        )
+    if result.get("ending"):
+        parts.append(f"ended: {result['ending']}")
+    return " · ".join(parts) or "Finished"
+
+
 _FIRST = {"drill": "drill", "whiteboard": "prompt", "work_sample": "brief", "code_review": "exercise"}
 # Why a test-design run has no result to compare (Volume 19, prompt 4), by its status.
 UNJUDGED_RUN = {
@@ -135,6 +194,10 @@ UNJUDGED_RUN = {
     "failed": "Not compared: the judge couldn't run it, so there's no result",
 }
 FIRST_TEST_DESIGN_RUN = "Not compared: the first judged run of this exercise"
+# Why a scenario run isn't compared (Volume 20, prompt 2), in the words its page and History use.
+EXPLORATION_RUN = 'Not compared: a "try another approach" run explores, so it isn\'t assessed'
+UNFINISHED_RUN = "Not compared: it isn't finished, so there's no result yet"
+FIRST_SCENARIO_RUN = "Not compared: the first finished run of this scenario"
 
 
 def not_compared(kind: Checklist, row: Any, compared: dict[str, Any]) -> str | None:
@@ -142,6 +205,12 @@ def not_compared(kind: Checklist, row: Any, compared: dict[str, Any]) -> str | N
     (Volume 16, prompt 6); None when it is."""
     if row.id in compared:
         return None
+    if kind == "scenario":
+        if row.mode != "assessed":
+            return EXPLORATION_RUN
+        if row.status != "completed":
+            return UNFINISHED_RUN
+        return FIRST_SCENARIO_RUN
     if kind == "test_design":
         if checklist_result(kind, stored(kind, row)) is None:
             return UNJUDGED_RUN.get(row.status, "Not compared: no result was stored")
@@ -154,6 +223,8 @@ def not_compared(kind: Checklist, row: Any, compared: dict[str, Any]) -> str | N
 def _item(kind: Checklist, row: Any) -> str:
     if kind in ("code_review", "test_design"):
         return str(row.exercise_slug)
+    if kind == "scenario":
+        return str(row.scenario_id)
     return row.drill_id if kind == "drill" else row.prompt_id if kind == "whiteboard" else row.brief_id
 
 
@@ -401,6 +472,8 @@ class AttemptComparisons:
             if kind == "code_review"
             else finder.for_test_design_runs(rows)
             if kind == "test_design"
+            else finder.for_scenarios(rows)
+            if kind == "scenario"
             else finder.for_work_samples(rows)
         )
         self.conditions.update(help)
@@ -424,6 +497,9 @@ class AttemptComparisons:
                 rules = fb.get("report_version")
                 track, version, rubric = "test_design", r.exercise_version, f"v{rules}" if rules else None
                 since = TEST_DESIGN_REVEALS_FROM.date()
+            elif kind == "scenario":
+                # The choices' qualities are authored with the scenario, versioned with it.
+                track, version, rubric = "scenario", r.version, SCENARIO_RULES
             else:
                 rules = fb.get("rules_version")
                 track, version, rubric = "work_sample", r.brief_version, f"v{rules}" if rules else None
@@ -433,12 +509,16 @@ class AttemptComparisons:
                 track=track,
                 question_id=_item(kind, r),
                 question_version=version,
-                scale=(f"0-{got[1]} faulty versions" if kind == "test_design" else f"0-{got[1]} points")
+                # A scenario has no score: its result is its choices' authored qualities, whatever the
+                # path, so one scale; the path decides what compares (comparability.classify).
+                scale=SCENARIO_RULES
+                if kind == "scenario"
+                else (f"0-{got[1]} faulty versions" if kind == "test_design" else f"0-{got[1]} points")
                 if got
                 else None,
                 rubric=rubric,
                 source="judge" if kind == "test_design" else "rules",
-                scoring="scored" if got else "not_judged",
+                scoring="scored" if (fb if kind == "scenario" else got) else "not_judged",
                 format="single",
                 help=None if labels is None or labels == ("Not recorded",) else labels,
                 # A test-design run's help is recorded from when showing the faulty versions was.
@@ -446,6 +526,7 @@ class AttemptComparisons:
                 if kind == "test_design" or r.id not in help
                 else help[r.id].recorded_from,
                 kind=kind,
+                path=scenario_path(r) if kind == "scenario" else None,
             )
         return out
 
@@ -495,6 +576,8 @@ class AttemptComparisons:
             if kind == "code_review"
             else TestDesignRun
             if kind == "test_design"
+            else ScenarioAttempt
+            if kind == "scenario"
             else WorkSampleAttempt
         )
         col = (
@@ -506,6 +589,8 @@ class AttemptComparisons:
             if kind == "code_review"
             else TestDesignRun.exercise_slug
             if kind == "test_design"
+            else ScenarioAttempt.scenario_id
+            if kind == "scenario"
             else WorkSampleAttempt.brief_id
         )
         if not items:

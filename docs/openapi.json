@@ -49264,6 +49264,29 @@
               }
             ],
             "description": "The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)"
+          },
+          "compared": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PracticeComparison"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Beside the previous finished, assessed run of this scenario, by the one comparison contract (Volume 20, prompt 2; docs/COMPARING_ATTEMPTS.md); null when it isn't compared"
+          },
+          "not_compared": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Not Compared",
+            "description": "Why it isn't compared, in the words History uses too; null when it is"
           }
         },
         "type": "object",

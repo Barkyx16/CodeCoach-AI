@@ -10,7 +10,7 @@ import { formatDateTime } from "@/lib/format";
  * Nothing here says one improved on the other. `previousHref`, where given, opens the earlier attempt
  * (a test-design run's report, Volume 19, prompt 4), so both can be read.
  */
-export function PracticeCompared({ compared, previousHref }: { compared: PracticeComparison; previousHref?: string }) {
+export function PracticeCompared({ compared, previousHref, previousLabel = "Open that run's report" }: { compared: PracticeComparison; previousHref?: string; previousLabel?: string }) {
   const prev = compared.previous;
   return (
     <section className="submission-compared stack-sm" aria-label="Compared with your previous attempt">
@@ -19,7 +19,7 @@ export function PracticeCompared({ compared, previousHref }: { compared: Practic
         <li>
           <span className="submission-compared__when">Earlier, <time dateTime={prev.created_at}>{formatDateTime(prev.created_at)}</time>:</span>{" "}
           {prev.result}
-          {previousHref && <> · <Link to={previousHref}>Open that run's report</Link></>}
+          {previousHref && <> · <Link to={previousHref}>{previousLabel}</Link></>}
         </li>
         <li><span className="submission-compared__when">This one:</span> {compared.result}</li>
       </ul>

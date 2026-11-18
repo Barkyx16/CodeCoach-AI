@@ -406,7 +406,22 @@ class Scenarios:
             updated_at=a.updated_at,
             completed_at=a.completed_at,
             conditions=self._conditions(a),
+            **self._compared(a),
         )
+
+    def _compared(self, a: ScenarioAttempt) -> dict:
+        """Beside the previous finished, assessed run of the same scenario by the one contract (Volume
+        20, prompt 2), or why it isn't: every run of it, so the earlier one is there."""
+        from app.services.attempt_comparisons import AttemptComparisons, not_compared
+
+        user = self.db.get(User, a.user_id)
+        if user is None:
+            return {}
+        comparisons = AttemptComparisons(self.db, user)
+        compared = comparisons.checklist_compared(
+            "scenario", comparisons.all_attempts("scenario", {a.scenario_id})
+        )
+        return {"compared": compared.get(a.id), "not_compared": not_compared("scenario", a, compared)}
 
     def _conditions(self, a: ScenarioAttempt) -> AttemptConditions | None:
         user = self.db.get(User, a.user_id)

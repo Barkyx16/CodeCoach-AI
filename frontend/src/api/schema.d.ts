@@ -14587,6 +14587,13 @@ export interface components {
             completed_at: string | null;
             /** @description The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md) */
             conditions?: components["schemas"]["AttemptConditions"] | null;
+            /** @description Beside the previous finished, assessed run of this scenario, by the one comparison contract (Volume 20, prompt 2; docs/COMPARING_ATTEMPTS.md); null when it isn't compared */
+            compared?: components["schemas"]["PracticeComparison"] | null;
+            /**
+             * Not Compared
+             * @description Why it isn't compared, in the words History uses too; null when it is
+             */
+            not_compared?: string | null;
         };
         /** ScenarioAttemptSummary */
         ScenarioAttemptSummary: {

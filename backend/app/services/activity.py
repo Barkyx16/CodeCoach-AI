@@ -182,7 +182,6 @@ GONE = {
     "test_design": "A test-design exercise that's no longer offered",
 }
 NOT_COMPARED = {
-    "scenario": "Not compared: scenario runs aren't compared with each other",
     "comparison": "Not compared: readings of sample answers aren't compared with each other yet",
 }
 # Where the content's careers come from: the attempt (a drill), the content (these), the coding
@@ -210,7 +209,8 @@ def _plural(n: int, one: str, many: str | None = None) -> str:
 
 def other_detail(kind: str, r: Any, outcome: str | None = None) -> str:
     """What its own page's list says of it, in the same words, then how it compares with the one
-    before (a code review's or a test-design run's, by the contract) or why it isn't compared."""
+    before (a code review's, a test-design run's or a scenario run's, by the contract) or why it isn't
+    compared."""
     if kind == "scenario":
         end = next((st for st in r.steps or [] if st.get("kind") == "ending"), None)
         said = (end or {}).get("outcome") if r.status == "completed" else None
@@ -774,9 +774,9 @@ class ActivityService:
                 self.db.scalars(select(model).where(*conds).order_by(model.created_at.desc()).limit(limit))
             )
             compared: dict[str, Any] = {}
-            # Only read for drills, whiteboards, work samples, code reviews and test-design runs.
+            # Only read for drills, whiteboards, work samples, code reviews, test-design and scenario runs.
             checklist = cast(Checklist, kind)
-            if type_ in PRACTICE or kind in ("code_review", "test_design"):
+            if type_ in PRACTICE or kind in ("code_review", "test_design", "scenario"):
                 comparisons = AttemptComparisons(self.db, user)
                 compared = comparisons.checklist_compared(
                     checklist, comparisons.all_attempts(checklist, {getattr(r, col.key) for r in rows})
@@ -804,7 +804,7 @@ class ActivityService:
                         else not_compared(checklist, r, compared)
                     )
                     detail = f"{checklist_text(checklist, r.feedback)} · {outcome}"
-                elif kind in ("code_review", "test_design"):
+                elif kind in ("code_review", "test_design", "scenario"):
                     detail = other_detail(
                         kind,
                         r,

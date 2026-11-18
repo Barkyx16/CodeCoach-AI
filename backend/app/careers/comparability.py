@@ -32,6 +32,14 @@ authored faulty versions the run's cases told apart, so they're checklists, and 
 repeats the report's caveat: the counts are of those authored versions only. No earlier
 classification changes, so the version stays.
 
+Scenario runs too (Volume 20, prompt 2): the scenario for the question, its version for the
+question's version (the choices' authored qualities are versioned with it), the authored qualities as
+the rules, and whether the run was finished and assessed (an exploration or a run in progress has no
+result to compare). Their result is the authored quality of each choice made, any order that broke a
+hard constraint, and the ending reached. Each run can take its own path, so the decisions each faced
+are a fact too: when they differ, the runs are partly comparable and only the decisions, not the
+counts, are set side by side. No earlier classification changes, so the version stays.
+
 The rules are versioned (``CONTRACT_VERSION``); every result says which version decided it, so an
 export keeps the classification it was made with. Pure: the facts are gathered elsewhere
 (app/services/comparisons_of_attempts.py), the decision is made only here.
@@ -48,7 +56,9 @@ CONTRACT_VERSION = 1
 Outcome = Literal["comparable", "partially_comparable", "incompatible", "unknown"]
 Format = Literal["single", "interview", "retry", "submit", "run"]
 Source = Literal["rules", "ai", "person", "judge"]
-Kind = Literal["written", "code", "drill", "whiteboard", "work_sample", "code_review", "test_design"]
+Kind = Literal[
+    "written", "code", "drill", "whiteboard", "work_sample", "code_review", "test_design", "scenario"
+]
 
 # Who graded it, by the recorded coach name: only names that are known. Anything else is unknown.
 SOURCES: dict[str, Source] = {"built-in (offline)": "rules"}
@@ -70,7 +80,10 @@ HELP_NONE = "No in-app help recorded"
 # review's are the exercise's authored defects, matched to its findings by fixed rules (Volume 18,
 # prompt 4). A test-design run's are the exercise's authored faulty versions, told apart or not by its
 # cases (Volume 19, prompt 4).
-CHECKLISTS: frozenset[str] = frozenset({"drill", "whiteboard", "work_sample", "code_review", "test_design"})
+# A scenario run's are the authored qualities of the choices it made (Volume 20, prompt 2).
+CHECKLISTS: frozenset[str] = frozenset(
+    {"drill", "whiteboard", "work_sample", "code_review", "test_design", "scenario"}
+)
 KIND_NOUN: dict[str, str] = {
     "written": "a written answer",
     "code": "code",
@@ -79,6 +92,7 @@ KIND_NOUN: dict[str, str] = {
     "work_sample": "a work sample",
     "code_review": "a code review",
     "test_design": "a test-design run",
+    "scenario": "a scenario run",
 }
 ITEM: dict[str, str] = {
     "drill": "drill",
@@ -86,9 +100,10 @@ ITEM: dict[str, str] = {
     "work_sample": "brief",
     "code_review": "exercise",
     "test_design": "exercise",
+    "scenario": "scenario",
 }
 # What changes with a checklist item's version, where it isn't the item's points.
-POINTS: dict[str, str] = {"test_design": "faulty versions"}
+POINTS: dict[str, str] = {"test_design": "faulty versions", "scenario": "decisions"}
 # Said with every test-design comparison, as its report says it (app/testdesign/report.py).
 TEST_DESIGN_CAVEAT = (
     "Both counts are of the faulty versions written for this exercise only, not of every possible defect."
@@ -117,11 +132,13 @@ class AttemptFacts:
     timed_minutes: int | None = None
     follow_up: str | None = None  # "answered" | "skipped": the interviewer's follow-up, part of the format
     kind: Kind = "written"
+    # A scenario run's decisions, in the order it faced them (Volume 20, prompt 2): the path it took.
+    path: tuple[str, ...] | None = None
 
 
 @dataclass(frozen=True)
 class Reason:
-    rule: str  # question | scale | source | rubric | question_version | scoring | format | help
+    rule: str  # question | scale | source | rubric | question_version | scoring | format | help | path
     kind: Literal["incompatible", "unknown", "partial_text", "partial_conditions"]
     text: str
 
@@ -259,6 +276,23 @@ def classify(a: AttemptFacts, b: AttemptFacts) -> Classification:
                 "compare what you wrote, not the numbers",
             )
         )
+    if (
+        a.kind == b.kind == "scenario"
+        and a.question_version == b.question_version
+        and a.path is not None
+        and b.path is not None
+        and a.path != b.path
+    ):
+        shared = len(set(a.path) & set(b.path))
+        reasons.append(
+            Reason(
+                "path",
+                "partial_text",
+                f"the runs took different paths: {shared} of the decisions were the same, of "
+                f"{len(a.path)} in the earlier run and {len(b.path)} in this one; set the decisions side "
+                "by side, not the counts",
+            )
+        )
     if "not_judged" in (a.scoring, b.scoring):
         done = "assessed" if checklist else "judged"
         which = (
@@ -346,6 +380,10 @@ _TEST_DESIGN_COMPARABLE = (
     "rules, with the same in-app help"
 )
 _TEST_DESIGN_SAME = ". The counts are of the same authored faulty versions, so both are shown"
+_SCENARIO_COMPARABLE = (
+    "Comparable: the same scenario and version, the same decisions faced, with the same in-app help"
+)
+_SCENARIO_SAME = ". The choices were the same decisions with the same authored qualities, so both are shown"
 
 
 def _result(
@@ -356,13 +394,21 @@ def _result(
         lead = _CODE_COMPARABLE
     elif outcome == "comparable" and kind == "test_design":
         lead = _TEST_DESIGN_COMPARABLE
+    elif outcome == "comparable" and kind == "scenario":
+        lead = _SCENARIO_COMPARABLE
     elif outcome == "comparable" and kind in CHECKLISTS:
         lead = _CHECKLIST_COMPARABLE.format(item=ITEM[kind])
     else:
         lead = _LEAD[outcome]
     text = f"{lead}: {body}" if body else lead
     if outcome == "partially_comparable" and scores:
-        text += _TEST_DESIGN_SAME if kind == "test_design" else _SAME_SCORES.get(kind, _SAME_CHECKS)
+        text += (
+            _TEST_DESIGN_SAME
+            if kind == "test_design"
+            else _SCENARIO_SAME
+            if kind == "scenario"
+            else _SAME_SCORES.get(kind, _SAME_CHECKS)
+        )
     caveat = f" {TEST_DESIGN_CAVEAT}" if kind == "test_design" else ""
     return Classification(
         outcome=outcome,

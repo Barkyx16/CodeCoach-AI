@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import Field
 
+from app.schemas.careers import PracticeComparison
 from app.schemas.common import APIModel
 from app.schemas.conditions import AttemptConditions
 from app.schemas.learn import ReferenceOut, ReviewOut
@@ -202,6 +203,14 @@ class ScenarioAttemptOut(APIModel):
     conditions: AttemptConditions | None = Field(
         default=None,
         description="The in-app help shown before this attempt (docs/ATTEMPT_CONDITIONS.md)",
+    )
+    compared: PracticeComparison | None = Field(
+        default=None,
+        description="Beside the previous finished, assessed run of this scenario, by the one comparison "
+        "contract (Volume 20, prompt 2; docs/COMPARING_ATTEMPTS.md); null when it isn't compared",
+    )
+    not_compared: str | None = Field(
+        default=None, description="Why it isn't compared, in the words History uses too; null when it is"
     )
 
 

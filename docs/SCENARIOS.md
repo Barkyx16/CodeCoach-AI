@@ -51,6 +51,12 @@ every attempt is bounded.
 5. Versioning: bump `version` when the graph or feedback changes meaning. Attempts on an older
    version stay readable (each step stores a snapshot of its text and feedback) but can't be
    continued; the learner starts the new version.
+6. Compared by the one contract (Volume 20, prompt 2; docs/COMPARING_ATTEMPTS.md, "Scenario runs"):
+   a finished, assessed run is set beside the previous one of the same scenario by its choices'
+   authored qualities, its orders that broke a hard constraint and its ending, and says when the
+   runs took different paths (then only the decisions compare) or a different version (not
+   comparable). A "try another approach" run and one in progress say why they aren't compared. A
+   change to a choice's quality changes what's compared, so it bumps `version`, as rule 5 says.
 
 ## Work queues
 
