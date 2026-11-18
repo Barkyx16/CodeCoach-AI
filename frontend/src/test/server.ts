@@ -159,6 +159,7 @@ export const handlers = [
     return HttpResponse.json(reviewFor((await res.json()) as Interview));
   }),
   http.get(`${API}/api/v1/me/reviews`, () => HttpResponse.json({ due: [], upcoming: [], ladder_days: [1, 3, 7, 14, 30], note: "" })),
+  http.get(`${API}/api/v1/me/reviews/removed`, () => HttpResponse.json([])),
   http.get(`${API}/api/v1/me/plan`, ({ request }) => HttpResponse.json(makePlan(Number(new URL(request.url).searchParams.get("minutes") ?? 15)))),
   http.get(`${API}/api/v1/me/goals`, () => HttpResponse.json(nurseGoals)),
   http.put(`${API}/api/v1/me/goals`, async ({ request }) => HttpResponse.json({ ...nurseGoals, ...((await request.json()) as object), saved: true })),

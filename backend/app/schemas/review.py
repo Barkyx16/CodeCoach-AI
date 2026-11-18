@@ -247,6 +247,21 @@ class ReviewQueueItem(APIModel):
     )
 
 
+class RemovedReviewItem(APIModel):
+    """A question taken out of the review queue that can be put back as it was (Volume 19, prompt 2)."""
+
+    id: str
+    track: str
+    career_title: str
+    question_id: str
+    title: str
+    href: str
+    removed_at: datetime | None = Field(
+        description="When it was removed; null for a removal from before this was kept"
+    )
+    points: list[str] = Field(description="The points it was saved for; empty for the whole answer")
+
+
 class ReviewQueue(APIModel):
     due: list[ReviewQueueItem]
     upcoming: list[ReviewQueueItem]

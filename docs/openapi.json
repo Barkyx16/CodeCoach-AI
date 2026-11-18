@@ -24268,6 +24268,46 @@
         }
       }
     },
+    "/api/v1/me/reviews/removed": {
+      "get": {
+        "tags": [
+          "plan"
+        ],
+        "summary": "Questions removed from the queue recently, to put back as they were (docs/DISPUTES.md)",
+        "operationId": "removed_reviews_api_v1_me_reviews_removed_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RemovedReviewItem"
+                  },
+                  "type": "array",
+                  "title": "Response Removed Reviews Api V1 Me Reviews Removed Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing, invalid, expired or revoked access token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/me/reviews/{item_id}/restore": {
       "post": {
         "tags": [
@@ -45531,6 +45571,68 @@
           "removed_at"
         ],
         "title": "RemovedPoint"
+      },
+      "RemovedReviewItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "track": {
+            "type": "string",
+            "title": "Track"
+          },
+          "career_title": {
+            "type": "string",
+            "title": "Career Title"
+          },
+          "question_id": {
+            "type": "string",
+            "title": "Question Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "href": {
+            "type": "string",
+            "title": "Href"
+          },
+          "removed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Removed At",
+            "description": "When it was removed; null for a removal from before this was kept"
+          },
+          "points": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Points",
+            "description": "The points it was saved for; empty for the whole answer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "track",
+          "career_title",
+          "question_id",
+          "title",
+          "href",
+          "removed_at",
+          "points"
+        ],
+        "title": "RemovedReviewItem",
+        "description": "A question taken out of the review queue that can be put back as it was (Volume 19, prompt 2)."
       },
       "RepeatedArea": {
         "properties": {

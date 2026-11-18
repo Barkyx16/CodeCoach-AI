@@ -25,18 +25,21 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime, timedelta
 from typing import NamedTuple
 
-from sqlalchemy import Select, func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import Select, exists, func, or_, select
+from sqlalchemy.orm import Session, aliased
 
 from app.careers import CATALOG
 from app.careers.questions import get_question
 from app.errors import AppError, ConflictError, NotFoundError
 from app.models import InterviewTurn, PracticeAnswer, PracticeSession, ReviewItem, User
-from app.schemas.review import RemovedPoint, ReviewAdd, ReviewQueue, ReviewQueueItem
+from app.schemas.review import RemovedPoint, RemovedReviewItem, ReviewAdd, ReviewQueue, ReviewQueueItem
 from app.services.disputes import OVERALL, Dispute, Disputes, count_words, covering, note, overall
 
 LADDER = (1, 3, 7, 14, 30)
 MAX_ACTIVE = 100
+# Recent removals listed to put back (Volume 19, prompt 2): the last 30 days, at most 20.
+REMOVED_DAYS = 30
+REMOVED_LIMIT = 20
 
 
 def _now() -> datetime:
@@ -213,8 +216,49 @@ class ReviewQueueService:
                 code="queue_full",
             )
         row.removed = False
+        row.removed_at = None
         self.db.commit()
         return self.queue(user)
+
+    def removed_recently(self, user: User) -> list[RemovedReviewItem]:
+        """Questions taken out of the queue that can be put back (Volume 19, prompt 2): removed in the
+        last REMOVED_DAYS days, newest first, then removals from before their time was kept, up to
+        REMOVED_LIMIT in all; one that was saved again since (it's in the queue as another item) isn't
+        listed. One statement."""
+        again = aliased(ReviewItem)
+        since = _now() - timedelta(days=REMOVED_DAYS)
+        rows = self.db.scalars(
+            select(ReviewItem)
+            .where(
+                ReviewItem.user_id == user.id,
+                ReviewItem.removed.is_(True),
+                or_(ReviewItem.removed_at >= since, ReviewItem.removed_at.is_(None)),
+                ~exists().where(
+                    again.user_id == user.id,
+                    again.track == ReviewItem.track,
+                    again.question_id == ReviewItem.question_id,
+                    again.removed.is_(False),
+                ),
+            )
+            .order_by(ReviewItem.removed_at.desc().nulls_last(), ReviewItem.created_at.desc())
+            .limit(REMOVED_LIMIT)
+        ).all()
+        out = []
+        for row in rows:
+            q = get_question(row.track, row.question_id)
+            out.append(
+                RemovedReviewItem(
+                    id=row.id,
+                    track=row.track,
+                    career_title=CATALOG[row.track].title if row.track in CATALOG else row.track,
+                    question_id=row.question_id,
+                    title=q.title if q else "A question that's no longer in the library",
+                    href=f"/careers/{row.track}/questions/{row.question_id}",
+                    removed_at=row.removed_at,
+                    points=saved_points(row),
+                )
+            )
+        return out
 
     def snooze(self, user: User, item_id: str, days: int) -> ReviewQueue:
         row = self._item(user, item_id)
@@ -226,6 +270,7 @@ class ReviewQueueService:
     def remove(self, user: User, item_id: str) -> ReviewQueue:
         row = self._item(user, item_id)
         row.removed = True
+        row.removed_at = _now()  # so it can be put back after a reload (Volume 19, prompt 2)
         self.db.commit()
         return self.queue(user)
 

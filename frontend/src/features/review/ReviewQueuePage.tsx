@@ -1,13 +1,13 @@
 import { ScheduleLink } from "@/features/schedule/ScheduleLink";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { api } from "@/api/endpoints";
-import { useReviewQueue, useReviewQueueMutation } from "@/api/queries";
-import type { ReviewQueueItem } from "@/api/types";
+import { useRemovedReviews, useReviewQueue, useReviewQueueMutation } from "@/api/queries";
+import type { RemovedReviewItem, ReviewQueueItem } from "@/api/types";
 import { Button } from "@/components/Button";
 import { EmptyState, ErrorState, InlineError, LoadingState } from "@/components/States";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, timeAgo } from "@/lib/format";
 
 import { RemovePoint, UndoRemoved } from "./RemovePoint";
 
@@ -59,7 +59,59 @@ export function ReviewQueuePage() {
         </>
       )}
       </Removed.Provider>
+      <RemovedRecently />
     </div>
+  );
+}
+
+/** Questions taken out of the queue in the last 30 days (Volume 19, prompt 2), so one can be put back
+ * after a reload, as it was: the page's own Undo lasts only while it's open. Collapsed by default. */
+function RemovedRecently() {
+  const list = useRemovedReviews();
+  const [open, setOpen] = useState(false);
+  const [said, setSaid] = useState("");
+  const toggle = useRef<HTMLButtonElement>(null);
+  const rows = list.data ?? [];
+  if (list.isPending || list.isError || (rows.length === 0 && !said)) return null;
+  return (
+    <section className="stack-sm removed-recently" aria-labelledby="removed-title">
+      <h2 className="section-title" id="removed-title">
+        <button type="button" ref={toggle} className="btn btn--ghost btn--sm" aria-expanded={open} aria-controls="removed-list"
+          onClick={() => setOpen((v) => !v)}>Removed recently ({rows.length})</button>
+      </h2>
+      <p className="subtle" role="status">{said}</p>
+      {open && (
+        <div id="removed-list" className="stack-sm">
+          {rows.length === 0 ? <p className="subtle">Nothing else was removed recently.</p> : (
+            <>
+              <p className="subtle">Put one back and it returns as it was: its ladder, its points and its history. Removals from the last 30 days are listed.</p>
+              <ul className="target-list" aria-label="Removed recently">
+                {rows.map((r) => <RemovedRow key={r.id} item={r} onBack={(title) => { setSaid(`“${title}” is back in your review queue, as it was.`); toggle.current?.focus(); }} />)}
+              </ul>
+            </>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function RemovedRow({ item, onBack }: { item: RemovedReviewItem; onBack(title: string): void }) {
+  const back = useReviewQueueMutation(() => api.restoreReview(item.id));
+  const when = item.removed_at ? `Removed ${timeAgo(item.removed_at)}` : "Removed earlier (date not recorded)";
+  return (
+    <li className="card stack-sm" aria-label={item.title}>
+      <div className="row queue-row__head">
+        <strong>{item.title}</strong>
+        <span className="subtle">{item.career_title}</span>
+      </div>
+      <p className="subtle">{when}{item.points.length ? ` · saved for ${item.points.map((p) => `“${p}”`).join(", ")}` : ""}</p>
+      <div className="row">
+        <Button size="sm" variant="secondary" loading={back.isPending} aria-label={`Put back: ${item.title}`}
+          onClick={() => back.mutate(undefined, { onSuccess: () => onBack(item.title) })}>Put back</Button>
+      </div>
+      <InlineError error={back.error} />
+    </li>
   );
 }
 

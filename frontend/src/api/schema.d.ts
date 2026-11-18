@@ -4642,6 +4642,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/reviews/removed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Questions removed from the queue recently, to put back as they were (docs/DISPUTES.md) */
+        get: operations["removed_reviews_api_v1_me_reviews_removed_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/me/reviews/{item_id}/restore": {
         parameters: {
             query?: never;
@@ -13089,6 +13106,34 @@ export interface components {
              * Format: date-time
              */
             removed_at: string;
+        };
+        /**
+         * RemovedReviewItem
+         * @description A question taken out of the review queue that can be put back as it was (Volume 19, prompt 2).
+         */
+        RemovedReviewItem: {
+            /** Id */
+            id: string;
+            /** Track */
+            track: string;
+            /** Career Title */
+            career_title: string;
+            /** Question Id */
+            question_id: string;
+            /** Title */
+            title: string;
+            /** Href */
+            href: string;
+            /**
+             * Removed At
+             * @description When it was removed; null for a removal from before this was kept
+             */
+            removed_at: string | null;
+            /**
+             * Points
+             * @description The points it was saved for; empty for the whole answer
+             */
+            points: string[];
         };
         /** RepeatedArea */
         RepeatedArea: {
@@ -34316,6 +34361,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    removed_reviews_api_v1_me_reviews_removed_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RemovedReviewItem"][];
+                };
+            };
+            /** @description Missing, invalid, expired or revoked access token */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
         };

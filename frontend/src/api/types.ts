@@ -127,6 +127,7 @@ export type ReviewEntry = S["ReviewItem"];
 export type Comparison = S["Comparison"];
 export type ReviewQueue = S["ReviewQueue"];
 export type ReviewQueueItem = S["ReviewQueueItem"];
+export type RemovedReviewItem = S["RemovedReviewItem"];
 
 export type ExploreResult = S["ExploreResult"];
 export type MyExploreResult = S["MyExploreResult"];

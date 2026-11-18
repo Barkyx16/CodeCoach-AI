@@ -927,6 +927,9 @@ class ReviewItem(Base):
     removed_points: Mapped[list[dict] | None] = mapped_column(JSONType, nullable=True)
     snoozed: Mapped[bool] = mapped_column(Boolean, default=False)
     removed: Mapped[bool] = mapped_column(Boolean, default=False)
+    # When it was taken out of the queue (Volume 19, prompt 2); null while it's in it, and for a
+    # removal from before this was kept.
+    removed_at: Mapped[datetime | None] = mapped_column(UTCDateTime(), nullable=True)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime(), default=utcnow)
 
 

@@ -193,6 +193,7 @@ def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict
             "last_score": ladder.last_score if ladder else q.last_score,
             "reviews": ladder.reviews if ladder else q.reviews,
             "removed": q.removed,
+            "removed_at": iso(q.removed_at) if q.removed_at else None,  # Volume 19, prompt 2
             "created_at": iso(q.created_at),
             "saved_for_point": q.criterion,
             # Every point it was saved for (Volume 16, prompt 5); [] for the whole answer.

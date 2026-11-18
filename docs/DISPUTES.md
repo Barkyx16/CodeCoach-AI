@@ -96,9 +96,22 @@ review queue. Its answers, scores and any disputes stay." with **Undo**, which p
 was. The Remove button goes with its row, so the keyboard's place moves to Undo. A refused Undo
 says why ("It's back in your review queue already: it was saved again.") and changes nothing; a
 second Undo of one already back changes nothing either (the restore answers with the queue as it
-is). The Undo lasts while the page is open; after a reload, saving the question again is the way
-back (its history is kept). Tests: `reviewQueueUndo.test.tsx` (3), the summary's Undo words in
-`reviewRecount.test.tsx`; negative controls 4, all caught.
+is). The Undo lasts while the page is open; after a reload, "Removed recently" (below) puts it back.
+Tests: `reviewQueueUndo.test.tsx` (3), the summary's Undo words in `reviewRecount.test.tsx`;
+negative controls 4, all caught.
+
+**Removed recently** (Volume 19, prompt 2). A removal now records when (`review_items.removed_at`,
+migration `d5e7a9c1f3b4`; items removed before that stay null), and the queue page has a collapsed
+**Removed recently (N)** section: each question removed in the last 30 days, newest first, then
+removals from before their time was kept ("Removed earlier (date not recorded)"), at most 20, each
+with when it was removed and the points it was saved for. **Put back** is the same restore as
+Undo: it returns as it was (ladder, points, history), the page says so ("“…” is back in your review
+queue, as it was.") and the keyboard's place stays on the section's button; a refusal is said in
+the server's words. A question saved again since isn't listed (it's in the queue as another item).
+`GET /me/reviews/removed` serves the list in one statement, owner only; the export carries each
+item's `removed_at`. Tests: `test_review_removed_recently.py` (7, SQLite and PostgreSQL),
+`reviewRemovedRecently.test.tsx` (3), `e2e/review-removed-recently.spec.ts` (remove, reload, put back
+against the real API; axe on the section in both themes; no sideways scroll).
 
 A removed point is kept in the item's history with its date (`review_items.removed_points`,
 `[{point, at}]`, migration `a8c2e4f6b195`; `removed_points` on the queue item: "“B” was removed on

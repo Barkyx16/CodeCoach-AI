@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.models import User
 from app.schemas.common import error_responses
-from app.schemas.review import ReviewAdd, ReviewQueue, SnoozeIn
+from app.schemas.review import RemovedReviewItem, ReviewAdd, ReviewQueue, SnoozeIn
 from app.schemas.roadmap import GoalsIn, GoalsOut, PlanItemOut, PlanOut, PlanUpdateIn
 from app.services.review_queue import ReviewQueueService
 from app.services.roadmap import Roadmap
@@ -167,6 +167,18 @@ def remove_review(
     item_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ) -> ReviewQueue:
     return ReviewQueueService(db).remove(user, item_id)
+
+
+@router.get(
+    "/reviews/removed",
+    response_model=list[RemovedReviewItem],
+    responses=error_responses(401),
+    summary="Questions removed from the queue recently, to put back as they were (docs/DISPUTES.md)",
+)
+def removed_reviews(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> list[RemovedReviewItem]:
+    return ReviewQueueService(db).removed_recently(user)
 
 
 @router.post(

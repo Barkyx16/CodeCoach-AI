@@ -437,6 +437,11 @@ export function useReviewQueue(enabled = true) {
   return useQuery({ queryKey: ["me", "review-queue"], queryFn: api.reviewQueue, enabled });
 }
 
+/** Questions removed from the queue recently, to put back (Volume 19, prompt 2). */
+export function useRemovedReviews(enabled = true) {
+  return useQuery({ queryKey: ["me", "review-removed"], queryFn: api.removedReviews, enabled });
+}
+
 export function useReviewQueueMutation<V>(fn: (vars: V) => Promise<ReviewQueue>) {
   const qc = useQueryClient();
   return useMutation({
@@ -444,6 +449,7 @@ export function useReviewQueueMutation<V>(fn: (vars: V) => Promise<ReviewQueue>)
     onSuccess: (q) => {
       qc.setQueryData(["me", "review-queue"], q);
       void qc.invalidateQueries({ queryKey: ["me", "interview-review"] });
+      void qc.invalidateQueries({ queryKey: ["me", "review-removed"] });
     },
   });
 }

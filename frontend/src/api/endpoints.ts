@@ -140,6 +140,7 @@ import type {
   ReflectionSummary,
   RegisterRequest,
   RelatedPractice,
+  RemovedReviewItem,
   ReportGroup,
   ReportInput,
   ReportStatusValue,
@@ -476,6 +477,7 @@ export const api = {
     apiRequest<ReviewQueue>(`/api/v1/me/reviews/${encodeURIComponent(id)}/snooze`, { method: "POST", body: { days } }),
   removeReview: (id: string) => apiRequest<ReviewQueue>(`/api/v1/me/reviews/${encodeURIComponent(id)}`, { method: "DELETE" }),
   /** Undo a removal: the question back in the queue as it was, its ladder and points (Volume 17, prompt 8). */
+  removedReviews: () => apiRequest<RemovedReviewItem[]>("/api/v1/me/reviews/removed"),
   restoreReview: (id: string) => apiRequest<ReviewQueue>(`/api/v1/me/reviews/${encodeURIComponent(id)}/restore`, { method: "POST" }),
   /** Take one point off a question saved for several (it stays, with its other points). */
   removeReviewPoint: (id: string, point: string) =>
