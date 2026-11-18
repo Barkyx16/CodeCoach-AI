@@ -118,7 +118,17 @@ jobs:
               c.execute(text("CREATE DATABASE codecoach_app_test OWNER codecoach_app"))
           PY
       - name: Tools for the storage and backup rehearsals (psql runs the role script; age encrypts backups)
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq age postgresql-client
+        # The PostgreSQL 16 client, as the backup image has it (backend/Dockerfile): the runner's own
+        # postgresql-client became 18 (CI run 363), whose backups of this 16 server could only be
+        # restored into 18 or newer, so backup-database refuses it (docs/BACKUP.md). From PostgreSQL's
+        # own apt repository, first on the PATH for the steps after this one.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq age postgresql-common
+          sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y
+          sudo apt-get install -y -qq postgresql-client-16
+          echo "/usr/lib/postgresql/16/bin" >> "$GITHUB_PATH"
+          /usr/lib/postgresql/16/bin/pg_dump --version
       - name: Tests (PostgreSQL, as that role, so row-level security is enforced)
         env:
           TEST_DATABASE_URL: postgresql+psycopg://codecoach_app:codecoach@localhost:5432/codecoach_app_test

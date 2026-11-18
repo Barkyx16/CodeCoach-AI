@@ -391,6 +391,7 @@ Compatibility matrix (each line is from the tools' own output):
 | This sandbox, 2026-11-08 (tools copied from the host into a sandbox-only image) | 16.15 | 16.15 (Ubuntu) | 1.1.1 | every step passes |
 | CI run 231 on `6d9911b` (the real stage, Debian's client) | 16 (postgres:16-alpine) | 17 | Debian's | **restore failed**: `SET transaction_timeout` |
 | CI run 233 on `a60edca` (the real stage, PGDG client pinned to 16) | 16 | 16 (exact-major check passed) | Debian's | steps 1–5 of that version of the rehearsal pass; steps 6–8 were added after it and run in CI with the next push |
+| CI run 363 on `3628e50` (the PostgreSQL tests job, the runner's own `postgresql-client`) | 16 (postgres:16-alpine) | 18 | — | **refused before writing anything**: "pg_dump 18 doesn't match the server's PostgreSQL 16"; five backup tests failed, as the check intends. The job now installs the 16 client from PostgreSQL's apt repository, as the image does |
 | Locally, PostgreSQL 17's own tools against our 16 | 16.15 | 17.11 | — | `pg_restore` 17 → 16 fails (`transaction_timeout`); `pg_restore` 16 can't read the 17 archive |
 
 The sandbox image is a stand-in: its tools were copied from this machine, because the package
