@@ -101,6 +101,19 @@ describe("Interview review", () => {
     expect(screen.getAllByRole("article")).toHaveLength(3);
   });
 
+  it("a question saved for review doesn't make the one beside it look saved (Volume 20, prompt 10)", async () => {
+    serve(roundReview);
+    server.use(http.post(`${API}/api/v1/me/reviews`, () => HttpResponse.json({ due: [], upcoming: [], ladder_days: [1, 3, 7, 14, 30], note: "" })));
+    const { user } = renderApp("/interviews/iv-r?item=q1", { signedIn: true });
+    expect(await screen.findByRole("heading", { name: "2. A hard shift" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Save for later review" }));
+    expect(await screen.findByText("In your review queue")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Previous" }));
+    expect(await screen.findByRole("heading", { level: 3, name: /^1\. / })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save for later review" })).toBeInTheDocument(); // not saved: it wasn't
+    expect(screen.queryByText("In your review queue")).toBeNull();
+  });
+
   it("links coding feedback to the exact code line", async () => {
     const coding = iv({ id: "iv-c", kind: "coding", track: null, career_title: null, problem: { slug: "two-sum", title: "Two Sum", difficulty: "easy" }, status: "completed" });
     serve({

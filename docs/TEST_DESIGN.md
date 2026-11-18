@@ -153,5 +153,6 @@ earlier runs stay as they were.
   still miss other defects.
 - The 200 seeded inputs make a hang or a reference crash unlikely within the limits; they don't
   prove there is none. The sandbox's time limit still bounds every run.
-- The real gVisor path is tested only in CI's sandbox job (no Docker here); locally, tests run the
-  same files with a local JDK.
+- The real gVisor path is tested in CI's sandbox job, and locally only where Docker, gVisor and the
+  sandbox image are installed (the sandbox tests skip otherwise); without them, tests run the same
+  files with a local JDK.

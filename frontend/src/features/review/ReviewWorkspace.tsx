@@ -221,7 +221,8 @@ function Review({ iv, r }: { iv: Interview; r: InterviewReview }) {
             ? items.map((i) => <Detail key={i.key} r={r} item={i} />)
             : selected && selectedKey !== "code" && (
               <>
-                <Detail r={r} item={selected} focusable />
+                {/* Keyed by the question: a save's state belongs to the question it was made on. */}
+                <Detail key={selected.key} r={r} item={selected} focusable />
                 <div className="row review__nav">
                   <Button size="sm" variant="ghost" disabled={at <= 0} onClick={() => select(items[at - 1]!.key)}>Previous</Button>
                   <span className="subtle">{at + 1} of {items.length}</span>

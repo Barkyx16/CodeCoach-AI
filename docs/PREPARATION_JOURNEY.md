@@ -559,6 +559,48 @@ revealed…" and History's row for it "… told apart 2 of 4 faulty versions · 
 comparable with the one before · In-app help: Solution revealed · Completed"; the five pages fitted
 at 412 and 360 px; axe found nothing on the four new sections; the canary not in the API's log.
 
+## Brought back and compared
+
+Volume 20, prompt 10. Prompts 1–3 changed what a backup brings back and what is compared or counted
+as seen; prompt 9 added an exercise. This proves them together for one learner on a desktop window
+and a phone (Chromium emulating a Pixel 7, 412 × 839) against the real API, with the test-design run
+judged in the real sandbox.
+
+- The journey: `frontend/e2e/brought-back-journey.spec.ts` (the desktop project, with a second,
+  phone-sized browser context for the same account), recorded with the shared helpers (`Recorder`,
+  a check line per step, each step's device).
+- Where it runs: CI's sandbox job, added to the step that already runs the judged journeys twice on
+  fresh accounts with the real judge (`E2E_JUDGE=1`, `--repeat-each=2`); its record is in the step's
+  `[journey-record]` lines and the `engineer-journey-record` artifact. No new job, no retries.
+  Without the real judge it skips, saying why.
+
+| # | Step | Device | What it checks |
+|---|---|---|---|
+| 1 | The judge is ready | | `/capabilities`: code execution on, the judge "ready" |
+| 2 | Two questions saved for review from a round's review | desktop | A two-question round answered (built-in coach); both saved with "Save for later review" in its review, "In your review queue" each time; through the API, the source account's queue holds both |
+| 3 | A backup file downloaded, then edited | desktop | "Download my data" gives a version 1 file with two `review_queue` records; edited, as a file could be, to claim step 4, 7 reviews and a score of 100 for each; the record names the edited file's sha256 |
+| 4 | Restored on a fresh account through the page | desktop | The preview offers "Questions saved for review, each starting afresh: 2 new" and says ladders, due dates, scores, review counts and points aren't restored; the restore batch's id; through the API, both on the first rung (1 day, 0 reviews, no score, first due a day from now): none of what the file claimed; axe on the preview in both themes |
+| 5 | The phone sees the two questions | phone | The phone's review queue lists both |
+| 6 | A scenario finished twice | phone | The first run's debrief says it's the first; the second's, beside it: "0 strong, 0 acceptable, 2 risky · ended: Escalation delayed (simulated)" and "This one: 2 strong, 0 acceptable, 0 risky · ended: Escalated promptly (simulated)", "Partly comparable: the runs took different paths…"; both runs' ids; axe on the comparison |
+| 7 | A sample-answer reading sent twice | desktop | The first: "No in-app help recorded"; the second: "Solution revealed: The explanation was shown with an earlier reading's result before this was sent", at the first reading's time to the microsecond; both readings' ids; axe on the conditions |
+| 8 | A run of the third test-design exercise judged for real | phone | The page says Count Pairs' review is owed; four cases (one note holding the canary) judged in the sandbox: "Your cases tell 4 of the 4 authored faulty versions apart from the reference.", the run's id, status, report version, the judge's words and its time, as the judge gave them |
+| 9 | The restore undone | phone | "Removed 2; kept 0 you'd changed since; 0 were already gone."; the batch removed; checked through the API, since the page shows only the batch: the review queue empty, and the two scenario runs, the two readings and the test-design run all still there |
+| 10 | Nothing typed reached the API's log | | The canary isn't in the access log; every page in the journey fitted at 412 and 360 px (the restore preview, the review queue, the second run's debrief, the second reading's result, the run's report, the restore page after the undo); axe found nothing on the three new sections in either theme |
+
+**Found on the way**: in an interview's review, one question at a time, the detail panel kept the
+"Save for later review" state of the question shown before it: after saving question 1, question 2
+said "In your review queue" though it wasn't. The panel is now keyed by the question
+(`ReviewWorkspace.tsx`); `review.test.tsx` checks the question beside a saved one still offers its
+own save.
+
+**Here, with the real judge in gVisor**, twice (`--repeat-each=2`): **10 of 10 steps, both times**,
+1.6 minutes for both. The runs' results as the judge gave them: `done`, told apart 4 of 4 faulty
+versions (report version 1), "Ran against the reference and every faulty version.", 4.1 s and 4.0 s
+from the request to the result. Negative controls, each caught by the journey: a ladder taken from
+the file (step 4: its interval and due date weren't the first rung's), the paths ignored by the comparison rule (step 6:
+no "took different paths"), and the showing with a result not recorded (step 7: no "Solution
+revealed"). Its CI record is added when the sandbox job has run it.
+
 ## Limits
 
 - The nurse's path: one career, a registered nurse. The coach-context step is absent for it (above);
