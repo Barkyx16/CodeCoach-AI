@@ -226,7 +226,8 @@ def check_hidden_tests_and_secrets(
     hidden: list[str] = []
     secrets: list[str] = []
     checked = unverifiable = requests = 0
-    settings = Settings(ai_daily_request_limit=1_000_000)
+    # As many requests as the check makes: its account isn't verified, so both allowances are raised.
+    settings = Settings(ai_daily_request_limit=1_000_000, ai_unverified_daily_request_limit=1_000_000)
     with _database() as db:
         user = User(email="contract-check@example.com", auth_provider_id="contract-check")
         db.add(user)
