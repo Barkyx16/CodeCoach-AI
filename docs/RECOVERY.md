@@ -463,7 +463,7 @@ was lost, the page had neither: retrying made a second guest (the first left unu
     would be: `200` with `X-Account-Resumed: register`. No second verification email. Without both,
     the usual `409 email_taken`.
 - **Never resumed:** another browser (its own anchor); a made-up value (an unknown hash; a short
-  one is ignored); no anchor; an anchor over an hour old; after a deliberate sign-out on this
+  one is ignored); no anchor; an anchor over 10 minutes old; after a deliberate sign-out on this
   browser (its intents are deleted, so even a cookie whose removal never arrived finds nothing);
   after sign-out everywhere; a guest that has since become a full account; a deleted account. A
   request id in page storage plays no part, and no email, guessed id or key grants anything.
@@ -478,11 +478,14 @@ was lost, the page had neither: retrying made a second guest (the first left unu
 - **Unchanged:** rate limits (the resend counts like any request), session rotation, the
   verification screens and their honest delivery status, the return path after sign-up, guest to
   account conversion, and guest retention. Nothing is merged or transferred by an email match.
-- **How long:** an intent lasts an hour from the create, and the daily housekeeping purges older
-  ones. The cookie lasts an hour from the last anchor request.
+- **How long:** an intent lasts 10 minutes from the create, and the daily housekeeping purges older
+  ones. The cookie lasts 10 minutes from the last anchor request. (An hour until the security pass
+  of 2026-11-21: resuming a guest needs nothing but the anchor, so the window is kept short, and
+  where cookies are Secure the cookie is `__Host-cc_create`, which no other site or plain-http page
+  can plant; docs/SECURITY.md, "Session cookies".)
 
 What this doesn't do: it makes **fewer** orphan guests, not none. A retry from another browser,
-with cookies blocked or cleared, or after an hour makes a new guest, and the earlier one, if
+with cookies blocked or cleared, or after 10 minutes makes a new guest, and the earlier one, if
 unused, goes with guest retention (30 days by default). Registration's `email_taken` answer
 already says that an address has an account; that public answer is unchanged here.
 

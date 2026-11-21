@@ -10,3 +10,15 @@ __pycache__
 tests
 .env.*
 e2e-outbox
+# Leftovers of local runs, never part of the image: test and demo databases (and their -wal/-shm),
+# e2e outboxes (verification codes and reset links), access logs and fingerprints, the file
+# outbox, suite timings and load-test results.
+**/*.db*
+e2e-*
+outbox
+.suite-measure.json
+suite-run.json
+scripts/results
+# The evaluation sets and harness: the app never reads them, and the sealed sets stay out of every
+# image (evals/sealed/ACCESS.md).
+evals

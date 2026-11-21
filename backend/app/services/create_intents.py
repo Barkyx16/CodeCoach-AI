@@ -32,7 +32,9 @@ from sqlalchemy.orm import Session
 from app.models import CreateIntent, User
 
 COOKIE_NAME = "cc_create"
-CREATE_INTENT_MINUTES = 60
+# Long enough for a retry after a lost reply or a second tab; short, since resuming a guest needs
+# nothing but this browser's anchor (docs/SECURITY.md, "Session cookies").
+CREATE_INTENT_MINUTES = 10
 _MIN_LEN = 32
 
 

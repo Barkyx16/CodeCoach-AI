@@ -130,9 +130,17 @@ def confirm_reset(db: Session, raw: str, new_password: str) -> None:
     user.password_hash = hash_password(new_password)
     user.token_version += 1  # every existing access token stops working
     refresh_tokens.revoke_all(db, user)  # and every refresh cookie
+    cancel_links(db, user, now)
+    db.commit()
+
+
+def cancel_links(db: Session, user: User, now: datetime | None = None) -> None:
+    """Every reset link of this account not yet used stops working. Doesn't commit. Called when a
+    reset is used, the password is changed in Settings, or the person signs out everywhere: whoever
+    may have got hold of a link (a shared or forwarded inbox) is locked out with everyone else."""
     db.execute(
         update(PasswordResetToken)
         .where(PasswordResetToken.user_id == user.id, PasswordResetToken.used_at.is_(None))
-        .values(used_at=now)
+        .values(used_at=now or datetime.now(UTC))
+        .execution_options(synchronize_session=False)
     )
-    db.commit()

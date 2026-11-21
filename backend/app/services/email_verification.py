@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from app.config import Settings
 from app.errors import AppError, ConflictError
-from app.models import EmailJob, EmailVerificationToken, User
+from app.models import EmailJob, EmailVerificationToken, PasswordResetToken, User
 from app.services.email import Email, EmailSender
 
 logger = logging.getLogger("codecoach.email_verification")
@@ -228,6 +228,13 @@ def _complete(db: Session, user: User, address: str, now: datetime) -> Confirmed
         previous, previous_verified = user.email, user.email_verified_at is not None
         user.email, user.email_verified_at = address, now
         user.pending_email = user.pending_email_at = None
+        # Reset links already sent to the old address mustn't outlive the change.
+        db.execute(
+            update(PasswordResetToken)
+            .where(PasswordResetToken.user_id == user.id, PasswordResetToken.used_at.is_(None))
+            .values(used_at=now)
+            .execution_options(synchronize_session=False)
+        )
         try:
             db.commit()
         except IntegrityError:

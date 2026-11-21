@@ -58,8 +58,9 @@ export interface paths {
         put?: never;
         /**
          * Before starting a guest session or registering: tie the request to this browser
-         * @description Sets an HttpOnly, SameSite=Strict cookie (`cc_create`, an hour) that page scripts can't read.
-         *     A browser that already has a valid one keeps its value (renewed for another hour), so a retry
+         * @description Sets an HttpOnly, SameSite=Strict cookie (`cc_create`, `__Host-cc_create` where cookies are
+         *     Secure; 10 minutes) that page scripts can't read.
+         *     A browser that already has a valid one keeps its value (renewed for another 10 minutes), so a retry
          *     carries the same value. A guest start or registration records it with the account it makes, so
          *     the same request sent again after a lost reply finds that account instead of making another
          *     (docs/RECOVERY.md). It grants nothing by itself and reveals nothing; without it, those requests
@@ -17688,9 +17689,7 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: {
-                cc_create?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -17701,15 +17700,6 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
         };
     };
     register_api_v1_auth_register_post: {
@@ -17717,9 +17707,7 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: {
-                cc_create?: string | null;
-            };
+            cookie?: never;
         };
         requestBody: {
             content: {
@@ -17839,9 +17827,7 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: {
-                cc_create?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: {
             content: {
@@ -17965,9 +17951,7 @@ export interface operations {
                 "x-refresh-attempt"?: string | null;
             };
             path?: never;
-            cookie?: {
-                cc_refresh?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {
@@ -18573,10 +18557,7 @@ export interface operations {
             query?: never;
             header?: never;
             path?: never;
-            cookie?: {
-                cc_refresh?: string | null;
-                cc_create?: string | null;
-            };
+            cookie?: never;
         };
         requestBody?: never;
         responses: {

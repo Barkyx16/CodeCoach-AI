@@ -56,39 +56,11 @@
           "auth"
         ],
         "summary": "Before starting a guest session or registering: tie the request to this browser",
-        "description": "Sets an HttpOnly, SameSite=Strict cookie (`cc_create`, an hour) that page scripts can't read.\nA browser that already has a valid one keeps its value (renewed for another hour), so a retry\ncarries the same value. A guest start or registration records it with the account it makes, so\nthe same request sent again after a lost reply finds that account instead of making another\n(docs/RECOVERY.md). It grants nothing by itself and reveals nothing; without it, those requests\nbehave as before.",
+        "description": "Sets an HttpOnly, SameSite=Strict cookie (`cc_create`, `__Host-cc_create` where cookies are\nSecure; 10 minutes) that page scripts can't read.\nA browser that already has a valid one keeps its value (renewed for another 10 minutes), so a retry\ncarries the same value. A guest start or registration records it with the account it makes, so\nthe same request sent again after a lost reply finds that account instead of making another\n(docs/RECOVERY.md). It grants nothing by itself and reveals nothing; without it, those requests\nbehave as before.",
         "operationId": "create_anchor_api_v1_auth_create_anchor_post",
-        "parameters": [
-          {
-            "name": "cc_create",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Cc Create"
-            }
-          }
-        ],
         "responses": {
           "204": {
             "description": "Successful Response"
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
         }
       }
@@ -100,33 +72,15 @@
         ],
         "summary": "Create an account and get an access token",
         "operationId": "register_api_v1_auth_register_post",
-        "parameters": [
-          {
-            "name": "cc_create",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Cc Create"
-            }
-          }
-        ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/RegisterRequest"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "201": {
@@ -261,24 +215,6 @@
         "summary": "Start a demo session without an account",
         "description": "With this browser's anchor (`POST /auth/create-anchor`), a start whose reply was lost and is\nsent again resumes the guest it made (200, `X-Account-Resumed: guest`) instead of making\nanother; so do two tabs starting at once. Without one, every start is a new guest, as before.",
         "operationId": "guest_api_v1_auth_guest_post",
-        "parameters": [
-          {
-            "name": "cc_create",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Cc Create"
-            }
-          }
-        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -467,22 +403,6 @@
               "title": "X-Refresh-Attempt"
             },
             "description": "A random key (22-64 URL-safe characters) the app keeps for this refresh attempt until it learns the outcome. If the response is lost, presenting the same cookie with the same key shortly afterwards returns the same new session instead of ending it."
-          },
-          {
-            "name": "cc_refresh",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Cc Refresh"
-            }
           }
         ],
         "responses": {
@@ -1217,45 +1137,6 @@
         ],
         "summary": "Sign out of this device (ends this session's refresh cookie)",
         "operationId": "logout_api_v1_auth_logout_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "cc_refresh",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Cc Refresh"
-            }
-          },
-          {
-            "name": "cc_create",
-            "in": "cookie",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Cc Create"
-            }
-          }
-        ],
         "responses": {
           "204": {
             "description": "Successful Response"
@@ -1300,7 +1181,12 @@
               }
             }
           }
-        }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/api/v1/auth/logout-all": {

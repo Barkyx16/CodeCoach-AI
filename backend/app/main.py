@@ -257,6 +257,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         description=API_DESCRIPTION,
         openapi_tags=TAGS,
         lifespan=lifespan,
+        # The interactive pages load their scripts from a CDN: off in production unless asked for.
+        docs_url="/docs" if settings.api_docs else None,
+        redoc_url="/redoc" if settings.api_docs else None,
     )
     app.state.settings = settings
     app.state.engine = engine

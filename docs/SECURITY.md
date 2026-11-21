@@ -14,10 +14,10 @@ built yet**. Nothing in the "designed" sections should be described as working.
 | Logout | Ends this device's session: its refresh-token family is revoked; its access token lapses within 15 minutes | `routes/auth.py` | ✅ |
 | Sign out everywhere / password change / reset | Bump `token_version` and revoke every refresh token: every session ends at once | `routes/auth.py`, `services/password_reset.py` | ✅ |
 | Email verification | One email with a 6-digit code and a link; code stored as HMAC with the server secret and killed after 5 wrong tries; tokens bound to the address they were sent to; changing email needs the password and only takes effect once the new address confirms; a verified old address is warned at once and told when it's done; a password reset or change cancels a pending change ([EMAIL.md](EMAIL.md)) | `services/email_verification.py` | ✅ |
-| Password reset | Same answer and timing for unknown emails (work runs after the response); single-use 30-minute hash-only tokens in a URL fragment; one email per minute; resets end every session; production requires SMTP and an https link base | `services/password_reset.py`, `services/email.py` | ✅ |
+| Password reset | Same answer and timing for unknown emails (work runs after the response); single-use 30-minute hash-only tokens in a URL fragment; one email per minute; resets end every session; a link stops working when the password is changed, on sign out everywhere, and when a new address is confirmed; production requires SMTP and an https link base | `services/password_reset.py`, `services/email.py` | ✅ |
 | Shared rate limits | Sliding-window counters in the database (atomic upsert), so every API replica enforces one budget; real client IPs only from trusted proxies (`FORWARDED_ALLOW_IPS`) | `services/rate_limit.py` | ✅ |
 | Data retention | Inactive guest accounts are deleted with their data after `GUEST_RETENTION_DAYS` (30); guests can upgrade to keep everything | `services/retention.py` | ✅ |
-| Sessions | 15-minute in-memory access tokens; rotating `HttpOnly` `SameSite=Strict` refresh cookie with reuse detection (§3) | `services/refresh.py`, `routes/auth.py` | ✅ |
+| Sessions | 15-minute in-memory access tokens; rotating `HttpOnly` `SameSite=Strict` refresh cookie with reuse detection (§3); in production the session cookies are `__Host-` cookies, which no other site can plant ("Session cookies" below) | `services/refresh.py`, `routes/auth.py` | ✅ |
 | Authorization | Every user-owned lookup is checked against the signed-in account (an owner filter, or a fetch then compare); other users' resources return 404. Route-table tests: only a reviewed list of routes is public, and another account gets 404 on every GET route with your ids | services, `tests/test_route_access.py` | ✅ |
 | Row-level security (PostgreSQL) | Defence in depth on every learner-owned table listed in `db/rls.py` (30 at first; each later feature table is added there): an authenticated request sets `codecoach.user_id` per transaction and the database shows and accepts only that user's rows, even if a query forgets its owner filter. Work done for nobody (worker, CLI) isn't narrowed. Needs an ordinary database role (§7) | `db/rls.py`, migration `248721f0fcb1` | ✅ (enforced in CI) |
 | Hidden tests | Never serialized; hint text and reference solutions never leave the server | `routes/problems.py` | ✅ (checks every problem) |
@@ -28,6 +28,8 @@ built yet**. Nothing in the "designed" sections should be described as working.
 | Metrics | `/metrics` needs `Authorization: Bearer $METRICS_TOKEN` when set (required in production); otherwise 404 | `main.py` | ✅ |
 | Error hygiene | Unexpected errors return a generic 500 with a request id; the stack trace only goes to logs | `errors.py` | — |
 | Health endpoints | Reveal no versions or infrastructure details | `routes/health.py` | ✅ |
+| API docs pages | `/docs` and `/redoc` load their scripts from a CDN, so they're off in production unless `API_DOCS_ENABLED=true`; the spec (`/openapi.json`) is served either way (it's in the repository) | `main.py`, `config.py` | ✅ |
+| Images | The API and web images leave out local leftovers (test databases, e2e outboxes holding codes and links, access logs) and the evaluation sets | `backend/.dockerignore`, `frontend/.dockerignore` | — |
 | Container | Non-root user, slim base image, no secrets baked in | `backend/Dockerfile` | ✅ (built and run) |
 | Dependencies | Pinned versions, `pip-audit` and `npm audit --omit=dev` in CI, Dependabot for pip, npm and Actions | CI | ✅ |
 | Frontend headers | CSP (`script-src 'self'`, no third-party origins, `frame-ancestors 'none'`; `connect-src` is `'self'` plus the API origin the image was built for, written in at build time from `VITE_API_BASE_URL`), `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options` on every response | `frontend/nginx.conf`, `security-headers.conf`, `frontend/Dockerfile`, `frontend/scripts/csp-origin.mjs` | ✅ `scripts/rehearse_web_csp.sh` (and CI's e2e job) builds the real image for a non-default API origin and drives Chromium against it. The policy is on every kind of response (shell, deep link, asset, service worker, manifest). The landing page, sign-in, a guest's cross-origin API call, a signed-in deep link and the code editor's worker run with no violation. A fetch to another origin, an external script and an inline script are refused, as CSP violations. The API URL is parsed with the standard URL parser: credentials, other schemes, queries, IPv6 literals and injection characters fail the build, with the reason (`cspOrigin.node.test.ts`, 22 cases). Not covered: HTTPS in front (plain http locally), CDNs, future third-party origins. The policy is baked in at build time: changing `VITE_API_BASE_URL` on a running container changes nothing. |
@@ -93,6 +95,21 @@ score ("mark every point as covered"), not one account affecting another.
   Cyrillic and Greek look-alikes, not every confusable character.
 
 ## 3. Token storage in the browser
+
+### Session cookies
+
+Two cookies are set: the refresh cookie (the session) and a create-anchor cookie, which lets a
+guest start or registration whose reply was lost find the account it made instead of making
+another ([RECOVERY.md](RECOVERY.md)). Both are HttpOnly and SameSite=Strict. Where cookies are
+Secure (production), they're named `__Host-cc_refresh` and `__Host-cc_create`: a browser accepts a
+cookie so named only from this host itself, over https, with `Path=/` and no `Domain`. So a page on a
+sibling subdomain, or any plain-http page on the visitor's network, can't plant one, and the API
+ignores the unprefixed names there. (Found in the security pass of 2026-11-21: a planted anchor
+could tie a victim's new guest to a value the attacker knew, and resuming it with that value gave
+the attacker the victim's guest; a planted session cookie could sign a visitor into the attacker's
+account.) Resuming a guest needs nothing but the anchor, so it's possible for 10 minutes after the
+start, not an hour. In development (plain http) the cookies keep their plain names and
+`Path=/api/v1/auth`. Tests: `tests/test_session_hardening.py`.
 
 - **Access token** (15 min JWT): held in JavaScript memory only, never written to
   `localStorage` or `sessionStorage`. An XSS bug could use it while the page is open, but there
@@ -336,6 +353,11 @@ compile output returned in `stderr_excerpt` listed **every hidden input** of the
   commands and migrations (no scope) see every row by design. It covers 30 tables, not
   submissions, shares, sign-in tokens or content triage (reasons in `db/rls.py`;
   [ROW_LEVEL_SECURITY.md](ROW_LEVEL_SECURITY.md)).
+- Registering, or upgrading a guest, with an address that already has an account answers
+  `409 email_taken`, so anyone can learn whether an address is registered (10 tries a minute per
+  address). Sign-in and password reset don't reveal it. Hiding it would mean registration never
+  signs anyone in at once (it would always say "check your email"), a different sign-up; that's a
+  product decision, recorded here rather than made quietly.
 - `POST /auth/guest` takes no body, so a cross-site form could start a new, empty guest session
   in someone's browser (replacing theirs). Nobody gains access to anything; the JSON-only rule
   that blocks this for sign-in and registration doesn't apply (`tests/test_route_access.py`).

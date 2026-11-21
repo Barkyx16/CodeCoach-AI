@@ -132,6 +132,9 @@ class Settings(BaseSettings):
     refresh_token_ttl_days: int = Field(default=30, ge=1, le=90)
     # Secure cookies need HTTPS. Unset means: secure in production, not in development/tests.
     refresh_cookie_secure: bool | None = None
+    # The interactive API pages (/docs, /redoc), which load Swagger UI and ReDoc from a CDN. Blank: on
+    # except in production. The spec (/openapi.json) is served either way; it's in the repository.
+    api_docs_enabled: bool | None = None
     allow_guest_sessions: bool = True
     # Guest sessions one client address may start in a rolling day (IPv6 by /64): each is a fresh
     # account with its own AI allowance and stored data, so they can't be made without end.
@@ -385,6 +388,12 @@ class Settings(BaseSettings):
     @property
     def runner_token_value(self) -> str:
         return self.runner_token.get_secret_value() if self.runner_token else ""
+
+    @property
+    def api_docs(self) -> bool:
+        if self.api_docs_enabled is not None:
+            return self.api_docs_enabled
+        return self.environment != "production"
 
     @property
     def cookie_secure(self) -> bool:

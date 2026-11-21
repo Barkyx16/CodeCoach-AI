@@ -44,6 +44,22 @@ from app.models import RefreshToken, User, new_id
 
 COOKIE_NAME = "cc_refresh"
 COOKIE_PATH = "/api/v1/auth"
+
+
+def cookie_name(settings: Settings, base: str = COOKIE_NAME) -> str:
+    """A session cookie's name. Where cookies are Secure (production), `__Host-`: a browser only
+    accepts a cookie so named from this host itself, over https, with Path=/ and no Domain, so a
+    sibling subdomain or a plain-http page can't plant one (a planted sign-in or create-anchor
+    cookie would put someone in another person's account; docs/SECURITY.md, "Session cookies")."""
+    return f"__Host-{base}" if settings.cookie_secure else base
+
+
+def cookie_path(settings: Settings) -> str:
+    """`__Host-` cookies must have Path=/; otherwise they're only sent to the auth endpoints. Either
+    way they're HttpOnly and SameSite=Strict, and the API reads them on the auth endpoints only."""
+    return "/" if settings.cookie_secure else COOKIE_PATH
+
+
 RACE_GRACE = timedelta(seconds=30)
 # How long after a rotation its lost response can still be recovered with the same attempt key.
 # Long enough for a reload or a brief network drop; after it, a replay is treated as reuse.

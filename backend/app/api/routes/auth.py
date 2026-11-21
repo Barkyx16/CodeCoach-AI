@@ -1,7 +1,7 @@
 import hashlib
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Header, Request, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, Request, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -108,6 +108,16 @@ def _send_email(
     )
 
 
+def refresh_cookie(request: Request, settings: Settings = Depends(get_settings_dep)) -> str | None:
+    """This browser's refresh cookie, by the name this deployment gives it (`refresh_tokens.cookie_name`)."""
+    return request.cookies.get(refresh_tokens.cookie_name(settings))
+
+
+def anchor_cookie(request: Request, settings: Settings = Depends(get_settings_dep)) -> str | None:
+    """This browser's create-anchor cookie, by the name this deployment gives it."""
+    return request.cookies.get(refresh_tokens.cookie_name(settings, create_intents.COOKIE_NAME))
+
+
 def _token_response(user: User, settings: Settings) -> TokenResponse:
     token, expires = issue_access_token(
         settings.signing_key,
@@ -120,10 +130,10 @@ def _token_response(user: User, settings: Settings) -> TokenResponse:
 
 def _set_refresh_cookie(response: Response, raw: str, settings: Settings) -> None:
     response.set_cookie(
-        refresh_tokens.COOKIE_NAME,
+        refresh_tokens.cookie_name(settings),
         raw,
         max_age=settings.refresh_token_ttl_days * 86400,
-        path=refresh_tokens.COOKIE_PATH,  # only ever sent to the auth endpoints
+        path=refresh_tokens.cookie_path(settings),
         httponly=True,  # page scripts can't read it
         secure=settings.cookie_secure,
         samesite="strict",  # never sent on cross-site requests
@@ -132,8 +142,8 @@ def _set_refresh_cookie(response: Response, raw: str, settings: Settings) -> Non
 
 def _clear_refresh_cookie(response: Response, settings: Settings) -> None:
     response.delete_cookie(
-        refresh_tokens.COOKIE_NAME,
-        path=refresh_tokens.COOKIE_PATH,
+        refresh_tokens.cookie_name(settings),
+        path=refresh_tokens.cookie_path(settings),
         httponly=True,
         secure=settings.cookie_secure,
         samesite="strict",
@@ -150,10 +160,10 @@ def _start_session(db: Session, user: User, response: Response, settings: Settin
 
 def _set_anchor_cookie(response: Response, anchor: str, settings: Settings) -> None:
     response.set_cookie(
-        create_intents.COOKIE_NAME,
+        refresh_tokens.cookie_name(settings, create_intents.COOKIE_NAME),
         anchor,
         max_age=create_intents.CREATE_INTENT_MINUTES * 60,
-        path=refresh_tokens.COOKIE_PATH,  # only ever sent to the auth endpoints
+        path=refresh_tokens.cookie_path(settings),
         httponly=True,
         secure=settings.cookie_secure,
         samesite="strict",
@@ -168,10 +178,11 @@ def _set_anchor_cookie(response: Response, anchor: str, settings: Settings) -> N
 def create_anchor(
     response: Response,
     settings: Settings = Depends(get_settings_dep),
-    cc_create: str | None = Cookie(default=None),
+    cc_create: str | None = Depends(anchor_cookie),
 ) -> None:
-    """Sets an HttpOnly, SameSite=Strict cookie (`cc_create`, an hour) that page scripts can't read.
-    A browser that already has a valid one keeps its value (renewed for another hour), so a retry
+    """Sets an HttpOnly, SameSite=Strict cookie (`cc_create`, `__Host-cc_create` where cookies are
+    Secure; 10 minutes) that page scripts can't read.
+    A browser that already has a valid one keeps its value (renewed for another 10 minutes), so a retry
     carries the same value. A guest start or registration records it with the account it makes, so
     the same request sent again after a lost reply finds that account instead of making another
     (docs/RECOVERY.md). It grants nothing by itself and reveals nothing; without it, those requests
@@ -196,7 +207,7 @@ def register(
     background: BackgroundTasks,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
-    cc_create: str | None = Cookie(default=None),
+    cc_create: str | None = Depends(anchor_cookie),
 ) -> TokenResponse:
     _throttle(request)
     email = body.email.lower()
@@ -284,7 +295,7 @@ def guest(
     body: GuestSessionRequest | None = None,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
-    cc_create: str | None = Cookie(default=None),
+    cc_create: str | None = Depends(anchor_cookie),
 ) -> TokenResponse:
     """With this browser's anchor (`POST /auth/create-anchor`), a start whose reply was lost and is
     sent again resumes the guest it made (200, `X-Account-Resumed: guest`) instead of making
@@ -373,7 +384,7 @@ def refresh(
     response: Response,
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
-    cc_refresh: str | None = Cookie(default=None),
+    cc_refresh: str | None = Depends(refresh_cookie),
     x_requested_with: str | None = Header(default=None),
     x_refresh_attempt: str | None = Header(
         default=None,
@@ -652,8 +663,8 @@ def logout(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings_dep),
-    cc_refresh: str | None = Cookie(default=None),
-    cc_create: str | None = Cookie(default=None),
+    cc_refresh: str | None = Depends(refresh_cookie),
+    cc_create: str | None = Depends(anchor_cookie),
 ) -> None:
     row = refresh_tokens.find(db, cc_refresh)
     if row is not None and row.user_id == user.id:
@@ -664,8 +675,8 @@ def logout(
     # The access token in this tab is discarded by the client and expires within 15 minutes.
     _clear_refresh_cookie(response, settings)
     response.delete_cookie(
-        create_intents.COOKIE_NAME,
-        path=refresh_tokens.COOKIE_PATH,
+        refresh_tokens.cookie_name(settings, create_intents.COOKIE_NAME),
+        path=refresh_tokens.cookie_path(settings),
         httponly=True,
         secure=settings.cookie_secure,
         samesite="strict",
@@ -687,6 +698,7 @@ def logout_all(
     user.token_version += 1  # every access and refresh token issued so far stops working
     refresh_tokens.revoke_all(db, user)
     create_intents.forget_user(db, user.id)  # no browser resumes this account's creation either
+    password_reset.cancel_links(db, user)  # nor does a reset link sent earlier
     db.commit()
     _clear_refresh_cookie(response, settings)
 
@@ -712,6 +724,8 @@ def change_password(
     # A pending change of address may have been asked for by whoever had the old password; its
     # emailed link works signed out, so ending their session alone wouldn't stop it.
     email_verification.drop_pending(db, user)
+    # Likewise a reset link sent earlier: it would set a password without the one just chosen.
+    password_reset.cancel_links(db, user)
     user.token_version += 1  # other sessions end
     refresh_tokens.revoke_all(db, user)
     db.commit()
