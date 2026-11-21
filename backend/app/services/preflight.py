@@ -324,7 +324,9 @@ def _capability_checks(s: Settings) -> list[Check]:
             Check(
                 "AI coach",
                 UNVERIFIED,
-                "AI_PROVIDER=anthropic with a key present; not called (a paid request). Ask for one hint after launch",
+                "AI_PROVIDER=anthropic with a key present; not called (a paid request). Paid calls for the whole"
+                f" site are capped at {s.ai_app_daily_paid_call_limit} a rolling day (AI_APP_DAILY_PAID_CALL_LIMIT)."
+                " Ask for one hint after launch, and set a spending limit in the provider's console too",
             )
         )
     if not s.execution_enabled:

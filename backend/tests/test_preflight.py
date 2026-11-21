@@ -145,3 +145,18 @@ def test_the_cli_exits_1_when_anything_is_blocked(client, monkeypatch, capsys):
         get_settings.cache_clear()
     out = capsys.readouterr().out
     assert "BLOCKED" in out and "Not launch-ready while anything is blocked." in out
+
+
+def test_with_claude_on_it_names_the_sites_daily_ceiling_on_paid_calls(make_settings, client):
+    """Paid AI is never "ready" from here (no paid call is made), and the reason names the ceiling
+    on what the whole site can spend in a day (docs/SECURITY.md, "AI spending")."""
+    s = make_settings(
+        environment="development",
+        ai_provider="anthropic",
+        anthropic_api_key="sk-ant-test-0000000000000000",
+        ai_app_daily_paid_call_limit=75,
+    )
+    status, reason = by_area(run_preflight(s, engine=client.app.state.engine))["AI coach"]
+    assert status == UNVERIFIED
+    assert "capped at 75 a rolling day" in reason and "AI_APP_DAILY_PAID_CALL_LIMIT" in reason
+    assert "sk-ant-test" not in reason

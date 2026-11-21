@@ -83,9 +83,11 @@ says to use the owner.
 - **Real behaviour, not a recording.** Every answer a visitor writes is graded by the same grader as
   in the product. Interviews, resume and progress are the product's own. The only prepared content
   is the four labelled example answers.
-- **Costs and abuse.** These are the product's existing limits: guest sessions 10 per minute per
-  address, AI requests 50 per visitor per day, submissions 6 per minute and 2 pending per visitor.
-  The demo configuration uses the built-in coach and no judge, so no paid service is called.
+- **Costs and abuse.** These are the product's existing limits: guest sessions 10 per minute and
+  20 a day per address (`GUEST_SESSIONS_PER_DAY`), AI requests 10 per guest per day, submissions 6
+  per minute and 2 pending per visitor. The demo configuration uses the built-in coach and no
+  judge, so no paid service is called; with a paid AI provider, `AI_APP_DAILY_PAID_CALL_LIMIT`
+  caps what the whole demo can spend in a day ([SECURITY.md](SECURITY.md), "AI spending").
 
 ## Evidence
 
@@ -124,6 +126,7 @@ says to use the owner.
 - **No judge or AI provider here.** The demo shows the unavailable states those produce. With a
   Linux sandbox or an AI key, the same pages show the real ones.
 - **No CAPTCHA, and no global cap on guest sessions.** A public demo relies on the per-address
-  limit and the daily guest clean-up.
+  limits (per minute and per day) and the daily guest clean-up; many addresses can still make many
+  guests, which costs storage until the clean-up, not AI spend past the deployment's ceiling.
 - **The sample learners are two careers out of 110.** A visitor can still pick any career from the
   ordinary guest start.
