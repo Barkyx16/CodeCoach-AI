@@ -82,7 +82,8 @@ def test_the_demo_env_example_filled_in_passes_the_production_checks():
         "cors_origins": ["https://demo.example"],
         "metrics_token": PRODUCTION_BASE["metrics_token"],
         "environment": "production",  # the compose file sets it
-        "database_url": "postgresql+psycopg://codecoach_app:Tq83-unique-db-password@db:5432/codecoach_demo",
+        # The fixture's synthetic production URL, pointed at a demo database.
+        "database_url": PRODUCTION_BASE["database_url"].rsplit("/", 1)[0] + "/codecoach_demo",
     }
     s = Settings(**filled)
     assert (s.demo_mode, s.ai_provider, s.execution_enabled, s.guest_retention_days) == (
