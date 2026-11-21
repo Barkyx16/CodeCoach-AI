@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import uuid
 from collections import Counter
 from dataclasses import dataclass, field
@@ -67,6 +68,7 @@ from app.models import (
     SourceReview,
     TargetRequirement,
     User,
+    new_id,
 )
 from app.schemas.applications import ApplicationCreate, ApplicationEventIn
 from app.schemas.kit_templates import MAX_TEMPLATE_ITEMS, KitTemplateCreate
@@ -813,7 +815,7 @@ class Restore:
             "recurrence": recurrence,
             "done_at": _when(row.get("done_at")) if recurrence == "once" else None,
             "archived_at": _when(row.get("archived_at")),
-            "practice": row.get("practice") if isinstance(row.get("practice"), str) else None,
+            "practice": _practice_link(row.get("practice"), interview),
             "source": {
                 "label": _s(src.get("improvement"))[:200] or title,
                 "why": _s(src.get("feedback"))[:2000],
@@ -840,8 +842,6 @@ class Restore:
         from app.services.schedule import Schedule
 
         uid = self.user.id
-        # Its own id, unless something else has it (then a new one: nothing about the other is said).
-        aid = item["id"] if self.db.get(AcceptedAction, item["id"]) is None else None
         mine = set(
             self.db.scalars(
                 select(TargetRequirement.id)
@@ -849,8 +849,12 @@ class Restore:
                 .where(RoleTarget.user_id == uid, TargetRequirement.id.in_(list(item["reuse"]) or [""]))
             )
         )
-        a = AcceptedAction(
-            **({"id": aid} if aid else {}),
+        # Its own id, unless something else has it, even a row this account can't see (then a new one:
+        # nothing about the other is said, and the restore doesn't fail on it).
+        a = _insert_keeping_id(
+            self.db,
+            AcceptedAction,
+            item["id"],
             user_id=uid,
             source_kind="interview_improvement",
             source_id=item["interview"],
@@ -864,13 +868,10 @@ class Restore:
             archived_at=item["archived_at"],
             requirement_reuse={k: v for k, v in item["reuse"].items() if k in mine} or None,
         )
-        self.db.add(a)
-        self.db.flush()
         schedule = Schedule(self.db, self.user)
         made: list[ScheduleEntry] = []
         for o in item["occurrences"]:
             e = ScheduleEntry(
-                **({"id": o["id"]} if self.db.get(ScheduleEntry, o["id"]) is None else {}),
                 user_id=uid,
                 uid=f"{uuid.uuid4()}@codecoach",
                 kind="accepted_action",
@@ -886,9 +887,7 @@ class Restore:
                 schedule._apply_time(e, o["on_date"], o["all_day"], o["local_time"], o["timezone"], None)
             except AppError:
                 schedule._apply_time(e, o["on_date"], True, None, None, None)  # a time it can't read: all day
-            self.db.add(e)
-            made.append(e)
-        self.db.flush()
+            made.append(_add_keeping_id(self.db, e, o["id"]))
         return "accepted_action", a.id, action_full(a, made)
 
     def _check_collections(self, row: dict, plan: _Plan, data: dict) -> dict | str:
@@ -1645,3 +1644,42 @@ class Restore:
             }
             for b in self.db.scalars(select(ImportBatch).where(ImportBatch.user_id == self.user.id))
         ]
+
+
+_PRACTICE_RETRY = re.compile(r"^/interviews/([0-9a-f-]{36})/retry/(\d{1,3})$")
+_PRACTICE_PROBLEM = re.compile(r"^/problems(/[a-z0-9-]{1,100})?$")
+
+
+def _practice_link(value: Any, interview: str | None) -> str | None:
+    """An improvement's practice link from a file, kept only in a form this app makes itself: a
+    retry of its own interview's question, or a coding problem (or the problem list). Anything else
+    (another site, a `javascript:` URL, a path elsewhere in the app) is dropped: the link is shown
+    as a button, on the schedule and in kits."""
+    if not isinstance(value, str):
+        return None
+    if (m := _PRACTICE_RETRY.match(value)) and m.group(1) == interview:
+        return value
+    return value if _PRACTICE_PROBLEM.match(value) else None
+
+
+def _insert_keeping_id(db: Session, model: Any, rid: Any, **fields: Any) -> Any:
+    """A new row with the file's id when it's free, else with a new one. "Free" is decided by the
+    insert, not by a read: under row-level security another account's row with that id is invisible
+    to a read, and the insert would fail the whole restore on it (and so say the id exists)."""
+    return _add_keeping_id(db, model(**fields), rid)
+
+
+def _add_keeping_id(db: Session, row: Any, rid: Any) -> Any:
+    if isinstance(rid, str) and rid:
+        try:
+            with db.begin_nested():
+                row.id = rid
+                db.add(row)
+                db.flush()
+            return row
+        except IntegrityError:
+            # The savepoint is rolled back and the row expunged (transient again): a new id.
+            row.id = new_id()
+    db.add(row)
+    db.flush()
+    return row

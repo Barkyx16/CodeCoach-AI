@@ -138,6 +138,14 @@ describe("Improvements you accepted, beside the plan", () => {
     expect(await screen.findByRole("region", { name: "Improvements you accepted (0)" })).toHaveTextContent("Done (1)");
   });
 
+  it("a practice link that isn't a page in this app gets no button (a crafted backup file)", async () => {
+    servePlan([action({ practice_href: "javascript:alert(document.domain)" }), action({ id: "act-2", title: "Another", practice_href: "//evil.example" })]);
+    renderApp("/plan", { signedIn: true });
+    const section = await screen.findByRole("region", { name: "Improvements you accepted (2)" }, { timeout: 3000 });
+    expect(within(section).queryByRole("link", { name: "Retry “A hard shift”" })).toBeNull();
+    expect(section.querySelector('a[href^="javascript:"], a[href^="//"]')).toBeNull();
+  });
+
   it("a weekly action's weeks are done one at a time", async () => {
     const weekly = action({ recurrence: "weekly", occurrences: [occurrence("o1", "2026-11-16"), occurrence("o2", "2026-11-23"), occurrence("o3", "2026-11-30")] });
     servePlan([weekly]);

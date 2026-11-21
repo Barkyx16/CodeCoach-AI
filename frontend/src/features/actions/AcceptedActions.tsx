@@ -16,6 +16,7 @@ import { formatDay } from "@/features/applications/dates";
 import { ImpactPreview } from "@/features/lifecycle/ImpactPreview";
 import { savedVersion } from "@/lib/conflict";
 import { useRequestKey } from "@/lib/requestKey";
+import { appPath } from "@/lib/links";
 
 /**
  * Improvements you accepted (docs/ACCEPTED_ACTIONS.md), shown beside the plan, not inside it: the
@@ -134,7 +135,7 @@ function ActionCard({ a, onOutcome }: { a: AcceptedAction; onOutcome: (message: 
         </ul>
       )}
       <span className="row">
-        {a.practice_href && <Link className="btn btn--secondary btn--sm" to={a.practice_href}>{a.practice_label ?? "Practise it"}</Link>}
+        {appPath(a.practice_href) && <Link className="btn btn--secondary btn--sm" to={appPath(a.practice_href)!}>{a.practice_label ?? "Practise it"}</Link>}
         {!weekly && (
           <Button size="sm" loading={busy} aria-label={`${a.status === "done" ? "Mark not done" : "Mark done"}: ${a.title}`}
             onClick={() => void run(() => api.setActionDone(a.id, a.status !== "done"))}>
