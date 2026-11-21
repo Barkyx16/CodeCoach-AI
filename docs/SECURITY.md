@@ -368,6 +368,34 @@ compile output returned in `stderr_excerpt` listed **every hidden input** of the
   dev-only tool that runs on our own spec file at build time and never ships to browsers.
   Production dependencies audit clean, and CI enforces that with `npm audit --omit=dev`.
 
+## 5a. Security pass of 2026-11-21
+
+Asked for: nobody can take a learner's data or spend the owner's AI budget. Two independent
+reviews ran against the code, with probes outside the repository, alongside a review of AI spending;
+each finding was reproduced before it was fixed, and each fix has a test that fails without it.
+
+| Area | Found | Done |
+|---|---|---|
+| AI spending | Per-account budgets only; anyone can make guests or accounts, so nothing bounded the paid provider's bill | One ceiling for the deployment, a smaller allowance for guests and unverified emails, a daily cap on guest sessions per address ("AI spending" above; `tests/test_ai_spending.py`) |
+| Session cookies | A planted create-anchor cookie could take over a new guest, or sign a visitor into another account | `__Host-` cookies where Secure; a 10-minute resume window ("Session cookies" above; `tests/test_session_hardening.py`) |
+| Password reset | A reset link outlived a password change, sign out everywhere, and a change of address | All three end every unused link |
+| Images | The API image copied e2e outboxes (codes and links), access logs, test databases and the evaluation sets | Left out by the `.dockerignore` files |
+| API docs pages | `/docs` and `/redoc` load scripts from a CDN, in production too | Off in production unless asked for |
+| Restore | Under row-level security, another account's action id failed the whole restore (and so said it exists); a file could set any string as a practice link | The insert decides an id; only links the app makes are kept (`tests/test_restore_hardening.py`) |
+| Route coverage | The cross-account write walk skipped 36 routes silently | Each is called with real ids, and a new unwalked route fails the walk (`tests/test_route_access_writes.py`) |
+| Registration | Says whether an address has an account (`409 email_taken`) | Recorded as a known gap (§5): hiding it means a different sign-up |
+
+Checked and found sound, among others: every renderer of model output, shared answers and partner
+feedback (no raw HTML, no images from outside, links checked); the CSP; tokens kept in memory and
+nothing private in browser storage or the service worker's cache; logs, traces and error bodies;
+admin rights (CLI only) and fields a request can't set; JWT algorithm pinning; refresh-token
+reuse; ids in request bodies across collections, packets, schedule, shares, notes, stories, kits and
+search; request keys per account; share links (256-bit, hashed, revoked or expired links refused).
+Not covered: a real PostgreSQL run of every probe (row-level security was emulated for one, then the
+fix tested on PostgreSQL), HTTPS and the proxy in front (outside this repository), concurrency, and
+attacks nobody has written yet. None of this is a promise that data can't leak: it's what was
+checked, how, and what changed.
+
 ## 6. Reporting
 
 Please report vulnerabilities privately to the repository owner rather than opening a public issue.
