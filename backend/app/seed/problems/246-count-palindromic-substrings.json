@@ -1,0 +1,111 @@
+{
+  "order": 246,
+  "slug": "count-palindromic-substrings",
+  "title": "Count Palindromic Substrings",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "dynamic-programming",
+    "two-pointers"
+  ],
+  "summary": "How many substrings read the same backwards?",
+  "statement": "Return how many substrings of `s` are palindromes. Substrings at different positions count separately,\neven if they're equal.",
+  "constraints": [
+    "1 <= s.length <= 1000",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"abc\"",
+      "output": "3"
+    },
+    {
+      "input": "s = \"aaa\"",
+      "output": "6"
+    },
+    {
+      "input": "s = \"a\"",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "countSubstrings",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int countSubstrings(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Every palindrome has a center.",
+    "Expand around each of the `2n - 1` centers (single characters and gaps between them) while the ends match.",
+    "count = 0\nfor center in 0..2n-2:\n    l, r = center // 2, center // 2 + center % 2\n    while l >= 0 and r < n and s[l] == s[r]:\n        count += 1; l -= 1; r += 1\nreturn count",
+    "Each expansion step finds one new palindrome: O(n^2) time, O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "abc"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aaa"
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a"
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abba"
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aabbbabbbb"
+      },
+      "expected_output": 24,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "b"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bababba"
+      },
+      "expected_output": 13,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abbbaaaaab"
+      },
+      "expected_output": 25,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

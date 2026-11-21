@@ -9,6 +9,9 @@
 `judge` Submits reference solutions as many separate users at once and measures, per submission,
         the time from POST to final verdict (queue wait + sandbox), plus overall throughput.
 
+Every `api` client is a new guest from this machine's address: raise GUEST_SESSIONS_PER_DAY (and
+AUTH_RATE_LIMIT_PER_MINUTE) on the server under test, or the daily guest cap per address answers 429.
+
 Results are written as JSON next to this script (results/). Numbers depend entirely on the
 hardware and configuration, which are recorded alongside them.
 """

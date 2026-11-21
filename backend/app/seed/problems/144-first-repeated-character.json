@@ -1,0 +1,110 @@
+{
+  "order": 144,
+  "slug": "first-repeated-character",
+  "title": "First Repeated Character",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "hash-sets"
+  ],
+  "summary": "Find the first character whose second appearance comes earliest.",
+  "statement": "Return the first character in `s` that appears for the second time (the repeat that happens\nearliest while reading left to right). If no character repeats, return an empty string.",
+  "constraints": [
+    "1 <= s.length <= 10^4",
+    "lower-case English letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"abccbaacz\"",
+      "output": "\"c\""
+    },
+    {
+      "input": "s = \"abcd\"",
+      "output": "\"\""
+    },
+    {
+      "input": "s = \"abba\"",
+      "output": "\"b\""
+    }
+  ],
+  "signature": {
+    "method": "firstRepeated",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String firstRepeated(String s) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Read left to right and remember what you've seen.",
+    "The first character that's already in your set is the answer.",
+    "seen = set()\nfor c in s:\n    if c in seen: return c\n    seen.add(c)\nreturn ''",
+    "Stop at the first repeat: O(n) time, O(1) space (at most 26 letters). Note the answer is the earliest *second* occurrence, so for \"abba\" it's \"b\"."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "abccbaacz"
+      },
+      "expected_output": "c",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abcd"
+      },
+      "expected_output": "",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abba"
+      },
+      "expected_output": "b",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "zz"
+      },
+      "expected_output": "z",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "cdbb"
+      },
+      "expected_output": "b",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "hh"
+      },
+      "expected_output": "h",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "fcd"
+      },
+      "expected_output": "",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "gdfeefh"
+      },
+      "expected_output": "e",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

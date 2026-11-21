@@ -31,6 +31,11 @@ class RunnerSettings(BaseSettings):
     output_limit_bytes: int = Field(default=64 * 1024, ge=1024, le=4 * 1024 * 1024)
     max_source_bytes: int = Field(default=64 * 1024, ge=1024)
 
+    # Compile and run one trivial program before accepting work. The first sandbox start after
+    # boot is much slower (cold image, page cache, JVM), and because time limits are wall-clock,
+    # skipping this can hand the first learner a wrong TIME_LIMIT for correct code.
+    warmup_on_start: bool = True
+
     @model_validator(mode="after")
     def _runtime_guard(self) -> "RunnerSettings":
         if self.sandbox_runtime != "runsc" and not self.allow_insecure_runtime:

@@ -1,0 +1,143 @@
+{
+  "order": 183,
+  "slug": "baseball-scores",
+  "title": "Baseball Score Keeper",
+  "difficulty": "easy",
+  "topics": [
+    "stacks",
+    "simulation"
+  ],
+  "summary": "Apply scoring operations and total the record.",
+  "statement": "Each operation in `ops` is one of: an integer (record that score), `\"+\"` (record the sum of the\nprevious two scores), `\"D\"` (record double the previous score), or `\"C\"` (remove the previous\nscore). All operations are valid. Return the sum of the remaining scores.",
+  "constraints": [
+    "1 <= ops.length <= 1000"
+  ],
+  "examples": [
+    {
+      "input": "ops = [\"5\", \"2\", \"C\", \"D\", \"+\"]",
+      "output": "30",
+      "explanation": "Record 5, 2; cancel 2; double 5 \u2192 10; 5+10 \u2192 15. Total 30."
+    },
+    {
+      "input": "ops = [\"5\", \"-2\", \"4\", \"C\", \"D\", \"9\", \"+\", \"+\"]",
+      "output": "27"
+    },
+    {
+      "input": "ops = [\"1\", \"C\"]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "calPoints",
+    "params": [
+      {
+        "name": "ops",
+        "type": "String[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int calPoints(String[] ops) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Every operation looks at or changes the most recent scores.",
+    "A stack fits: push numbers, pop for C, peek for D and +.",
+    "stack = []\nfor op in ops:\n    if op == 'C': stack.pop()\n    elif op == 'D': stack.append(2 * stack[-1])\n    elif op == '+': stack.append(stack[-1] + stack[-2])\n    else: stack.append(int(op))\nreturn sum(stack)",
+    "Each operation is O(1) on the stack, so O(n) overall."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "ops": [
+          "5",
+          "2",
+          "C",
+          "D",
+          "+"
+        ]
+      },
+      "expected_output": 30,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "ops": [
+          "5",
+          "-2",
+          "4",
+          "C",
+          "D",
+          "9",
+          "+",
+          "+"
+        ]
+      },
+      "expected_output": 27,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "ops": [
+          "1",
+          "C"
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "ops": [
+          "7",
+          "-4",
+          "D",
+          "D",
+          "-2",
+          "D"
+        ]
+      },
+      "expected_output": -27,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "ops": [
+          "8",
+          "8",
+          "+",
+          "-3",
+          "-5",
+          "3",
+          "-4"
+        ]
+      },
+      "expected_output": 23,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "ops": [
+          "6",
+          "4",
+          "9"
+        ]
+      },
+      "expected_output": 19,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "ops": [
+          "5",
+          "-4"
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

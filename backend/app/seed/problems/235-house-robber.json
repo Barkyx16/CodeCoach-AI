@@ -1,0 +1,173 @@
+{
+  "order": 235,
+  "slug": "house-robber",
+  "title": "House Robber",
+  "difficulty": "medium",
+  "topics": [
+    "dynamic-programming"
+  ],
+  "summary": "Maximize loot without robbing two neighboring houses.",
+  "statement": "`nums[i]` is the money in house `i` along a street. You can't rob two adjacent houses. Return the\nmost money you can rob.",
+  "constraints": [
+    "1 <= nums.length <= 100",
+    "0 <= nums[i] <= 400"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 2, 3, 1]",
+      "output": "4"
+    },
+    {
+      "input": "nums = [2, 7, 9, 3, 1]",
+      "output": "12"
+    },
+    {
+      "input": "nums = [5]",
+      "output": "5"
+    }
+  ],
+  "signature": {
+    "method": "rob",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int rob(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "For each house, you either rob it or skip it.",
+    "best(i) = max(best(i-1), best(i-2) + nums[i]). Only the last two values are needed.",
+    "prev, cur = 0, 0\nfor x in nums:\n    prev, cur = cur, max(cur, prev + x)\nreturn cur",
+    "Linear DP with two variables: O(n) time, O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          1
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          7,
+          9,
+          3,
+          1
+        ]
+      },
+      "expected_output": 12,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          5
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          1,
+          1,
+          2
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          26,
+          0,
+          17,
+          10,
+          13,
+          29,
+          6,
+          16,
+          14,
+          9
+        ]
+      },
+      "expected_output": 97,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          17,
+          21,
+          27,
+          21,
+          27,
+          30,
+          6,
+          14,
+          19,
+          23
+        ]
+      },
+      "expected_output": 112,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          21,
+          26,
+          1,
+          17,
+          1,
+          20,
+          23,
+          5,
+          16
+        ]
+      },
+      "expected_output": 82,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          7,
+          1,
+          3,
+          2,
+          23,
+          5,
+          4,
+          3,
+          20,
+          19,
+          25,
+          6
+        ]
+      },
+      "expected_output": 82,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

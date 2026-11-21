@@ -5,6 +5,8 @@ held. Marked `sandbox`; skipped automatically where gVisor isn't installed. CI r
 dedicated job that installs gVisor.
 """
 
+import platform
+
 import pytest
 
 from app.sandbox import DockerSandbox
@@ -59,9 +61,19 @@ def test_happy_path_and_nonce_delivery(sandbox):
 
 
 def test_runs_inside_gvisor_as_nobody(sandbox):
+    """The code must see gVisor's user-space kernel, not the host's, and run as `nobody`.
+
+    gVisor's reported kernel version differs between releases (some say "4.19.0-gvisor", others
+    "4.4.0"), so the check is that it is NOT the host kernel: with plain runc the container
+    shares the host kernel and reports the same release.
+    """
     res = run(sandbox, 'return System.getProperty("os.version") + "|" + System.getProperty("user.name");')
-    assert result_line(res) == "RESULT=4.19.0-gvisor|nobody" or (
-        "gvisor" in result_line(res) and "nobody" in result_line(res)
+    line = result_line(res)
+    assert line.startswith("RESULT="), res
+    guest_kernel, _, user = line.removeprefix("RESULT=").partition("|")
+    assert user == "nobody"
+    assert guest_kernel and guest_kernel != platform.release(), (
+        f"sandbox reports the host kernel {guest_kernel!r}: not running under gVisor"
     )
 
 

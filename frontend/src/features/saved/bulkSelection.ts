@@ -1,0 +1,50 @@
+import { useCallback, useMemo, useState } from "react";
+
+import type { BatchResult, ReviewResult, TransferResult } from "@/api/types";
+
+/** The selection and outcome rules behind the bulk actions (docs/BULK_ACTIONS.md); see bulk.tsx. A
+ * batch's size limit is the server's, read with useLimit("items_per_batch"). */
+
+export function useSelection(keys: string[]) {
+  const [picked, setPicked] = useState<Set<string>>(() => new Set());
+  const shown = useMemo(() => new Set(keys), [keys]);
+  // Only what's still on screen counts.
+  const selected = useMemo(() => keys.filter((k) => picked.has(k)), [keys, picked]);
+  const toggle = useCallback((key: string, on: boolean) => {
+    setPicked((now) => {
+      const next = new Set(now);
+      if (on) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+  }, []);
+  const setAll = useCallback((on: boolean) => setPicked(on ? new Set(shown) : new Set()), [shown]);
+  const keep = useCallback((only: string[]) => setPicked(new Set(only)), []);
+  return { selected, isSelected: (k: string) => picked.has(k) && shown.has(k), toggle, setAll, keep, all: keys.length > 0 && selected.length === keys.length };
+}
+
+/** An outcome of any bulk action: adding, removing, marking reviewed, copying or moving. */
+export type BulkResult = BatchResult | ReviewResult | TransferResult;
+
+const OUTCOME: Record<BulkResult["outcome"], { label: string; done: boolean }> = {
+  added: { label: "Added", done: true },
+  already_there: { label: "Already there", done: true },
+  removed: { label: "Removed", done: true },
+  not_there: { label: "Wasn't there", done: true },
+  repeated: { label: "Listed twice", done: true },
+  unavailable: { label: "Not available", done: false },
+  full: { label: "Didn't fit", done: false },
+  // Marking reviewed (Volume 15, prompt 6): by the same rule as one at a time.
+  reviewed: { label: "Marked reviewed", done: true },
+  already_reviewed: { label: "Already reviewed", done: true },
+  not_versioned: { label: "No versions to review", done: true },
+  newer_since: { label: "Still asks: a newer version", done: false },
+  invalid_version: { label: "Version not found", done: false },
+  // Copying or moving to another collection (Volume 17, prompt 6): each item as it was.
+  copied: { label: "Copied", done: true },
+  moved: { label: "Moved", done: true },
+};
+
+export const isDone = (r: BulkResult) => OUTCOME[r.outcome].done;
+
+export const outcomeLabel = (r: BulkResult) => OUTCOME[r.outcome].label;

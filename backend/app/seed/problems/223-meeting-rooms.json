@@ -1,0 +1,235 @@
+{
+  "order": 223,
+  "slug": "meeting-rooms",
+  "title": "Meeting Rooms Needed",
+  "difficulty": "medium",
+  "topics": [
+    "intervals",
+    "heaps",
+    "sorting"
+  ],
+  "summary": "Minimum rooms so no two overlapping meetings share one.",
+  "statement": "Each meeting is `[start, end)`: it frees its room at `end`, so a meeting ending at 10 and one starting\nat 10 can share a room. Return the minimum number of rooms needed for all meetings.",
+  "constraints": [
+    "1 <= meetings.length <= 10^4",
+    "0 <= start < end <= 10^6"
+  ],
+  "examples": [
+    {
+      "input": "meetings = [[0, 30], [5, 10], [15, 20]]",
+      "output": "2"
+    },
+    {
+      "input": "meetings = [[7, 10], [2, 4]]",
+      "output": "1"
+    },
+    {
+      "input": "meetings = [[1, 5], [5, 10], [5, 6]]",
+      "output": "2"
+    }
+  ],
+  "signature": {
+    "method": "minMeetingRooms",
+    "params": [
+      {
+        "name": "meetings",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minMeetingRooms(int[][] meetings) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "The answer is the largest number of meetings happening at the same moment.",
+    "Sort starts and ends separately. Sweep: a start needs a room unless an earlier meeting has already ended.",
+    "starts, ends = sorted starts, sorted ends\nrooms = j = 0\nfor s in starts:\n    if s >= ends[j]: j += 1\n    else: rooms += 1\nreturn rooms",
+    "Two sorted lists and one sweep: O(n log n). A min-heap of end times works the same way."
+  ],
+  "expected_complexity": {
+    "time": "O(n log n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "meetings": [
+          [
+            0,
+            30
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            15,
+            20
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "meetings": [
+          [
+            7,
+            10
+          ],
+          [
+            2,
+            4
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "meetings": [
+          [
+            1,
+            5
+          ],
+          [
+            5,
+            10
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "meetings": [
+          [
+            4,
+            8
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            14,
+            18
+          ],
+          [
+            9,
+            11
+          ],
+          [
+            11,
+            13
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            1,
+            3
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "meetings": [
+          [
+            2,
+            3
+          ],
+          [
+            15,
+            16
+          ],
+          [
+            11,
+            13
+          ],
+          [
+            5,
+            9
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            10,
+            12
+          ],
+          [
+            2,
+            8
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "meetings": [
+          [
+            7,
+            10
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            4,
+            7
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            12,
+            15
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "meetings": [
+          [
+            5,
+            8
+          ],
+          [
+            14,
+            17
+          ],
+          [
+            15,
+            20
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

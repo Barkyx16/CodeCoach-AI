@@ -1,0 +1,201 @@
+{
+  "environment": {
+    "commit": "afff3c4",
+    "uncommitted_changes": false,
+    "python": "3.13.18",
+    "cpus": 4,
+    "machine": "Linux-6.18.44-fc-v230-x86_64-with-glibc2.39",
+    "base_url": "http://127.0.0.1:8300",
+    "database": "PostgreSQL 16 (same machine)",
+    "dataset": {
+      "learners": 40,
+      "answers": 15760,
+      "history_sizes": [
+        0,
+        60,
+        600,
+        2500
+      ],
+      "seed": 42
+    },
+    "date": "2026-11-03T20:31:50+00:00"
+  },
+  "mix": [
+    [
+      30,
+      "search"
+    ],
+    [
+      15,
+      "dashboard: progress"
+    ],
+    [
+      15,
+      "dashboard: analytics"
+    ],
+    [
+      10,
+      "dashboard: plan"
+    ],
+    [
+      15,
+      "history"
+    ],
+    [
+      15,
+      "submit answer"
+    ]
+  ],
+  "levels": [
+    {
+      "clients": 1,
+      "duration_s": 30.0,
+      "warmup_s": 5.0,
+      "requests": 583,
+      "ok": 583,
+      "failed": 0,
+      "success_rate": 1.0,
+      "throughput_rps": 19.4,
+      "p50_ms": 13.71,
+      "p95_ms": 181.87,
+      "p99_ms": 321.72,
+      "endpoints": {
+        "search": {
+          "requests": 162,
+          "ok": 162,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 12.15,
+          "p95_ms": 16.75,
+          "p99_ms": 18.54
+        },
+        "dashboard: progress": {
+          "requests": 99,
+          "ok": 99,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 8.36,
+          "p95_ms": 11.66,
+          "p99_ms": 13.09
+        },
+        "dashboard: analytics": {
+          "requests": 87,
+          "ok": 87,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 131.26,
+          "p95_ms": 308.19,
+          "p99_ms": 335.89
+        },
+        "dashboard: plan": {
+          "requests": 66,
+          "ok": 66,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 134.26,
+          "p95_ms": 319.48,
+          "p99_ms": 394.88
+        },
+        "history": {
+          "requests": 85,
+          "ok": 85,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 18.09,
+          "p95_ms": 22.13,
+          "p99_ms": 23.29
+        },
+        "submit answer": {
+          "requests": 84,
+          "ok": 84,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 11.36,
+          "p95_ms": 13.89,
+          "p99_ms": 14.95
+        }
+      }
+    },
+    {
+      "clients": 8,
+      "duration_s": 30.0,
+      "warmup_s": 5.0,
+      "requests": 1899,
+      "ok": 1899,
+      "failed": 0,
+      "success_rate": 1.0,
+      "throughput_rps": 63.3,
+      "p50_ms": 63.12,
+      "p95_ms": 446.14,
+      "p99_ms": 712.88,
+      "endpoints": {
+        "search": {
+          "requests": 564,
+          "ok": 564,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 34.11,
+          "p95_ms": 149.99,
+          "p99_ms": 326.85
+        },
+        "dashboard: progress": {
+          "requests": 268,
+          "ok": 268,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 31.81,
+          "p95_ms": 163.19,
+          "p99_ms": 393.08
+        },
+        "dashboard: analytics": {
+          "requests": 299,
+          "ok": 299,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 178.54,
+          "p95_ms": 546.62,
+          "p99_ms": 721.87
+        },
+        "dashboard: plan": {
+          "requests": 199,
+          "ok": 199,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 260.09,
+          "p95_ms": 763.82,
+          "p99_ms": 1016.82
+        },
+        "history": {
+          "requests": 281,
+          "ok": 281,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 70.41,
+          "p95_ms": 335.98,
+          "p99_ms": 498.12
+        },
+        "submit answer": {
+          "requests": 288,
+          "ok": 288,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 61.47,
+          "p95_ms": 296.32,
+          "p99_ms": 417.2
+        }
+      }
+    }
+  ]
+}

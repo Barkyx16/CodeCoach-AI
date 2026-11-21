@@ -1,0 +1,55 @@
+/*
+ * Purple-and-black polish: depth, glow and the brand sweep on the shared pieces (page, header,
+ * logo, buttons, cards, the welcome and landing pages). Every colour comes from tokens.css, so
+ * the contrast checks there (src/test/contrast.test.ts) cover this layer too. Loaded last.
+ */
+
+body { background: var(--page-glow, none), var(--color-bg); background-attachment: fixed; }
+:root { scrollbar-color: var(--color-border-strong) transparent; }
+::selection { background: var(--color-primary-soft); }
+
+/* Header: glass over the page, a hairline of the brand sweep beneath it, the mark in a tile. */
+.header::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px;
+  background: var(--gradient-brand); opacity: .5; pointer-events: none;
+}
+.brand__mark {
+  width: 34px; height: 34px; padding: 7px; border-radius: 10px;
+  color: #ffffff; background: var(--gradient-button); box-shadow: var(--glow-brand);
+}
+.brand__name { letter-spacing: -.02em; }
+
+/* Buttons: the primary one carries the sweep (white text >= 4.5:1 on every stop). */
+.btn { transition: background-color var(--duration-normal) var(--ease-standard), border-color var(--duration-normal) var(--ease-standard),
+  box-shadow var(--duration-normal) var(--ease-standard), transform var(--duration-fast) var(--ease-standard), color var(--duration-fast); }
+.btn--primary { background: var(--gradient-button); border-color: transparent; box-shadow: var(--glow-brand); }
+.btn--primary:hover:not(:disabled) { background: var(--gradient-button-hover); border-color: transparent; transform: translateY(-1px); }
+.btn--primary:active:not(:disabled) { transform: none; }
+.btn--secondary:hover:not(:disabled) { border-color: var(--color-primary-border); box-shadow: 0 0 0 3px var(--color-primary-soft); }
+
+/* Cards: a faint sheen at the top edge. */
+.card { background: linear-gradient(180deg, var(--tint-hairline), transparent 120px), var(--color-surface); }
+
+/* Welcome: the three ways in lift and glow on hover; the first (answer a question) leads. */
+.welcome__choice { transition: transform var(--duration-normal) var(--ease-standard), border-color var(--duration-normal), box-shadow var(--duration-normal); }
+.welcome__choice:hover, .welcome__choice:focus-within { transform: translateY(-3px); border-color: var(--color-primary-border); box-shadow: var(--glow-brand); }
+.welcome__choice:first-child {
+  border-color: var(--color-primary-border);
+  background: radial-gradient(420px 220px at 0% 0%, var(--color-primary-soft), transparent 70%), var(--color-surface);
+}
+
+/* Landing: the hero's accent words in the light end of the sweep (>= 3:1 for large text). */
+.landing__hero { background: radial-gradient(ellipse at 50% 25%, var(--color-primary-soft), transparent 62%); }
+.landing__title span { background: var(--gradient-text); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.landing__eyebrow span { background: var(--gradient-brand); }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn, .welcome__choice { transition: none; }
+  .btn--primary:hover:not(:disabled), .welcome__choice:hover, .welcome__choice:focus-within { transform: none; }
+}
+:root[data-motion="reduce"] .btn--primary:hover:not(:disabled),
+:root[data-motion="reduce"] .welcome__choice:hover { transform: none; }
+@media (forced-colors: active) {
+  .landing__title span { color: inherit; background: none; }
+  .header::after { display: none; }
+}

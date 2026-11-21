@@ -1,0 +1,245 @@
+{
+  "order": 304,
+  "slug": "cheapest-flights-k-stops",
+  "title": "Cheapest Flight With at Most K Stops",
+  "difficulty": "hard",
+  "topics": [
+    "graphs",
+    "dynamic-programming"
+  ],
+  "summary": "Lowest price from src to dst using at most k stops.",
+  "statement": "`flights[i] = [from, to, price]` are one-way flights between cities `0..n-1`. Return the cheapest price from\n`src` to `dst` with at most `k` stops in between (so at most `k + 1` flights), or `-1` if there's no such route.",
+  "constraints": [
+    "1 <= n <= 100",
+    "0 <= k < n",
+    "src != dst"
+  ],
+  "examples": [
+    {
+      "input": "n = 4, flights = [[0, 1, 100], [1, 2, 100], [2, 0, 100], [1, 3, 600], [2, 3, 200]], src = 0, dst = 3, k = 1",
+      "output": "700"
+    },
+    {
+      "input": "n = 3, flights = [[0, 1, 100], [1, 2, 100], [0, 2, 500]], src = 0, dst = 2, k = 1",
+      "output": "200"
+    },
+    {
+      "input": "n = 3, flights = [[0, 1, 100], [1, 2, 100], [0, 2, 500]], src = 0, dst = 2, k = 0",
+      "output": "500"
+    }
+  ],
+  "signature": {
+    "method": "findCheapestPrice",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      },
+      {
+        "name": "flights",
+        "type": "int[][]"
+      },
+      {
+        "name": "src",
+        "type": "int"
+      },
+      {
+        "name": "dst",
+        "type": "int"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int findCheapestPrice(int n, int[][] flights, int src, int dst, int k) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Plain Dijkstra may find a cheap route that uses too many stops.",
+    "Bellman-Ford limited to k + 1 rounds: each round allows one more flight. Relax from a copy of the previous round so one round can't chain two flights.",
+    "dist = [inf]*n; dist[src] = 0\nrepeat k + 1 times:\n    nxt = copy(dist)\n    for u, v, p in flights:\n        if dist[u] + p < nxt[v]: nxt[v] = dist[u] + p\n    dist = nxt\nreturn dist[dst] if finite else -1",
+    "O(k \u00d7 E) time. The copy is the important detail: it caps each round at exactly one more flight."
+  ],
+  "expected_complexity": {
+    "time": "O(k E)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 4,
+        "flights": [
+          [
+            0,
+            1,
+            100
+          ],
+          [
+            1,
+            2,
+            100
+          ],
+          [
+            2,
+            0,
+            100
+          ],
+          [
+            1,
+            3,
+            600
+          ],
+          [
+            2,
+            3,
+            200
+          ]
+        ],
+        "src": 0,
+        "dst": 3,
+        "k": 1
+      },
+      "expected_output": 700,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 3,
+        "flights": [
+          [
+            0,
+            1,
+            100
+          ],
+          [
+            1,
+            2,
+            100
+          ],
+          [
+            0,
+            2,
+            500
+          ]
+        ],
+        "src": 0,
+        "dst": 2,
+        "k": 1
+      },
+      "expected_output": 200,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 3,
+        "flights": [
+          [
+            0,
+            1,
+            100
+          ],
+          [
+            1,
+            2,
+            100
+          ],
+          [
+            0,
+            2,
+            500
+          ]
+        ],
+        "src": 0,
+        "dst": 2,
+        "k": 0
+      },
+      "expected_output": 500,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 4,
+        "flights": [
+          [
+            3,
+            0,
+            17
+          ]
+        ],
+        "src": 3,
+        "dst": 1,
+        "k": 1
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 2,
+        "flights": [
+          [
+            1,
+            0,
+            6
+          ],
+          [
+            0,
+            1,
+            19
+          ]
+        ],
+        "src": 1,
+        "dst": 0,
+        "k": 1
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 2,
+        "flights": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            1,
+            0,
+            19
+          ]
+        ],
+        "src": 1,
+        "dst": 0,
+        "k": 1
+      },
+      "expected_output": 19,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 2,
+        "flights": [
+          [
+            0,
+            1,
+            8
+          ],
+          [
+            1,
+            0,
+            7
+          ]
+        ],
+        "src": 1,
+        "dst": 0,
+        "k": 1
+      },
+      "expected_output": 7,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

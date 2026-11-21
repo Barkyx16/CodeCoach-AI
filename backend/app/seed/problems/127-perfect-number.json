@@ -1,0 +1,129 @@
+{
+  "order": 127,
+  "slug": "perfect-number",
+  "title": "Perfect Number",
+  "difficulty": "easy",
+  "topics": [
+    "math"
+  ],
+  "summary": "Is a number equal to the sum of its proper divisors?",
+  "statement": "A perfect number equals the sum of its positive divisors excluding itself (6 = 1 + 2 + 3).\nReturn whether `n` is perfect.",
+  "constraints": [
+    "1 <= n <= 10^8"
+  ],
+  "examples": [
+    {
+      "input": "n = 28",
+      "output": "true"
+    },
+    {
+      "input": "n = 6",
+      "output": "true"
+    },
+    {
+      "input": "n = 12",
+      "output": "false"
+    }
+  ],
+  "signature": {
+    "method": "isPerfect",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isPerfect(int n) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Divisors come in pairs: if d divides n, so does n / d.",
+    "Loop d up to sqrt(n), adding both d and n / d (once when they're equal). Don't count n itself.",
+    "if n == 1: return false\ntotal = 1\nd = 2\nwhile d * d <= n:\n    if n % d == 0:\n        total += d\n        if d != n // d: total += n // d\n    d += 1\nreturn total == n",
+    "Pairing divisors makes it O(sqrt(n)) instead of O(n). Starting the total at 1 includes the divisor 1 while leaving out n."
+  ],
+  "expected_complexity": {
+    "time": "O(sqrt(n))",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 28
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 6
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 12
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 1
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 8128
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 33550336
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 496
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 6693
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 1268
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 4963
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 11148
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

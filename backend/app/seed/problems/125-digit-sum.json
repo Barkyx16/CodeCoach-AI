@@ -1,0 +1,108 @@
+{
+  "order": 125,
+  "slug": "digit-sum",
+  "title": "Sum of Digits",
+  "difficulty": "easy",
+  "topics": [
+    "math"
+  ],
+  "summary": "Add up the digits of a number.",
+  "statement": "Return the sum of the decimal digits of `n`. For negative numbers, ignore the sign.",
+  "constraints": [
+    "-10^9 <= n <= 10^9"
+  ],
+  "examples": [
+    {
+      "input": "n = 123",
+      "output": "6"
+    },
+    {
+      "input": "n = -409",
+      "output": "13"
+    },
+    {
+      "input": "n = 0",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "digitSum",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int digitSum(int n) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "How do you get the last digit of a number, and how do you remove it?",
+    "`n % 10` is the last digit and `n / 10` drops it. Work with the absolute value.",
+    "n = abs(n)\ntotal = 0\nwhile n > 0:\n    total += n % 10\n    n //= 10\nreturn total",
+    "One step per digit: O(log n). Taking the absolute value first matters because `-123 % 10` is `-3` in Java."
+  ],
+  "expected_complexity": {
+    "time": "O(log n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 123
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": -409
+      },
+      "expected_output": 13,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 0
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 999999999
+      },
+      "expected_output": 81,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 935776335
+      },
+      "expected_output": 48,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 968152498
+      },
+      "expected_output": 52,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": -767362290
+      },
+      "expected_output": 42,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 938507743
+      },
+      "expected_output": 46,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

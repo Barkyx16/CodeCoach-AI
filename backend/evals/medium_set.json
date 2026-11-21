@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "note": "Medium held-out set (session 5): written AFTER the amortized-loop, product-target and log-factor rules were added, and never used to change any rule. Labels follow what a good interviewer would say, not what the analyzer can detect.",
+  "samples": [
+    {
+      "id": "md-product-optimal",
+      "problem": "product-except-self",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Prefix/suffix products written with a separate suffix array.",
+      "code": "class Solution {\n    public int[] productExceptSelf(int[] nums) {\n        int n = nums.length;\n        int[] left = new int[n];\n        int[] right = new int[n];\n        left[0] = 1;\n        for (int i = 1; i < n; i++) left[i] = left[i - 1] * nums[i - 1];\n        right[n - 1] = 1;\n        for (int i = n - 2; i >= 0; i--) right[i] = right[i + 1] * nums[i + 1];\n        int[] out = new int[n];\n        for (int i = 0; i < n; i++) out[i] = left[i] * right[i];\n        return out;\n    }\n}\n"
+    },
+    {
+      "id": "md-product-division",
+      "problem": "product-except-self",
+      "verdict": "FAILED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(n)",
+      "note": "Divides the total product: wrong as soon as there's a zero (and division is disallowed).",
+      "code": "class Solution {\n    public int[] productExceptSelf(int[] nums) {\n        int total = 1;\n        for (int x : nums) total *= x;\n        int[] out = new int[nums.length];\n        for (int i = 0; i < nums.length; i++) {\n            out[i] = nums[i] == 0 ? 0 : total / nums[i];\n        }\n        return out;\n    }\n}\n"
+    },
+    {
+      "id": "md-container-brute",
+      "problem": "container-with-most-water",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n^2)",
+      "note": "Every pair: correct but quadratic.",
+      "code": "class Solution {\n    public int maxArea(int[] height) {\n        int best = 0;\n        for (int i = 0; i < height.length; i++) {\n            for (int j = i + 1; j < height.length; j++) {\n                best = Math.max(best, Math.min(height[i], height[j]) * (j - i));\n            }\n        }\n        return best;\n    }\n}\n"
+    },
+    {
+      "id": "md-rotated-linear",
+      "problem": "search-rotated-array",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n)",
+      "note": "Linear scan: correct, but the problem requires O(log n).",
+      "code": "class Solution {\n    public int search(int[] nums, int target) {\n        for (int i = 0; i < nums.length; i++) {\n            if (nums[i] == target) return i;\n        }\n        return -1;\n    }\n}\n"
+    },
+    {
+      "id": "md-rotated-strict-loop",
+      "problem": "search-rotated-array",
+      "verdict": "FAILED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(log n)",
+      "note": "`lo < hi` never examines the last remaining element, so single-element and edge targets are missed.",
+      "code": "class Solution {\n    public int search(int[] nums, int target) {\n        int lo = 0, hi = nums.length - 1;\n        while (lo < hi) {\n            int mid = lo + (hi - lo) / 2;\n            if (nums[mid] == target) return mid;\n            if (nums[lo] <= nums[mid]) {\n                if (nums[lo] <= target && target < nums[mid]) hi = mid - 1; else lo = mid + 1;\n            } else {\n                if (nums[mid] < target && target <= nums[hi]) lo = mid + 1; else hi = mid - 1;\n            }\n        }\n        return -1;\n    }\n}\n"
+    },
+    {
+      "id": "md-coin-greedy",
+      "problem": "coin-change",
+      "verdict": "FAILED",
+      "categories": [
+        "correctness"
+      ],
+      "time": "O(k log k)",
+      "note": "Largest-coin-first greedy: fails for coins like [9, 6, 5, 1] and amount 11.",
+      "code": "import java.util.Arrays;\nclass Solution {\n    public int coinChange(int[] coins, int amount) {\n        Arrays.sort(coins);\n        int count = 0;\n        for (int i = coins.length - 1; i >= 0; i--) {\n            count += amount / coins[i];\n            amount %= coins[i];\n        }\n        return amount == 0 ? count : -1;\n    }\n}\n"
+    },
+    {
+      "id": "md-coin-memo",
+      "problem": "coin-change",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(amount * k)",
+      "note": "Top-down with memoisation: correct and on target.",
+      "code": "import java.util.Arrays;\nclass Solution {\n    private int[] memo;\n    public int coinChange(int[] coins, int amount) {\n        memo = new int[amount + 1];\n        Arrays.fill(memo, -2);\n        return solve(coins, amount);\n    }\n    private int solve(int[] coins, int a) {\n        if (a == 0) return 0;\n        if (memo[a] != -2) return memo[a];\n        int best = Integer.MAX_VALUE;\n        for (int c : coins) {\n            if (c <= a) {\n                int sub = solve(coins, a - c);\n                if (sub >= 0) best = Math.min(best, sub + 1);\n            }\n        }\n        memo[a] = best == Integer.MAX_VALUE ? -1 : best;\n        return memo[a];\n    }\n}\n"
+    },
+    {
+      "id": "md-lis-quadratic",
+      "problem": "longest-increasing-subsequence",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n^2)",
+      "note": "Classic O(n^2) DP: correct, but O(n log n) exists.",
+      "code": "class Solution {\n    public int lengthOfLIS(int[] nums) {\n        int[] len = new int[nums.length];\n        int best = 0;\n        for (int i = 0; i < nums.length; i++) {\n            len[i] = 1;\n            for (int j = 0; j < i; j++) {\n                if (nums[j] < nums[i]) len[i] = Math.max(len[i], len[j] + 1);\n            }\n            best = Math.max(best, len[i]);\n        }\n        return best;\n    }\n}\n"
+    },
+    {
+      "id": "md-daily-brute",
+      "problem": "daily-temperatures",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n^2)",
+      "note": "Looks ahead from every day: correct, quadratic.",
+      "code": "class Solution {\n    public int[] dailyTemperatures(int[] temperatures) {\n        int[] answer = new int[temperatures.length];\n        for (int i = 0; i < temperatures.length; i++) {\n            for (int j = i + 1; j < temperatures.length; j++) {\n                if (temperatures[j] > temperatures[i]) {\n                    answer[i] = j - i;\n                    break;\n                }\n            }\n        }\n        return answer;\n    }\n}\n"
+    },
+    {
+      "id": "md-daily-stack-array",
+      "problem": "daily-temperatures",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Monotonic stack implemented with an int array and a top index.",
+      "code": "class Solution {\n    public int[] dailyTemperatures(int[] temperatures) {\n        int n = temperatures.length;\n        int[] answer = new int[n];\n        int[] stack = new int[n];\n        int top = -1;\n        for (int i = 0; i < n; i++) {\n            while (top >= 0 && temperatures[stack[top]] < temperatures[i]) {\n                int j = stack[top--];\n                answer[j] = i - j;\n            }\n            stack[++top] = i;\n        }\n        return answer;\n    }\n}\n"
+    },
+    {
+      "id": "md-jump-backward",
+      "problem": "jump-game",
+      "verdict": "PASSED",
+      "categories": [],
+      "time": "O(n)",
+      "note": "Greedy from the right: track the leftmost index known to reach the end.",
+      "code": "class Solution {\n    public boolean canJump(int[] nums) {\n        int goal = nums.length - 1;\n        for (int i = nums.length - 2; i >= 0; i--) {\n            if (i + nums[i] >= goal) goal = i;\n        }\n        return goal == 0;\n    }\n}\n"
+    },
+    {
+      "id": "md-decode-no-zero-check",
+      "problem": "decode-ways",
+      "verdict": "FAILED",
+      "categories": [
+        "edge-case"
+      ],
+      "time": "O(n)",
+      "note": "Forgets that a single '0' can't be decoded on its own.",
+      "code": "class Solution {\n    public int numDecodings(String s) {\n        int prev2 = 1, prev1 = 1;\n        for (int i = 2; i <= s.length(); i++) {\n            int current = prev1;\n            int two = Integer.parseInt(s.substring(i - 2, i));\n            if (two >= 10 && two <= 26) current += prev2;\n            prev2 = prev1;\n            prev1 = current;\n        }\n        return prev1;\n    }\n}\n"
+    },
+    {
+      "id": "md-kth-sort",
+      "problem": "kth-largest-element",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n log n)",
+      "note": "Sorts everything: correct, but a size-k heap gives O(n log k).",
+      "code": "import java.util.Arrays;\nclass Solution {\n    public int findKthLargest(int[] nums, int k) {\n        Arrays.sort(nums);\n        return nums[nums.length - k];\n    }\n}\n"
+    },
+    {
+      "id": "md-replace-brute",
+      "problem": "longest-repeating-replacement",
+      "verdict": "PASSED",
+      "categories": [
+        "complexity"
+      ],
+      "time": "O(n^2)",
+      "note": "Every start index, extended with running counts: correct, quadratic.",
+      "code": "class Solution {\n    public int characterReplacement(String s, int k) {\n        int best = 0;\n        for (int i = 0; i < s.length(); i++) {\n            int[] counts = new int[26];\n            int maxCount = 0;\n            for (int j = i; j < s.length(); j++) {\n                maxCount = Math.max(maxCount, ++counts[s.charAt(j) - 'A']);\n                if (j - i + 1 - maxCount <= k) best = Math.max(best, j - i + 1);\n            }\n        }\n        return best;\n    }\n}\n"
+    }
+  ]
+}

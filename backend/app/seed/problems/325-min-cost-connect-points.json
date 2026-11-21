@@ -1,0 +1,211 @@
+{
+  "order": 325,
+  "slug": "min-cost-connect-points",
+  "title": "Cheapest Way to Connect All Points",
+  "difficulty": "hard",
+  "topics": [
+    "graphs",
+    "heaps"
+  ],
+  "summary": "Minimum spanning tree with Manhattan distances.",
+  "statement": "`points[i] = [x, y]`. Connecting two points costs their Manhattan distance `|x1 - x2| + |y1 - y2|`.\nReturn the minimum total cost to connect all points (so every pair is joined by some path).",
+  "constraints": [
+    "1 <= points.length <= 1000",
+    "-10^6 <= x, y <= 10^6",
+    "distinct points"
+  ],
+  "examples": [
+    {
+      "input": "points = [[0, 0], [2, 2], [3, 10], [5, 2], [7, 0]]",
+      "output": "20"
+    },
+    {
+      "input": "points = [[3, 12], [-2, 5], [-4, 1]]",
+      "output": "18"
+    },
+    {
+      "input": "points = [[0, 0]]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "minCostConnectPoints",
+    "params": [
+      {
+        "name": "points",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minCostConnectPoints(int[][] points) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "You need a minimum spanning tree on a complete graph.",
+    "Prim's algorithm with an array of best distances (no heap needed on a dense graph): add the closest unconnected point each round.",
+    "dist = [inf]*n; dist[0] = 0; inTree = [false]*n\nrepeat n times:\n    u = closest point not in tree\n    total += dist[u]; inTree[u] = true\n    for v not in tree: dist[v] = min(dist[v], manhattan(u, v))\nreturn total",
+    "Array-based Prim is O(n^2), which beats sorting all n^2 edges for Kruskal on a dense graph."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "points": [
+          [
+            0,
+            0
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            10
+          ],
+          [
+            5,
+            2
+          ],
+          [
+            7,
+            0
+          ]
+        ]
+      },
+      "expected_output": 20,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "points": [
+          [
+            3,
+            12
+          ],
+          [
+            -2,
+            5
+          ],
+          [
+            -4,
+            1
+          ]
+        ]
+      },
+      "expected_output": 18,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "points": [
+          [
+            0,
+            0
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "points": [
+          [
+            -2,
+            5
+          ],
+          [
+            0,
+            6
+          ],
+          [
+            -1,
+            6
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            -3,
+            1
+          ],
+          [
+            0,
+            3
+          ]
+        ]
+      },
+      "expected_output": 15,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "points": [
+          [
+            -5,
+            6
+          ],
+          [
+            0,
+            -1
+          ],
+          [
+            -1,
+            -6
+          ],
+          [
+            4,
+            -3
+          ],
+          [
+            0,
+            -6
+          ],
+          [
+            -4,
+            -5
+          ]
+        ]
+      },
+      "expected_output": 28,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "points": [
+          [
+            -2,
+            -4
+          ]
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "points": [
+          [
+            -5,
+            5
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            -2,
+            5
+          ]
+        ]
+      },
+      "expected_output": 12,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

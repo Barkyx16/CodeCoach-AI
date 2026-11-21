@@ -1,0 +1,125 @@
+{
+  "order": 136,
+  "slug": "roman-to-integer",
+  "title": "Roman Numerals to Integer",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "hash-maps"
+  ],
+  "summary": "Convert a Roman numeral to a number.",
+  "statement": "Convert the Roman numeral `s` to an integer. Symbols: I=1, V=5, X=10, L=50, C=100, D=500,\nM=1000. A smaller symbol before a larger one is subtracted (`IV` = 4, `XC` = 90).",
+  "constraints": [
+    "1 <= s.length <= 15",
+    "s is a valid numeral for a value in [1, 3999]"
+  ],
+  "examples": [
+    {
+      "input": "s = \"III\"",
+      "output": "3"
+    },
+    {
+      "input": "s = \"LVIII\"",
+      "output": "58"
+    },
+    {
+      "input": "s = \"MCMXCIV\"",
+      "output": "1994",
+      "explanation": "M + CM + XC + IV = 1000 + 900 + 90 + 4."
+    }
+  ],
+  "signature": {
+    "method": "romanToInt",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int romanToInt(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Most symbols just add. When does a symbol subtract?",
+    "A symbol subtracts when the next symbol is larger.",
+    "total = 0\nfor i in range(len(s)):\n    v = value(s[i])\n    if i+1 < len(s) and v < value(s[i+1]): total -= v\n    else: total += v\nreturn total",
+    "Comparing each symbol with the next one handles all six subtractive pairs in one O(n) pass."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "III"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "LVIII"
+      },
+      "expected_output": 58,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "MCMXCIV"
+      },
+      "expected_output": 1994,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "IV"
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "MMMCMXCIX"
+      },
+      "expected_output": 3999,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "XL"
+      },
+      "expected_output": 40,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "CMXXXIV"
+      },
+      "expected_output": 934,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "MDCCXI"
+      },
+      "expected_output": 1711,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "MMDCXXV"
+      },
+      "expected_output": 2625,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "MXX"
+      },
+      "expected_output": 1020,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

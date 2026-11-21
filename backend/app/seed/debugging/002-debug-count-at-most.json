@@ -1,0 +1,159 @@
+{
+  "order": 2002,
+  "slug": "debug-count-at-most",
+  "title": "Fix: Count Within a Limit",
+  "difficulty": "easy",
+  "topics": [
+    "debugging",
+    "arrays",
+    "off-by-one"
+  ],
+  "summary": "A count of values at or below a limit is sometimes one short. Reproduce it, find the off-by-one and fix it.",
+  "statement": "`countAtMost(nums, limit)` should return how many values in `nums` are less than or equal to `limit`.\n\nUsers report that the count is sometimes one short, but not always. Use the public cases to reproduce it, find the cause and fix it. Any correct fix is accepted.",
+  "constraints": [
+    "0 <= nums.length <= 10^4",
+    "-10^6 <= nums[i], limit <= 10^6"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 5, 9], limit = 4",
+      "output": "1",
+      "explanation": "Only 1 is at most 4."
+    },
+    {
+      "input": "nums = [4, 8, 3], limit = 5",
+      "output": "2",
+      "explanation": "4 and 3 are at most 5."
+    }
+  ],
+  "signature": {
+    "method": "countAtMost",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "limit",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int countAtMost(int[] nums, int limit) {\n        int count = 0;\n        for (int i = 0; i < nums.length - 1; i++) {\n            if (nums[i] <= limit) {\n                count++;\n            }\n        }\n        return count;\n    }\n}\n",
+  "hints": [
+    "Compare the failing public case with the passing ones. Where in the array is the value that wasn't counted?",
+    "Which indexes does the loop visit for an array of length 3? Write them down.",
+    "The loop stops one index early. Visit every index, `i < nums.length`, or loop over the values directly."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          5,
+          9
+        ],
+        "limit": 4
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          3,
+          10
+        ],
+        "limit": 5
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          8,
+          3
+        ],
+        "limit": 5
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [],
+        "limit": 0
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          7
+        ],
+        "limit": 7
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          1
+        ],
+        "limit": 1
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          6,
+          6
+        ],
+        "limit": 5
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -3,
+          0,
+          3
+        ],
+        "limit": 0
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    }
+  ],
+  "kind": "debug",
+  "lab": {
+    "version": 1,
+    "intended_behavior": "Count every value that is less than or equal to the limit, including the last one.",
+    "reproduction": [
+      2
+    ],
+    "defect": {
+      "summary": "The loop condition `i < nums.length - 1` skips the last element (an off-by-one).",
+      "explanation": "For an array of length n the valid indexes are 0 to n - 1, so the loop should run while `i < nums.length`. With `nums.length - 1` it stops before the last index and never looks at the last value. When that value is at or below the limit, the count comes out one short.",
+      "why_missed": "If the last value is above the limit, skipping it changes nothing, so cases like [1, 5, 9] with limit 4 still pass. The bug only shows when the last value should have been counted."
+    },
+    "follow_up": "For any loop bound, write out the indexes it visits for a length-1 and a length-3 array, and test a case where the answer depends on the last element.",
+    "review_status": "Authored for CodeCoach and machine-checked (the starter fails exactly its reproduction cases; the repair and an alternative pass every test). Not yet reviewed by an outside instructor."
+  }
+}

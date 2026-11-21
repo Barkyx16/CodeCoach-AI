@@ -1,0 +1,148 @@
+{
+  "order": 181,
+  "slug": "lemonade-change",
+  "title": "Lemonade Change",
+  "difficulty": "easy",
+  "topics": [
+    "greedy",
+    "simulation"
+  ],
+  "summary": "Can you give correct change to every customer?",
+  "statement": "Lemonade costs 5. Customers pay with bills of 5, 10 or 20, in the order given by `bills`.\nYou start with no money. Return `true` if you can give every customer correct change.",
+  "constraints": [
+    "1 <= bills.length <= 10^5",
+    "bills[i] is 5, 10 or 20"
+  ],
+  "examples": [
+    {
+      "input": "bills = [5, 5, 5, 10, 20]",
+      "output": "true"
+    },
+    {
+      "input": "bills = [5, 5, 10, 10, 20]",
+      "output": "false"
+    },
+    {
+      "input": "bills = [10]",
+      "output": "false"
+    }
+  ],
+  "signature": {
+    "method": "lemonadeChange",
+    "params": [
+      {
+        "name": "bills",
+        "type": "int[]"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean lemonadeChange(int[] bills) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Only fives and tens are ever useful as change.",
+    "For a 20, prefer giving a 10 and a 5 over three 5s: fives are more flexible.",
+    "five = ten = 0\nfor b in bills:\n    if b == 5: five += 1\n    elif b == 10: ten += 1; five -= 1\n    elif ten > 0: ten -= 1; five -= 1\n    else: five -= 3\n    if five < 0: return false\nreturn true",
+    "The greedy choice keeps the most fives for later: O(n) time, O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "bills": [
+          5,
+          5,
+          5,
+          10,
+          20
+        ]
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "bills": [
+          5,
+          5,
+          10,
+          10,
+          20
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "bills": [
+          10
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "bills": [
+          5,
+          5,
+          5,
+          5,
+          20,
+          20
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "bills": [
+          5,
+          10
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "bills": [
+          5,
+          5,
+          5,
+          5
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "bills": [
+          5,
+          10,
+          5,
+          10
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "bills": [
+          5,
+          20,
+          10
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

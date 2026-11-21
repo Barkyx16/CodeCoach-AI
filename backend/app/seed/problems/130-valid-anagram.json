@@ -1,0 +1,130 @@
+{
+  "order": 130,
+  "slug": "valid-anagram",
+  "title": "Valid Anagram",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "hash-maps"
+  ],
+  "summary": "Do two strings use exactly the same letters?",
+  "statement": "Return `true` if `t` is an anagram of `s`: it uses exactly the same characters, the same\nnumber of times, in any order.",
+  "constraints": [
+    "0 <= s.length, t.length <= 5 * 10^4",
+    "lower-case English letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"anagram\", t = \"nagaram\"",
+      "output": "true"
+    },
+    {
+      "input": "s = \"rat\", t = \"car\"",
+      "output": "false"
+    },
+    {
+      "input": "s = \"\", t = \"\"",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "isAnagram",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      },
+      {
+        "name": "t",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isAnagram(String s, String t) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Two strings are anagrams when their character counts match.",
+    "Count letters of `s` up and letters of `t` down in a 26-slot array; everything must end at zero.",
+    "if len(s) != len(t): return false\ncounts = [0]*26\nfor c in s: counts[c] += 1\nfor c in t: counts[c] -= 1\nreturn all(c == 0 for c in counts)",
+    "Counting is O(n) time and O(1) space (26 slots). Sorting both strings also works but is O(n log n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "anagram",
+        "t": "nagaram"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "rat",
+        "t": "car"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "",
+        "t": ""
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a",
+        "t": "ab"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aab",
+        "t": "abb"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "cbcaacab",
+        "t": "ccbabcba"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "cabccaabca",
+        "t": "cbccaaabca"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbcabcaaa",
+        "t": "accccbcca"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "babaab",
+        "t": "baabab"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

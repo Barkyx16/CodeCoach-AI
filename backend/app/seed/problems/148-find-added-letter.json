@@ -1,0 +1,115 @@
+{
+  "order": 148,
+  "slug": "find-added-letter",
+  "title": "Find the Added Letter",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "bit-manipulation"
+  ],
+  "summary": "One string is a shuffle of another plus one letter. Which letter?",
+  "statement": "`t` is made by shuffling `s` and adding one more letter at a random position. Return the added\nletter as a one-character string.",
+  "constraints": [
+    "0 <= s.length <= 1000",
+    "t.length == s.length + 1",
+    "lower-case English letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"abcd\", t = \"abcde\"",
+      "output": "\"e\""
+    },
+    {
+      "input": "s = \"\", t = \"y\"",
+      "output": "\"y\""
+    },
+    {
+      "input": "s = \"aab\", t = \"abaa\"",
+      "output": "\"a\""
+    }
+  ],
+  "signature": {
+    "method": "findTheDifference",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      },
+      {
+        "name": "t",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String findTheDifference(String s, String t) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Counting letters works. Is there something even simpler?",
+    "XOR all characters of both strings together: everything cancels except the added letter.",
+    "x = 0\nfor c in s + t: x ^= ord(c)\nreturn chr(x)",
+    "XOR (or the difference of character-code sums) gives O(n) time and O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "abcd",
+        "t": "abcde"
+      },
+      "expected_output": "e",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "",
+        "t": "y"
+      },
+      "expected_output": "y",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aab",
+        "t": "abaa"
+      },
+      "expected_output": "a",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "bccacc",
+        "t": "acccczb"
+      },
+      "expected_output": "z",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "azcbccabc",
+        "t": "ccccababcz"
+      },
+      "expected_output": "c",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "cazabcz",
+        "t": "zbzcabca"
+      },
+      "expected_output": "b",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "cb",
+        "t": "bbc"
+      },
+      "expected_output": "b",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

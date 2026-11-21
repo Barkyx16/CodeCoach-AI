@@ -1,0 +1,132 @@
+{
+  "environment": {
+    "commit": "afff3c4",
+    "uncommitted_changes": true,
+    "python": "3.13.18",
+    "cpus": 4,
+    "machine": "Linux-6.18.44-fc-v230-x86_64-with-glibc2.39",
+    "base_url": "http://127.0.0.1:8300",
+    "database": "PostgreSQL 16 (same machine)",
+    "dataset": {
+      "learners": 40,
+      "answers": 15760,
+      "history_sizes": [
+        0,
+        60,
+        600,
+        2500
+      ],
+      "seed": 42
+    },
+    "date": "2026-11-03T20:35:50+00:00"
+  },
+  "mix": [
+    [
+      30,
+      "search"
+    ],
+    [
+      15,
+      "dashboard: progress"
+    ],
+    [
+      15,
+      "dashboard: analytics"
+    ],
+    [
+      10,
+      "dashboard: plan"
+    ],
+    [
+      15,
+      "history"
+    ],
+    [
+      15,
+      "submit answer"
+    ]
+  ],
+  "levels": [
+    {
+      "clients": 64,
+      "duration_s": 20.0,
+      "warmup_s": 3.0,
+      "requests": 2589,
+      "ok": 2585,
+      "failed": 4,
+      "success_rate": 0.9985,
+      "throughput_rps": 129.2,
+      "p50_ms": 438.67,
+      "p95_ms": 1110.15,
+      "p99_ms": 1554.46,
+      "endpoints": {
+        "search": {
+          "requests": 804,
+          "ok": 803,
+          "errors": {
+            "ReadError": 1
+          },
+          "timeouts": 0,
+          "success_rate": 0.9988,
+          "p50_ms": 352.96,
+          "p95_ms": 847.71,
+          "p99_ms": 1342.12
+        },
+        "dashboard: progress": {
+          "requests": 381,
+          "ok": 381,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 361.08,
+          "p95_ms": 769.6,
+          "p99_ms": 1309.44
+        },
+        "dashboard: analytics": {
+          "requests": 405,
+          "ok": 404,
+          "errors": {
+            "ReadError": 1
+          },
+          "timeouts": 0,
+          "success_rate": 0.9975,
+          "p50_ms": 415.63,
+          "p95_ms": 901.68,
+          "p99_ms": 1375.27
+        },
+        "dashboard: plan": {
+          "requests": 273,
+          "ok": 271,
+          "errors": {
+            "500": 2
+          },
+          "timeouts": 0,
+          "success_rate": 0.9927,
+          "p50_ms": 621.73,
+          "p95_ms": 1038.5,
+          "p99_ms": 1507.32
+        },
+        "history": {
+          "requests": 361,
+          "ok": 361,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 443.69,
+          "p95_ms": 1038.54,
+          "p99_ms": 1467.79
+        },
+        "submit answer": {
+          "requests": 365,
+          "ok": 365,
+          "errors": {},
+          "timeouts": 0,
+          "success_rate": 1.0,
+          "p50_ms": 652.99,
+          "p95_ms": 1425.87,
+          "p99_ms": 1747.75
+        }
+      }
+    }
+  ]
+}

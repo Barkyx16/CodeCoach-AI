@@ -1,0 +1,111 @@
+{
+  "order": 215,
+  "slug": "sort-by-frequency",
+  "title": "Sort Characters by Frequency",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "hash-maps",
+    "sorting"
+  ],
+  "summary": "Rearrange a string so the most frequent letters come first.",
+  "statement": "Return `s` rearranged so characters appear in decreasing order of frequency, with all copies of a\ncharacter together. Break ties by the character's ASCII order (smaller first).",
+  "constraints": [
+    "1 <= s.length <= 5 * 10^5",
+    "printable ASCII"
+  ],
+  "examples": [
+    {
+      "input": "s = \"tree\"",
+      "output": "\"eert\""
+    },
+    {
+      "input": "s = \"cccaaa\"",
+      "output": "\"aaaccc\""
+    },
+    {
+      "input": "s = \"Aabb\"",
+      "output": "\"bbAa\""
+    }
+  ],
+  "signature": {
+    "method": "frequencySort",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String frequencySort(String s) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Count every character first.",
+    "Sort the distinct characters by (-count, character) and write each one `count` times.",
+    "counts = count characters\nfor c in sorted(counts, key=lambda c: (-counts[c], c)):\n    out += c * counts[c]\nreturn out",
+    "Counting is O(n) and sorting at most 128 distinct characters is constant: O(n) overall."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "tree"
+      },
+      "expected_output": "eert",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "cccaaa"
+      },
+      "expected_output": "aaaccc",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "Aabb"
+      },
+      "expected_output": "bbAa",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "z"
+      },
+      "expected_output": "z",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aa"
+      },
+      "expected_output": "aa",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "1BaAbBBb1cb1aa"
+      },
+      "expected_output": "111BBBaaabbbAc",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "cbAaacbaaBbbBcc"
+      },
+      "expected_output": "aaaabbbbccccBBA",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "acBb1ccBABA1AB1c"
+      },
+      "expected_output": "BBBBcccc111AAAab",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

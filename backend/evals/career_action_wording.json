@@ -1,0 +1,3667 @@
+{
+ "id": "career-rn-action-wording",
+ "version": 1,
+ "split": "dev",
+ "sealed": false,
+ "schema_version": 2,
+ "protocol_version": 4,
+ "design": "minimal_pairs",
+ "track": "registered-nurse",
+ "domain": "career-answer",
+ "created": "2026-11-04",
+ "selection": "registered-nurse behavioural questions with the point 'Describes specific actions you took': in each (difficulty, behavioral) cell, the first three by id, never the 2nd, 3rd or 4th by id of the cell (the questions the holdout, families and sealed rules pick)",
+ "provenance": "Synthetic: no real people, places or patients. One AI agent session wrote 9 base answers (typed and dictated) for the 9 selected registered-nurse questions, each with the learner's actions in a single one or two sentence passage, then wrote 8 paraphrases and 4 controls per question by replacing only that passage (the dictated paraphrase replaces it in the dictated base). Kinds were assigned by a fixed rotation so every kind is used at least the required number of times.",
+ "labeling": "Labels follow the protocol's labeling text and action_criterion applied to each answer's own wording. Non-action points were labelled from what the answer states (scene, stance on honesty or responsibility, result, learning and job vocabulary are stated outside the action passage, so they stay as in the base); where an edit removed the learner's own preparing and delivering in the bad-news family that point is false, and uncertain for the two forms that still imply it. Clinical correctness was never judged. rating_at_most is the writer's judgement of an upper bound.",
+ "labeler": "A separate AI agent session working only from the protocol, the questions and the rubric label and advice text, without the coach's code or output.",
+ "review_status": "unreviewed: no human has reviewed these labels",
+ "cases": [
+  {
+   "id": "aw-1-typed",
+   "family": "aw-1",
+   "question_id": "e-general-3",
+   "question_version": 1,
+   "variant": "typed",
+   "tags": [
+    "typed"
+   ],
+   "answer": "My strength is staying methodical when things move fast, and the clearest example was a night shift on a surgical ward. A man in his sixties, two days after bowel surgery, became pale and breathless, with six beds under my care that night. I was the nurse responsible for him, and the delay of even an hour could have meant intensive care. I checked his observations, sat him upright, started oxygen, then rang the surgical registrar. He was stable within 30 minutes and stayed on the ward, which spared him a transfer to the high dependency unit. What I took from it is that a fixed routine under pressure frees me to think clearly.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-1-dictated",
+   "family": "aw-1",
+   "question_id": "e-general-3",
+   "question_version": 1,
+   "variant": "dictated",
+   "tags": [
+    "dictated"
+   ],
+   "answer": "my strength is um staying methodical when things move fast and the clearest example was a night shift on you know a surgical ward a man in his sixties two days after bowel surgery became pale and breathless with six beds under my care that night i was the nurse responsible for him and the delay of even an hour could have meant intensive care i checked his observations sat him upright started oxygen then rang the surgical registrar he was stable within uh 30 minutes and stayed on the ward which spared him a transfer to the high dependency unit what i you know took from it is that a fixed routine under pressure frees me to think clearly",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-1-p1",
+   "family": "aw-1",
+   "question_id": "e-general-3",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-1-typed",
+   "change": "action passage reworded: team action",
+   "kind": "team_action",
+   "tags": [
+    "action_paraphrase",
+    "team_action"
+   ],
+   "answer": "My strength is staying methodical when things move fast, and the clearest example was a night shift on a surgical ward. A man in his sixties, two days after bowel surgery, became pale and breathless, with six beds under my care that night. I was the nurse responsible for him, and the delay of even an hour could have meant intensive care. We took full vitals, propped our patient on pillows, fitted an O2 mask and phoned general surgery. He was stable within 30 minutes and stayed on the ward, which spared him a transfer to the high dependency unit. What I took from it is that a fixed routine under pressure frees me to think clearly.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-1-p2",
+   "family": "aw-1",
+   "question_id": "e-general-3",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-1-typed",
+   "change": "action passage reworded: historical present",
+   "kind": "historical_present",
+   "tags": [
+    "action_paraphrase",
+    "historical_present"
+   ],
+   "answer": "My strength is staying methodical when things move fast, and the clearest example was a night shift on a surgical ward. A man in his sixties, two days after bowel surgery, became pale and breathless, with six beds under my care that night. I was the nurse responsible for him, and the delay of even an hour could have meant intensive care. I take full vitals, prop our patient on pillows, fit an O2 mask and phone general surgery. He was stable within 30 minutes and stayed on the ward, which spared him a transfer to the high dependency unit. What I took from it is that a fixed routine under pressure frees me to think clearly.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-1-p3",
+   "family": "aw-1",
+   "question_id": "e-general-3",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-1-typed",
+   "change": "action passage reworded: past perfect",
+   "kind": "past_perfect",
+   "tags": [
+    "action_paraphrase",
+    "past_perfect"
+   ],
+   "answer": "My strength is staying methodical when things move fast, and the clearest example was a night shift on a surgical ward. A man in his sixties, two days after bowel surgery, became pale and breathless, with six beds under my care that night. I was the nurse responsible for him, and the delay of even an hour could have meant intensive care. I had already taken full vitals, propped our patient on pillows, fitted an O2 mask and phoned general surgery. He was stable within 30 minutes and stayed on the ward, which spared him a transfer to the high dependency unit. What I took from it is that a fixed routine under pressure frees me to think clearly.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-1-p4",
+   "family": "aw-1",
+   "question_id": "e-general-3",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-1-typed",
+   "change": "action passage reworded: professional phrasing",
+   "kind": "professional_phrasing",
+   "tags": [
+    "action_paraphrase",
+    "professional_phrasing"
+   ],
+   "answer": "My strength is staying methodical when things move fast, and the clearest example was a night shift on a surgical ward. A man in his sixties, two days after bowel surgery, became pale and breathless, with six beds under my care that night. I was the nurse responsible for him, and the delay of even an hour could have meant intensive care. I performed full vitals, positioned our patient on pillows, commenced O2 therapy and escalated to general surgery. He was stable within 30 minutes and stayed on the ward, which spared him a transfer to the high dependency unit. What I took from it is that a fixed routine under pressure frees me to think clearly.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-1-p5",
+   "family": "aw-1",
+   "question_id": "e-general-3",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-1-typed",
+   "change": "action passage reworded: irregular verbs",
+   "kind": "irregular_verbs",
+   "tags": [
+    "action_paraphrase",
+    "irregular_verbs"
+   ],
+   "answer": "My strength is staying methodical when things move fast, and the clearest example was a night shift on a surgical ward. A man in his sixties, two days after bowel surgery, became pale and breathless, with six beds under my care that night. I was the nurse responsible for him, and the delay of even an hour could have meant intensive care. I took full vitals, held our patient up on pillows, gave O2 by mask and made a call to general surgery. He was stable within 30 minutes and stayed on the ward, which spared him a transfer to the high dependency unit. What I took from it is that a fixed routine under pressure frees me to think clearly.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-1-p6",
+   "family": "aw-1",
+   "question_id": "e-general-3",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-1-typed",
+   "change": "action passage reworded: words between",
+   "kind": "words_between",
+   "tags": [
+    "action_paraphrase",
+    "words_between"
+   ],
+   "answer": "My strength is staying methodical when things move fast, and the clearest example was a night shift on a surgical ward. A man in his sixties, two days after bowel surgery, became pale and breathless, with six beds under my care that night. I was the nurse responsible for him, and the delay of even an hour could have meant intensive care. I, as nurse in charge, quickly took full vitals, propped our patient on pillows, fitted an O2 mask and phoned general surgery. He was stable within 30 minutes and stayed on the ward, which spared him a transfer to the high dependency unit. What I took from it is that a fixed routine under pressure frees me to think clearly.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-1-p7",
+   "family": "aw-1",
+   "question_id": "e-general-3",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-1-typed",
+   "change": "action passage reworded: cautious memory",
+   "kind": "cautious_memory",
+   "tags": [
+    "action_paraphrase",
+    "cautious_memory"
+   ],
+   "answer": "My strength is staying methodical when things move fast, and the clearest example was a night shift on a surgical ward. A man in his sixties, two days after bowel surgery, became pale and breathless, with six beds under my care that night. I was the nurse responsible for him, and the delay of even an hour could have meant intensive care. I think I took full vitals, propped our patient on pillows, fitted an O2 mask and phoned general surgery. He was stable within 30 minutes and stayed on the ward, which spared him a transfer to the high dependency unit. What I took from it is that a fixed routine under pressure frees me to think clearly.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-1-p8",
+   "family": "aw-1",
+   "question_id": "e-general-3",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-1-typed",
+   "change": "action passage reworded: cleft or nominal",
+   "kind": "cleft_or_nominal",
+   "tags": [
+    "action_paraphrase",
+    "cleft_or_nominal"
+   ],
+   "answer": "My strength is staying methodical when things move fast, and the clearest example was a night shift on a surgical ward. A man in his sixties, two days after bowel surgery, became pale and breathless, with six beds under my care that night. I was the nurse responsible for him, and the delay of even an hour could have meant intensive care. I made sure to take full vitals, prop our patient on pillows, fit an O2 mask and phone general surgery. He was stable within 30 minutes and stayed on the ward, which spared him a transfer to the high dependency unit. What I took from it is that a fixed routine under pressure frees me to think clearly.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-1-c1",
+   "family": "aw-1",
+   "question_id": "e-general-3",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-1-typed",
+   "change": "action passage reworded so the actions no longer count: negated",
+   "kind": "negated",
+   "tags": [
+    "action_control",
+    "negated"
+   ],
+   "answer": "My strength is staying methodical when things move fast, and the clearest example was a night shift on a surgical ward. A man in his sixties, two days after bowel surgery, became pale and breathless, with six beds under my care that night. I was the nurse responsible for him, and the delay of even an hour could have meant intensive care. I didn't take full vitals, prop our patient on pillows, fit an O2 mask or phone general surgery. He was stable within 30 minutes and stayed on the ward, which spared him a transfer to the high dependency unit. What I took from it is that a fixed routine under pressure frees me to think clearly.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-1-c2",
+   "family": "aw-1",
+   "question_id": "e-general-3",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-1-typed",
+   "change": "action passage reworded so the actions no longer count: intended",
+   "kind": "intended",
+   "tags": [
+    "action_control",
+    "intended"
+   ],
+   "answer": "My strength is staying methodical when things move fast, and the clearest example was a night shift on a surgical ward. A man in his sixties, two days after bowel surgery, became pale and breathless, with six beds under my care that night. I was the nurse responsible for him, and the delay of even an hour could have meant intensive care. I was going to take full vitals, prop our patient on pillows, fit an O2 mask and phone general surgery. He was stable within 30 minutes and stayed on the ward, which spared him a transfer to the high dependency unit. What I took from it is that a fixed routine under pressure frees me to think clearly.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-1-c3",
+   "family": "aw-1",
+   "question_id": "e-general-3",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-1-typed",
+   "change": "action passage reworded so the actions no longer count: hypothetical",
+   "kind": "hypothetical",
+   "tags": [
+    "action_control",
+    "hypothetical"
+   ],
+   "answer": "My strength is staying methodical when things move fast, and the clearest example was a night shift on a surgical ward. A man in his sixties, two days after bowel surgery, became pale and breathless, with six beds under my care that night. I was the nurse responsible for him, and the delay of even an hour could have meant intensive care. I would have taken full vitals, propped our patient on pillows, fitted an O2 mask and phoned general surgery. He was stable within 30 minutes and stayed on the ward, which spared him a transfer to the high dependency unit. What I took from it is that a fixed routine under pressure frees me to think clearly.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-1-c4",
+   "family": "aw-1",
+   "question_id": "e-general-3",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-1-typed",
+   "change": "action passage reworded so the actions no longer count: others did it",
+   "kind": "others_did_it",
+   "tags": [
+    "action_control",
+    "others_did_it"
+   ],
+   "answer": "My strength is staying methodical when things move fast, and the clearest example was a night shift on a surgical ward. A man in his sixties, two days after bowel surgery, became pale and breathless, with six beds under my care that night. I was the nurse responsible for him, and the delay of even an hour could have meant intensive care. Our charge nurse took full vitals, propped our patient on pillows, fitted an O2 mask and phoned general surgery. He was stable within 30 minutes and stayed on the ward, which spared him a transfer to the high dependency unit. What I took from it is that a fixed routine under pressure frees me to think clearly.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-2-typed",
+   "family": "aw-2",
+   "question_id": "e-general-7",
+   "question_version": 1,
+   "variant": "typed",
+   "tags": [
+    "typed"
+   ],
+   "answer": "Early in my second year on a medical ward, my preceptor told me that my handovers were too long and buried the one thing the next nurse needed to know. It was a busy ward with fourteen patients per shift, and unclear handovers were a safety risk. I was responsible for the accuracy of my own handover on every shift. I rewrote my handover, put the key risk first, then rehearsed it with colleagues. Within a month my preceptor said the handovers were clear, and the follow up calls to me from the day team fell from about five a week to one. I learned that feedback is most useful when I turn it into a routine straight away.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-2-dictated",
+   "family": "aw-2",
+   "question_id": "e-general-7",
+   "question_version": 1,
+   "variant": "dictated",
+   "tags": [
+    "dictated"
+   ],
+   "answer": "early in my um second year on a medical ward my preceptor told me that my handovers were too you know long and buried the one thing the next nurse needed to know it was a busy ward with fourteen patients per shift and unclear handovers were a safety risk i was responsible for the accuracy of my own handover on every shift i rewrote my handover put the key risk first then rehearsed it with colleagues within a month my uh preceptor said the handovers were clear and the follow up calls to me from the day team fell from you know about five a week to one i learned that feedback is most useful when i turn it into a routine straight away",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-2-p1",
+   "family": "aw-2",
+   "question_id": "e-general-7",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-2-typed",
+   "change": "action passage reworded: passive with agent",
+   "kind": "passive_with_agent",
+   "tags": [
+    "action_paraphrase",
+    "passive_with_agent"
+   ],
+   "answer": "Early in my second year on a medical ward, my preceptor told me that my handovers were too long and buried the one thing the next nurse needed to know. It was a busy ward with fourteen patients per shift, and unclear handovers were a safety risk. I was responsible for the accuracy of my own handover on every shift. A leaner shift report was drafted by me, listing our main danger up front, plus trial runs were given by me to two peers. Within a month my preceptor said the handovers were clear, and the follow up calls to me from the day team fell from about five a week to one. I learned that feedback is most useful when I turn it into a routine straight away.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-2-p2",
+   "family": "aw-2",
+   "question_id": "e-general-7",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-2-typed",
+   "change": "action passage reworded: concise",
+   "kind": "concise",
+   "tags": [
+    "action_paraphrase",
+    "concise"
+   ],
+   "answer": "Early in my second year on a medical ward, my preceptor told me that my handovers were too long and buried the one thing the next nurse needed to know. It was a busy ward with fourteen patients per shift, and unclear handovers were a safety risk. I was responsible for the accuracy of my own handover on every shift. I drafted a leaner shift report and trialled that on two peers. Within a month my preceptor said the handovers were clear, and the follow up calls to me from the day team fell from about five a week to one. I learned that feedback is most useful when I turn it into a routine straight away.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-2-p3",
+   "family": "aw-2",
+   "question_id": "e-general-7",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-2-dictated",
+   "change": "action passage reworded in different words, in the dictated answer",
+   "kind": "dictated_paraphrase",
+   "tags": [
+    "action_paraphrase",
+    "dictated_paraphrase"
+   ],
+   "answer": "early in my um second year on a medical ward my preceptor told me that my handovers were too you know long and buried the one thing the next nurse needed to know it was a busy ward with fourteen patients per shift and unclear handovers were a safety risk i was responsible for the accuracy of my own handover on every shift i drafted a shorter shift report listing our main danger up front plus practised that before two peers within a month my uh preceptor said the handovers were clear and the follow up calls to me from the day team fell from you know about five a week to one i learned that feedback is most useful when i turn it into a routine straight away",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-2-p4",
+   "family": "aw-2",
+   "question_id": "e-general-7",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-2-typed",
+   "change": "action passage reworded: team action",
+   "kind": "team_action",
+   "tags": [
+    "action_paraphrase",
+    "team_action"
+   ],
+   "answer": "Early in my second year on a medical ward, my preceptor told me that my handovers were too long and buried the one thing the next nurse needed to know. It was a busy ward with fourteen patients per shift, and unclear handovers were a safety risk. I was responsible for the accuracy of my own handover on every shift. We drafted a leaner shift report listing our main danger up front, plus practised that before two peers. Within a month my preceptor said the handovers were clear, and the follow up calls to me from the day team fell from about five a week to one. I learned that feedback is most useful when I turn it into a routine straight away.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-2-p5",
+   "family": "aw-2",
+   "question_id": "e-general-7",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-2-typed",
+   "change": "action passage reworded: historical present",
+   "kind": "historical_present",
+   "tags": [
+    "action_paraphrase",
+    "historical_present"
+   ],
+   "answer": "Early in my second year on a medical ward, my preceptor told me that my handovers were too long and buried the one thing the next nurse needed to know. It was a busy ward with fourteen patients per shift, and unclear handovers were a safety risk. I was responsible for the accuracy of my own handover on every shift. I draft a leaner shift report, list our main danger up front, plus practise that before two peers. Within a month my preceptor said the handovers were clear, and the follow up calls to me from the day team fell from about five a week to one. I learned that feedback is most useful when I turn it into a routine straight away.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-2-p6",
+   "family": "aw-2",
+   "question_id": "e-general-7",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-2-typed",
+   "change": "action passage reworded: past perfect",
+   "kind": "past_perfect",
+   "tags": [
+    "action_paraphrase",
+    "past_perfect"
+   ],
+   "answer": "Early in my second year on a medical ward, my preceptor told me that my handovers were too long and buried the one thing the next nurse needed to know. It was a busy ward with fourteen patients per shift, and unclear handovers were a safety risk. I was responsible for the accuracy of my own handover on every shift. I had already drafted a leaner shift report, listed our main danger up front, plus practised that before two peers. Within a month my preceptor said the handovers were clear, and the follow up calls to me from the day team fell from about five a week to one. I learned that feedback is most useful when I turn it into a routine straight away.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-2-p7",
+   "family": "aw-2",
+   "question_id": "e-general-7",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-2-typed",
+   "change": "action passage reworded: professional phrasing",
+   "kind": "professional_phrasing",
+   "tags": [
+    "action_paraphrase",
+    "professional_phrasing"
+   ],
+   "answer": "Early in my second year on a medical ward, my preceptor told me that my handovers were too long and buried the one thing the next nurse needed to know. It was a busy ward with fourteen patients per shift, and unclear handovers were a safety risk. I was responsible for the accuracy of my own handover on every shift. I restructured our shift report to prioritise our main danger, plus trialled that before two peers. Within a month my preceptor said the handovers were clear, and the follow up calls to me from the day team fell from about five a week to one. I learned that feedback is most useful when I turn it into a routine straight away.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-2-p8",
+   "family": "aw-2",
+   "question_id": "e-general-7",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-2-typed",
+   "change": "action passage reworded: irregular verbs",
+   "kind": "irregular_verbs",
+   "tags": [
+    "action_paraphrase",
+    "irregular_verbs"
+   ],
+   "answer": "Early in my second year on a medical ward, my preceptor told me that my handovers were too long and buried the one thing the next nurse needed to know. It was a busy ward with fourteen patients per shift, and unclear handovers were a safety risk. I was responsible for the accuracy of my own handover on every shift. I wrote a leaner shift report, opened on our main danger, plus ran that through before two peers. Within a month my preceptor said the handovers were clear, and the follow up calls to me from the day team fell from about five a week to one. I learned that feedback is most useful when I turn it into a routine straight away.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-2-c1",
+   "family": "aw-2",
+   "question_id": "e-general-7",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-2-typed",
+   "change": "action passage reworded so the actions no longer count: others did it",
+   "kind": "others_did_it",
+   "tags": [
+    "action_control",
+    "others_did_it"
+   ],
+   "answer": "Early in my second year on a medical ward, my preceptor told me that my handovers were too long and buried the one thing the next nurse needed to know. It was a busy ward with fourteen patients per shift, and unclear handovers were a safety risk. I was responsible for the accuracy of my own handover on every shift. Our preceptor drafted a leaner shift report, listed our main danger up front, plus practised that before two peers. Within a month my preceptor said the handovers were clear, and the follow up calls to me from the day team fell from about five a week to one. I learned that feedback is most useful when I turn it into a routine straight away.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-2-c2",
+   "family": "aw-2",
+   "question_id": "e-general-7",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-2-typed",
+   "change": "action passage reworded so the actions no longer count: agentless passive",
+   "kind": "agentless_passive",
+   "tags": [
+    "action_control",
+    "agentless_passive"
+   ],
+   "answer": "Early in my second year on a medical ward, my preceptor told me that my handovers were too long and buried the one thing the next nurse needed to know. It was a busy ward with fourteen patients per shift, and unclear handovers were a safety risk. I was responsible for the accuracy of my own handover on every shift. A leaner shift report was drafted, our main danger was listed up front, plus that was practised before two peers. Within a month my preceptor said the handovers were clear, and the follow up calls to me from the day team fell from about five a week to one. I learned that feedback is most useful when I turn it into a routine straight away.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-2-c3",
+   "family": "aw-2",
+   "question_id": "e-general-7",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-2-typed",
+   "change": "action passage reworded so the actions no longer count: irrelevant action",
+   "kind": "irrelevant_action",
+   "tags": [
+    "action_control",
+    "irrelevant_action"
+   ],
+   "answer": "Early in my second year on a medical ward, my preceptor told me that my handovers were too long and buried the one thing the next nurse needed to know. It was a busy ward with fourteen patients per shift, and unclear handovers were a safety risk. I was responsible for the accuracy of my own handover on every shift. I painted a spare room, listed a few groceries, plus practised guitar before two neighbours. Within a month my preceptor said the handovers were clear, and the follow up calls to me from the day team fell from about five a week to one. I learned that feedback is most useful when I turn it into a routine straight away.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-2-c4",
+   "family": "aw-2",
+   "question_id": "e-general-7",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-2-typed",
+   "change": "action passage reworded so the actions no longer count: keyword list",
+   "kind": "keyword_list",
+   "tags": [
+    "action_control",
+    "keyword_list"
+   ],
+   "answer": "Early in my second year on a medical ward, my preceptor told me that my handovers were too long and buried the one thing the next nurse needed to know. It was a busy ward with fourteen patients per shift, and unclear handovers were a safety risk. I was responsible for the accuracy of my own handover on every shift. Actions: drafted, listed, practised. Within a month my preceptor said the handovers were clear, and the follow up calls to me from the day team fell from about five a week to one. I learned that feedback is most useful when I turn it into a routine straight away.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-3-typed",
+   "family": "aw-3",
+   "question_id": "e-time-0",
+   "question_version": 1,
+   "variant": "typed",
+   "tags": [
+    "typed"
+   ],
+   "answer": "During a placement on an acute medical unit last winter, an older woman admitted with a chest infection was in my care. Her breathing had been slowly worsening through the afternoon and the early warning score was creeping up. I was the nurse assigned to her, and her full assessment that shift was my responsibility. I measured her respiratory rate, examined her chest, questioned her on pain, then charted everything. The score showed she was deteriorating, so the doctor reviewed her within twenty minutes and her antibiotics were changed. Her oxygen saturation rose from 89 to 95 per cent by the evening. I learned that a thorough assessment tells you more than the numbers alone.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Shows patient assessment in action": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-3-dictated",
+   "family": "aw-3",
+   "question_id": "e-time-0",
+   "question_version": 1,
+   "variant": "dictated",
+   "tags": [
+    "dictated"
+   ],
+   "answer": "during a placement um on an acute medical unit last winter an older woman admitted with a chest infection you know was in my care her breathing had been slowly worsening through the afternoon and the early warning score was creeping up i was the nurse assigned to her and her full assessment that shift was my responsibility i measured her respiratory rate examined her chest questioned her on pain then charted everything the score showed she uh was deteriorating so the doctor reviewed her within twenty minutes and her antibiotics were changed her oxygen saturation rose you know from 89 to 95 per cent by the evening i learned that a thorough assessment tells you more than the numbers alone",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Shows patient assessment in action": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-3-p1",
+   "family": "aw-3",
+   "question_id": "e-time-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-3-typed",
+   "change": "action passage reworded: words between",
+   "kind": "words_between",
+   "tags": [
+    "action_paraphrase",
+    "words_between"
+   ],
+   "answer": "During a placement on an acute medical unit last winter, an older woman admitted with a chest infection was in my care. Her breathing had been slowly worsening through the afternoon and the early warning score was creeping up. I was the nurse assigned to her, and her full assessment that shift was my responsibility. I, as assigned nurse, carefully counted breaths per minute, auscultated our patient's lungs, quizzed our patient regarding soreness and recorded results in a chart. The score showed she was deteriorating, so the doctor reviewed her within twenty minutes and her antibiotics were changed. Her oxygen saturation rose from 89 to 95 per cent by the evening. I learned that a thorough assessment tells you more than the numbers alone.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Shows patient assessment in action": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-3-p2",
+   "family": "aw-3",
+   "question_id": "e-time-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-3-typed",
+   "change": "action passage reworded: cautious memory",
+   "kind": "cautious_memory",
+   "tags": [
+    "action_paraphrase",
+    "cautious_memory"
+   ],
+   "answer": "During a placement on an acute medical unit last winter, an older woman admitted with a chest infection was in my care. Her breathing had been slowly worsening through the afternoon and the early warning score was creeping up. I was the nurse assigned to her, and her full assessment that shift was my responsibility. I think I counted breaths per minute, auscultated our patient's lungs, quizzed our patient regarding soreness and recorded results in a chart. The score showed she was deteriorating, so the doctor reviewed her within twenty minutes and her antibiotics were changed. Her oxygen saturation rose from 89 to 95 per cent by the evening. I learned that a thorough assessment tells you more than the numbers alone.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Shows patient assessment in action": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-3-p3",
+   "family": "aw-3",
+   "question_id": "e-time-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-3-typed",
+   "change": "action passage reworded: cleft or nominal",
+   "kind": "cleft_or_nominal",
+   "tags": [
+    "action_paraphrase",
+    "cleft_or_nominal"
+   ],
+   "answer": "During a placement on an acute medical unit last winter, an older woman admitted with a chest infection was in my care. Her breathing had been slowly worsening through the afternoon and the early warning score was creeping up. I was the nurse assigned to her, and her full assessment that shift was my responsibility. I made sure to count breaths per minute, auscultate our patient's lungs, quiz our patient regarding soreness and record results in a chart. The score showed she was deteriorating, so the doctor reviewed her within twenty minutes and her antibiotics were changed. Her oxygen saturation rose from 89 to 95 per cent by the evening. I learned that a thorough assessment tells you more than the numbers alone.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Shows patient assessment in action": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-3-p4",
+   "family": "aw-3",
+   "question_id": "e-time-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-3-typed",
+   "change": "action passage reworded: passive with agent",
+   "kind": "passive_with_agent",
+   "tags": [
+    "action_paraphrase",
+    "passive_with_agent"
+   ],
+   "answer": "During a placement on an acute medical unit last winter, an older woman admitted with a chest infection was in my care. Her breathing had been slowly worsening through the afternoon and the early warning score was creeping up. I was the nurse assigned to her, and her full assessment that shift was my responsibility. Breaths per minute were counted by me, our patient's lungs were auscultated by me, soreness was probed by me and results were recorded by me in a chart. The score showed she was deteriorating, so the doctor reviewed her within twenty minutes and her antibiotics were changed. Her oxygen saturation rose from 89 to 95 per cent by the evening. I learned that a thorough assessment tells you more than the numbers alone.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Shows patient assessment in action": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-3-p5",
+   "family": "aw-3",
+   "question_id": "e-time-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-3-typed",
+   "change": "action passage reworded: concise",
+   "kind": "concise",
+   "tags": [
+    "action_paraphrase",
+    "concise"
+   ],
+   "answer": "During a placement on an acute medical unit last winter, an older woman admitted with a chest infection was in my care. Her breathing had been slowly worsening through the afternoon and the early warning score was creeping up. I was the nurse assigned to her, and her full assessment that shift was my responsibility. I counted breaths per minute, auscultated lungs, documented results. The score showed she was deteriorating, so the doctor reviewed her within twenty minutes and her antibiotics were changed. Her oxygen saturation rose from 89 to 95 per cent by the evening. I learned that a thorough assessment tells you more than the numbers alone.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Shows patient assessment in action": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-3-p6",
+   "family": "aw-3",
+   "question_id": "e-time-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-3-dictated",
+   "change": "action passage reworded in different words, in the dictated answer",
+   "kind": "dictated_paraphrase",
+   "tags": [
+    "action_paraphrase",
+    "dictated_paraphrase"
+   ],
+   "answer": "during a placement um on an acute medical unit last winter an older woman admitted with a chest infection you know was in my care her breathing had been slowly worsening through the afternoon and the early warning score was creeping up i was the nurse assigned to her and her full assessment that shift was my responsibility i counted breaths per minute auscultated our patients lungs quizzed our patient regarding soreness and wrote results in a chart the score showed she uh was deteriorating so the doctor reviewed her within twenty minutes and her antibiotics were changed her oxygen saturation rose you know from 89 to 95 per cent by the evening i learned that a thorough assessment tells you more than the numbers alone",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Shows patient assessment in action": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-3-p7",
+   "family": "aw-3",
+   "question_id": "e-time-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-3-typed",
+   "change": "action passage reworded: team action",
+   "kind": "team_action",
+   "tags": [
+    "action_paraphrase",
+    "team_action"
+   ],
+   "answer": "During a placement on an acute medical unit last winter, an older woman admitted with a chest infection was in my care. Her breathing had been slowly worsening through the afternoon and the early warning score was creeping up. I was the nurse assigned to her, and her full assessment that shift was my responsibility. We counted breaths per minute, auscultated our patient's lungs, quizzed our patient regarding soreness and recorded results in a chart. The score showed she was deteriorating, so the doctor reviewed her within twenty minutes and her antibiotics were changed. Her oxygen saturation rose from 89 to 95 per cent by the evening. I learned that a thorough assessment tells you more than the numbers alone.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Shows patient assessment in action": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-3-p8",
+   "family": "aw-3",
+   "question_id": "e-time-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-3-typed",
+   "change": "action passage reworded: historical present",
+   "kind": "historical_present",
+   "tags": [
+    "action_paraphrase",
+    "historical_present"
+   ],
+   "answer": "During a placement on an acute medical unit last winter, an older woman admitted with a chest infection was in my care. Her breathing had been slowly worsening through the afternoon and the early warning score was creeping up. I was the nurse assigned to her, and her full assessment that shift was my responsibility. I count breaths per minute, auscultate our patient's lungs, quiz our patient regarding soreness and record results in a chart. The score showed she was deteriorating, so the doctor reviewed her within twenty minutes and her antibiotics were changed. Her oxygen saturation rose from 89 to 95 per cent by the evening. I learned that a thorough assessment tells you more than the numbers alone.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Shows patient assessment in action": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-3-c1",
+   "family": "aw-3",
+   "question_id": "e-time-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-3-typed",
+   "change": "action passage reworded so the actions no longer count: keyword list",
+   "kind": "keyword_list",
+   "tags": [
+    "action_control",
+    "keyword_list"
+   ],
+   "answer": "During a placement on an acute medical unit last winter, an older woman admitted with a chest infection was in my care. Her breathing had been slowly worsening through the afternoon and the early warning score was creeping up. I was the nurse assigned to her, and her full assessment that shift was my responsibility. Actions: counted, auscultated, quizzed, documented. The score showed she was deteriorating, so the doctor reviewed her within twenty minutes and her antibiotics were changed. Her oxygen saturation rose from 89 to 95 per cent by the evening. I learned that a thorough assessment tells you more than the numbers alone.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Shows patient assessment in action": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-3-c2",
+   "family": "aw-3",
+   "question_id": "e-time-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-3-typed",
+   "change": "action passage reworded so the actions no longer count: thought not act",
+   "kind": "thought_not_act",
+   "tags": [
+    "action_control",
+    "thought_not_act"
+   ],
+   "answer": "During a placement on an acute medical unit last winter, an older woman admitted with a chest infection was in my care. Her breathing had been slowly worsening through the afternoon and the early warning score was creeping up. I was the nurse assigned to her, and her full assessment that shift was my responsibility. I thought about counting breaths per minute, auscultating our patient's lungs, quizzing our patient regarding soreness and recording results in a chart. The score showed she was deteriorating, so the doctor reviewed her within twenty minutes and her antibiotics were changed. Her oxygen saturation rose from 89 to 95 per cent by the evening. I learned that a thorough assessment tells you more than the numbers alone.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Shows patient assessment in action": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-3-c3",
+   "family": "aw-3",
+   "question_id": "e-time-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-3-typed",
+   "change": "action passage reworded so the actions no longer count: negated",
+   "kind": "negated",
+   "tags": [
+    "action_control",
+    "negated"
+   ],
+   "answer": "During a placement on an acute medical unit last winter, an older woman admitted with a chest infection was in my care. Her breathing had been slowly worsening through the afternoon and the early warning score was creeping up. I was the nurse assigned to her, and her full assessment that shift was my responsibility. I didn't count breaths per minute, auscultate our patient's lungs, quiz our patient regarding soreness or record results in a chart. The score showed she was deteriorating, so the doctor reviewed her within twenty minutes and her antibiotics were changed. Her oxygen saturation rose from 89 to 95 per cent by the evening. I learned that a thorough assessment tells you more than the numbers alone.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Shows patient assessment in action": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-3-c4",
+   "family": "aw-3",
+   "question_id": "e-time-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-3-typed",
+   "change": "action passage reworded so the actions no longer count: intended",
+   "kind": "intended",
+   "tags": [
+    "action_control",
+    "intended"
+   ],
+   "answer": "During a placement on an acute medical unit last winter, an older woman admitted with a chest infection was in my care. Her breathing had been slowly worsening through the afternoon and the early warning score was creeping up. I was the nurse assigned to her, and her full assessment that shift was my responsibility. I was going to count breaths per minute, auscultate our patient's lungs, quiz our patient regarding soreness and record results in a chart. The score showed she was deteriorating, so the doctor reviewed her within twenty minutes and her antibiotics were changed. Her oxygen saturation rose from 89 to 95 per cent by the evening. I learned that a thorough assessment tells you more than the numbers alone.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Shows patient assessment in action": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-4-typed",
+   "family": "aw-4",
+   "question_id": "m-mistake-0",
+   "question_version": 1,
+   "variant": "typed",
+   "tags": [
+    "typed"
+   ],
+   "answer": "On a busy afternoon shift on a care of the elderly ward, a patient's blood pressure ended up recorded from the arm with the drip in, and the reading, far too low to be right, went on the chart unchallenged. The mistake was mine, and he was already feeling unwell, so a missed deterioration could have harmed him. The nurse in charge was told that same afternoon and an incident report went in before handover, because owning the error openly, whatever it cost me, was my line from the first minute. I retook his blood pressure, corrected the chart, then taped up a reminder. His true reading was low but not dangerous, and the doctor adjusted his fluids within the hour, so no harm came to him. Our observation form now has a box for the arm used, and similar entries fell to zero over the next three months. The lesson for me is that a reading that doesn't fit the patient deserves a second look.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-4-dictated",
+   "family": "aw-4",
+   "question_id": "m-mistake-0",
+   "question_version": 1,
+   "variant": "dictated",
+   "tags": [
+    "dictated"
+   ],
+   "answer": "on a busy um afternoon shift on a care of the elderly ward a patients blood pressure ended up you know recorded from the arm with the drip in and the reading far too low to be right went on the chart unchallenged the mistake was mine and he was already feeling unwell so a missed deterioration could have harmed him the nurse in charge was told that same afternoon and an incident report went in before handover because owning the error openly whatever it cost me was my line from the first minute i retook his blood pressure corrected the chart then taped up a reminder his true reading was uh low but not dangerous and the doctor adjusted his fluids within the hour so no harm came to him you know our observation form now has a box for the arm used and similar entries fell to zero over the next three months the lesson for me is that a reading that doesnt fit the patient deserves a second look",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-4-p1",
+   "family": "aw-4",
+   "question_id": "m-mistake-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-4-typed",
+   "change": "action passage reworded: past perfect",
+   "kind": "past_perfect",
+   "tags": [
+    "action_paraphrase",
+    "past_perfect"
+   ],
+   "answer": "On a busy afternoon shift on a care of the elderly ward, a patient's blood pressure ended up recorded from the arm with the drip in, and the reading, far too low to be right, went on the chart unchallenged. The mistake was mine, and he was already feeling unwell, so a missed deterioration could have harmed him. The nurse in charge was told that same afternoon and an incident report went in before handover, because owning the error openly, whatever it cost me, was my line from the first minute. I had already measured BP again on our patient's other arm, fixed this record entry, plus stuck an alert near our patient's bed. His true reading was low but not dangerous, and the doctor adjusted his fluids within the hour, so no harm came to him. Our observation form now has a box for the arm used, and similar entries fell to zero over the next three months. The lesson for me is that a reading that doesn't fit the patient deserves a second look.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-4-p2",
+   "family": "aw-4",
+   "question_id": "m-mistake-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-4-typed",
+   "change": "action passage reworded: professional phrasing",
+   "kind": "professional_phrasing",
+   "tags": [
+    "action_paraphrase",
+    "professional_phrasing"
+   ],
+   "answer": "On a busy afternoon shift on a care of the elderly ward, a patient's blood pressure ended up recorded from the arm with the drip in, and the reading, far too low to be right, went on the chart unchallenged. The mistake was mine, and he was already feeling unwell, so a missed deterioration could have harmed him. The nurse in charge was told that same afternoon and an incident report went in before handover, because owning the error openly, whatever it cost me, was my line from the first minute. I repeated BP measurement on our patient's other arm, amended this record entry, plus displayed an alert near our patient's bed. His true reading was low but not dangerous, and the doctor adjusted his fluids within the hour, so no harm came to him. Our observation form now has a box for the arm used, and similar entries fell to zero over the next three months. The lesson for me is that a reading that doesn't fit the patient deserves a second look.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-4-p3",
+   "family": "aw-4",
+   "question_id": "m-mistake-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-4-typed",
+   "change": "action passage reworded: irregular verbs",
+   "kind": "irregular_verbs",
+   "tags": [
+    "action_paraphrase",
+    "irregular_verbs"
+   ],
+   "answer": "On a busy afternoon shift on a care of the elderly ward, a patient's blood pressure ended up recorded from the arm with the drip in, and the reading, far too low to be right, went on the chart unchallenged. The mistake was mine, and he was already feeling unwell, so a missed deterioration could have harmed him. The nurse in charge was told that same afternoon and an incident report went in before handover, because owning the error openly, whatever it cost me, was my line from the first minute. I took BP again on our patient's other arm, wrote corrections into this record entry, plus stuck an alert near our patient's bed. His true reading was low but not dangerous, and the doctor adjusted his fluids within the hour, so no harm came to him. Our observation form now has a box for the arm used, and similar entries fell to zero over the next three months. The lesson for me is that a reading that doesn't fit the patient deserves a second look.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-4-p4",
+   "family": "aw-4",
+   "question_id": "m-mistake-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-4-typed",
+   "change": "action passage reworded: words between",
+   "kind": "words_between",
+   "tags": [
+    "action_paraphrase",
+    "words_between"
+   ],
+   "answer": "On a busy afternoon shift on a care of the elderly ward, a patient's blood pressure ended up recorded from the arm with the drip in, and the reading, far too low to be right, went on the chart unchallenged. The mistake was mine, and he was already feeling unwell, so a missed deterioration could have harmed him. The nurse in charge was told that same afternoon and an incident report went in before handover, because owning the error openly, whatever it cost me, was my line from the first minute. I, being thorough, measured BP again on our patient's other arm, fixed this record entry, plus stuck an alert near our patient's bed. His true reading was low but not dangerous, and the doctor adjusted his fluids within the hour, so no harm came to him. Our observation form now has a box for the arm used, and similar entries fell to zero over the next three months. The lesson for me is that a reading that doesn't fit the patient deserves a second look.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-4-p5",
+   "family": "aw-4",
+   "question_id": "m-mistake-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-4-typed",
+   "change": "action passage reworded: cautious memory",
+   "kind": "cautious_memory",
+   "tags": [
+    "action_paraphrase",
+    "cautious_memory"
+   ],
+   "answer": "On a busy afternoon shift on a care of the elderly ward, a patient's blood pressure ended up recorded from the arm with the drip in, and the reading, far too low to be right, went on the chart unchallenged. The mistake was mine, and he was already feeling unwell, so a missed deterioration could have harmed him. The nurse in charge was told that same afternoon and an incident report went in before handover, because owning the error openly, whatever it cost me, was my line from the first minute. I think I measured BP again on our patient's other arm, fixed this record entry, plus stuck an alert near our patient's bed. His true reading was low but not dangerous, and the doctor adjusted his fluids within the hour, so no harm came to him. Our observation form now has a box for the arm used, and similar entries fell to zero over the next three months. The lesson for me is that a reading that doesn't fit the patient deserves a second look.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-4-p6",
+   "family": "aw-4",
+   "question_id": "m-mistake-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-4-typed",
+   "change": "action passage reworded: cleft or nominal",
+   "kind": "cleft_or_nominal",
+   "tags": [
+    "action_paraphrase",
+    "cleft_or_nominal"
+   ],
+   "answer": "On a busy afternoon shift on a care of the elderly ward, a patient's blood pressure ended up recorded from the arm with the drip in, and the reading, far too low to be right, went on the chart unchallenged. The mistake was mine, and he was already feeling unwell, so a missed deterioration could have harmed him. The nurse in charge was told that same afternoon and an incident report went in before handover, because owning the error openly, whatever it cost me, was my line from the first minute. I made sure to measure BP again on our patient's other arm, fix this record entry, plus stick an alert near our patient's bed. His true reading was low but not dangerous, and the doctor adjusted his fluids within the hour, so no harm came to him. Our observation form now has a box for the arm used, and similar entries fell to zero over the next three months. The lesson for me is that a reading that doesn't fit the patient deserves a second look.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-4-p7",
+   "family": "aw-4",
+   "question_id": "m-mistake-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-4-typed",
+   "change": "action passage reworded: passive with agent",
+   "kind": "passive_with_agent",
+   "tags": [
+    "action_paraphrase",
+    "passive_with_agent"
+   ],
+   "answer": "On a busy afternoon shift on a care of the elderly ward, a patient's blood pressure ended up recorded from the arm with the drip in, and the reading, far too low to be right, went on the chart unchallenged. The mistake was mine, and he was already feeling unwell, so a missed deterioration could have harmed him. The nurse in charge was told that same afternoon and an incident report went in before handover, because owning the error openly, whatever it cost me, was my line from the first minute. BP was measured again by me on our patient's other arm, this record entry was fixed by me, plus an alert was stuck by me near our patient's bed. His true reading was low but not dangerous, and the doctor adjusted his fluids within the hour, so no harm came to him. Our observation form now has a box for the arm used, and similar entries fell to zero over the next three months. The lesson for me is that a reading that doesn't fit the patient deserves a second look.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-4-p8",
+   "family": "aw-4",
+   "question_id": "m-mistake-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-4-typed",
+   "change": "action passage reworded: concise",
+   "kind": "concise",
+   "tags": [
+    "action_paraphrase",
+    "concise"
+   ],
+   "answer": "On a busy afternoon shift on a care of the elderly ward, a patient's blood pressure ended up recorded from the arm with the drip in, and the reading, far too low to be right, went on the chart unchallenged. The mistake was mine, and he was already feeling unwell, so a missed deterioration could have harmed him. The nurse in charge was told that same afternoon and an incident report went in before handover, because owning the error openly, whatever it cost me, was my line from the first minute. I measured BP again, fixed this record entry, plus stuck an alert near our patient's bed. His true reading was low but not dangerous, and the doctor adjusted his fluids within the hour, so no harm came to him. Our observation form now has a box for the arm used, and similar entries fell to zero over the next three months. The lesson for me is that a reading that doesn't fit the patient deserves a second look.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-4-c1",
+   "family": "aw-4",
+   "question_id": "m-mistake-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-4-typed",
+   "change": "action passage reworded so the actions no longer count: intended",
+   "kind": "intended",
+   "tags": [
+    "action_control",
+    "intended"
+   ],
+   "answer": "On a busy afternoon shift on a care of the elderly ward, a patient's blood pressure ended up recorded from the arm with the drip in, and the reading, far too low to be right, went on the chart unchallenged. The mistake was mine, and he was already feeling unwell, so a missed deterioration could have harmed him. The nurse in charge was told that same afternoon and an incident report went in before handover, because owning the error openly, whatever it cost me, was my line from the first minute. I was going to measure BP again on our patient's other arm, fix this record entry, plus stick an alert near our patient's bed. His true reading was low but not dangerous, and the doctor adjusted his fluids within the hour, so no harm came to him. Our observation form now has a box for the arm used, and similar entries fell to zero over the next three months. The lesson for me is that a reading that doesn't fit the patient deserves a second look.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-4-c2",
+   "family": "aw-4",
+   "question_id": "m-mistake-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-4-typed",
+   "change": "action passage reworded so the actions no longer count: hypothetical",
+   "kind": "hypothetical",
+   "tags": [
+    "action_control",
+    "hypothetical"
+   ],
+   "answer": "On a busy afternoon shift on a care of the elderly ward, a patient's blood pressure ended up recorded from the arm with the drip in, and the reading, far too low to be right, went on the chart unchallenged. The mistake was mine, and he was already feeling unwell, so a missed deterioration could have harmed him. The nurse in charge was told that same afternoon and an incident report went in before handover, because owning the error openly, whatever it cost me, was my line from the first minute. I would have measured BP again on our patient's other arm, fixed this record entry, plus stuck an alert near our patient's bed. His true reading was low but not dangerous, and the doctor adjusted his fluids within the hour, so no harm came to him. Our observation form now has a box for the arm used, and similar entries fell to zero over the next three months. The lesson for me is that a reading that doesn't fit the patient deserves a second look.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-4-c3",
+   "family": "aw-4",
+   "question_id": "m-mistake-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-4-typed",
+   "change": "action passage reworded so the actions no longer count: others did it",
+   "kind": "others_did_it",
+   "tags": [
+    "action_control",
+    "others_did_it"
+   ],
+   "answer": "On a busy afternoon shift on a care of the elderly ward, a patient's blood pressure ended up recorded from the arm with the drip in, and the reading, far too low to be right, went on the chart unchallenged. The mistake was mine, and he was already feeling unwell, so a missed deterioration could have harmed him. The nurse in charge was told that same afternoon and an incident report went in before handover, because owning the error openly, whatever it cost me, was my line from the first minute. Our staff nurse measured BP again on our patient's other arm, fixed this record entry, plus stuck an alert near our patient's bed. His true reading was low but not dangerous, and the doctor adjusted his fluids within the hour, so no harm came to him. Our observation form now has a box for the arm used, and similar entries fell to zero over the next three months. The lesson for me is that a reading that doesn't fit the patient deserves a second look.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-4-c4",
+   "family": "aw-4",
+   "question_id": "m-mistake-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-4-typed",
+   "change": "action passage reworded so the actions no longer count: agentless passive",
+   "kind": "agentless_passive",
+   "tags": [
+    "action_control",
+    "agentless_passive"
+   ],
+   "answer": "On a busy afternoon shift on a care of the elderly ward, a patient's blood pressure ended up recorded from the arm with the drip in, and the reading, far too low to be right, went on the chart unchallenged. The mistake was mine, and he was already feeling unwell, so a missed deterioration could have harmed him. The nurse in charge was told that same afternoon and an incident report went in before handover, because owning the error openly, whatever it cost me, was my line from the first minute. BP was measured again on our patient's other arm, this record entry was fixed, plus an alert was stuck near our patient's bed. His true reading was low but not dangerous, and the doctor adjusted his fluids within the hour, so no harm came to him. Our observation form now has a box for the arm used, and similar entries fell to zero over the next three months. The lesson for me is that a reading that doesn't fit the patient deserves a second look.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-5-typed",
+   "family": "aw-5",
+   "question_id": "m-mistake-1",
+   "question_version": 1,
+   "variant": "typed",
+   "tags": [
+    "typed"
+   ],
+   "answer": "During a late shift on a surgical ward, a patient's evening dose of a blood thinner was given an hour and a half late because the timing on the drug chart had been misread. The mistake was mine, and a delayed dose can matter for someone recovering from a clot. The nurse in charge and the duty doctor were told within the hour and an incident form was completed, because being open about it and staying inside the rules mattered more to me than how it looked. I checked his clotting result, gave the late dose with a witness, then wrote a handover note. The patient had no bleeding or clotting problems and was discharged on schedule two days later. Our ward now puts dose times in a coloured box on the chart, and late doses fell from six to one over the next quarter. What I learned is to read the timing line twice before trusting it.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-5-dictated",
+   "family": "aw-5",
+   "question_id": "m-mistake-1",
+   "question_version": 1,
+   "variant": "dictated",
+   "tags": [
+    "dictated"
+   ],
+   "answer": "during a late um shift on a surgical ward a patients evening dose of a blood thinner was given you know an hour and a half late because the timing on the drug chart had been misread the mistake was mine and a delayed dose can matter for someone recovering from a clot the nurse in charge and the duty doctor were told within the hour and an incident form was completed because being open about it and staying inside the rules mattered more to me than how it looked i checked his clotting result gave the late dose with a witness then wrote a handover note the patient had no uh bleeding or clotting problems and was discharged on schedule two days later our ward now puts dose times in you know a coloured box on the chart and late doses fell from six to one over the next quarter what i learned is to read the timing line twice before trusting it",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-5-p1",
+   "family": "aw-5",
+   "question_id": "m-mistake-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-5-dictated",
+   "change": "action passage reworded in different words, in the dictated answer",
+   "kind": "dictated_paraphrase",
+   "tags": [
+    "action_paraphrase",
+    "dictated_paraphrase"
+   ],
+   "answer": "during a late um shift on a surgical ward a patients evening dose of a blood thinner was given you know an hour and a half late because the timing on the drug chart had been misread the mistake was mine and a delayed dose can matter for someone recovering from a clot the nurse in charge and the duty doctor were told within the hour and an incident form was completed because being open about it and staying inside the rules mattered more to me than how it looked i looked up our patients coagulation results delivered that overdue medicine beside another nurse plus drafted shift notes for nights the patient had no uh bleeding or clotting problems and was discharged on schedule two days later our ward now puts dose times in you know a coloured box on the chart and late doses fell from six to one over the next quarter what i learned is to read the timing line twice before trusting it",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-5-p2",
+   "family": "aw-5",
+   "question_id": "m-mistake-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-5-typed",
+   "change": "action passage reworded: team action",
+   "kind": "team_action",
+   "tags": [
+    "action_paraphrase",
+    "team_action"
+   ],
+   "answer": "During a late shift on a surgical ward, a patient's evening dose of a blood thinner was given an hour and a half late because the timing on the drug chart had been misread. The mistake was mine, and a delayed dose can matter for someone recovering from a clot. The nurse in charge and the duty doctor were told within the hour and an incident form was completed, because being open about it and staying inside the rules mattered more to me than how it looked. We looked up our patient's coagulation results, delivered that overdue medicine together, plus drafted shift notes for nights. The patient had no bleeding or clotting problems and was discharged on schedule two days later. Our ward now puts dose times in a coloured box on the chart, and late doses fell from six to one over the next quarter. What I learned is to read the timing line twice before trusting it.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-5-p3",
+   "family": "aw-5",
+   "question_id": "m-mistake-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-5-typed",
+   "change": "action passage reworded: historical present",
+   "kind": "historical_present",
+   "tags": [
+    "action_paraphrase",
+    "historical_present"
+   ],
+   "answer": "During a late shift on a surgical ward, a patient's evening dose of a blood thinner was given an hour and a half late because the timing on the drug chart had been misread. The mistake was mine, and a delayed dose can matter for someone recovering from a clot. The nurse in charge and the duty doctor were told within the hour and an incident form was completed, because being open about it and staying inside the rules mattered more to me than how it looked. I look up our patient's coagulation results, deliver that overdue medicine beside another nurse, plus draft shift notes for nights. The patient had no bleeding or clotting problems and was discharged on schedule two days later. Our ward now puts dose times in a coloured box on the chart, and late doses fell from six to one over the next quarter. What I learned is to read the timing line twice before trusting it.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-5-p4",
+   "family": "aw-5",
+   "question_id": "m-mistake-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-5-typed",
+   "change": "action passage reworded: past perfect",
+   "kind": "past_perfect",
+   "tags": [
+    "action_paraphrase",
+    "past_perfect"
+   ],
+   "answer": "During a late shift on a surgical ward, a patient's evening dose of a blood thinner was given an hour and a half late because the timing on the drug chart had been misread. The mistake was mine, and a delayed dose can matter for someone recovering from a clot. The nurse in charge and the duty doctor were told within the hour and an incident form was completed, because being open about it and staying inside the rules mattered more to me than how it looked. I had already looked up our patient's coagulation results, delivered that overdue medicine beside another nurse, plus drafted shift notes for nights. The patient had no bleeding or clotting problems and was discharged on schedule two days later. Our ward now puts dose times in a coloured box on the chart, and late doses fell from six to one over the next quarter. What I learned is to read the timing line twice before trusting it.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-5-p5",
+   "family": "aw-5",
+   "question_id": "m-mistake-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-5-typed",
+   "change": "action passage reworded: professional phrasing",
+   "kind": "professional_phrasing",
+   "tags": [
+    "action_paraphrase",
+    "professional_phrasing"
+   ],
+   "answer": "During a late shift on a surgical ward, a patient's evening dose of a blood thinner was given an hour and a half late because the timing on the drug chart had been misread. The mistake was mine, and a delayed dose can matter for someone recovering from a clot. The nurse in charge and the duty doctor were told within the hour and an incident form was completed, because being open about it and staying inside the rules mattered more to me than how it looked. I reviewed our patient's coagulation results, administered that overdue medicine beside another nurse, plus completed shift notes for nights. The patient had no bleeding or clotting problems and was discharged on schedule two days later. Our ward now puts dose times in a coloured box on the chart, and late doses fell from six to one over the next quarter. What I learned is to read the timing line twice before trusting it.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-5-p6",
+   "family": "aw-5",
+   "question_id": "m-mistake-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-5-typed",
+   "change": "action passage reworded: irregular verbs",
+   "kind": "irregular_verbs",
+   "tags": [
+    "action_paraphrase",
+    "irregular_verbs"
+   ],
+   "answer": "During a late shift on a surgical ward, a patient's evening dose of a blood thinner was given an hour and a half late because the timing on the drug chart had been misread. The mistake was mine, and a delayed dose can matter for someone recovering from a clot. The nurse in charge and the duty doctor were told within the hour and an incident form was completed, because being open about it and staying inside the rules mattered more to me than how it looked. I read our patient's coagulation results, drew up that overdue medicine beside another nurse, plus sent shift notes through to nights. The patient had no bleeding or clotting problems and was discharged on schedule two days later. Our ward now puts dose times in a coloured box on the chart, and late doses fell from six to one over the next quarter. What I learned is to read the timing line twice before trusting it.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-5-p7",
+   "family": "aw-5",
+   "question_id": "m-mistake-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-5-typed",
+   "change": "action passage reworded: words between",
+   "kind": "words_between",
+   "tags": [
+    "action_paraphrase",
+    "words_between"
+   ],
+   "answer": "During a late shift on a surgical ward, a patient's evening dose of a blood thinner was given an hour and a half late because the timing on the drug chart had been misread. The mistake was mine, and a delayed dose can matter for someone recovering from a clot. The nurse in charge and the duty doctor were told within the hour and an incident form was completed, because being open about it and staying inside the rules mattered more to me than how it looked. I first looked up our patient's coagulation results, next delivered that overdue medicine beside another nurse, plus, before leaving, drafted shift notes for nights. The patient had no bleeding or clotting problems and was discharged on schedule two days later. Our ward now puts dose times in a coloured box on the chart, and late doses fell from six to one over the next quarter. What I learned is to read the timing line twice before trusting it.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-5-p8",
+   "family": "aw-5",
+   "question_id": "m-mistake-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-5-typed",
+   "change": "action passage reworded: cautious memory",
+   "kind": "cautious_memory",
+   "tags": [
+    "action_paraphrase",
+    "cautious_memory"
+   ],
+   "answer": "During a late shift on a surgical ward, a patient's evening dose of a blood thinner was given an hour and a half late because the timing on the drug chart had been misread. The mistake was mine, and a delayed dose can matter for someone recovering from a clot. The nurse in charge and the duty doctor were told within the hour and an incident form was completed, because being open about it and staying inside the rules mattered more to me than how it looked. I believe I looked up our patient's coagulation results, delivered that overdue medicine beside another nurse, plus drafted shift notes for nights. The patient had no bleeding or clotting problems and was discharged on schedule two days later. Our ward now puts dose times in a coloured box on the chart, and late doses fell from six to one over the next quarter. What I learned is to read the timing line twice before trusting it.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-5-c1",
+   "family": "aw-5",
+   "question_id": "m-mistake-1",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-5-typed",
+   "change": "action passage reworded so the actions no longer count: agentless passive",
+   "kind": "agentless_passive",
+   "tags": [
+    "action_control",
+    "agentless_passive"
+   ],
+   "answer": "During a late shift on a surgical ward, a patient's evening dose of a blood thinner was given an hour and a half late because the timing on the drug chart had been misread. The mistake was mine, and a delayed dose can matter for someone recovering from a clot. The nurse in charge and the duty doctor were told within the hour and an incident form was completed, because being open about it and staying inside the rules mattered more to me than how it looked. Our patient's coagulation results were looked up, that overdue medicine was delivered beside another nurse, plus shift notes were drafted for nights. The patient had no bleeding or clotting problems and was discharged on schedule two days later. Our ward now puts dose times in a coloured box on the chart, and late doses fell from six to one over the next quarter. What I learned is to read the timing line twice before trusting it.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-5-c2",
+   "family": "aw-5",
+   "question_id": "m-mistake-1",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-5-typed",
+   "change": "action passage reworded so the actions no longer count: irrelevant action",
+   "kind": "irrelevant_action",
+   "tags": [
+    "action_control",
+    "irrelevant_action"
+   ],
+   "answer": "During a late shift on a surgical ward, a patient's evening dose of a blood thinner was given an hour and a half late because the timing on the drug chart had been misread. The mistake was mine, and a delayed dose can matter for someone recovering from a clot. The nurse in charge and the duty doctor were told within the hour and an incident form was completed, because being open about it and staying inside the rules mattered more to me than how it looked. I looked up bus times, ate lunch beside another nurse, plus drafted birthday cards for nights. The patient had no bleeding or clotting problems and was discharged on schedule two days later. Our ward now puts dose times in a coloured box on the chart, and late doses fell from six to one over the next quarter. What I learned is to read the timing line twice before trusting it.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-5-c3",
+   "family": "aw-5",
+   "question_id": "m-mistake-1",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-5-typed",
+   "change": "action passage reworded so the actions no longer count: keyword list",
+   "kind": "keyword_list",
+   "tags": [
+    "action_control",
+    "keyword_list"
+   ],
+   "answer": "During a late shift on a surgical ward, a patient's evening dose of a blood thinner was given an hour and a half late because the timing on the drug chart had been misread. The mistake was mine, and a delayed dose can matter for someone recovering from a clot. The nurse in charge and the duty doctor were told within the hour and an incident form was completed, because being open about it and staying inside the rules mattered more to me than how it looked. Actions: looked up, delivered, drafted. The patient had no bleeding or clotting problems and was discharged on schedule two days later. Our ward now puts dose times in a coloured box on the chart, and late doses fell from six to one over the next quarter. What I learned is to read the timing line twice before trusting it.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-5-c4",
+   "family": "aw-5",
+   "question_id": "m-mistake-1",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-5-typed",
+   "change": "action passage reworded so the actions no longer count: thought not act",
+   "kind": "thought_not_act",
+   "tags": [
+    "action_control",
+    "thought_not_act"
+   ],
+   "answer": "During a late shift on a surgical ward, a patient's evening dose of a blood thinner was given an hour and a half late because the timing on the drug chart had been misread. The mistake was mine, and a delayed dose can matter for someone recovering from a clot. The nurse in charge and the duty doctor were told within the hour and an incident form was completed, because being open about it and staying inside the rules mattered more to me than how it looked. I thought about looking up our patient's coagulation results, delivering that overdue medicine beside another nurse, plus drafting shift notes for nights. The patient had no bleeding or clotting problems and was discharged on schedule two days later. Our ward now puts dose times in a coloured box on the chart, and late doses fell from six to one over the next quarter. What I learned is to read the timing line twice before trusting it.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-6-typed",
+   "family": "aw-6",
+   "question_id": "m-mistake-2",
+   "question_version": 1,
+   "variant": "typed",
+   "tags": [
+    "typed"
+   ],
+   "answer": "On a community ward during a spring rotation, the care plan for an elderly man recovering from a fall still showed his old walking aid, so night staff were assisting him without the frame he now needed. The outdated plan was my oversight, and a second fall was a real risk. The ward manager was told that morning and the plan was flagged as amended, because I held myself to being straightforward about my own errors. I rewrote his mobility plan, talked it through with the physiotherapist, then updated the whiteboard. He had no further falls during his remaining ten days, and the night team confirmed they were using the frame. I now know a care plan is only as safe as its last review, and our unit added a weekly check of mobility entries.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-6-dictated",
+   "family": "aw-6",
+   "question_id": "m-mistake-2",
+   "question_version": 1,
+   "variant": "dictated",
+   "tags": [
+    "dictated"
+   ],
+   "answer": "on a community um ward during a spring rotation the care plan for an elderly man recovering from a you know fall still showed his old walking aid so night staff were assisting him without the frame he now needed the outdated plan was my oversight and a second fall was a real risk the ward manager was told that morning and the plan was flagged as amended because i held myself to being straightforward about my own errors i rewrote his mobility plan talked it through with the physiotherapist then updated the whiteboard he had no further uh falls during his remaining ten days and the night team confirmed they were using the frame i now know you know a care plan is only as safe as its last review and our unit added a weekly check of mobility entries",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-6-p1",
+   "family": "aw-6",
+   "question_id": "m-mistake-2",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-6-typed",
+   "change": "action passage reworded: cleft or nominal",
+   "kind": "cleft_or_nominal",
+   "tags": [
+    "action_paraphrase",
+    "cleft_or_nominal"
+   ],
+   "answer": "On a community ward during a spring rotation, the care plan for an elderly man recovering from a fall still showed his old walking aid, so night staff were assisting him without the frame he now needed. The outdated plan was my oversight, and a second fall was a real risk. The ward manager was told that morning and the plan was flagged as amended, because I held myself to being straightforward about my own errors. I made sure to redraft our patient's walking programme, brief our physio, plus change this ward board. He had no further falls during his remaining ten days, and the night team confirmed they were using the frame. I now know a care plan is only as safe as its last review, and our unit added a weekly check of mobility entries.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-6-p2",
+   "family": "aw-6",
+   "question_id": "m-mistake-2",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-6-typed",
+   "change": "action passage reworded: passive with agent",
+   "kind": "passive_with_agent",
+   "tags": [
+    "action_paraphrase",
+    "passive_with_agent"
+   ],
+   "answer": "On a community ward during a spring rotation, the care plan for an elderly man recovering from a fall still showed his old walking aid, so night staff were assisting him without the frame he now needed. The outdated plan was my oversight, and a second fall was a real risk. The ward manager was told that morning and the plan was flagged as amended, because I held myself to being straightforward about my own errors. Our patient's walking programme was redrafted by me, our physio was briefed by me, plus this ward board was changed by me. He had no further falls during his remaining ten days, and the night team confirmed they were using the frame. I now know a care plan is only as safe as its last review, and our unit added a weekly check of mobility entries.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-6-p3",
+   "family": "aw-6",
+   "question_id": "m-mistake-2",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-6-typed",
+   "change": "action passage reworded: concise",
+   "kind": "concise",
+   "tags": [
+    "action_paraphrase",
+    "concise"
+   ],
+   "answer": "On a community ward during a spring rotation, the care plan for an elderly man recovering from a fall still showed his old walking aid, so night staff were assisting him without the frame he now needed. The outdated plan was my oversight, and a second fall was a real risk. The ward manager was told that morning and the plan was flagged as amended, because I held myself to being straightforward about my own errors. I redrafted our patient's walking programme, briefed our physio, plus changed this ward board. He had no further falls during his remaining ten days, and the night team confirmed they were using the frame. I now know a care plan is only as safe as its last review, and our unit added a weekly check of mobility entries.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-6-p4",
+   "family": "aw-6",
+   "question_id": "m-mistake-2",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-6-dictated",
+   "change": "action passage reworded in different words, in the dictated answer",
+   "kind": "dictated_paraphrase",
+   "tags": [
+    "action_paraphrase",
+    "dictated_paraphrase"
+   ],
+   "answer": "on a community um ward during a spring rotation the care plan for an elderly man recovering from a you know fall still showed his old walking aid so night staff were assisting him without the frame he now needed the outdated plan was my oversight and a second fall was a real risk the ward manager was told that morning and the plan was flagged as amended because i held myself to being straightforward about my own errors i reworked our patients walking programme went over that alongside our physio plus altered this ward board he had no further uh falls during his remaining ten days and the night team confirmed they were using the frame i now know you know a care plan is only as safe as its last review and our unit added a weekly check of mobility entries",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-6-p5",
+   "family": "aw-6",
+   "question_id": "m-mistake-2",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-6-typed",
+   "change": "action passage reworded: team action",
+   "kind": "team_action",
+   "tags": [
+    "action_paraphrase",
+    "team_action"
+   ],
+   "answer": "On a community ward during a spring rotation, the care plan for an elderly man recovering from a fall still showed his old walking aid, so night staff were assisting him without the frame he now needed. The outdated plan was my oversight, and a second fall was a real risk. The ward manager was told that morning and the plan was flagged as amended, because I held myself to being straightforward about my own errors. Our physio and me redrafted our patient's walking programme, plus we changed this ward board. He had no further falls during his remaining ten days, and the night team confirmed they were using the frame. I now know a care plan is only as safe as its last review, and our unit added a weekly check of mobility entries.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-6-p6",
+   "family": "aw-6",
+   "question_id": "m-mistake-2",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-6-typed",
+   "change": "action passage reworded: historical present",
+   "kind": "historical_present",
+   "tags": [
+    "action_paraphrase",
+    "historical_present"
+   ],
+   "answer": "On a community ward during a spring rotation, the care plan for an elderly man recovering from a fall still showed his old walking aid, so night staff were assisting him without the frame he now needed. The outdated plan was my oversight, and a second fall was a real risk. The ward manager was told that morning and the plan was flagged as amended, because I held myself to being straightforward about my own errors. I redraft our patient's walking programme, brief our physio, plus change this ward board. He had no further falls during his remaining ten days, and the night team confirmed they were using the frame. I now know a care plan is only as safe as its last review, and our unit added a weekly check of mobility entries.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-6-p7",
+   "family": "aw-6",
+   "question_id": "m-mistake-2",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-6-typed",
+   "change": "action passage reworded: past perfect",
+   "kind": "past_perfect",
+   "tags": [
+    "action_paraphrase",
+    "past_perfect"
+   ],
+   "answer": "On a community ward during a spring rotation, the care plan for an elderly man recovering from a fall still showed his old walking aid, so night staff were assisting him without the frame he now needed. The outdated plan was my oversight, and a second fall was a real risk. The ward manager was told that morning and the plan was flagged as amended, because I held myself to being straightforward about my own errors. I had already redrafted our patient's walking programme, briefed our physio, plus changed this ward board. He had no further falls during his remaining ten days, and the night team confirmed they were using the frame. I now know a care plan is only as safe as its last review, and our unit added a weekly check of mobility entries.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-6-p8",
+   "family": "aw-6",
+   "question_id": "m-mistake-2",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-6-typed",
+   "change": "action passage reworded: professional phrasing",
+   "kind": "professional_phrasing",
+   "tags": [
+    "action_paraphrase",
+    "professional_phrasing"
+   ],
+   "answer": "On a community ward during a spring rotation, the care plan for an elderly man recovering from a fall still showed his old walking aid, so night staff were assisting him without the frame he now needed. The outdated plan was my oversight, and a second fall was a real risk. The ward manager was told that morning and the plan was flagged as amended, because I held myself to being straightforward about my own errors. I amended our patient's walking programme, liaised alongside our physio, plus actioned changes to this ward board. He had no further falls during his remaining ten days, and the night team confirmed they were using the frame. I now know a care plan is only as safe as its last review, and our unit added a weekly check of mobility entries.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-6-c1",
+   "family": "aw-6",
+   "question_id": "m-mistake-2",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-6-typed",
+   "change": "action passage reworded so the actions no longer count: thought not act",
+   "kind": "thought_not_act",
+   "tags": [
+    "action_control",
+    "thought_not_act"
+   ],
+   "answer": "On a community ward during a spring rotation, the care plan for an elderly man recovering from a fall still showed his old walking aid, so night staff were assisting him without the frame he now needed. The outdated plan was my oversight, and a second fall was a real risk. The ward manager was told that morning and the plan was flagged as amended, because I held myself to being straightforward about my own errors. I thought about redrafting our patient's walking programme, briefing our physio, plus changing this ward board. He had no further falls during his remaining ten days, and the night team confirmed they were using the frame. I now know a care plan is only as safe as its last review, and our unit added a weekly check of mobility entries.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-6-c2",
+   "family": "aw-6",
+   "question_id": "m-mistake-2",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-6-typed",
+   "change": "action passage reworded so the actions no longer count: negated",
+   "kind": "negated",
+   "tags": [
+    "action_control",
+    "negated"
+   ],
+   "answer": "On a community ward during a spring rotation, the care plan for an elderly man recovering from a fall still showed his old walking aid, so night staff were assisting him without the frame he now needed. The outdated plan was my oversight, and a second fall was a real risk. The ward manager was told that morning and the plan was flagged as amended, because I held myself to being straightforward about my own errors. I didn't redraft our patient's walking programme, brief our physio or change this ward board. He had no further falls during his remaining ten days, and the night team confirmed they were using the frame. I now know a care plan is only as safe as its last review, and our unit added a weekly check of mobility entries.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-6-c3",
+   "family": "aw-6",
+   "question_id": "m-mistake-2",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-6-typed",
+   "change": "action passage reworded so the actions no longer count: intended",
+   "kind": "intended",
+   "tags": [
+    "action_control",
+    "intended"
+   ],
+   "answer": "On a community ward during a spring rotation, the care plan for an elderly man recovering from a fall still showed his old walking aid, so night staff were assisting him without the frame he now needed. The outdated plan was my oversight, and a second fall was a real risk. The ward manager was told that morning and the plan was flagged as amended, because I held myself to being straightforward about my own errors. I was going to redraft our patient's walking programme, brief our physio, plus change this ward board. He had no further falls during his remaining ten days, and the night team confirmed they were using the frame. I now know a care plan is only as safe as its last review, and our unit added a weekly check of mobility entries.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-6-c4",
+   "family": "aw-6",
+   "question_id": "m-mistake-2",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-6-typed",
+   "change": "action passage reworded so the actions no longer count: hypothetical",
+   "kind": "hypothetical",
+   "tags": [
+    "action_control",
+    "hypothetical"
+   ],
+   "answer": "On a community ward during a spring rotation, the care plan for an elderly man recovering from a fall still showed his old walking aid, so night staff were assisting him without the frame he now needed. The outdated plan was my oversight, and a second fall was a real risk. The ward manager was told that morning and the plan was flagged as amended, because I held myself to being straightforward about my own errors. I would have redrafted our patient's walking programme, briefed our physio, plus changed this ward board. He had no further falls during his remaining ten days, and the night team confirmed they were using the frame. I now know a care plan is only as safe as its last review, and our unit added a weekly check of mobility entries.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Holds to standards and is honest": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-7-typed",
+   "family": "aw-7",
+   "question_id": "h-bad-news-0",
+   "question_version": 1,
+   "variant": "typed",
+   "tags": [
+    "typed"
+   ],
+   "answer": "On a cardiology ward last year, a couple in their seventies were waiting to hear that the husband's scan showed his heart function had worsened and that surgery was no longer the best option. It was a heavy moment and they had been hoping for the opposite. My aim was a conversation that was clear, early and kind, with the facts and options straight in my mind. I read the consultant's notes, booked a quiet room, then sat with them and told them. They asked questions for almost forty minutes and the husband chose a medicines based plan that he felt part of. His wife thanked the team afterwards and the family kept their clinic follow up. What I learned is that preparation lets me stay calm enough to listen.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Prepares and delivers it clearly and kindly": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-7-dictated",
+   "family": "aw-7",
+   "question_id": "h-bad-news-0",
+   "question_version": 1,
+   "variant": "dictated",
+   "tags": [
+    "dictated"
+   ],
+   "answer": "on a cardiology um ward last year a couple in their seventies were waiting to hear that the husbands you know scan showed his heart function had worsened and that surgery was no longer the best option it was a heavy moment and they had been hoping for the opposite my aim was a conversation that was clear early and kind with the facts and options straight in my mind i read the consultants notes booked a quiet room then sat with them and told them they asked questions for uh almost forty minutes and the husband chose a medicines based plan that he felt part of his wife thanked you know the team afterwards and the family kept their clinic follow up what i learned is that preparation lets me stay calm enough to listen",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Prepares and delivers it clearly and kindly": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-7-p1",
+   "family": "aw-7",
+   "question_id": "h-bad-news-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-7-typed",
+   "change": "action passage reworded: irregular verbs",
+   "kind": "irregular_verbs",
+   "tags": [
+    "action_paraphrase",
+    "irregular_verbs"
+   ],
+   "answer": "On a cardiology ward last year, a couple in their seventies were waiting to hear that the husband's scan showed his heart function had worsened and that surgery was no longer the best option. It was a heavy moment and they had been hoping for the opposite. My aim was a conversation that was clear, early and kind, with the facts and options straight in my mind. I got our specialist's findings, found private space, took seats beside this couple, plus gave news straight. They asked questions for almost forty minutes and the husband chose a medicines based plan that he felt part of. His wife thanked the team afterwards and the family kept their clinic follow up. What I learned is that preparation lets me stay calm enough to listen.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Prepares and delivers it clearly and kindly": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-7-p2",
+   "family": "aw-7",
+   "question_id": "h-bad-news-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-7-typed",
+   "change": "action passage reworded: words between",
+   "kind": "words_between",
+   "tags": [
+    "action_paraphrase",
+    "words_between"
+   ],
+   "answer": "On a cardiology ward last year, a couple in their seventies were waiting to hear that the husband's scan showed his heart function had worsened and that surgery was no longer the best option. It was a heavy moment and they had been hoping for the opposite. My aim was a conversation that was clear, early and kind, with the facts and options straight in my mind. I, being careful, went through our specialist's findings, arranged private space, pulled up chairs beside this couple, plus gently gave news straight. They asked questions for almost forty minutes and the husband chose a medicines based plan that he felt part of. His wife thanked the team afterwards and the family kept their clinic follow up. What I learned is that preparation lets me stay calm enough to listen.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Prepares and delivers it clearly and kindly": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-7-p3",
+   "family": "aw-7",
+   "question_id": "h-bad-news-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-7-typed",
+   "change": "action passage reworded: cautious memory",
+   "kind": "cautious_memory",
+   "tags": [
+    "action_paraphrase",
+    "cautious_memory"
+   ],
+   "answer": "On a cardiology ward last year, a couple in their seventies were waiting to hear that the husband's scan showed his heart function had worsened and that surgery was no longer the best option. It was a heavy moment and they had been hoping for the opposite. My aim was a conversation that was clear, early and kind, with the facts and options straight in my mind. I think I went through our specialist's findings, arranged private space, pulled up chairs beside this couple, plus gave news plainly. They asked questions for almost forty minutes and the husband chose a medicines based plan that he felt part of. His wife thanked the team afterwards and the family kept their clinic follow up. What I learned is that preparation lets me stay calm enough to listen.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Prepares and delivers it clearly and kindly": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-7-p4",
+   "family": "aw-7",
+   "question_id": "h-bad-news-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-7-typed",
+   "change": "action passage reworded: cleft or nominal",
+   "kind": "cleft_or_nominal",
+   "tags": [
+    "action_paraphrase",
+    "cleft_or_nominal"
+   ],
+   "answer": "On a cardiology ward last year, a couple in their seventies were waiting to hear that the husband's scan showed his heart function had worsened and that surgery was no longer the best option. It was a heavy moment and they had been hoping for the opposite. My aim was a conversation that was clear, early and kind, with the facts and options straight in my mind. I made sure to go through our specialist's findings, arrange private space, pull up chairs beside this couple, plus give news plainly. They asked questions for almost forty minutes and the husband chose a medicines based plan that he felt part of. His wife thanked the team afterwards and the family kept their clinic follow up. What I learned is that preparation lets me stay calm enough to listen.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Prepares and delivers it clearly and kindly": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-7-p5",
+   "family": "aw-7",
+   "question_id": "h-bad-news-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-7-typed",
+   "change": "action passage reworded: passive with agent",
+   "kind": "passive_with_agent",
+   "tags": [
+    "action_paraphrase",
+    "passive_with_agent"
+   ],
+   "answer": "On a cardiology ward last year, a couple in their seventies were waiting to hear that the husband's scan showed his heart function had worsened and that surgery was no longer the best option. It was a heavy moment and they had been hoping for the opposite. My aim was a conversation that was clear, early and kind, with the facts and options straight in my mind. Our specialist's findings were reviewed by me, private space was arranged by me, plus this couple was informed plainly by me. They asked questions for almost forty minutes and the husband chose a medicines based plan that he felt part of. His wife thanked the team afterwards and the family kept their clinic follow up. What I learned is that preparation lets me stay calm enough to listen.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Prepares and delivers it clearly and kindly": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-7-p6",
+   "family": "aw-7",
+   "question_id": "h-bad-news-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-7-typed",
+   "change": "action passage reworded: concise",
+   "kind": "concise",
+   "tags": [
+    "action_paraphrase",
+    "concise"
+   ],
+   "answer": "On a cardiology ward last year, a couple in their seventies were waiting to hear that the husband's scan showed his heart function had worsened and that surgery was no longer the best option. It was a heavy moment and they had been hoping for the opposite. My aim was a conversation that was clear, early and kind, with the facts and options straight in my mind. I reviewed our specialist's findings, arranged private space, plus informed this couple plainly. They asked questions for almost forty minutes and the husband chose a medicines based plan that he felt part of. His wife thanked the team afterwards and the family kept their clinic follow up. What I learned is that preparation lets me stay calm enough to listen.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Prepares and delivers it clearly and kindly": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-7-p7",
+   "family": "aw-7",
+   "question_id": "h-bad-news-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-7-dictated",
+   "change": "action passage reworded in different words, in the dictated answer",
+   "kind": "dictated_paraphrase",
+   "tags": [
+    "action_paraphrase",
+    "dictated_paraphrase"
+   ],
+   "answer": "on a cardiology um ward last year a couple in their seventies were waiting to hear that the husbands you know scan showed his heart function had worsened and that surgery was no longer the best option it was a heavy moment and they had been hoping for the opposite my aim was a conversation that was clear early and kind with the facts and options straight in my mind i went through our specialists findings found private space took seats beside this couple plus broke news plainly they asked questions for uh almost forty minutes and the husband chose a medicines based plan that he felt part of his wife thanked you know the team afterwards and the family kept their clinic follow up what i learned is that preparation lets me stay calm enough to listen",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Prepares and delivers it clearly and kindly": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-7-p8",
+   "family": "aw-7",
+   "question_id": "h-bad-news-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-7-typed",
+   "change": "action passage reworded: team action",
+   "kind": "team_action",
+   "tags": [
+    "action_paraphrase",
+    "team_action"
+   ],
+   "answer": "On a cardiology ward last year, a couple in their seventies were waiting to hear that the husband's scan showed his heart function had worsened and that surgery was no longer the best option. It was a heavy moment and they had been hoping for the opposite. My aim was a conversation that was clear, early and kind, with the facts and options straight in my mind. We went through our specialist's findings, arranged private space, pulled up chairs beside this couple, plus broke news plainly. They asked questions for almost forty minutes and the husband chose a medicines based plan that he felt part of. His wife thanked the team afterwards and the family kept their clinic follow up. What I learned is that preparation lets me stay calm enough to listen.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Prepares and delivers it clearly and kindly": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-7-c1",
+   "family": "aw-7",
+   "question_id": "h-bad-news-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-7-typed",
+   "change": "action passage reworded so the actions no longer count: hypothetical",
+   "kind": "hypothetical",
+   "tags": [
+    "action_control",
+    "hypothetical"
+   ],
+   "answer": "On a cardiology ward last year, a couple in their seventies were waiting to hear that the husband's scan showed his heart function had worsened and that surgery was no longer the best option. It was a heavy moment and they had been hoping for the opposite. My aim was a conversation that was clear, early and kind, with the facts and options straight in my mind. I would have gone through our specialist's findings, arranged private space, pulled up chairs beside this couple, plus broken news plainly. They asked questions for almost forty minutes and the husband chose a medicines based plan that he felt part of. His wife thanked the team afterwards and the family kept their clinic follow up. What I learned is that preparation lets me stay calm enough to listen.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Prepares and delivers it clearly and kindly": false,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Developing"
+   }
+  },
+  {
+   "id": "aw-7-c2",
+   "family": "aw-7",
+   "question_id": "h-bad-news-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-7-typed",
+   "change": "action passage reworded so the actions no longer count: others did it",
+   "kind": "others_did_it",
+   "tags": [
+    "action_control",
+    "others_did_it"
+   ],
+   "answer": "On a cardiology ward last year, a couple in their seventies were waiting to hear that the husband's scan showed his heart function had worsened and that surgery was no longer the best option. It was a heavy moment and they had been hoping for the opposite. My aim was a conversation that was clear, early and kind, with the facts and options straight in my mind. Our specialist went through own findings, arranged private space, pulled up chairs beside this couple, plus broke news plainly. They asked questions for almost forty minutes and the husband chose a medicines based plan that he felt part of. His wife thanked the team afterwards and the family kept their clinic follow up. What I learned is that preparation lets me stay calm enough to listen.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Prepares and delivers it clearly and kindly": false,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Developing"
+   }
+  },
+  {
+   "id": "aw-7-c3",
+   "family": "aw-7",
+   "question_id": "h-bad-news-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-7-typed",
+   "change": "action passage reworded so the actions no longer count: agentless passive",
+   "kind": "agentless_passive",
+   "tags": [
+    "action_control",
+    "agentless_passive"
+   ],
+   "answer": "On a cardiology ward last year, a couple in their seventies were waiting to hear that the husband's scan showed his heart function had worsened and that surgery was no longer the best option. It was a heavy moment and they had been hoping for the opposite. My aim was a conversation that was clear, early and kind, with the facts and options straight in my mind. Our specialist's findings were gone through, private space was arranged, seating was found beside this couple, plus news was broken plainly. They asked questions for almost forty minutes and the husband chose a medicines based plan that he felt part of. His wife thanked the team afterwards and the family kept their clinic follow up. What I learned is that preparation lets me stay calm enough to listen.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Prepares and delivers it clearly and kindly": false,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": [
+     "Prepares and delivers it clearly and kindly"
+    ]
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Developing"
+   }
+  },
+  {
+   "id": "aw-7-c4",
+   "family": "aw-7",
+   "question_id": "h-bad-news-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-7-typed",
+   "change": "action passage reworded so the actions no longer count: irrelevant action",
+   "kind": "irrelevant_action",
+   "tags": [
+    "action_control",
+    "irrelevant_action"
+   ],
+   "answer": "On a cardiology ward last year, a couple in their seventies were waiting to hear that the husband's scan showed his heart function had worsened and that surgery was no longer the best option. It was a heavy moment and they had been hoping for the opposite. My aim was a conversation that was clear, early and kind, with the facts and options straight in my mind. I scrolled my phone, ordered coffee, plus chatted online about holidays. They asked questions for almost forty minutes and the husband chose a medicines based plan that he felt part of. His wife thanked the team afterwards and the family kept their clinic follow up. What I learned is that preparation lets me stay calm enough to listen.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Prepares and delivers it clearly and kindly": false,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Developing"
+   }
+  },
+  {
+   "id": "aw-8-typed",
+   "family": "aw-8",
+   "question_id": "h-hardest-0",
+   "question_version": 1,
+   "variant": "typed",
+   "tags": [
+    "typed"
+   ],
+   "answer": "The hardest situation I have faced was a night shift on an acute admissions unit, when a young man came in with abdominal pain that the first assessment had put down to a stomach bug. By 3 a.m. his pain was worse and his heart rate was climbing, and a missed surgical emergency would have been serious. I was the nurse responsible for his observations and for deciding when to escalate. I reassessed his abdomen, repeated his observations, then paged the surgical registrar. He went to theatre within the hour with an inflamed appendix and recovered without complications. Everyone on the unit now gets a reassessment when pain changes, which cut missed escalations to none that quarter. What I took from it is to trust a changing pattern over the first label.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-8-dictated",
+   "family": "aw-8",
+   "question_id": "h-hardest-0",
+   "question_version": 1,
+   "variant": "dictated",
+   "tags": [
+    "dictated"
+   ],
+   "answer": "the hardest situation um i have faced was a night shift on an acute admissions unit when a young you know man came in with abdominal pain that the first assessment had put down to a stomach bug by 3 a m his pain was worse and his heart rate was climbing and a missed surgical emergency would have been serious i was the nurse responsible for his observations and for deciding when to escalate i reassessed his abdomen repeated his observations then paged the surgical registrar he went to theatre uh within the hour with an inflamed appendix and recovered without complications everyone on the unit now gets a reassessment you know when pain changes which cut missed escalations to none that quarter what i took from it is to trust a changing pattern over the first label",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-8-p1",
+   "family": "aw-8",
+   "question_id": "h-hardest-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-8-typed",
+   "change": "action passage reworded: historical present",
+   "kind": "historical_present",
+   "tags": [
+    "action_paraphrase",
+    "historical_present"
+   ],
+   "answer": "The hardest situation I have faced was a night shift on an acute admissions unit, when a young man came in with abdominal pain that the first assessment had put down to a stomach bug. By 3 a.m. his pain was worse and his heart rate was climbing, and a missed surgical emergency would have been serious. I was the nurse responsible for his observations and for deciding when to escalate. I examine our patient's belly again, run through vitals once more, plus call general surgery. He went to theatre within the hour with an inflamed appendix and recovered without complications. Everyone on the unit now gets a reassessment when pain changes, which cut missed escalations to none that quarter. What I took from it is to trust a changing pattern over the first label.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-8-p2",
+   "family": "aw-8",
+   "question_id": "h-hardest-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-8-typed",
+   "change": "action passage reworded: past perfect",
+   "kind": "past_perfect",
+   "tags": [
+    "action_paraphrase",
+    "past_perfect"
+   ],
+   "answer": "The hardest situation I have faced was a night shift on an acute admissions unit, when a young man came in with abdominal pain that the first assessment had put down to a stomach bug. By 3 a.m. his pain was worse and his heart rate was climbing, and a missed surgical emergency would have been serious. I was the nurse responsible for his observations and for deciding when to escalate. I had already examined our patient's belly again, run through vitals once more, plus called general surgery. He went to theatre within the hour with an inflamed appendix and recovered without complications. Everyone on the unit now gets a reassessment when pain changes, which cut missed escalations to none that quarter. What I took from it is to trust a changing pattern over the first label.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-8-p3",
+   "family": "aw-8",
+   "question_id": "h-hardest-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-8-typed",
+   "change": "action passage reworded: professional phrasing",
+   "kind": "professional_phrasing",
+   "tags": [
+    "action_paraphrase",
+    "professional_phrasing"
+   ],
+   "answer": "The hardest situation I have faced was a night shift on an acute admissions unit, when a young man came in with abdominal pain that the first assessment had put down to a stomach bug. By 3 a.m. his pain was worse and his heart rate was climbing, and a missed surgical emergency would have been serious. I was the nurse responsible for his observations and for deciding when to escalate. I performed a repeat abdominal assessment, documented vitals once more, plus liaised with general surgery. He went to theatre within the hour with an inflamed appendix and recovered without complications. Everyone on the unit now gets a reassessment when pain changes, which cut missed escalations to none that quarter. What I took from it is to trust a changing pattern over the first label.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-8-p4",
+   "family": "aw-8",
+   "question_id": "h-hardest-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-8-typed",
+   "change": "action passage reworded: irregular verbs",
+   "kind": "irregular_verbs",
+   "tags": [
+    "action_paraphrase",
+    "irregular_verbs"
+   ],
+   "answer": "The hardest situation I have faced was a night shift on an acute admissions unit, when a young man came in with abdominal pain that the first assessment had put down to a stomach bug. By 3 a.m. his pain was worse and his heart rate was climbing, and a missed surgical emergency would have been serious. I was the nurse responsible for his observations and for deciding when to escalate. I felt our patient's belly again, took vitals once more, plus rang general surgery. He went to theatre within the hour with an inflamed appendix and recovered without complications. Everyone on the unit now gets a reassessment when pain changes, which cut missed escalations to none that quarter. What I took from it is to trust a changing pattern over the first label.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-8-p5",
+   "family": "aw-8",
+   "question_id": "h-hardest-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-8-typed",
+   "change": "action passage reworded: words between",
+   "kind": "words_between",
+   "tags": [
+    "action_paraphrase",
+    "words_between"
+   ],
+   "answer": "The hardest situation I have faced was a night shift on an acute admissions unit, when a young man came in with abdominal pain that the first assessment had put down to a stomach bug. By 3 a.m. his pain was worse and his heart rate was climbing, and a missed surgical emergency would have been serious. I was the nurse responsible for his observations and for deciding when to escalate. I, without delay, examined our patient's belly again, ran through vitals once more, plus called general surgery. He went to theatre within the hour with an inflamed appendix and recovered without complications. Everyone on the unit now gets a reassessment when pain changes, which cut missed escalations to none that quarter. What I took from it is to trust a changing pattern over the first label.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-8-p6",
+   "family": "aw-8",
+   "question_id": "h-hardest-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-8-typed",
+   "change": "action passage reworded: cautious memory",
+   "kind": "cautious_memory",
+   "tags": [
+    "action_paraphrase",
+    "cautious_memory"
+   ],
+   "answer": "The hardest situation I have faced was a night shift on an acute admissions unit, when a young man came in with abdominal pain that the first assessment had put down to a stomach bug. By 3 a.m. his pain was worse and his heart rate was climbing, and a missed surgical emergency would have been serious. I was the nurse responsible for his observations and for deciding when to escalate. I think I examined our patient's belly again, ran through vitals once more, plus called general surgery. He went to theatre within the hour with an inflamed appendix and recovered without complications. Everyone on the unit now gets a reassessment when pain changes, which cut missed escalations to none that quarter. What I took from it is to trust a changing pattern over the first label.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-8-p7",
+   "family": "aw-8",
+   "question_id": "h-hardest-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-8-typed",
+   "change": "action passage reworded: cleft or nominal",
+   "kind": "cleft_or_nominal",
+   "tags": [
+    "action_paraphrase",
+    "cleft_or_nominal"
+   ],
+   "answer": "The hardest situation I have faced was a night shift on an acute admissions unit, when a young man came in with abdominal pain that the first assessment had put down to a stomach bug. By 3 a.m. his pain was worse and his heart rate was climbing, and a missed surgical emergency would have been serious. I was the nurse responsible for his observations and for deciding when to escalate. I made sure to examine our patient's belly again, run through vitals once more, plus call general surgery. He went to theatre within the hour with an inflamed appendix and recovered without complications. Everyone on the unit now gets a reassessment when pain changes, which cut missed escalations to none that quarter. What I took from it is to trust a changing pattern over the first label.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-8-p8",
+   "family": "aw-8",
+   "question_id": "h-hardest-0",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-8-typed",
+   "change": "action passage reworded: passive with agent",
+   "kind": "passive_with_agent",
+   "tags": [
+    "action_paraphrase",
+    "passive_with_agent"
+   ],
+   "answer": "The hardest situation I have faced was a night shift on an acute admissions unit, when a young man came in with abdominal pain that the first assessment had put down to a stomach bug. By 3 a.m. his pain was worse and his heart rate was climbing, and a missed surgical emergency would have been serious. I was the nurse responsible for his observations and for deciding when to escalate. Our patient's belly was examined again by me, vitals were run through once more by me, plus general surgery was called by me. He went to theatre within the hour with an inflamed appendix and recovered without complications. Everyone on the unit now gets a reassessment when pain changes, which cut missed escalations to none that quarter. What I took from it is to trust a changing pattern over the first label.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-8-c1",
+   "family": "aw-8",
+   "question_id": "h-hardest-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-8-typed",
+   "change": "action passage reworded so the actions no longer count: irrelevant action",
+   "kind": "irrelevant_action",
+   "tags": [
+    "action_control",
+    "irrelevant_action"
+   ],
+   "answer": "The hardest situation I have faced was a night shift on an acute admissions unit, when a young man came in with abdominal pain that the first assessment had put down to a stomach bug. By 3 a.m. his pain was worse and his heart rate was climbing, and a missed surgical emergency would have been serious. I was the nurse responsible for his observations and for deciding when to escalate. I tidied a sluice room, counted spare gloves once more, plus emailed our rota coordinator. He went to theatre within the hour with an inflamed appendix and recovered without complications. Everyone on the unit now gets a reassessment when pain changes, which cut missed escalations to none that quarter. What I took from it is to trust a changing pattern over the first label.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-8-c2",
+   "family": "aw-8",
+   "question_id": "h-hardest-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-8-typed",
+   "change": "action passage reworded so the actions no longer count: keyword list",
+   "kind": "keyword_list",
+   "tags": [
+    "action_control",
+    "keyword_list"
+   ],
+   "answer": "The hardest situation I have faced was a night shift on an acute admissions unit, when a young man came in with abdominal pain that the first assessment had put down to a stomach bug. By 3 a.m. his pain was worse and his heart rate was climbing, and a missed surgical emergency would have been serious. I was the nurse responsible for his observations and for deciding when to escalate. Actions: examined, rechecked vitals, called surgery. He went to theatre within the hour with an inflamed appendix and recovered without complications. Everyone on the unit now gets a reassessment when pain changes, which cut missed escalations to none that quarter. What I took from it is to trust a changing pattern over the first label.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-8-c3",
+   "family": "aw-8",
+   "question_id": "h-hardest-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-8-typed",
+   "change": "action passage reworded so the actions no longer count: thought not act",
+   "kind": "thought_not_act",
+   "tags": [
+    "action_control",
+    "thought_not_act"
+   ],
+   "answer": "The hardest situation I have faced was a night shift on an acute admissions unit, when a young man came in with abdominal pain that the first assessment had put down to a stomach bug. By 3 a.m. his pain was worse and his heart rate was climbing, and a missed surgical emergency would have been serious. I was the nurse responsible for his observations and for deciding when to escalate. I thought about examining our patient's belly again, running through vitals once more, plus calling general surgery. He went to theatre within the hour with an inflamed appendix and recovered without complications. Everyone on the unit now gets a reassessment when pain changes, which cut missed escalations to none that quarter. What I took from it is to trust a changing pattern over the first label.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-8-c4",
+   "family": "aw-8",
+   "question_id": "h-hardest-0",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-8-typed",
+   "change": "action passage reworded so the actions no longer count: negated",
+   "kind": "negated",
+   "tags": [
+    "action_control",
+    "negated"
+   ],
+   "answer": "The hardest situation I have faced was a night shift on an acute admissions unit, when a young man came in with abdominal pain that the first assessment had put down to a stomach bug. By 3 a.m. his pain was worse and his heart rate was climbing, and a missed surgical emergency would have been serious. I was the nurse responsible for his observations and for deciding when to escalate. I didn't examine our patient's belly again, run through vitals once more or call general surgery. He went to theatre within the hour with an inflamed appendix and recovered without complications. Everyone on the unit now gets a reassessment when pain changes, which cut missed escalations to none that quarter. What I took from it is to trust a changing pattern over the first label.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-9-typed",
+   "family": "aw-9",
+   "question_id": "h-hardest-1",
+   "question_version": 1,
+   "variant": "typed",
+   "tags": [
+    "typed"
+   ],
+   "answer": "The hardest medication situation I faced was on a medical ward when a patient with diabetes became drowsy and sweaty after the lunchtime round, and his blood sugar was dropping fast. A severe low can cause a seizure, so minutes counted. I was the nurse responsible for his insulin and for recognising a problem with it. I checked his blood glucose, gave fast-acting sugar by mouth, then called the diabetes team. His glucose climbed back to a safe range within twenty minutes and he avoided a seizure or an admission to intensive care. The diabetes team changed his dose, and he went home on schedule. I learned that acting on the first signs is better than waiting for the next round.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-9-dictated",
+   "family": "aw-9",
+   "question_id": "h-hardest-1",
+   "question_version": 1,
+   "variant": "dictated",
+   "tags": [
+    "dictated"
+   ],
+   "answer": "the hardest medication um situation i faced was on a medical ward when a patient with diabetes became drowsy you know and sweaty after the lunchtime round and his blood sugar was dropping fast a severe low can cause a seizure so minutes counted i was the nurse responsible for his insulin and for recognising a problem with it i checked his blood glucose gave fast acting sugar by mouth then called the diabetes team his glucose climbed back uh to a safe range within twenty minutes and he avoided a seizure or an admission to intensive care the you know diabetes team changed his dose and he went home on schedule i learned that acting on the first signs is better than waiting for the next round",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-9-p1",
+   "family": "aw-9",
+   "question_id": "h-hardest-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-9-typed",
+   "change": "action passage reworded: concise",
+   "kind": "concise",
+   "tags": [
+    "action_paraphrase",
+    "concise"
+   ],
+   "answer": "The hardest medication situation I faced was on a medical ward when a patient with diabetes became drowsy and sweaty after the lunchtime round, and his blood sugar was dropping fast. A severe low can cause a seizure, so minutes counted. I was the nurse responsible for his insulin and for recognising a problem with it. I tested our patient's fingerstick reading, supplied oral dextrose, plus phoned endocrine nurses. His glucose climbed back to a safe range within twenty minutes and he avoided a seizure or an admission to intensive care. The diabetes team changed his dose, and he went home on schedule. I learned that acting on the first signs is better than waiting for the next round.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-9-p2",
+   "family": "aw-9",
+   "question_id": "h-hardest-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-9-dictated",
+   "change": "action passage reworded in different words, in the dictated answer",
+   "kind": "dictated_paraphrase",
+   "tags": [
+    "action_paraphrase",
+    "dictated_paraphrase"
+   ],
+   "answer": "the hardest medication um situation i faced was on a medical ward when a patient with diabetes became drowsy you know and sweaty after the lunchtime round and his blood sugar was dropping fast a severe low can cause a seizure so minutes counted i was the nurse responsible for his insulin and for recognising a problem with it i tested our patients fingerstick reading supplied oral dextrose retested later plus phoned endocrine nurses his glucose climbed back uh to a safe range within twenty minutes and he avoided a seizure or an admission to intensive care the you know diabetes team changed his dose and he went home on schedule i learned that acting on the first signs is better than waiting for the next round",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-9-p3",
+   "family": "aw-9",
+   "question_id": "h-hardest-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-9-typed",
+   "change": "action passage reworded: team action",
+   "kind": "team_action",
+   "tags": [
+    "action_paraphrase",
+    "team_action"
+   ],
+   "answer": "The hardest medication situation I faced was on a medical ward when a patient with diabetes became drowsy and sweaty after the lunchtime round, and his blood sugar was dropping fast. A severe low can cause a seizure, so minutes counted. I was the nurse responsible for his insulin and for recognising a problem with it. We tested our patient's fingerstick reading, supplied oral dextrose, plus phoned endocrine nurses. His glucose climbed back to a safe range within twenty minutes and he avoided a seizure or an admission to intensive care. The diabetes team changed his dose, and he went home on schedule. I learned that acting on the first signs is better than waiting for the next round.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-9-p4",
+   "family": "aw-9",
+   "question_id": "h-hardest-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-9-typed",
+   "change": "action passage reworded: historical present",
+   "kind": "historical_present",
+   "tags": [
+    "action_paraphrase",
+    "historical_present"
+   ],
+   "answer": "The hardest medication situation I faced was on a medical ward when a patient with diabetes became drowsy and sweaty after the lunchtime round, and his blood sugar was dropping fast. A severe low can cause a seizure, so minutes counted. I was the nurse responsible for his insulin and for recognising a problem with it. I test our patient's fingerstick reading, supply oral dextrose, plus phone endocrine nurses. His glucose climbed back to a safe range within twenty minutes and he avoided a seizure or an admission to intensive care. The diabetes team changed his dose, and he went home on schedule. I learned that acting on the first signs is better than waiting for the next round.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-9-p5",
+   "family": "aw-9",
+   "question_id": "h-hardest-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-9-typed",
+   "change": "action passage reworded: past perfect",
+   "kind": "past_perfect",
+   "tags": [
+    "action_paraphrase",
+    "past_perfect"
+   ],
+   "answer": "The hardest medication situation I faced was on a medical ward when a patient with diabetes became drowsy and sweaty after the lunchtime round, and his blood sugar was dropping fast. A severe low can cause a seizure, so minutes counted. I was the nurse responsible for his insulin and for recognising a problem with it. I had already tested our patient's fingerstick reading, supplied oral dextrose, plus phoned endocrine nurses. His glucose climbed back to a safe range within twenty minutes and he avoided a seizure or an admission to intensive care. The diabetes team changed his dose, and he went home on schedule. I learned that acting on the first signs is better than waiting for the next round.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-9-p6",
+   "family": "aw-9",
+   "question_id": "h-hardest-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-9-typed",
+   "change": "action passage reworded: professional phrasing",
+   "kind": "professional_phrasing",
+   "tags": [
+    "action_paraphrase",
+    "professional_phrasing"
+   ],
+   "answer": "The hardest medication situation I faced was on a medical ward when a patient with diabetes became drowsy and sweaty after the lunchtime round, and his blood sugar was dropping fast. A severe low can cause a seizure, so minutes counted. I was the nurse responsible for his insulin and for recognising a problem with it. I performed a capillary reading, administered oral dextrose, plus liaised with endocrine nurses. His glucose climbed back to a safe range within twenty minutes and he avoided a seizure or an admission to intensive care. The diabetes team changed his dose, and he went home on schedule. I learned that acting on the first signs is better than waiting for the next round.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-9-p7",
+   "family": "aw-9",
+   "question_id": "h-hardest-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-9-typed",
+   "change": "action passage reworded: irregular verbs",
+   "kind": "irregular_verbs",
+   "tags": [
+    "action_paraphrase",
+    "irregular_verbs"
+   ],
+   "answer": "The hardest medication situation I faced was on a medical ward when a patient with diabetes became drowsy and sweaty after the lunchtime round, and his blood sugar was dropping fast. A severe low can cause a seizure, so minutes counted. I was the nurse responsible for his insulin and for recognising a problem with it. I took our patient's fingerstick reading, fed oral dextrose, plus rang endocrine nurses. His glucose climbed back to a safe range within twenty minutes and he avoided a seizure or an admission to intensive care. The diabetes team changed his dose, and he went home on schedule. I learned that acting on the first signs is better than waiting for the next round.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-9-p8",
+   "family": "aw-9",
+   "question_id": "h-hardest-1",
+   "question_version": 1,
+   "variant": "action_paraphrase",
+   "pair_of": "aw-9-typed",
+   "change": "action passage reworded: words between",
+   "kind": "words_between",
+   "tags": [
+    "action_paraphrase",
+    "words_between"
+   ],
+   "answer": "The hardest medication situation I faced was on a medical ward when a patient with diabetes became drowsy and sweaty after the lunchtime round, and his blood sugar was dropping fast. A severe low can cause a seizure, so minutes counted. I was the nurse responsible for his insulin and for recognising a problem with it. I, without delay, tested our patient's fingerstick reading, supplied oral dextrose, plus phoned endocrine nurses. His glucose climbed back to a safe range within twenty minutes and he avoided a seizure or an admission to intensive care. The diabetes team changed his dose, and he went home on schedule. I learned that acting on the first signs is better than waiting for the next round.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": true,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient"
+   }
+  },
+  {
+   "id": "aw-9-c1",
+   "family": "aw-9",
+   "question_id": "h-hardest-1",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-9-typed",
+   "change": "action passage reworded so the actions no longer count: negated",
+   "kind": "negated",
+   "tags": [
+    "action_control",
+    "negated"
+   ],
+   "answer": "The hardest medication situation I faced was on a medical ward when a patient with diabetes became drowsy and sweaty after the lunchtime round, and his blood sugar was dropping fast. A severe low can cause a seizure, so minutes counted. I was the nurse responsible for his insulin and for recognising a problem with it. I didn't test our patient's fingerstick reading, supply oral dextrose or phone endocrine nurses. His glucose climbed back to a safe range within twenty minutes and he avoided a seizure or an admission to intensive care. The diabetes team changed his dose, and he went home on schedule. I learned that acting on the first signs is better than waiting for the next round.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-9-c2",
+   "family": "aw-9",
+   "question_id": "h-hardest-1",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-9-typed",
+   "change": "action passage reworded so the actions no longer count: intended",
+   "kind": "intended",
+   "tags": [
+    "action_control",
+    "intended"
+   ],
+   "answer": "The hardest medication situation I faced was on a medical ward when a patient with diabetes became drowsy and sweaty after the lunchtime round, and his blood sugar was dropping fast. A severe low can cause a seizure, so minutes counted. I was the nurse responsible for his insulin and for recognising a problem with it. I was going to test our patient's fingerstick reading, supply oral dextrose, plus phone endocrine nurses. His glucose climbed back to a safe range within twenty minutes and he avoided a seizure or an admission to intensive care. The diabetes team changed his dose, and he went home on schedule. I learned that acting on the first signs is better than waiting for the next round.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-9-c3",
+   "family": "aw-9",
+   "question_id": "h-hardest-1",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-9-typed",
+   "change": "action passage reworded so the actions no longer count: hypothetical",
+   "kind": "hypothetical",
+   "tags": [
+    "action_control",
+    "hypothetical"
+   ],
+   "answer": "The hardest medication situation I faced was on a medical ward when a patient with diabetes became drowsy and sweaty after the lunchtime round, and his blood sugar was dropping fast. A severe low can cause a seizure, so minutes counted. I was the nurse responsible for his insulin and for recognising a problem with it. I would have tested our patient's fingerstick reading, supplied oral dextrose, plus phoned endocrine nurses. His glucose climbed back to a safe range within twenty minutes and he avoided a seizure or an admission to intensive care. The diabetes team changed his dose, and he went home on schedule. I learned that acting on the first signs is better than waiting for the next round.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  },
+  {
+   "id": "aw-9-c4",
+   "family": "aw-9",
+   "question_id": "h-hardest-1",
+   "question_version": 1,
+   "variant": "action_control",
+   "pair_of": "aw-9-typed",
+   "change": "action passage reworded so the actions no longer count: others did it",
+   "kind": "others_did_it",
+   "tags": [
+    "action_control",
+    "others_did_it"
+   ],
+   "answer": "The hardest medication situation I faced was on a medical ward when a patient with diabetes became drowsy and sweaty after the lunchtime round, and his blood sugar was dropping fast. A severe low can cause a seizure, so minutes counted. I was the nurse responsible for his insulin and for recognising a problem with it. Our staff nurse tested our patient's fingerstick reading, supplied oral dextrose, plus phoned endocrine nurses. His glucose climbed back to a safe range within twenty minutes and he avoided a seizure or an admission to intensive care. The diabetes team changed his dose, and he went home on schedule. I learned that acting on the first signs is better than waiting for the next round.",
+   "labels": {
+    "points": {
+     "Sets the scene: where you were and what was at stake": true,
+     "Makes your own responsibility clear": true,
+     "Describes specific actions you took": false,
+     "Shares a result, ideally with a number": true,
+     "Reflects on what you learned": true,
+     "Uses the specifics of the job": true
+    },
+    "uncertain": []
+   },
+   "contradiction": false,
+   "expected": {
+    "evidence_level": "sufficient",
+    "rating_at_most": "Good"
+   }
+  }
+ ]
+}

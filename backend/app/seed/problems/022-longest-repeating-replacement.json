@@ -1,0 +1,128 @@
+{
+  "order": 22,
+  "slug": "longest-repeating-replacement",
+  "title": "Longest Repeating Character Replacement",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "sliding-window"
+  ],
+  "summary": "Change at most k letters to get the longest run of one repeated letter.",
+  "statement": "You're given a string `s` of uppercase English letters and an integer `k`. You may change at most `k` characters into any other uppercase letter. Return the length of the longest substring that can be made of **one repeated letter**.",
+  "constraints": [
+    "1 <= s.length <= 10^5",
+    "s contains only uppercase English letters",
+    "0 <= k <= s.length"
+  ],
+  "examples": [
+    {
+      "input": "s = \"ABAB\", k = 2",
+      "output": "4",
+      "explanation": "Change both A's (or both B's)."
+    },
+    {
+      "input": "s = \"AABABBA\", k = 1",
+      "output": "4",
+      "explanation": "Change the A at index 3 to B: \"AABBBBA\" contains \"BBBB\"."
+    }
+  ],
+  "signature": {
+    "method": "characterReplacement",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int characterReplacement(String s, int k) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "For any stretch of the string, how many letters would you have to change to make it all one letter? Can you keep that number up to date as the stretch grows by one character at a time?",
+    "Sliding window with letter counts. A window of length L needs L - (count of its most frequent letter) changes. Grow the window to the right; while the changes needed exceed k, shrink it from the left. Track the longest valid window.",
+    "counts = 26 zeros\nleft = 0, maxCount = 0, best = 0\nfor right from 0 to n - 1:\n    counts[s[right]] += 1\n    maxCount = max(maxCount, counts[s[right]])\n    while (right - left + 1) - maxCount > k:\n        counts[s[left]] -= 1\n        left += 1\n    best = max(best, right - left + 1)\nreturn best",
+    "Checking every substring is O(n^2) or worse. A window is fixable exactly when its length minus its most frequent letter's count is at most k. Moving the right edge one step and the left edge only forward gives O(n) time, with O(1) space for 26 counters. maxCount never needs to decrease when shrinking: a smaller maxCount could never produce a longer valid window than one already recorded, so the answer stays correct."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "ABAB",
+        "k": 2
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "AABABBA",
+        "k": 1
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "AAAA",
+        "k": 0
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "A",
+        "k": 0
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "ABCDE",
+        "k": 1
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "ABBB",
+        "k": 0
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "BAAAB",
+        "k": 2
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "ABCABC",
+        "k": 2
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "AAABBBCCC",
+        "k": 3
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    }
+  ]
+}

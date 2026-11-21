@@ -1,0 +1,177 @@
+{
+  "order": 228,
+  "slug": "first-last-position",
+  "title": "First and Last Position of a Value",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "binary-search"
+  ],
+  "summary": "Find where a value's block starts and ends in a sorted array.",
+  "statement": "`nums` is sorted ascending. Return `[first, last]`, the first and last index of `target`, or\n`[-1, -1]` if it's absent. Use O(log n).",
+  "constraints": [
+    "0 <= nums.length <= 10^5",
+    "sorted"
+  ],
+  "examples": [
+    {
+      "input": "nums = [5, 7, 7, 8, 8, 10], target = 8",
+      "output": "[3, 4]"
+    },
+    {
+      "input": "nums = [5, 7, 7, 8, 8, 10], target = 6",
+      "output": "[-1, -1]"
+    },
+    {
+      "input": "nums = [], target = 0",
+      "output": "[-1, -1]"
+    }
+  ],
+  "signature": {
+    "method": "searchRange",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "target",
+        "type": "int"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] searchRange(int[] nums, int target) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Find the left edge and the right edge with two separate binary searches.",
+    "Search for the first index `>= target` and the first index `> target`; the block lies between.",
+    "lo = lowerBound(target)\nif lo == n or nums[lo] != target: return [-1, -1]\nreturn [lo, lowerBound(target + 1) - 1]",
+    "Two binary searches: O(log n) regardless of how many copies of the value there are."
+  ],
+  "expected_complexity": {
+    "time": "O(log n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          5,
+          7,
+          7,
+          8,
+          8,
+          10
+        ],
+        "target": 8
+      },
+      "expected_output": [
+        3,
+        4
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          7,
+          7,
+          8,
+          8,
+          10
+        ],
+        "target": 6
+      },
+      "expected_output": [
+        -1,
+        -1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [],
+        "target": 0
+      },
+      "expected_output": [
+        -1,
+        -1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          5,
+          5
+        ],
+        "target": 4
+      },
+      "expected_output": [
+        -1,
+        -1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [],
+        "target": 1
+      },
+      "expected_output": [
+        -1,
+        -1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          1,
+          1,
+          1,
+          2,
+          2,
+          2,
+          2,
+          3,
+          3,
+          3,
+          5,
+          6
+        ],
+        "target": 1
+      },
+      "expected_output": [
+        2,
+        4
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          1,
+          2,
+          2,
+          5,
+          6
+        ],
+        "target": 5
+      },
+      "expected_output": [
+        4,
+        4
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

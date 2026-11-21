@@ -1,0 +1,201 @@
+"""Improvements you accepted: one action each, shown by the plan, the schedule and a kit (docs/ACCEPTED_ACTIONS.md)."""
+
+from typing import Literal
+
+from fastapi import APIRouter, Depends, Query, Response, status
+from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_user, get_db
+from app.models import User
+from app.schemas.actions import ActionAccept, ActionOut, ActionUpdate, OccurrencesIn, RelatedPractice
+from app.schemas.common import error_responses
+from app.schemas.lifecycle import Impact, LifecycleIn, LifecycleOutcome
+from app.services.actions import Actions
+from app.services.lifecycle import Lifecycle
+
+router = APIRouter(prefix="/api/v1/me/actions", tags=["actions"])
+
+
+@router.get(
+    "", response_model=list[ActionOut], responses=error_responses(401), summary="Improvements you accepted"
+)
+def mine(
+    state: Literal["open", "done", "all"] = Query(default="all"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> list[ActionOut]:
+    return Actions(db, user).mine(state)
+
+
+@router.post(
+    "",
+    response_model=ActionOut,
+    status_code=status.HTTP_201_CREATED,
+    responses=error_responses(401, 404, 409, 422),
+    summary="Accept a suggested improvement (accepting it again returns the same action, 200)",
+)
+def accept(
+    body: ActionAccept,
+    response: Response,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> ActionOut:
+    out, created = Actions(db, user).accept(body)
+    if not created:
+        response.status_code = status.HTTP_200_OK
+    return out
+
+
+@router.get(
+    "/{action_id}", response_model=ActionOut, responses=error_responses(401, 404), summary="One action"
+)
+def get(action_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)) -> ActionOut:
+    return Actions(db, user).get(action_id)
+
+
+@router.get(
+    "/{action_id}/practice",
+    response_model=RelatedPractice,
+    responses=error_responses(401, 404),
+    summary="Practice related to it since you accepted it, by stored links (docs/ACCEPTED_ACTIONS.md)",
+)
+def practice(
+    action_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> RelatedPractice:
+    return Actions(db, user).related_practice(action_id)
+
+
+@router.patch(
+    "/{action_id}",
+    response_model=ActionOut,
+    responses=error_responses(400, 401, 404, 409, 422),
+    summary="Rename it or change its notes (409 stale_revision with the saved action if it changed since)",
+)
+def update(
+    action_id: str, body: ActionUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ActionOut:
+    return Actions(db, user).update(action_id, body)
+
+
+@router.post(
+    "/{action_id}/complete",
+    response_model=ActionOut,
+    responses=error_responses(401, 404, 409),
+    summary="Say a one-off action is done (changes no score)",
+)
+def complete(
+    action_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ActionOut:
+    return Actions(db, user).complete(action_id)
+
+
+@router.post(
+    "/{action_id}/reopen",
+    response_model=ActionOut,
+    responses=error_responses(401, 404, 409),
+    summary="Undo: a one-off action is open again",
+)
+def reopen(
+    action_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ActionOut:
+    return Actions(db, user).reopen(action_id)
+
+
+@router.post(
+    "/{action_id}/occurrences",
+    response_model=ActionOut,
+    responses=error_responses(400, 401, 404, 409, 422),
+    summary="Put it on the schedule: once, or weekly for a number of weeks",
+)
+def schedule(
+    action_id: str, body: OccurrencesIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ActionOut:
+    return Actions(db, user).schedule(action_id, body)
+
+
+@router.post(
+    "/{action_id}/occurrences/{entry_id}/complete",
+    response_model=ActionOut,
+    responses=error_responses(401, 404, 409),
+    summary="Say one occurrence is done (a weekly action's others stay open)",
+)
+def complete_occurrence(
+    action_id: str, entry_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ActionOut:
+    return Actions(db, user).complete_occurrence(action_id, entry_id, True)
+
+
+@router.post(
+    "/{action_id}/occurrences/{entry_id}/reopen",
+    response_model=ActionOut,
+    responses=error_responses(401, 404, 409),
+    summary="Undo one occurrence's completion",
+)
+def reopen_occurrence(
+    action_id: str, entry_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ActionOut:
+    return Actions(db, user).complete_occurrence(action_id, entry_id, False)
+
+
+# --- archive and delete, previewed (Volume 14, prompt 5; docs/ACCEPTED_ACTIONS.md) ------------------
+
+
+@router.get(
+    "/{action_id}/archive-preview",
+    response_model=Impact,
+    responses=error_responses(401, 404),
+    summary="What archiving it would take off the plan and schedule and keep (nothing is changed)",
+)
+def archive_preview(
+    action_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> Impact:
+    return Lifecycle(db, user).plan_archive_action(action_id)
+
+
+@router.post(
+    "/{action_id}/archive",
+    response_model=LifecycleOutcome,
+    responses=error_responses(401, 404, 409, 422),
+    summary="Archive it as previewed: a changed scope is refused (409 impact_changed) with the new preview",
+)
+def archive_as_previewed(
+    action_id: str, body: LifecycleIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> LifecycleOutcome:
+    return Lifecycle(db, user).archive_action(action_id, body)
+
+
+@router.post(
+    "/{action_id}/unarchive",
+    response_model=ActionOut,
+    responses=error_responses(401, 404),
+    summary="Back on the plan, the schedule and Today, with its occurrences as they were",
+)
+def unarchive(
+    action_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> ActionOut:
+    Lifecycle(db, user).unarchive_action(action_id)
+    return Actions(db, user).get(action_id)
+
+
+@router.get(
+    "/{action_id}/delete-preview",
+    response_model=Impact,
+    responses=error_responses(401, 404),
+    summary="What deleting it would remove and keep (nothing is changed)",
+)
+def delete_preview(
+    action_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> Impact:
+    return Lifecycle(db, user).plan_delete_action(action_id)
+
+
+@router.post(
+    "/{action_id}/delete",
+    response_model=LifecycleOutcome,
+    responses=error_responses(401, 404, 409, 422),
+    summary="Delete it as previewed: a changed scope is refused (409 impact_changed) with the new preview",
+)
+def delete_as_previewed(
+    action_id: str, body: LifecycleIn, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> LifecycleOutcome:
+    return Lifecycle(db, user).delete_action(action_id, body)

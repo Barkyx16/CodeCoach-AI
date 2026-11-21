@@ -1,13 +1,19 @@
 import type { TokenResponse, User } from "@/api/types";
 import { storage } from "@/lib/storage";
 
-const KEY = "codecoach.session.v1";
-
+/**
+ * The signed-in session lives in memory only. The access token is short-lived (15 min); a
+ * page reload restores the session from the HttpOnly refresh cookie (POST /auth/refresh),
+ * which page scripts can't read. Nothing about the session is written to localStorage.
+ */
 export interface Session {
   token: string;
   expiresAt: string;
   user: User;
 }
+
+/** Where sessions used to be stored, before refresh cookies. Removed on startup. */
+export const LEGACY_SESSION_KEY = "codecoach.session.v1";
 
 export function sessionFromToken(response: TokenResponse): Session {
   return { token: response.access_token, expiresAt: response.expires_at, user: response.user };
@@ -18,23 +24,11 @@ export function isExpired(session: Session, now: number = Date.now()): boolean {
   return new Date(session.expiresAt).getTime() - 30_000 <= now;
 }
 
-export function loadSession(): Session | null {
-  const raw = storage.get(KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Session;
-    if (!parsed.token || !parsed.expiresAt || !parsed.user || isExpired(parsed)) {
-      storage.remove(KEY);
-      return null;
-    }
-    return parsed;
-  } catch {
-    storage.remove(KEY);
-    return null;
-  }
+/** Milliseconds until the session should be refreshed (a minute before the token expires). */
+export function refreshDelay(session: Session, now: number = Date.now()): number {
+  return Math.max(new Date(session.expiresAt).getTime() - 60_000 - now, 0);
 }
 
-export function saveSession(session: Session | null): void {
-  if (session) storage.set(KEY, JSON.stringify(session));
-  else storage.remove(KEY);
+export function forgetLegacySession(): void {
+  storage.remove(LEGACY_SESSION_KEY);
 }

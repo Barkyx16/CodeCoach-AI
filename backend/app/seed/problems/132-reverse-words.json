@@ -1,0 +1,110 @@
+{
+  "order": 132,
+  "slug": "reverse-words",
+  "title": "Reverse the Words",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "two-pointers"
+  ],
+  "summary": "Reverse the order of words in a sentence.",
+  "statement": "Given a string `s` of words separated by spaces, return the words in reverse order joined by\na single space. `s` may have leading, trailing or repeated spaces; the result must not.",
+  "constraints": [
+    "1 <= s.length <= 10^4",
+    "s contains letters, digits and spaces, and at least one word"
+  ],
+  "examples": [
+    {
+      "input": "s = \"the sky is blue\"",
+      "output": "\"blue is sky the\""
+    },
+    {
+      "input": "s = \"  hello world  \"",
+      "output": "\"world hello\""
+    },
+    {
+      "input": "s = \"a good   example\"",
+      "output": "\"example good a\""
+    }
+  ],
+  "signature": {
+    "method": "reverseWords",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String reverseWords(String s) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "First get the words out cleanly, then deal with their order.",
+    "Split on runs of spaces (ignoring empty pieces), reverse the list, and join with one space.",
+    "words = [w for w in s.split(' ') if w]\nreturn ' '.join(reversed(words))",
+    "Splitting and joining is O(n). In Java, `s.trim().split(\"\\\\s+\")` gives the words; build the result with a StringBuilder from the last word to the first."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "the sky is blue"
+      },
+      "expected_output": "blue is sky the",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "  hello world  "
+      },
+      "expected_output": "world hello",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a good   example"
+      },
+      "expected_output": "example good a",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "one"
+      },
+      "expected_output": "one",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "uc wtq"
+      },
+      "expected_output": "wtq uc",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "zebrm   m  vaht  dev  "
+      },
+      "expected_output": "dev vaht m zebrm",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "oow gg   i fp "
+      },
+      "expected_output": "fp i gg oow",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "gs arl rnzmt "
+      },
+      "expected_output": "rnzmt arl gs",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

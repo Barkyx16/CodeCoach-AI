@@ -1,0 +1,132 @@
+{
+  "order": 233,
+  "slug": "partition-labels",
+  "title": "Partition Labels",
+  "difficulty": "medium",
+  "topics": [
+    "greedy",
+    "strings",
+    "two-pointers"
+  ],
+  "summary": "Split a string so each letter appears in only one part.",
+  "statement": "Split `s` into as many parts as possible so that each letter appears in at most one part. Return the\nsizes of the parts, in order.",
+  "constraints": [
+    "1 <= s.length <= 500",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"ababcbacadefegdehijhklij\"",
+      "output": "[9, 7, 8]"
+    },
+    {
+      "input": "s = \"eccbbbbdec\"",
+      "output": "[10]"
+    },
+    {
+      "input": "s = \"a\"",
+      "output": "[1]"
+    }
+  ],
+  "signature": {
+    "method": "partitionLabels",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] partitionLabels(String s) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "A part can't end before the last occurrence of any letter inside it.",
+    "Record each letter's last index. Extend the current part's end to cover each letter you see; cut when you reach it.",
+    "last = {c: i for i, c in enumerate(s)}\nstart = end = 0\nfor i, c in enumerate(s):\n    end = max(end, last[c])\n    if i == end: sizes.append(end - start + 1); start = i + 1\nreturn sizes",
+    "Cutting as early as allowed gives the most parts: O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "ababcbacadefegdehijhklij"
+      },
+      "expected_output": [
+        9,
+        7,
+        8
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "eccbbbbdec"
+      },
+      "expected_output": [
+        10
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a"
+      },
+      "expected_output": [
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abc"
+      },
+      "expected_output": [
+        1,
+        1,
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "fabfebdeebdfc"
+      },
+      "expected_output": [
+        12,
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bfbcaddfbac"
+      },
+      "expected_output": [
+        11
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "fdbdbaacedefb"
+      },
+      "expected_output": [
+        13
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "f"
+      },
+      "expected_output": [
+        1
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,12 @@
+/* Communication drills: prompt, answer, feedback and the attempts beside them. */
+
+.drill-page__layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 320px); gap: var(--space-4); align-items: start; margin-top: var(--space-4); }
+@media (max-width: 960px) { .drill-page__layout { grid-template-columns: minmax(0, 1fr); } }
+.drill-prompt { font-size: 1.125rem; line-height: 1.5; }
+.drill-interim { font-style: italic; }
+.drill-observations { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); }
+.drill-history { padding-left: var(--space-4); margin: 0; display: grid; gap: var(--space-1); }
+.drill-history .link-button[aria-current="true"] { font-weight: 600; }
+.drill-page textarea { width: 100%; }
+.drill-answer { margin: 0; }
+.drill-answer blockquote { margin: var(--space-1) 0 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--color-border-strong); background: var(--color-surface-sunken); border-radius: 0 8px 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; }

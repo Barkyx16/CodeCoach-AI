@@ -1,0 +1,170 @@
+{
+  "order": 322,
+  "slug": "max-rectangle-sum-at-most-k",
+  "title": "Biggest Rectangle Sum Not Above K",
+  "difficulty": "hard",
+  "topics": [
+    "matrix",
+    "prefix-sums",
+    "binary-search"
+  ],
+  "summary": "Largest submatrix sum that doesn't exceed k.",
+  "statement": "Return the largest sum of a non-empty rectangular submatrix of `matrix` that is at most `k`. At least one\nsuch rectangle is guaranteed to exist.",
+  "constraints": [
+    "1 <= rows, cols <= 100",
+    "-100 <= matrix[i][j] <= 100"
+  ],
+  "examples": [
+    {
+      "input": "matrix = [[1, 0, 1], [0, -2, 3]], k = 2",
+      "output": "2"
+    },
+    {
+      "input": "matrix = [[2, 2, -1]], k = 3",
+      "output": "3"
+    },
+    {
+      "input": "matrix = [[5]], k = 5",
+      "output": "5"
+    }
+  ],
+  "signature": {
+    "method": "maxSumSubmatrix",
+    "params": [
+      {
+        "name": "matrix",
+        "type": "int[][]"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int maxSumSubmatrix(int[][] matrix, int k) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Fix the left and right columns and compress rows into sums: now it's \"best subarray sum \u2264 k\" in 1-D.",
+    "For a prefix sum `S`, you want the smallest earlier prefix `\u2265 S - k`. A sorted set (TreeSet.ceiling) finds it in O(log n).",
+    "for left, right column pairs:\n    rowSums = sums of each row between left and right\n    seen = sorted set {0}; prefix = 0\n    for s in rowSums:\n        prefix += s\n        c = seen.ceiling(prefix - k)\n        if c exists: best = max(best, prefix - c)\n        seen.add(prefix)\nreturn best",
+    "O(n^2 m log m). A sorted set is needed because, unlike \"sum equals k\", you need the closest prefix, not an exact one."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2 m log m)",
+    "space": "O(m)"
+  },
+  "tests": [
+    {
+      "input": {
+        "matrix": [
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            0,
+            -2,
+            3
+          ]
+        ],
+        "k": 2
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            2,
+            2,
+            -1
+          ]
+        ],
+        "k": 3
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            5
+          ]
+        ],
+        "k": 5
+      },
+      "expected_output": 5,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            -3,
+            1
+          ]
+        ],
+        "k": 6
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            4,
+            0,
+            2
+          ],
+          [
+            4,
+            2,
+            1
+          ]
+        ],
+        "k": 7
+      },
+      "expected_output": 7,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            0
+          ],
+          [
+            3
+          ],
+          [
+            2
+          ],
+          [
+            -4
+          ]
+        ],
+        "k": 7
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            -2,
+            -2
+          ]
+        ],
+        "k": 2
+      },
+      "expected_output": -2,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

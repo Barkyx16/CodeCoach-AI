@@ -1,0 +1,48 @@
+{
+  "slug": "review-binary-search",
+  "version": 1,
+  "title": "Review: Binary Search",
+  "problem": "binary-search",
+  "context": "A teammate's binary search, sent for review. Read it against the problem's constraints before deciding what, if anything, is wrong.",
+  "code": "class Solution {\n    public int search(int[] nums, int target) {\n        int lo = 0;\n        int hi = nums.length - 1;\n        while (lo <= hi) {\n            int mid = (lo + hi) / 2;\n            if (nums[mid] == target) {\n                return mid;\n            } else if (nums[mid] < target) {\n                lo = mid + 1;\n            } else {\n                hi = mid - 1;\n            }\n        }\n        return -1;\n    }\n}\n",
+  "findings": [
+    {
+      "id": "midpoint-sum",
+      "kind": "observation",
+      "lines": [
+        6,
+        6
+      ],
+      "related_lines": [],
+      "title": "(lo + hi) / 2 can overflow on huge arrays, but not here",
+      "explanation": "In general, lo + hi can pass Integer.MAX_VALUE (about 2.1 billion) and wrap to a negative number. This problem allows at most 10^4 values, so lo + hi stays under 20,000.",
+      "consequence": "None with these constraints. It would matter only for arrays with more than about a billion elements.",
+      "repair": "Optional: lo + (hi - lo) / 2 is a habit worth having for code that might see very large arrays.",
+      "why_preference": "With the stated constraints the sum can't overflow, and every public and hidden test passes. Calling it a bug here would be an unsupported claim.",
+      "evidence": []
+    },
+    {
+      "id": "else-after-return",
+      "kind": "observation",
+      "lines": [
+        9,
+        9
+      ],
+      "related_lines": [
+        [
+          11,
+          11
+        ]
+      ],
+      "title": "else after a return",
+      "explanation": "The first branch returns, so the else isn't needed: if (nums[mid] < target) on its own line would behave the same.",
+      "consequence": "None: the behaviour is identical.",
+      "repair": "Optional: drop the else if your team prefers early returns.",
+      "why_preference": "Both forms run the same comparisons in the same order. It's about how the code reads.",
+      "evidence": []
+    }
+  ],
+  "repaired_code": null,
+  "debrief": "No defect: this binary search passes every test, including an empty array and the first and last positions. A good review says so plainly and labels anything else as a preference. Inventing a bug costs the author time and trust.",
+  "review_status": "Written for practice and machine-checked: the code and the repair were run against every test of the problem."
+}

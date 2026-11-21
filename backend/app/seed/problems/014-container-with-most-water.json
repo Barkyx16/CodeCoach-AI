@@ -1,0 +1,157 @@
+{
+  "order": 14,
+  "slug": "container-with-most-water",
+  "title": "Container With Most Water",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "two-pointers",
+    "greedy"
+  ],
+  "summary": "Pick two vertical lines that, with the x-axis, hold the most water.",
+  "statement": "You're given an array `height` where `height[i]` is the height of a vertical line drawn at x = i.\n\nChoose two lines. Together with the x-axis they form a container, which holds `min(height[i], height[j]) * (j - i)` units of water. Return the **largest** amount any pair of lines can hold. The container can't be tilted.",
+  "constraints": [
+    "2 <= height.length <= 10^5",
+    "0 <= height[i] <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "height = [1, 8, 6, 2, 5, 4, 8, 3, 7]",
+      "output": "49",
+      "explanation": "Lines at x = 1 (height 8) and x = 8 (height 7): min(8, 7) * (8 - 1) = 49."
+    },
+    {
+      "input": "height = [1, 1]",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "maxArea",
+    "params": [
+      {
+        "name": "height",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int maxArea(int[] height) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "The widest possible container uses the very first and very last lines. If you then move one end inward, the width shrinks for sure. Moving which end is the only one that could ever lead to more water?",
+    "Two pointers from both ends. The water is limited by the shorter line, so moving the taller line inward can never help: the width shrinks and the height can't rise above the shorter line. Always move the shorter one, and keep the best area seen.",
+    "left = 0\nright = n - 1\nbest = 0\nwhile left < right:\n    area = min(height[left], height[right]) * (right - left)\n    best = max(best, area)\n    if height[left] < height[right]:\n        left = left + 1\n    else:\n        right = right - 1\nreturn best",
+    "Checking every pair is O(n^2). Start with the widest pair. For the current pair, the shorter line is the bottleneck: pairing it with any line closer in would be narrower and no taller, so that line can be discarded for good. Discarding the shorter line each step means each line is discarded once, giving O(n) time and O(1) space. When the heights are equal, moving either side is safe."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "height": [
+          1,
+          8,
+          6,
+          2,
+          5,
+          4,
+          8,
+          3,
+          7
+        ]
+      },
+      "expected_output": 49,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "height": [
+          1,
+          1
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "height": [
+          4,
+          3,
+          2,
+          1,
+          4
+        ]
+      },
+      "expected_output": 16,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "height": [
+          1,
+          2,
+          1
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "height": [
+          0,
+          0
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "height": [
+          2,
+          3,
+          4,
+          5,
+          18,
+          17,
+          6
+        ]
+      },
+      "expected_output": 17,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "height": [
+          1,
+          2,
+          4,
+          3
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "height": [
+          10,
+          9,
+          8,
+          7,
+          6,
+          5,
+          4,
+          3,
+          2,
+          1
+        ]
+      },
+      "expected_output": 25,
+      "visibility": "hidden"
+    }
+  ]
+}

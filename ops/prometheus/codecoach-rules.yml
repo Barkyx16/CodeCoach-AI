@@ -1,0 +1,98 @@
+# CodeCoach service-level indicators (recording rules) and alerts. Definitions, targets and the
+# reasoning behind every threshold: docs/OBSERVABILITY.md. Checked by backend/tests/test_ops_rules.py
+# (every metric and label used here is one the app exports). Offline rule tests:
+#   promtool check rules ops/prometheus/codecoach-rules.yml
+#   promtool test rules ops/prometheus/codecoach-rules.test.yml
+groups:
+  - name: codecoach-sli
+    interval: 1m
+    rules:
+      # Server: round actions handled without a server-side failure. Refusals (4xx) are excluded:
+      # they are the server working as intended (a stale tab, a finished round).
+      - record: codecoach:round_actions_ok:ratio_rate30m
+        expr: |
+          sum(rate(codecoach_round_actions_total{outcome=~"advanced|followup|completed|duplicate"}[30m]))
+          /
+          sum(rate(codecoach_round_actions_total{outcome!="rejected"}[30m]))
+      # Browser: round actions whose next state reached the screen, out of those that should have.
+      # Excluded: refusals, server errors (counted on the server) and ignored clicks (own alert).
+      - record: codecoach:ui_actions_rendered:ratio_rate30m
+        expr: |
+          sum(rate(codecoach_ui_actions_total{outcome="rendered"}[30m]))
+          /
+          sum(rate(codecoach_ui_actions_total{outcome=~"rendered|network_error|not_rendered"}[30m]))
+      # Browser-measured: click to next state on screen, rendered answers only (p95).
+      - record: codecoach:ui_answer_seconds:p95_30m
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(codecoach_ui_action_seconds_bucket{action="answer", outcome="rendered"}[30m])))
+      # Server-measured: answer evaluation (p95) and API latency per route (p95).
+      - record: codecoach:evaluate_seconds:p95_30m
+        expr: |
+          histogram_quantile(0.95, sum by (le) (rate(codecoach_span_duration_seconds_bucket{span="evaluate"}[30m])))
+      - record: codecoach:http_seconds:p95_5m
+        expr: |
+          histogram_quantile(0.95, sum by (le, route) (rate(codecoach_http_request_duration_seconds_bucket{route!~"unmatched|/metrics|/health.*"}[5m])))
+      - record: codecoach:http_5xx:ratio_rate5m
+        expr: |
+          sum(rate(codecoach_http_requests_total{status=~"5.."}[5m]))
+          /
+          sum(rate(codecoach_http_requests_total[5m]))
+
+  - name: codecoach-alerts
+    rules:
+      # Every ratio alert needs real traffic in its window, so one failure on a quiet night
+      # doesn't page anyone, and every alert has to hold for a while before it fires.
+      - alert: CodeCoachRoundActionsFailing
+        expr: |
+          codecoach:round_actions_ok:ratio_rate30m < 0.98
+          and sum(increase(codecoach_round_actions_total{outcome!="rejected"}[30m])) >= 50
+        for: 15m
+        labels:
+          severity: page
+        annotations:
+          summary: More than 2% of interview answers are failing on the server
+          runbook: docs/OBSERVABILITY.md#runbook-round-actions-failing
+      - alert: CodeCoachAnswersNotReachingTheScreen
+        expr: |
+          codecoach:ui_actions_rendered:ratio_rate30m < 0.95
+          and sum(increase(codecoach_ui_actions_total{outcome=~"rendered|network_error|not_rendered"}[30m])) >= 50
+        for: 15m
+        labels:
+          severity: page
+        annotations:
+          summary: More than 5% of answers saved or sent never showed their result in the browser
+          runbook: docs/OBSERVABILITY.md#runbook-answers-not-reaching-the-screen
+      - alert: CodeCoachClicksIgnored
+        expr: sum(increase(codecoach_ui_actions_total{outcome="ignored"}[1h])) >= 5
+        for: 10m
+        labels:
+          severity: ticket
+        annotations:
+          summary: Answer boxes are ignoring clicks while looking ready (a stuck submit guard)
+          runbook: docs/OBSERVABILITY.md#runbook-clicks-ignored
+      - alert: CodeCoachJudgeQueueStuck
+        expr: max(codecoach_judge_oldest_queued_seconds) > 300
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: A code submission has waited more than 5 minutes for the judge
+          runbook: docs/OBSERVABILITY.md#runbook-judge-queue-stuck
+      - alert: CodeCoachServerErrors
+        expr: |
+          codecoach:http_5xx:ratio_rate5m > 0.05
+          and sum(increase(codecoach_http_requests_total[5m])) >= 100
+        for: 10m
+        labels:
+          severity: page
+        annotations:
+          summary: More than 5% of API requests are failing with a server error
+          runbook: docs/OBSERVABILITY.md#runbook-server-errors
+      - alert: CodeCoachTelemetryDropping
+        expr: sum(increase(codecoach_telemetry_dropped_total{kind=~"span|round_action|queue_probe"}[30m])) > 0
+        for: 30m
+        labels:
+          severity: ticket
+        annotations:
+          summary: The server is failing to record its own telemetry (practice is unaffected)
+          runbook: docs/OBSERVABILITY.md#runbook-telemetry-dropping

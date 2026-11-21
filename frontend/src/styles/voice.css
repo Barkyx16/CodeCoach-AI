@@ -1,0 +1,76 @@
+/* Voice interviews: readiness setup, the answer composer's microphone state, captions and the
+   simulated engagement indicator. Every state is shown as text and a shape, never color alone. */
+.voice-setup { margin-top: 20px; }
+.voice-setup__status { display: grid; gap: 8px; margin: 0; }
+.voice-setup__status div { display: grid; grid-template-columns: minmax(150px, 220px) 1fr; gap: 12px; font-size: 0.8125rem; }
+.voice-setup__status dt { color: var(--color-text-muted); }
+.voice-setup__status dd { margin: 0; }
+.voice-setup__grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.voice-setup__grid input[type="range"] { width: 100%; min-height: 32px; }
+.voice-setup__privacy summary { cursor: pointer; font-size: 0.8125rem; font-weight: 550; min-height: 32px; display: flex; align-items: center; }
+.voice-level { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: 0.8125rem; }
+.voice-level meter { width: min(260px, 100%); height: 14px; }
+.checkbox { display: flex; align-items: center; gap: 10px; min-height: 36px; font-size: 0.875rem; cursor: pointer; }
+.checkbox input { width: 18px; height: 18px; accent-color: var(--color-link); }
+
+.voice-composer__head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.voice-composer__buttons { flex-wrap: wrap; justify-content: flex-end; }
+.voice-composer__buttons .btn { min-height: 40px; }
+.voice-status { display: inline-flex; align-items: center; gap: 8px; margin: 0; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: 999px; font-size: 0.75rem; font-weight: 550; }
+.voice-status__dot { width: 9px; height: 9px; border-radius: 50%; border: 2px solid currentColor; }
+.voice-status--listening { color: var(--color-success); border-color: currentColor; }
+.voice-status--listening .voice-status__dot { background: currentColor; animation: voice-pulse 1.2s ease-in-out infinite; }
+.voice-status--processing, .voice-status--speaking { color: var(--color-info); border-color: currentColor; }
+.voice-status--speaking .voice-status__dot { border-radius: 2px; }
+.voice-status--denied, .voice-status--error { color: var(--color-warning); border-color: currentColor; }
+.voice-status--unavailable { color: var(--color-text-muted); }
+@keyframes voice-pulse { 50% { opacity: .35; } }
+.voice-composer__state { display: inline-flex; align-items: center; gap: 8px; }
+.voice-elapsed { font-variant-numeric: tabular-nums; }
+.voice-notice { margin: 0; }
+.voice-unconfirmed { display: grid; gap: 8px; padding: 10px 12px; border: 1px dashed var(--color-border-strong); border-radius: 8px; }
+.voice-unconfirmed p { margin: 0; font-size: 0.875rem; }
+.voice-settings { display: grid; gap: 8px; }
+.voice-interim { margin: 0; padding: 8px 12px; border: 1px dashed var(--color-border-strong); border-radius: 8px; font-size: 0.875rem; font-style: italic; color: var(--color-text-muted); }
+.voice-interim__tag { font-style: normal; font-size: 0.6875rem; font-weight: 600; letter-spacing: .03em; text-transform: uppercase; margin-right: 6px; }
+.voice-caption { margin: 0; padding: 10px 14px; border-radius: 8px; background: var(--color-surface-sunken); font-size: 1rem; line-height: 1.6; }
+.voice-caption__who { font-weight: 600; margin-right: 4px; }
+
+.engagement { padding: 18px 20px; gap: 10px; }
+.engagement__head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.engagement__state { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 1rem; }
+.engagement__glyph { font-size: 1.25rem; line-height: 1; }
+/* One neutral colour for every state: a simulated cue isn't a pass/fail light. The shape and the
+   words carry the state (Volume 7, prompt 9). */
+.engagement__state { color: var(--color-text); }
+.engagement__state--not_enough_evidence { color: var(--color-text-muted); }
+.engagement__reason { margin: 0; font-size: 0.875rem; line-height: 1.6; color: var(--color-text); }
+.engagement__evidence summary { cursor: pointer; font-size: 0.8125rem; min-height: 32px; display: flex; align-items: center; }
+.engagement__note { font-size: 0.75rem; line-height: 1.5; }
+.engagement-note { display: flex; gap: 8px; align-items: baseline; margin: 6px 0 0; font-size: 0.8125rem; line-height: 1.55; }
+.engagement-note span:last-child { color: var(--color-text); }
+.bubble__source { margin: 4px 0 0; font-size: 0.6875rem; }
+
+.round__bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.round__timer-note { margin: 6px 0 0; font-size: 0.75rem; }
+.round__layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; margin-top: 16px; }
+.round-result__answer { margin: 0; padding: 12px 14px; border-left: 3px solid var(--color-border-strong); background: var(--color-surface-sunken); white-space: pre-wrap; font-size: 0.875rem; line-height: 1.6; }
+.interview__chat .engagement { margin: 0 var(--space-5, 20px); }
+.interview__chat .voice-composer { margin: 12px var(--space-5, 20px) 0; }
+.interview__chat .voice-caption { margin: 0 var(--space-5, 20px) 10px; }
+
+@media (max-width: 960px) {
+  .round__layout { grid-template-columns: 1fr; }
+  .voice-setup__grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .voice-setup__status div { grid-template-columns: 1fr; gap: 2px; }
+  .voice-composer__buttons { width: 100%; justify-content: stretch; }
+  .voice-composer__buttons .btn { flex: 1 1 auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .voice-status--listening .voice-status__dot { animation: none; }
+}
+/* A round answer that wasn't sent (the question was answered elsewhere): kept, readable, copyable. */
+.round__kept { margin: 0; padding: var(--space-2) var(--space-3); border-left: 2px solid var(--color-border); white-space: pre-wrap; }
+.interview__leave-note { margin: 0 0 var(--space-2); font-size: var(--text-xs); }

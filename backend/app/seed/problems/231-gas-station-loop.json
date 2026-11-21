@@ -1,0 +1,176 @@
+{
+  "order": 231,
+  "slug": "gas-station-loop",
+  "title": "Gas Station Loop",
+  "difficulty": "medium",
+  "topics": [
+    "greedy",
+    "arrays"
+  ],
+  "summary": "Find the station where you can start and drive the full circle.",
+  "statement": "Stations sit on a circular road. At station `i` you get `gas[i]`; driving to station `i + 1` costs\n`cost[i]`. Starting with an empty tank, return the index of the station from which you can complete the\nloop, or `-1`. If an answer exists it is unique.",
+  "constraints": [
+    "1 <= n <= 10^5",
+    "0 <= gas[i], cost[i] <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "gas = [1, 2, 3, 4, 5], cost = [3, 4, 5, 1, 2]",
+      "output": "3"
+    },
+    {
+      "input": "gas = [2, 3, 4], cost = [3, 4, 3]",
+      "output": "-1"
+    },
+    {
+      "input": "gas = [5], cost = [4]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "canCompleteCircuit",
+    "params": [
+      {
+        "name": "gas",
+        "type": "int[]"
+      },
+      {
+        "name": "cost",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int canCompleteCircuit(int[] gas, int[] cost) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "If total gas is less than total cost, no start works.",
+    "If you run dry between `start` and `i`, no station in that range can be the start. Restart at `i + 1`.",
+    "total = tank = start = 0\nfor i in range(n):\n    diff = gas[i] - cost[i]\n    total += diff; tank += diff\n    if tank < 0: start = i + 1; tank = 0\nreturn start if total >= 0 else -1",
+    "One pass, O(n). Skipping the failed stretch is safe: any start inside it reaches the failure point with even less gas."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "gas": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "cost": [
+          3,
+          4,
+          5,
+          1,
+          2
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "gas": [
+          2,
+          3,
+          4
+        ],
+        "cost": [
+          3,
+          4,
+          3
+        ]
+      },
+      "expected_output": -1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "gas": [
+          5
+        ],
+        "cost": [
+          4
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "gas": [
+          3,
+          1
+        ],
+        "cost": [
+          5,
+          5
+        ]
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "gas": [
+          2,
+          6,
+          1,
+          6
+        ],
+        "cost": [
+          2,
+          1,
+          5,
+          3
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "gas": [
+          1,
+          6,
+          4,
+          3,
+          2,
+          5
+        ],
+        "cost": [
+          1,
+          2,
+          1,
+          0,
+          6,
+          4
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "gas": [
+          1,
+          3,
+          4
+        ],
+        "cost": [
+          3,
+          0,
+          6
+        ]
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

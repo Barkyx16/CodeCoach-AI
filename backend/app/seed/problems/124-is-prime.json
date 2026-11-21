@@ -1,0 +1,129 @@
+{
+  "order": 124,
+  "slug": "is-prime",
+  "title": "Is It Prime?",
+  "difficulty": "easy",
+  "topics": [
+    "math"
+  ],
+  "summary": "Decide whether a number is prime.",
+  "statement": "Return `true` if `n` is a prime number (greater than 1, with no divisors other than 1 and itself).",
+  "constraints": [
+    "-10^9 <= n <= 2^31 - 1"
+  ],
+  "examples": [
+    {
+      "input": "n = 7",
+      "output": "true"
+    },
+    {
+      "input": "n = 9",
+      "output": "false"
+    },
+    {
+      "input": "n = 1",
+      "output": "false"
+    }
+  ],
+  "signature": {
+    "method": "isPrime",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isPrime(int n) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "You don't need to try every divisor up to n.",
+    "If n has a divisor, it has one no larger than its square root.",
+    "if n < 2: return false\nd = 2\nwhile d * d <= n:\n    if n % d == 0: return false\n    d += 1\nreturn true",
+    "Trial division up to sqrt(n) is O(sqrt(n)). Use a long for `d * d` so the loop can't overflow for n near 2^31."
+  ],
+  "expected_complexity": {
+    "time": "O(sqrt(n))",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 7
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 9
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 1
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 2
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": -7
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 2147483647
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 1000000007
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 96786
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 1570
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 1448
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 27079
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

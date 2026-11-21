@@ -1,0 +1,9 @@
+/* What's new (docs/WHATS_NEW.md): the header link's unread dot and the page's entries. */
+.whats-new-dot {
+  display: inline-block; width: 8px; height: 8px; margin-left: 6px; vertical-align: 2px;
+  border-radius: 50%; background: var(--color-link);
+}
+.whats-new__group { margin-top: var(--space-6); }
+.whats-new__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4); }
+.whats-new__entry p { margin: 0; }
+.whats-new__title { margin: 0; font-size: var(--text-md); }

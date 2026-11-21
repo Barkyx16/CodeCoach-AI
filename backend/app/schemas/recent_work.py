@@ -1,0 +1,50 @@
+from datetime import datetime
+from typing import Literal
+
+from pydantic import Field
+
+from app.schemas.common import APIModel
+
+RecentType = Literal[
+    "interview",
+    "note",
+    "story",
+    "kit",
+    "application",
+    "offer_comparison",
+    "scenario_run",
+    "test_design_run",
+    "debug_exercise",
+]
+
+
+class RecentItem(APIModel):
+    type: RecentType
+    id: str = Field(
+        description="The record's id; for a kit, its event's id; for a debugging exercise, its slug"
+    )
+    parent_id: str | None = Field(
+        default=None, description="For a kit: its application's id; for a test-design run: its exercise"
+    )
+    title: str
+    state: Literal["in_progress", "time_up", "finished", "expired", "ended_early"] | None = Field(
+        default=None, description="Interviews only"
+    )
+    detail: str | None = Field(
+        default=None,
+        description="A short status: an application's stage, a kit's date, a test-design run's result in "
+        "its run list's words, a debugging exercise's newest attempt in the exercise page's words",
+    )
+    at: datetime
+    at_meaning: Literal["saved", "started", "finished", "tried", "last_step"] = Field(
+        description="saved: last saved to your account; started/finished: the session's or run's own "
+        "times; tried: a debugging exercise's newest attempt; last_step: a scenario run's last step. "
+        "Nothing here means 'opened'."
+    )
+
+
+class RecentWorkOut(APIModel):
+    items: list[RecentItem]
+    unavailable: list[str] = Field(
+        description="Kinds of record that couldn't be read just now; the rest are listed"
+    )

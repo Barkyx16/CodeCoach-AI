@@ -1,0 +1,154 @@
+{
+  "order": 346,
+  "slug": "reaching-points",
+  "title": "Reaching Points",
+  "difficulty": "hard",
+  "topics": [
+    "math"
+  ],
+  "summary": "Can (sx, sy) become (tx, ty) by adding one coordinate to the other?",
+  "statement": "A move turns `(x, y)` into `(x + y, y)` or `(x, x + y)`. Starting from `(sx, sy)`, return `true` if you can\nreach `(tx, ty)`. All values are positive.",
+  "constraints": [
+    "1 <= sx, sy, tx, ty <= 10^9"
+  ],
+  "examples": [
+    {
+      "input": "sx = 1, sy = 1, tx = 3, ty = 5",
+      "output": "true"
+    },
+    {
+      "input": "sx = 1, sy = 1, tx = 2, ty = 2",
+      "output": "false"
+    },
+    {
+      "input": "sx = 1, sy = 1, tx = 1, ty = 1",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "reachingPoints",
+    "params": [
+      {
+        "name": "sx",
+        "type": "int"
+      },
+      {
+        "name": "sy",
+        "type": "int"
+      },
+      {
+        "name": "tx",
+        "type": "int"
+      },
+      {
+        "name": "ty",
+        "type": "int"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean reachingPoints(int sx, int sy, int tx, int ty) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Going forward branches. Going backward from the target doesn't: the larger coordinate must have been made from the smaller one.",
+    "Work backwards with modulo to skip many identical steps: if `tx > ty`, then `tx %= ty` (but stop at `sx`).",
+    "while tx >= sx and ty >= sy:\n    if tx == sx and ty == sy: return true\n    if tx > ty:\n        if ty == sy: return (tx - sx) % ty == 0\n        tx %= ty\n    else:\n        if tx == sx: return (ty - sy) % tx == 0\n        ty %= tx\nreturn false",
+    "Like Euclid's algorithm, this takes O(log max) steps. The special cases when one coordinate already matches are where solutions usually go wrong."
+  ],
+  "expected_complexity": {
+    "time": "O(log max)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "sx": 1,
+        "sy": 1,
+        "tx": 3,
+        "ty": 5
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "sx": 1,
+        "sy": 1,
+        "tx": 2,
+        "ty": 2
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "sx": 1,
+        "sy": 1,
+        "tx": 1,
+        "ty": 1
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "sx": 3,
+        "sy": 7,
+        "tx": 3,
+        "ty": 4
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "sx": 2,
+        "sy": 3,
+        "tx": 8,
+        "ty": 3
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "sx": 4,
+        "sy": 3,
+        "tx": 39,
+        "ty": 29
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "sx": 3,
+        "sy": 5,
+        "tx": 18,
+        "ty": 39
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "sx": 2,
+        "sy": 4,
+        "tx": 28,
+        "ty": 18
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "sx": 3,
+        "sy": 2,
+        "tx": 20,
+        "ty": 28
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

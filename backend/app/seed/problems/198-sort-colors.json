@@ -1,0 +1,259 @@
+{
+  "order": 198,
+  "slug": "sort-colors",
+  "title": "Sort Three Colors",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "two-pointers",
+    "sorting"
+  ],
+  "summary": "Sort an array of 0s, 1s and 2s in one pass.",
+  "statement": "`nums` contains only `0`, `1` and `2`. Return it sorted. Try for one pass and O(1) extra space\n(no library sort).",
+  "constraints": [
+    "1 <= nums.length <= 300",
+    "nums[i] is 0, 1 or 2"
+  ],
+  "examples": [
+    {
+      "input": "nums = [2, 0, 2, 1, 1, 0]",
+      "output": "[0, 0, 1, 1, 2, 2]"
+    },
+    {
+      "input": "nums = [2, 0, 1]",
+      "output": "[0, 1, 2]"
+    },
+    {
+      "input": "nums = [1]",
+      "output": "[1]"
+    }
+  ],
+  "signature": {
+    "method": "sortColors",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] sortColors(int[] nums) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Counting each value and rewriting works in two passes. Can you do one?",
+    "Dutch national flag: keep three regions with pointers `low`, `mid`, `high`.",
+    "low, mid, high = 0, 0, n-1\nwhile mid <= high:\n    if nums[mid] == 0: swap(low, mid); low += 1; mid += 1\n    elif nums[mid] == 1: mid += 1\n    else: swap(mid, high); high -= 1\nreturn nums",
+    "Everything before `low` is 0, between `low` and `mid` is 1, after `high` is 2. Each step shrinks the unknown middle: one pass, O(1) space. Don't advance `mid` after swapping with `high`: the swapped-in value is unchecked."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          2,
+          0,
+          2,
+          1,
+          1,
+          0
+        ]
+      },
+      "expected_output": [
+        0,
+        0,
+        1,
+        1,
+        2,
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          0,
+          1
+        ]
+      },
+      "expected_output": [
+        0,
+        1,
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1
+        ]
+      },
+      "expected_output": [
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          2,
+          0,
+          0
+        ]
+      },
+      "expected_output": [
+        0,
+        0,
+        2,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          0,
+          0,
+          1,
+          1,
+          1,
+          2,
+          0,
+          2,
+          2,
+          2,
+          1
+        ]
+      },
+      "expected_output": [
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          2,
+          2,
+          2,
+          0,
+          2,
+          0,
+          2,
+          1,
+          0,
+          0,
+          1,
+          1,
+          0,
+          0,
+          1,
+          2,
+          0,
+          0,
+          2
+        ]
+      },
+      "expected_output": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          0,
+          2,
+          0,
+          0,
+          2,
+          2,
+          0
+        ]
+      },
+      "expected_output": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        2,
+        2,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          0,
+          2,
+          2,
+          1,
+          2,
+          0,
+          0,
+          2,
+          2,
+          0
+        ]
+      },
+      "expected_output": [
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

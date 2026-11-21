@@ -1,0 +1,199 @@
+{
+  "id": "ws-incident-update",
+  "version": 1,
+  "format": "incident_update",
+  "format_label": "Incident status update",
+  "careers": [
+    "software-engineer",
+    "it-support-specialist"
+  ],
+  "title": "Checkout errors: the first status update",
+  "scenario": "You're the on-call engineer at Larkfield Books, a fictional online bookshop. Some checkouts are failing. Your manager asks you to post the first status update in the company's internal incident channel.",
+  "audience": "Colleagues outside engineering (support, marketing, the shop's managers). They need to know what's affected and what to tell customers, not the technical detail.",
+  "purpose": "Say what's happening, who is affected, what's being done and when the next update will come, using only what is known.",
+  "facts": [
+    {
+      "id": "start",
+      "text": "Card payments at checkout began failing at 09:12 UTC."
+    },
+    {
+      "id": "share",
+      "text": "About 30% of checkout attempts fail; the rest go through normally."
+    },
+    {
+      "id": "scope",
+      "text": "Browsing, search and gift-card payments are not affected."
+    },
+    {
+      "id": "cause",
+      "text": "The cause is not known yet. The payment provider's status page shows no incident."
+    },
+    {
+      "id": "action",
+      "text": "Engineers are comparing failing and successful payment requests and have contacted the payment provider."
+    },
+    {
+      "id": "workaround",
+      "text": "Customers can retry the payment or pay with a gift card."
+    },
+    {
+      "id": "next",
+      "text": "The next update will be posted at 10:30 UTC, or sooner if something changes."
+    }
+  ],
+  "required": [
+    {
+      "id": "what",
+      "label": "What is happening",
+      "match": [
+        [
+          "checkout",
+          "payment",
+          "pay"
+        ],
+        [
+          "fail",
+          "error",
+          "not going through",
+          "declin"
+        ]
+      ],
+      "guidance": "Open with the problem in plain words: some card payments at checkout are failing."
+    },
+    {
+      "id": "who",
+      "label": "Who is affected, and how much",
+      "match": [
+        [
+          "30%",
+          "30 %",
+          "about a third",
+          "roughly a third",
+          "3 in 10",
+          "three in ten"
+        ]
+      ],
+      "guidance": "Give the size from the brief (about 30% of checkout attempts), so people can judge how serious it is."
+    },
+    {
+      "id": "not_affected",
+      "label": "What still works",
+      "match": [
+        [
+          "browsing",
+          "search",
+          "gift card",
+          "gift-card"
+        ]
+      ],
+      "guidance": "Say what isn't affected (browsing, search, gift-card payments): it stops people worrying about everything else."
+    },
+    {
+      "id": "doing",
+      "label": "What is being done",
+      "match": [
+        [
+          "investigat",
+          "comparing",
+          "looking into",
+          "working on",
+          "contacted",
+          "in touch",
+          "payment provider"
+        ]
+      ],
+      "guidance": "Say what engineers are doing now, without guessing at a cause."
+    },
+    {
+      "id": "workaround",
+      "label": "What customers can do meanwhile",
+      "match": [
+        [
+          "retry",
+          "try again",
+          "gift card",
+          "gift-card"
+        ]
+      ],
+      "guidance": "Give support something to tell customers: retry, or pay with a gift card."
+    },
+    {
+      "id": "next",
+      "label": "When the next update comes",
+      "match": [
+        [
+          "10:30"
+        ]
+      ],
+      "guidance": "End with the time of the next update (10:30 UTC), so nobody has to keep asking."
+    }
+  ],
+  "claims_to_avoid": [
+    {
+      "phrases": [
+        "fixed",
+        "resolved",
+        "restored"
+      ],
+      "why": "Nothing in the brief says it's fixed. An update that says so would mislead the people relying on it."
+    },
+    {
+      "phrases": [
+        "root cause is",
+        "caused by",
+        "because of a bug",
+        "the provider is down",
+        "provider outage"
+      ],
+      "why": "The brief says the cause isn't known yet; an update shouldn't name one."
+    }
+  ],
+  "avoid": [
+    {
+      "term": "5xx",
+      "why": "Error codes mean nothing to most readers of this channel; say payments are failing."
+    },
+    {
+      "term": "RCA",
+      "why": "Spell out or leave out internal abbreviations for a non-engineering audience."
+    },
+    {
+      "term": "p99",
+      "why": "Latency percentiles are for the engineering channel, not this update."
+    }
+  ],
+  "sections": [
+    {
+      "id": "happening",
+      "label": "What's happening",
+      "hint": "One or two sentences."
+    },
+    {
+      "id": "affected",
+      "label": "Who is affected",
+      "hint": "How many, and what still works."
+    },
+    {
+      "id": "doing",
+      "label": "What we're doing",
+      "hint": "Now, and what customers can do meanwhile."
+    },
+    {
+      "id": "next",
+      "label": "Next update",
+      "hint": "When."
+    }
+  ],
+  "limits": {
+    "min_words": 50,
+    "max_words": 180
+  },
+  "reference": {
+    "happening": "Since 09:12 UTC, some card payments at checkout have been failing.",
+    "affected": "About 30% of checkout attempts fail; the rest go through. Browsing, search and gift-card payments work normally.",
+    "doing": "Engineers are comparing failing and successful payments and are in touch with our payment provider. We don't know the cause yet. Customers who hit an error can retry, or pay with a gift card.",
+    "next": "Next update at 10:30 UTC, or sooner if anything changes."
+  },
+  "review_status": "Fictional practice brief, written and checked for internal consistency; not reviewed by an outside practitioner. Not real company guidance.",
+  "scope_note": "Everything here is made up for practice: the company, the people and the numbers. Don't paste real employer, customer or patient material."
+}

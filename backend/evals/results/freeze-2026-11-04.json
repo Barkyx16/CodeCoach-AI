@@ -1,0 +1,36 @@
+{
+  "frozen_at": "2026-11-04",
+  "candidate_commit": "ffb116ba6ab05c1f694296554b7d0ad5a712746a",
+  "tree": "b26520c3917d235f1eb095a4d8735a6628830980",
+  "rubric_version": "v8",
+  "coach_prompt_version": "coach-2026-11-04c",
+  "coach_request_fingerprint": "937663a2a9979f2cee9cbaf31c13e5781d8882ed94ac61d5a9c95c264d632db8",
+  "protocol_version": 6,
+  "datasets": {
+    "coding-review-tuning": "7abdd3f8a80643956bb0a8ef301d0c4dbb7f31a67fe79667cd3cc9fed83a5a11",
+    "coding-review-holdout": "959b45746084b39f084b69815968a8a48f006fdaf47275f35ce6c97b81e1b700",
+    "coding-review-medium-holdout": "f76f1cfefc1ebe3e9ec358ff0ff066da0a4d9f9c956734873efd72ae60a72216",
+    "coding-hint-terms": "a6de5fb6fe2ccaca9fe57bc632d47e64c6bd071cf322dd97e655fab1a3d0553c",
+    "career-rn-dev": "c1619da3a4acbe50a90c26417671d0d6255b8d45ef821e8010140738e03220f7",
+    "career-rn-holdout": "d43b284d6a71105e428887d747d3aed1413ecb4ad59cedf7d1953e0e42a57bc4",
+    "career-rn-families-dev": "6bef6d4fce715f723880c22ad17dab3564dd885ee0583477a6674dde92e60b88",
+    "career-rn-contradiction-pairs": "7dc0ed19898e61673c84b4c2387a46a56014a94de1d4968f63d9391b13b3d0b6",
+    "career-rn-injection-challenges": "a681304e546318af286afe34c1a064935cc4e4f21fdd370c47a9a8bf596b4445",
+    "career-rn-sealed": "afedc25a6247d6a64c9ba57032da82c0e87f519c47cb465611f26dd7ca810f03",
+    "career-rn-action-wording": "8216e3efdcca896ec28d6b8256412d04b3779a0111501bbb0c4fed01d9f8cb9f",
+    "career-csr-families-dev": "30591870b561b7be74b6fc599f630195a429007f9734daec5abd171ee701d520",
+    "career-csr-sealed": "22af2c53d8312fdf0fb03d297f4c0c5cfb151e5872f98e019150163e41f74f47"
+  },
+  "dependencies": {
+    "backend/requirements.txt": "73afc79ca39eae13d0119178587185b812d207a67ba608ebe00d20b44e020076",
+    "backend/requirements-dev.txt": "3e918d671c0370ef40ed2ddc7c25d687d342ebe10b75d6ab42da93abb1c5e361",
+    "frontend/package-lock.json": "2292e01c58be2478d0f126a364591b5da6136c4496a65a5e5fda89b59bc0df86"
+  },
+  "python": "3.13.18",
+  "baseline": {
+    "rubric_version": "v2",
+    "commit": "20bd00f",
+    "how": "a worktree of 20bd00f (its own grading.py and questions.py) running the candidate commit's evaluation harness and datasets"
+  },
+  "rule": "No change to scoring, rubric, prompts or datasets after this point before the sealed sets are graded; if the candidate changes afterwards, the sealed comparison doesn't apply to it and must be rerun on a new sealed set."
+}

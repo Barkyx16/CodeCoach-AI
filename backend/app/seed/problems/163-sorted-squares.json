@@ -1,0 +1,239 @@
+{
+  "order": 163,
+  "slug": "sorted-squares",
+  "title": "Squares of a Sorted Array",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "two-pointers"
+  ],
+  "summary": "Square every value and keep the result sorted.",
+  "statement": "`nums` is sorted in non-decreasing order and may contain negatives. Return the squares of its\nvalues, also sorted in non-decreasing order.",
+  "constraints": [
+    "1 <= nums.length <= 10^4",
+    "-10^4 <= nums[i] <= 10^4",
+    "sorted"
+  ],
+  "examples": [
+    {
+      "input": "nums = [-4, -1, 0, 3, 10]",
+      "output": "[0, 1, 9, 16, 100]"
+    },
+    {
+      "input": "nums = [-7, -3, 2, 3, 11]",
+      "output": "[4, 9, 9, 49, 121]"
+    },
+    {
+      "input": "nums = [1]",
+      "output": "[1]"
+    }
+  ],
+  "signature": {
+    "method": "sortedSquares",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] sortedSquares(int[] nums) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Where are the largest squares in a sorted array with negatives?",
+    "At the two ends. Fill the result from the back, taking the bigger square from either end.",
+    "i, j = 0, n-1\nfor pos from n-1 down to 0:\n    if abs(nums[i]) > abs(nums[j]): out[pos] = nums[i]**2; i += 1\n    else: out[pos] = nums[j]**2; j -= 1\nreturn out",
+    "Two pointers give O(n) instead of the O(n log n) of squaring and sorting."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          -4,
+          -1,
+          0,
+          3,
+          10
+        ]
+      },
+      "expected_output": [
+        0,
+        1,
+        9,
+        16,
+        100
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          -7,
+          -3,
+          2,
+          3,
+          11
+        ]
+      },
+      "expected_output": [
+        4,
+        9,
+        9,
+        49,
+        121
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1
+        ]
+      },
+      "expected_output": [
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          -5,
+          -3
+        ]
+      },
+      "expected_output": [
+        9,
+        25
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -21,
+          -20,
+          -12,
+          -9,
+          -6,
+          -2,
+          6,
+          13,
+          19,
+          20,
+          21,
+          23,
+          24,
+          28
+        ]
+      },
+      "expected_output": [
+        4,
+        36,
+        36,
+        81,
+        144,
+        169,
+        361,
+        400,
+        400,
+        441,
+        441,
+        529,
+        576,
+        784
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -24,
+          18
+        ]
+      },
+      "expected_output": [
+        324,
+        576
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -6,
+          -3,
+          -2,
+          -1,
+          1,
+          3,
+          7,
+          8,
+          9,
+          12,
+          13,
+          20
+        ]
+      },
+      "expected_output": [
+        1,
+        1,
+        4,
+        9,
+        9,
+        36,
+        49,
+        64,
+        81,
+        144,
+        169,
+        400
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -29,
+          -20,
+          -17,
+          -12,
+          -5,
+          -2,
+          2,
+          2,
+          3,
+          10,
+          11,
+          17,
+          26,
+          28,
+          28
+        ]
+      },
+      "expected_output": [
+        4,
+        4,
+        4,
+        9,
+        25,
+        100,
+        121,
+        144,
+        289,
+        289,
+        400,
+        676,
+        784,
+        784,
+        841
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

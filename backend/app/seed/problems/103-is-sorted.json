@@ -1,0 +1,172 @@
+{
+  "order": 103,
+  "slug": "is-sorted",
+  "title": "Is the Array Sorted?",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "iteration"
+  ],
+  "summary": "Check whether an array is in non-decreasing order.",
+  "statement": "Return `true` if `nums` is sorted in non-decreasing order (each value is greater than or\nequal to the one before it), otherwise `false`. Empty and one-element arrays are sorted.",
+  "constraints": [
+    "0 <= nums.length <= 10^4",
+    "-10^9 <= nums[i] <= 10^9"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 2, 2, 5]",
+      "output": "true"
+    },
+    {
+      "input": "nums = [3, 1]",
+      "output": "false"
+    },
+    {
+      "input": "nums = []",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "isSorted",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isSorted(int[] nums) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "You only ever need to compare neighbors.",
+    "If any value is smaller than the one before it, the array isn't sorted.",
+    "for i from 1 to n-1:\n    if nums[i] < nums[i-1]: return false\nreturn true",
+    "Comparing each adjacent pair once is O(n) time and O(1) space. Equal neighbors are allowed (non-decreasing), so the check is `<`, not `<=`."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          2,
+          5
+        ]
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          1
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": []
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          7
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          2
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -5,
+          -5,
+          0
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -8,
+          4,
+          0,
+          -8,
+          1,
+          9,
+          6,
+          0,
+          0,
+          6,
+          -8,
+          4,
+          1
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -7,
+          -4,
+          1,
+          1,
+          2,
+          3,
+          8
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -5,
+          -7
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          6,
+          7,
+          -4
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

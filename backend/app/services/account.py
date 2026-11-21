@@ -7,14 +7,83 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.models import AIInteraction, PracticeSession, Problem, ProgressEvent, Submission, User
+from app.models import (
+    AIInteraction,
+    Bookmark,
+    ContentReport,
+    ExperienceEntry,
+    InterviewRetry,
+    LearnEvent,
+    Note,
+    PracticeAnswer,
+    PracticeCollection,
+    PracticeGoal,
+    PracticeMode,
+    PracticePlan,
+    PracticeSession,
+    Problem,
+    ProgressEvent,
+    RequirementVersion,
+    ReviewItem,
+    RoleTarget,
+    ScenarioAttempt,
+    Share,
+    ShareFeedback,
+    StoryRevision,
+    Submission,
+    User,
+)
+from app.services import lab_reveals
+from app.services.actions import Actions
+from app.services.answer_review import AnswerReview
+from app.services.applications import Applications
+from app.services.attempt_comparisons import COMPARED_SHORT, AttemptComparisons, comparison_out, not_compared
+from app.services.code_reviews import CodeReviews
+from app.services.comparisons import Comparisons
+from app.services.conditions import Conditions
+from app.services.dismissals import Dismissals
+from app.services.drills import Drills
+from app.services.explore import IN_COLLECTION, SAVED
+from app.services.kit_templates import KitTemplates
+from app.services.kits import Kits
+from app.services.listed_names import ListedNames
+from app.services.note_freshness import NoteFreshnessService, SourceFreshness
+from app.services.offer_comparisons import OfferComparisons
+from app.services.offers import Offers
+from app.services.onboarding import Onboarding
+from app.services.reflections import Reflections
+from app.services.restore import Restore
+from app.services.review import disputed_point_keys
+from app.services.review_queue import QueueRead, ReviewQueueService, removed_points, saved_points
+from app.services.roles import requirement_submissions
+from app.services.schedule import Schedule
+from app.services.shares import status_of
+from app.services.stories import snapshot
+from app.services.story_freshness import StoryFreshness
+from app.services.test_design import TestDesign
+from app.services.whiteboard import Whiteboard
+from app.services.work_samples import WorkSamples
 
 EXPORT_VERSION = 1
 
 
-def export_user_data(db: Session, user: User) -> dict:
+def _feedback_check(session: PracticeSession) -> dict | None:
+    check = (session.plan or {}).get("feedback_check")
+    if not isinstance(check, dict):
+        return None
+    return {
+        "at": check.get("at"),
+        "fingerprint": check.get("fingerprint"),
+        "labels": [p.get("label") for p in check.get("parts") or []],
+    }
+
+
+def export_user_data(db: Session, user: User, *, with_ids: bool = False) -> dict:
     """Everything stored about the user, in one JSON document. Credentials (password hash,
-    token version) are deliberately excluded."""
+    token version) are deliberately excluded. `with_ids` adds record ids to the sections that other
+    records point to (applications, events, targets, requirements, notes, schedule entries, kits,
+    reflection steps); version 2 (`export_v2`) builds its typed links on them."""
+    ids = (lambda i: {"id": i}) if with_ids else (lambda i: {})
     slugs = dict(db.execute(select(Problem.id, Problem.slug)).all())
     subs = db.scalars(
         select(Submission)
@@ -31,12 +100,143 @@ def export_user_data(db: Session, user: User) -> dict:
         .where(PracticeSession.user_id == user.id)
         .order_by(PracticeSession.started_at)
     ).all()
+    goals = db.scalars(select(PracticeGoal).where(PracticeGoal.user_id == user.id)).all()
+    plans = db.scalars(
+        select(PracticePlan)
+        .options(selectinload(PracticePlan.items))
+        .where(PracticePlan.user_id == user.id)
+        .order_by(PracticePlan.track, PracticePlan.version)
+    ).all()
+    targets = db.scalars(
+        select(RoleTarget)
+        .options(selectinload(RoleTarget.requirements))
+        .where(RoleTarget.user_id == user.id)
+        .order_by(RoleTarget.created_at, RoleTarget.id)
+    ).all()
+    experience = db.scalars(
+        select(ExperienceEntry)
+        .where(ExperienceEntry.user_id == user.id)
+        .order_by(ExperienceEntry.created_at, ExperienceEntry.id)
+    ).all()
+    # Each requirement's listed submissions and their comparisons, as its target page shows them
+    # (Volume 16, prompt 9).
+    requirement_code = requirement_submissions(db, user, list(targets))
+    requirement_history: dict[str, list[RequirementVersion]] = {}
+    for v in db.scalars(
+        select(RequirementVersion)
+        .where(RequirementVersion.user_id == user.id)
+        .order_by(RequirementVersion.created_at, RequirementVersion.version)
+    ):
+        requirement_history.setdefault(v.requirement_id, []).append(v)
+    retries = db.scalars(select(InterviewRetry).where(InterviewRetry.user_id == user.id)).all()
+    queue = db.scalars(select(ReviewItem).where(ReviewItem.user_id == user.id)).all()
+    # Active items as the queue shows them: the ladder recounted when a dispute applies.
+    review_reads = {r.row.id: r for r in ReviewQueueService(db).ladders(user)}
+    scenario_attempts = db.scalars(
+        select(ScenarioAttempt).where(ScenarioAttempt.user_id == user.id).order_by(ScenarioAttempt.created_at)
+    ).all()
+    scenario_conditions = Conditions(db, user).for_scenarios(scenario_attempts)
+    scenario_pairs = AttemptComparisons(db, user).checklist_compared("scenario", scenario_attempts)
+
+    def scenario_compared(attempt_id: str) -> dict | None:
+        c = scenario_pairs.get(attempt_id)
+        if c is None:
+            return None
+        return {
+            "against": c.previous.id,
+            "outcome": c.comparison.outcome,
+            "text": COMPARED_SHORT[c.comparison.outcome],
+            "explanation": c.comparison.explanation,
+            "contract_version": c.comparison.contract_version,
+        }
+
+    notes = db.scalars(
+        select(Note).where(Note.user_id == user.id, Note.deleted_at.is_(None)).order_by(Note.created_at)
+    ).all()
+    note_reviews = NoteFreshnessService(db, user.id).export([n.id for n in notes])
+    learn_events = db.scalars(
+        select(LearnEvent).where(LearnEvent.user_id == user.id).order_by(LearnEvent.created_at)
+    ).all()
+    bookmarks = db.scalars(
+        select(Bookmark).where(Bookmark.user_id == user.id).order_by(Bookmark.created_at)
+    ).all()
+    collections = db.scalars(
+        select(PracticeCollection)
+        .options(selectinload(PracticeCollection.items))
+        .where(PracticeCollection.user_id == user.id)
+        .order_by(PracticeCollection.created_at)
+    ).all()
+    saved_reviews = SourceFreshness(db, user.id, SAVED).export([b.id for b in bookmarks])
+    item_reviews = SourceFreshness(db, user.id, IN_COLLECTION).export(
+        [i.id for c in collections for i in c.items]
+    )
     events = db.scalars(
         select(ProgressEvent).where(ProgressEvent.user_id == user.id).order_by(ProgressEvent.created_at)
+    ).all()
+    answers = db.scalars(
+        select(PracticeAnswer).where(PracticeAnswer.user_id == user.id).order_by(PracticeAnswer.created_at)
+    ).all()
+    reports = db.scalars(
+        select(ContentReport).where(ContentReport.reporter_id == user.id).order_by(ContentReport.created_at)
+    ).all()
+    shares = db.scalars(
+        select(Share)
+        .options(selectinload(Share.feedback))
+        .where(Share.owner_id == user.id)
+        .order_by(Share.created_at)
+    ).all()
+    given = db.execute(
+        select(ShareFeedback, Share.snapshot)
+        .join(Share, Share.id == ShareFeedback.share_id)
+        .where(ShareFeedback.reviewer_id == user.id)
+        .order_by(ShareFeedback.created_at)
     ).all()
 
     def iso(dt: datetime | None) -> str | None:
         return dt.isoformat() if dt else None
+
+    def review_row(q: ReviewItem, read: QueueRead | None) -> dict:  # None: a removed item
+        ladder = read.ladder if read is not None else None
+        return {
+            "career": q.track,
+            "question": q.question_id,
+            # As the queue shows it: recounted without disputed scores when a dispute applies
+            # (docs/DISPUTES.md, "The review queue"); a removed item as it was left.
+            "due_at": iso(ladder.due_at if ladder else q.due_at),
+            "step": ladder.step if ladder else q.step,
+            "last_score": ladder.last_score if ladder else q.last_score,
+            "reviews": ladder.reviews if ladder else q.reviews,
+            "removed": q.removed,
+            "removed_at": iso(q.removed_at) if q.removed_at else None,  # Volume 19, prompt 2
+            "created_at": iso(q.created_at),
+            "saved_for_point": q.criterion,
+            # Every point it was saved for (Volume 16, prompt 5); [] for the whole answer.
+            "saved_for_points": saved_points(q),
+            # Each point taken off it, with when (Volume 17, prompt 8).
+            "points_removed": [{"point": p, "removed_at": iso(at)} for p, at in removed_points(q)],
+            "recounted": bool(ladder and ladder.left_out),
+            # Not scheduled: every reason it's in the queue is feedback you disputed.
+            "left_out_disputed": bool(read is not None and read.withheld),
+        }
+
+    # The in-app help shown before each attempt, worked out the way the app shows it
+    # (docs/ATTEMPT_CONDITIONS.md). A description, never a change to a verdict or score.
+    finder = Conditions(db, user)
+    sub_conditions = {k: v.model_dump(mode="json") for k, v in finder.for_submissions(subs).items()}
+    answer_conditions = {k: v.model_dump(mode="json") for k, v in finder.for_answers(answers).items()}
+    interview_conditions = {k: v.model_dump(mode="json") for k, v in finder.for_interviews(sessions).items()}
+    # Each answer compared with the one before it, as the contract decided it at export time: the
+    # file keeps that classification and the rules' version (docs/COMPARING_ATTEMPTS.md).
+    answer_comparisons = {
+        k: comparison_out(*v).model_dump(mode="json")
+        for k, v in AttemptComparisons(db, user).with_previous(answers).items()
+    }
+    # Each finished submission beside the previous judged one of the same problem and mode, by the
+    # same contract (Volume 14, prompt 1).
+    sub_comparisons = {
+        k: comparison_out(prev.id, cl).model_dump(mode="json")
+        for k, (prev, cl) in AttemptComparisons(db, user).submissions_with_previous(subs).items()
+    }
 
     return {
         "export_version": EXPORT_VERSION,
@@ -46,6 +246,7 @@ def export_user_data(db: Session, user: User) -> dict:
             "email": user.email,
             "display_name": user.display_name,
             "is_guest": user.is_guest,
+            "career_track": user.career_track,
             "created_at": iso(user.created_at),
             "last_login_at": iso(user.last_login_at),
         },
@@ -54,6 +255,7 @@ def export_user_data(db: Session, user: User) -> dict:
                 "id": s.id,
                 "problem": slugs.get(s.problem_id),
                 "language": s.language,
+                "mode": s.mode.value,
                 "status": s.status.value,
                 "source_code": s.source_code,
                 "created_at": iso(s.created_at),
@@ -67,6 +269,11 @@ def export_user_data(db: Session, user: User) -> dict:
                     "public_results": s.result.public_results,
                     "compiler_output": s.result.stderr_excerpt,
                 },
+                "conditions": sub_conditions.get(s.id),
+                "comparison": sub_comparisons.get(s.id),
+                # Made from a reviewed follow-up offer: the passed submission of a different problem it
+                # followed (docs/FOLLOW_UPS.md); its verdict is its own.
+                "follows_up_submission_id": s.follows_up_submission_id,
             }
             for s in subs
         ],
@@ -76,6 +283,7 @@ def export_user_data(db: Session, user: User) -> dict:
                 "problem": slugs.get(a.problem_id),
                 "action": a.action.value,
                 "hint_level": a.hint_level,
+                "problem_version": a.content_version,
                 "provider": a.provider,
                 "model": a.model,
                 "input_tokens": a.input_tokens,
@@ -88,27 +296,395 @@ def export_user_data(db: Session, user: User) -> dict:
         "interviews": [
             {
                 "id": s.id,
+                "kind": "questions" if s.mode == PracticeMode.QUESTIONS else "coding",
                 "problem": slugs.get(s.problem_id) if s.problem_id else None,
+                "track": s.track,
+                "questions": (s.plan or {}).get("question_ids"),
                 "status": s.status.value,
                 "started_at": iso(s.started_at),
                 "ended_at": iso(s.ended_at),
                 "final_code": s.final_code,
                 "evaluation": s.evaluation,
+                # What the feedback read (labels and sizes), checked or not (docs/COACH_CONTEXT.md).
+                "feedback_read": (s.plan or {}).get("feedback_read"),
+                # Your last "I've checked this": its time, fingerprint and the parts it covered (never
+                # the text, nor the parts' digests).
+                "feedback_check": _feedback_check(s),
+                # A coding interview's in-app help and format, as its review shows them
+                # (docs/ATTEMPT_CONDITIONS.md); a career interview's answers carry their own.
+                "conditions": interview_conditions.get(s.id),
+                # The summary's points left out because of feedback you disputed (docs/DISPUTES.md).
+                "points_left_out_disputed": disputed_point_keys(db, user.id, s),
                 "transcript": [
                     {
                         "role": t.role.value,
-                        "phase": t.phase.value,
+                        "phase": t.phase.value if t.phase else None,
                         "content": t.content,
                         "at": iso(t.created_at),
+                        "question_index": t.question_index,
+                        "answer_id": t.answer_id,
+                        "meta": t.meta,
                     }
                     for t in s.turns
                 ],
             }
             for s in sessions
-            if s.mode.value == "interview"
+            if s.mode in (PracticeMode.INTERVIEW, PracticeMode.QUESTIONS)
         ],
         "activity": [
             {"type": e.event_type.value, "problem": slugs.get(e.problem_id), "at": iso(e.created_at)}
             for e in events
+        ],
+        "interview_answers": [
+            {
+                "id": a.id,
+                "career": a.track,
+                "question": a.question_id,
+                "answer": a.answer,
+                "score": a.score,
+                "feedback": a.feedback,
+                "coach": a.provider,
+                "question_version": a.content_version or 1,
+                "story": a.story_id,
+                # The earlier answer (by "id") this one explicitly revises; None when it doesn't.
+                "revises": a.revises_answer_id,
+                # The earlier answer (by "id") to a related question this one followed up, if any.
+                "follows_up": a.follows_up_answer_id,
+                "created_at": iso(a.created_at),
+                "conditions": answer_conditions.get(a.id),
+                "comparison": answer_comparisons.get(a.id),
+            }
+            for a in answers
+        ],
+        "practice_goals": [
+            {
+                "career": g.track,
+                "specialty": g.specialty,
+                "experience": g.experience,
+                "target_date": g.target_date.isoformat() if g.target_date else None,
+                "weekly_minutes": g.weekly_minutes,
+                "focus_areas": g.focus_areas,
+                "formats": g.formats,
+                "confidence": g.confidence,
+                "setup_skipped": g.setup_skipped,
+                "updated_at": iso(g.updated_at),
+            }
+            for g in goals
+        ],
+        "practice_plans": [
+            {
+                "career": p.track,
+                "version": p.version,
+                "created_at": iso(p.created_at),
+                "changes": p.changes,
+                "activities": [
+                    {
+                        "kind": i.kind,
+                        "skill": i.skill,
+                        "title": i.title,
+                        "status": i.status,
+                        "evidence": i.evidence,
+                        "target": i.target,
+                        # The answers and feedback points it was derived from (docs/DISPUTES.md).
+                        "derived_from": i.derived_from,
+                        "planned_at": iso(i.created_at),
+                        "resolved_at": iso(i.resolved_at),
+                    }
+                    for i in p.items
+                ],
+                "withheld": [w["text"] for w in p.withheld or []],
+                # The judged submissions an update that made this version read, by id (Volume 16,
+                # prompt 7); null for a version made otherwise or before this was recorded.
+                "read_submissions": p.read_submissions,
+                "read_lessons": p.read_lessons,
+            }
+            for p in plans
+        ],
+        "target_roles": [
+            {
+                **ids(t.id),
+                "career": t.track,
+                "title": t.title,
+                "employer": t.employer,
+                "description": t.description,
+                "interview_date": t.interview_date.isoformat() if t.interview_date else None,
+                "notes": t.notes,
+                "archived": t.archived,
+                "requirements_revision": t.requirements_revision,
+                "requirements": [
+                    {
+                        **ids(r.id),
+                        "category": r.category,
+                        "text": r.text,
+                        "origin": r.origin,
+                        "quote": r.quote,
+                        "skills": r.skills,
+                        "removed": r.removed,
+                        "version": r.version,
+                        # Every recorded state of it (docs/REQUIREMENT_VERSIONS.md); removed ones too.
+                        "history": [
+                            {
+                                "version": v.version,
+                                "state": v.state,
+                                "category": v.category,
+                                "text": v.text,
+                                "same_as": v.same_as,
+                                "at": iso(v.created_at),
+                            }
+                            for v in requirement_history.get(r.id, [])
+                        ],
+                        # The submissions it lists, by id, each with the contract's outcome against the
+                        # one before it (null for the first) and that one's id.
+                        "submissions": [
+                            {
+                                "id": x.submission_id,
+                                "status": x.status,
+                                "comparison": x.compared.comparison.outcome if x.compared else None,
+                                "compared_with": x.compared.previous.id if x.compared else None,
+                                "outcome": x.outcome_text,
+                            }
+                            for x in requirement_code.get(r.id, [])
+                        ],
+                    }
+                    for r in t.requirements
+                ],
+                "experience": [
+                    {"title": e.title, "situation": e.situation, "action": e.action, "result": e.result}
+                    for e in experience
+                    if e.target_id == t.id
+                ],
+                "created_at": iso(t.created_at),
+            }
+            for t in targets
+        ],
+        "interview_retries": [
+            {
+                "interview": r.session_id,
+                "question_index": r.question_index,
+                "original_answer": r.original_answer_id,
+                "retry_answer": r.retry_answer_id,
+                "created_at": iso(r.created_at),
+            }
+            for r in retries
+        ],
+        "review_queue": [review_row(q, review_reads.get(q.id)) for q in queue],
+        "bookmarks": [
+            {
+                "type": b.item_type,
+                "career": b.track or None,
+                "item": b.ref_id,
+                "created_at": iso(b.created_at),
+                # The source's version when saved, and "Mark reviewed" since (docs/STORY_FRESHNESS.md).
+                "version": b.content_version,
+                "source_reviews": saved_reviews.get(b.id, []),
+            }
+            for b in bookmarks
+        ],
+        "collections": [
+            {
+                **ids(c.id),
+                "name": c.name,
+                "queue_position": c.queue_position,
+                "queue_started_at": iso(c.queue_started_at),
+                "created_at": iso(c.created_at),
+                "items": [
+                    {
+                        **ids(i.id),
+                        "type": i.item_type,
+                        "career": i.track or None,
+                        "item": i.ref_id,
+                        "position": i.position,
+                        "added_at": iso(i.added_at),
+                        "queue_done_at": iso(i.queue_done_at),
+                        "version": i.content_version,
+                        "source_reviews": item_reviews.get(i.id, []),
+                    }
+                    for i in c.items
+                ],
+            }
+            for c in collections
+        ],
+        "learn_events": [
+            {
+                "unit": e.unit_id,
+                "version": e.unit_version,
+                "kind": e.kind,
+                "detail": (e.detail or {}).get("label"),
+                "at": iso(e.created_at),
+            }
+            for e in learn_events
+        ],
+        "notes": [
+            {
+                **ids(n.id),
+                "title": n.title,
+                "body": n.body,
+                "reflection": n.reflection,
+                "tags": n.tags,
+                "source": (
+                    {
+                        "type": n.source_type,
+                        "id": n.source_id,
+                        "career": n.source_track,
+                        "version": n.source_version,
+                        "title": n.source_title,
+                    }
+                    if n.source_type
+                    else None
+                ),
+                "excerpt": n.excerpt,
+                "key_points": n.key_points,
+                # "Mark reviewed" for a changed source, oldest first (docs/STORY_FRESHNESS.md, "Notes").
+                "source_reviews": note_reviews.get(n.id, []),
+                "pinned": n.pinned,
+                "archived": n.archived,
+                "created_at": iso(n.created_at),
+                "updated_at": iso(n.updated_at),
+            }
+            for n in notes
+        ],
+        # Your story bank: every story (also the examples written in a job target) and every saved version.
+        "stories": [
+            {
+                "id": e.id,
+                **snapshot(e),
+                # The requirement version each link was made for (absent: not recorded).
+                "requirement_versions": e.requirement_versions or {},
+                "revision": e.revision,
+                "archived": e.archived,
+                "created_at": iso(e.created_at),
+                "updated_at": iso(e.updated_at),
+                "revisions": [
+                    {
+                        "revision": r.revision,
+                        "reason": r.reason,
+                        "fields": r.fields,
+                        "created_at": iso(r.created_at),
+                    }
+                    for r in db.scalars(
+                        select(StoryRevision)
+                        .where(StoryRevision.story_id == e.id)
+                        .order_by(StoryRevision.revision)
+                    )
+                ],
+            }
+            for e in experience
+        ],
+        # Your schedule: entries and time zone / reminder settings.
+        "schedule": Schedule(db, user).export(with_ids=with_ids),
+        # Your reflections, flags and later evaluations of written answers (the originals are above).
+        "answer_reviews": AnswerReview(db, user).export(),
+        # Communication drills: each attempt's words, how they were given and the feedback.
+        "drill_attempts": Drills(db, user).export(),
+        # Whiteboard practice: working drafts, and attempts frozen with their feedback.
+        "whiteboard": Whiteboard(db, user).export(),
+        # Code-review practice: your review drafts, and each review you sent with the code you
+        # reviewed and how it compared with the authored review.
+        "code_reviews": CodeReviews(db, user).export(),
+        # Test design: each set of cases you ran, the exercise version and what it showed.
+        "test_design_runs": TestDesign(db, user).export(),
+        "test_design_reveals": TestDesign(db, user).export_reveals(),
+        # Work samples: drafts, and each artifact sent for feedback with the brief version.
+        "work_samples": WorkSamples(db, user).export(),
+        # Sample-answer comparisons: the excerpts you marked, your reasons and what they matched.
+        "comparisons": Comparisons(db, user).export(),
+        "comparison_openings": Comparisons(db, user).export_openings(),
+        # Offer-conversation rehearsals: the fictional card, your goals, every turn and the debrief.
+        "offer_rehearsals": Offers(db, user).export(),
+        # Offer comparisons: the terms you entered, your factors, ratings, weights and rates.
+        "offer_comparisons": OfferComparisons(db, user).export(),
+        # Private reflections on real interviews, with the next steps you accepted or dismissed.
+        "interview_reflections": Reflections(db, user).export(with_ids=with_ids),
+        # Restores you made from backup files (what each added and, if removed, what it kept).
+        "restores": Restore(db, user).export(),
+        # Interview-day kits: logistics, checklists, questions and chosen stories.
+        "interview_kits": Kits(db, user).export(with_ids=with_ids),
+        # Your kit templates: their names, checklist items and questions (docs/TEMPLATES.md).
+        "kit_templates": KitTemplates(db, user).export(),
+        # Your decisions about stories that changed after a kit or a requirement link was prepared from
+        # them: refreshed to a version you reviewed, or kept as prepared (docs/STORY_FRESHNESS.md).
+        "source_reviews": StoryFreshness(db, user.id).export(),
+        # Improvements you accepted from feedback: where each came from, its occurrences and what you
+        # said was done (docs/ACCEPTED_ACTIONS.md).
+        "accepted_actions": Actions(db, user).export(with_ids=with_ids),
+        # Applications you recorded, with their interview events and stage history.
+        "applications": Applications(db, user).export(with_ids=with_ids),
+        # Your choices about the first-session introduction (no answer text is part of it).
+        "onboarding": Onboarding(db, user).export(),
+        "dismissed_suggestions": Dismissals(db, user).export(),
+        # Each time you opened a debugging exercise's explanation and repair: help for the next attempt.
+        "lab_reveals": lab_reveals.export(db, user),
+        # Names you listed, replaced with [name] in what leaves the app (docs/PRIVACY.md).
+        "listed_names": ListedNames(db, user).export(),
+        # Problems you reported in questions or feedback, and what happened (no internal notes).
+        "content_reports": [
+            {
+                "content": f"{r.content_type}:{r.content_id}",
+                "version": r.content_version,
+                "category": r.category,
+                "context": r.context,
+                "details": r.details,
+                "excerpt": r.excerpt,
+                "status": r.status,
+                "resolution": r.resolution,
+                "created_at": iso(r.created_at),
+            }
+            for r in reports
+        ],
+        # Answers you shared for feedback: the exact snapshot, link status and feedback received.
+        # Link secrets aren't stored, so none can be exported.
+        "shares": [
+            {
+                "status": status_of(sh),
+                "snapshot": sh.snapshot,
+                "created_at": iso(sh.created_at),
+                "expires_at": iso(sh.expires_at),
+                "closed_at": iso(sh.closed_at),
+                "revoked_at": iso(sh.revoked_at),
+                "feedback": [
+                    {
+                        "reviewer": "signed-in user" if f.reviewer_kind == "account" else "guest",
+                        "guest_name": f.guest_name,
+                        "clear": f.clear,
+                        "needs_evidence": f.needs_evidence,
+                        "next_step": f.next_step,
+                        "comments": f.comments,
+                        "useful": f.useful,
+                        "created_at": iso(f.created_at),
+                    }
+                    for f in sh.feedback
+                ],
+            }
+            for sh in shares
+        ],
+        # Feedback you wrote on someone else's shared answer (your words, and which question).
+        "feedback_given": [
+            {
+                "question": (snap or {}).get("question", {}).get("title"),
+                "clear": f.clear,
+                "needs_evidence": f.needs_evidence,
+                "next_step": f.next_step,
+                "comments": f.comments,
+                "created_at": iso(f.created_at),
+            }
+            for f, snap in given
+        ],
+        "scenario_attempts": [
+            {
+                "id": a.id,
+                "scenario": a.scenario_id,
+                "version": a.version,
+                "mode": a.mode,
+                "status": a.status,
+                "steps": a.steps,
+                "created_at": iso(a.created_at),
+                "completed_at": iso(a.completed_at),
+                "conditions": scenario_conditions[a.id].model_dump(mode="json"),
+                # Beside the previous finished, assessed run of the scenario, by the one contract
+                # (Volume 20, prompt 2), or why it isn't: the words its page and History use.
+                "compared": scenario_compared(a.id),
+                "not_compared": not_compared("scenario", a, scenario_pairs),
+            }
+            for a in scenario_attempts
         ],
     }

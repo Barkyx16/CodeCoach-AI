@@ -1,0 +1,46 @@
+{
+  "_doc": "Each coach prompt version and the fingerprint of the prompts and request settings it names (evals/meta.py:request_fingerprint). tests/test_eval_harness.py fails when the prompts change without a new version here.",
+  "current": "coach-2026-11-16",
+  "versions": {
+    "coach-2026-11-03": {
+      "fingerprint": "f7a9c11481d697f2564299101984818644836f905a7094a304890a53c9de1586",
+      "recorded": "2026-11-03",
+      "notes": "First recorded version: the prompts as they were at commit 7129ffa (no prompt text changed)."
+    },
+    "coach-2026-11-04": {
+      "fingerprint": "29d96b081f3c86e7e95eba8a41af2607b2d43e9ffe21924c1c872e1ce0175865",
+      "recorded": "2026-11-04",
+      "notes": "Request settings only; no prompt text changed. The SDK's own retries are off; the coach retries a timeout, lost connection, 408/409, 5xx or 529 up to 3 requests in all, within a 45 s deadline (25 s per request, none started with under 5 s left); a 429 falls back at once. Line references outside the learner's code are dropped from reviews and failure explanations. Every request counts against the evaluation's --max-calls."
+    },
+    "coach-2026-11-04b": {
+      "fingerprint": "3c4187b1589edbfd66864acc8c0593e21862791f9faee1b53095f26149468282",
+      "recorded": "2026-11-04",
+      "notes": "Reply handling only; nothing asked changed (no prompt text, schema or setting). A failure explanation whose evidence quotes (in double quotes or backticks) text that isn't in the verdict, results, compiler output or code it was given has that evidence dropped, and the page says so (Volume 4 prompt 06)."
+    },
+    "coach-2026-11-04c": {
+      "fingerprint": "937663a2a9979f2cee9cbaf31c13e5781d8882ed94ac61d5a9c95c264d632db8",
+      "recorded": "2026-11-04",
+      "notes": "Reply handling only; nothing asked changed (no prompt text, schema or setting). A reply that is valid against its schema but unusable (required text empty, a complexity with no Big-O notation, a failure explanation with no evidence or next step) falls back to the built-in coach, as does a failure explanation whose evidence quotes text its request didn't contain (in 04b its evidence was only dropped). The attempt hook receives each request's max_tokens, so the evaluation reserves its token budget before sending (Volume 4 brief 06 / prompt 08)."
+    },
+    "coach-2026-11-14": {
+      "fingerprint": "d585b042635c32f8447c9f4820cd1552659025fe2900c05efd1a5840bbe8a383",
+      "recorded": "2026-11-14",
+      "notes": "One wording change in what's asked: a code review with no judge verdict now reads 'Judge verdict: none given (this code may not have been judged)' instead of 'not judged yet (code execution is not available)', which was wrong whenever code execution was available, and is how a verdict the learner leaves out reads too (Volume 12 prompt 2, docs/COACH_CONTEXT.md). The static-analysis block's words moved to context_text.analysis_text, shared with the review preview, byte for byte as before. No schema, setting or system prompt changed."
+    },
+    "coach-2026-11-15": {
+      "fingerprint": "e5fb5d9dee6f22cc7a1b95353f6a5963c91687949f6227602a2758aea955b922",
+      "recorded": "2026-11-15",
+      "notes": "No wording changed in what's asked: a hint's requested level and a failure explanation's verdict, pass counts and failing public test moved to context_text (hint_level_text, failure_verdict_text, failure_counts_text, failing_test_text), shared with their previews, byte for byte as before, and are now part of this fingerprint. What can be asked changed: a failure explanation is sent without the compiler output or the failing public test when the learner leaves them out in the preview, and both a hint and an explanation are sent only as previewed (Volume 13 prompt 2, docs/COACH_CONTEXT.md). No schema, setting or system prompt changed."
+    },
+    "coach-2026-11-15b": {
+      "fingerprint": "973bb92548263f66bf27c6a3240d3eecbc595a0cfedcc6dfac14748fce51cdfd",
+      "recorded": "2026-11-15",
+      "notes": "No wording changed in what's asked: the coding interviewer's transcript lines, its 'no messages yet', its phase line and the feedback's 'How it ended' moved to context_text (transcript_line, transcript_text, NO_MESSAGES, interview_phase_text, ending_text), shared with the interviewer's preview, byte for byte as before, and are now part of this fingerprint. What can be asked changed: the interviewer and the interview's feedback are sent the conversation with every turn redacted as the preview shows it, and, when the learner checks before each message, only the code and messages they approved (Volume 14 prompt 3, docs/COACH_CONTEXT.md, 'The coding interviewer'). No schema, setting or system prompt changed."
+    },
+    "coach-2026-11-16": {
+      "fingerprint": "1ea54f896ee55bf68a66e6dd1d783bd2cfbb18a85c55f94263a03668d802e3d0",
+      "recorded": "2026-11-16",
+      "notes": "One addition to what's asked: the coding interview's feedback is told the hints asked for in the interview's own hint panel. 'How it ended' (context_text.ending_text, already part of this fingerprint) gains 'Hints the candidate asked for during it: level 1 (nudge).' when any were asked, the same words its preview shows (Volume 17 prompt 4, docs/COACH_CONTEXT.md, 'Hints inside the interview'). Without hints it reads as before, byte for byte. No schema, setting or system prompt changed."
+    }
+  }
+}

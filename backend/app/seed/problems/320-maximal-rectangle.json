@@ -1,0 +1,135 @@
+{
+  "order": 320,
+  "slug": "maximal-rectangle",
+  "title": "Largest Rectangle of Ones",
+  "difficulty": "hard",
+  "topics": [
+    "stacks",
+    "dynamic-programming",
+    "matrix"
+  ],
+  "summary": "Area of the biggest all-'1' rectangle in a binary matrix.",
+  "statement": "`matrix` rows are strings of `'0'` and `'1'`. Return the area of the largest rectangle containing only `'1'`s.",
+  "constraints": [
+    "1 <= rows, cols <= 200"
+  ],
+  "examples": [
+    {
+      "input": "matrix = [\"10100\", \"10111\", \"11111\", \"10010\"]",
+      "output": "6"
+    },
+    {
+      "input": "matrix = [\"0\"]",
+      "output": "0"
+    },
+    {
+      "input": "matrix = [\"1\"]",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "maximalRectangle",
+    "params": [
+      {
+        "name": "matrix",
+        "type": "String[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int maximalRectangle(String[] matrix) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Turn each row into a histogram: the height of consecutive 1s ending at that row in each column.",
+    "For each row's histogram, find the largest rectangle with the monotonic-stack method.",
+    "heights = [0]*n\nbest = 0\nfor row in matrix:\n    heights[j] = heights[j] + 1 if row[j] == '1' else 0\n    best = max(best, largestRectangleInHistogram(heights))\nreturn best",
+    "Each row costs O(n) with the stack: O(m n) total."
+  ],
+  "expected_complexity": {
+    "time": "O(m n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "matrix": [
+          "10100",
+          "10111",
+          "11111",
+          "10010"
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          "0"
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          "1"
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          "111",
+          "111"
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          "11",
+          "00"
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          "001",
+          "010",
+          "011",
+          "101"
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          "110"
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          "1",
+          "1"
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

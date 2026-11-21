@@ -1,0 +1,149 @@
+{
+  "order": 253,
+  "slug": "word-search",
+  "title": "Word Search in a Grid",
+  "difficulty": "medium",
+  "topics": [
+    "backtracking",
+    "matrix"
+  ],
+  "summary": "Can a word be traced through adjacent letters?",
+  "statement": "Return `true` if `word` can be built from letters of `board` by moving between cells that share an\nedge, using each cell at most once.",
+  "constraints": [
+    "1 <= rows, cols <= 6",
+    "1 <= word.length <= 15"
+  ],
+  "examples": [
+    {
+      "input": "board = [\"ABCE\", \"SFCS\", \"ADEE\"], word = \"ABCCED\"",
+      "output": "true"
+    },
+    {
+      "input": "board = [\"ABCE\", \"SFCS\", \"ADEE\"], word = \"SEE\"",
+      "output": "true"
+    },
+    {
+      "input": "board = [\"ABCE\", \"SFCS\", \"ADEE\"], word = \"ABCB\"",
+      "output": "false"
+    }
+  ],
+  "signature": {
+    "method": "exist",
+    "params": [
+      {
+        "name": "board",
+        "type": "String[]"
+      },
+      {
+        "name": "word",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean exist(String[] board, String word) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Try starting from every cell that matches the first letter.",
+    "Depth-first search with backtracking: mark a cell as used, explore the four neighbors for the next letter, then unmark it.",
+    "def dfs(r, c, k):\n    if k == len(word): return true\n    if out of bounds or used or board[r][c] != word[k]: return false\n    mark used\n    found = any(dfs(nr, nc, k+1) for each neighbor)\n    unmark\n    return found",
+    "Worst case O(cells \u00d7 3^L) for a word of length L, since each step has at most three new directions. Unmarking on the way back is what lets other paths reuse the cell."
+  ],
+  "expected_complexity": {
+    "time": "O(m n 3^L)",
+    "space": "O(L)"
+  },
+  "tests": [
+    {
+      "input": {
+        "board": [
+          "ABCE",
+          "SFCS",
+          "ADEE"
+        ],
+        "word": "ABCCED"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "board": [
+          "ABCE",
+          "SFCS",
+          "ADEE"
+        ],
+        "word": "SEE"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "board": [
+          "ABCE",
+          "SFCS",
+          "ADEE"
+        ],
+        "word": "ABCB"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "board": [
+          "A"
+        ],
+        "word": "A"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "board": [
+          "ABAA",
+          "CBCB"
+        ],
+        "word": "C"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "board": [
+          "A",
+          "B",
+          "A"
+        ],
+        "word": "AA"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "board": [
+          "BABB",
+          "CBCA"
+        ],
+        "word": "ABB"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "board": [
+          "B",
+          "B"
+        ],
+        "word": "BCCB"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

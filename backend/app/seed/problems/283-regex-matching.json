@@ -1,0 +1,140 @@
+{
+  "order": 283,
+  "slug": "regex-matching",
+  "title": "Regular Expression Matching",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "strings",
+    "recursion"
+  ],
+  "summary": "Match a string against a pattern with . and *.",
+  "statement": "Return `true` if pattern `p` matches all of `s`. In `p`, `.` matches any single character and `*` means\nzero or more of the element right before it. Every `*` follows a letter or `.`.",
+  "constraints": [
+    "1 <= s.length <= 20",
+    "1 <= p.length <= 20",
+    "s: lower-case letters; p: letters, '.', '*'"
+  ],
+  "examples": [
+    {
+      "input": "s = \"aa\", p = \"a\"",
+      "output": "false"
+    },
+    {
+      "input": "s = \"aa\", p = \"a*\"",
+      "output": "true"
+    },
+    {
+      "input": "s = \"ab\", p = \".*\"",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "isMatch",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      },
+      {
+        "name": "p",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isMatch(String s, String p) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Look at the first character match, and whether the next pattern character is a `*`.",
+    "With a star, either skip `x*` entirely, or (if the first character matches) consume one character of `s` and keep the star.",
+    "def match(i, j):\n    if j == len(p): return i == len(s)\n    first = i < len(s) and p[j] in (s[i], '.')\n    if j + 1 < len(p) and p[j+1] == '*':\n        return match(i, j + 2) or (first and match(i + 1, j))\n    return first and match(i + 1, j + 1)",
+    "Memoizing on (i, j) makes it O(n m). Without memoization the recursion is exponential."
+  ],
+  "expected_complexity": {
+    "time": "O(n m)",
+    "space": "O(n m)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "aa",
+        "p": "a"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aa",
+        "p": "a*"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "ab",
+        "p": ".*"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aab",
+        "p": "c*a*b"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "mississippi",
+        "p": "mis*is*p*."
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "ab",
+        "p": ".*c"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "a",
+        "p": "a*a*.*"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbaab",
+        "p": ".a*"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbb",
+        "p": "b*.*.*b*"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbaab",
+        "p": ".*a*b"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

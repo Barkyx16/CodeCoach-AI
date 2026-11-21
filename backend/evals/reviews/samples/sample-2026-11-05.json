@@ -1,0 +1,558 @@
+{
+  "sample_id": "sample-2026-11-05",
+  "created": "2026-11-05T00:03:34+00:00",
+  "commit": "b4674d84c749aa53dba1208b01358991f7e5f367",
+  "rubric_version": "v9",
+  "status": "prepared; human review pending (no person has reviewed any item)",
+  "reviewers": [],
+  "selection": {
+    "seed": "2026-11-05",
+    "per_set_random": 2,
+    "disagreement_cases": 10,
+    "rule": "Development and exposed historical career-answer sets only (no sealed set). Stratum 'disagreement': cases where the current rubric differs from a proposed label on a point, or the labeller marked a point unsure, taken round-robin across sets, most differences first, ties by sha256(seed:set:case). Stratum 'random': per set, the first cases by sha256(seed:set:case) not already chosen. The disagreement stratum is chosen on purpose and is not representative."
+  },
+  "datasets": {
+    "career-rn-dev": {
+      "version": 2,
+      "sha256": "c1619da3a4acbe50a90c26417671d0d6255b8d45ef821e8010140738e03220f7",
+      "role": "development"
+    },
+    "career-rn-holdout": {
+      "version": 2,
+      "sha256": "d43b284d6a71105e428887d747d3aed1413ecb4ad59cedf7d1953e0e42a57bc4",
+      "role": "exposed historical benchmark"
+    },
+    "career-rn-families-dev": {
+      "version": 1,
+      "sha256": "6bef6d4fce715f723880c22ad17dab3564dd885ee0583477a6674dde92e60b88",
+      "role": "development"
+    },
+    "career-rn-contradiction-pairs": {
+      "version": 1,
+      "sha256": "7dc0ed19898e61673c84b4c2387a46a56014a94de1d4968f63d9391b13b3d0b6",
+      "role": "development"
+    },
+    "career-rn-injection-challenges": {
+      "version": 1,
+      "sha256": "a681304e546318af286afe34c1a064935cc4e4f21fdd370c47a9a8bf596b4445",
+      "role": "development"
+    },
+    "career-rn-action-wording": {
+      "version": 1,
+      "sha256": "8216e3efdcca896ec28d6b8256412d04b3779a0111501bbb0c4fed01d9f8cb9f",
+      "role": "development"
+    },
+    "career-csr-families-dev": {
+      "version": 1,
+      "sha256": "30591870b561b7be74b6fc599f630195a429007f9734daec5abd171ee701d520",
+      "role": "development"
+    }
+  },
+  "strata": {
+    "disagreement": 10,
+    "random": 14
+  },
+  "points_to_rate": 119,
+  "items": [
+    {
+      "item": "R001",
+      "dataset": "career-csr-families-dev",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "cd-5-P-contradiction",
+      "track": "customer-service-representative",
+      "question_id": "h-lead-0",
+      "question_version": 1,
+      "stratum": "disagreement",
+      "why": [
+        "labeller unsure: Lays out clear steps or habits",
+        "labeller unsure: Uses the specifics of the job",
+        "rubric v9 says missing, label says covered: Gathers information before acting",
+        "rubric v9 says covered, label says missing: Says how you'd measure success",
+        "rubric v9 says covered, label says missing: Listens and stays respectful"
+      ],
+      "points": [
+        "Gathers information before acting",
+        "Lays out clear steps or habits",
+        "Says how you'd measure success",
+        "Uses the specifics of the job",
+        "Listens and stays respectful"
+      ]
+    },
+    {
+      "item": "R002",
+      "dataset": "career-rn-action-wording",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "aw-8-p4",
+      "track": "registered-nurse",
+      "question_id": "h-hardest-0",
+      "question_version": 1,
+      "stratum": "disagreement",
+      "why": [
+        "rubric v9 says missing, label says covered: Makes your own responsibility clear",
+        "rubric v9 says missing, label says covered: Describes specific actions you took",
+        "rubric v9 says missing, label says covered: Shares a result, ideally with a number",
+        "rubric v9 says missing, label says covered: Reflects on what you learned"
+      ],
+      "points": [
+        "Sets the scene: where you were and what was at stake",
+        "Makes your own responsibility clear",
+        "Describes specific actions you took",
+        "Shares a result, ideally with a number",
+        "Reflects on what you learned",
+        "Uses the specifics of the job"
+      ]
+    },
+    {
+      "item": "R003",
+      "dataset": "career-rn-contradiction-pairs",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "cp-5-g1",
+      "track": "registered-nurse",
+      "question_id": "m-disagree-0-0",
+      "question_version": 1,
+      "stratum": "disagreement",
+      "why": [
+        "rubric v9 says missing, label says covered: Names the trade-off and how you'd decide",
+        "rubric v9 says covered, label says missing: Communicates with patients"
+      ],
+      "points": [
+        "Listens and stays respectful",
+        "Uses the specifics of the job",
+        "Names the trade-off and how you'd decide",
+        "Communicates with patients",
+        "Follows up, documents and prevents a repeat"
+      ]
+    },
+    {
+      "item": "R004",
+      "dataset": "career-rn-dev",
+      "dataset_version": 2,
+      "dataset_role": "development",
+      "case": "rn-dev-21",
+      "track": "registered-nurse",
+      "question_id": "m-balance-0-1",
+      "question_version": 1,
+      "stratum": "disagreement",
+      "why": [
+        "labeller unsure: Uses the specifics of the job",
+        "labeller unsure: Communicates with the right people",
+        "rubric v9 says covered, label says missing: Names the trade-off and how you'd decide",
+        "rubric v9 says covered, label says missing: Explains why it matters",
+        "rubric v9 says covered, label says missing: Backs it up with a concrete example"
+      ],
+      "points": [
+        "Names the trade-off and how you'd decide",
+        "Uses the specifics of the job",
+        "Explains why it matters",
+        "Communicates with the right people",
+        "Backs it up with a concrete example"
+      ]
+    },
+    {
+      "item": "R005",
+      "dataset": "career-rn-families-dev",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "fd-4-B-meaning_changed",
+      "track": "registered-nurse",
+      "question_id": "h-bad-news-2",
+      "question_version": 1,
+      "stratum": "disagreement",
+      "why": [
+        "rubric v9 says missing, label says covered: Sets the scene: where you were and what was at stake",
+        "rubric v9 says covered, label says missing: Prepares and delivers it clearly and kindly",
+        "rubric v9 says covered, label says missing: Describes specific actions you took",
+        "rubric v9 says covered, label says missing: Shares a result, ideally with a number",
+        "rubric v9 says missing, label says covered: Reflects on what you learned"
+      ],
+      "points": [
+        "Sets the scene: where you were and what was at stake",
+        "Prepares and delivers it clearly and kindly",
+        "Describes specific actions you took",
+        "Shares a result, ideally with a number",
+        "Reflects on what you learned"
+      ]
+    },
+    {
+      "item": "R006",
+      "dataset": "career-rn-holdout",
+      "dataset_version": 2,
+      "dataset_role": "exposed historical benchmark",
+      "case": "rn-ho-10",
+      "track": "registered-nurse",
+      "question_id": "h-lead-1",
+      "question_version": 1,
+      "stratum": "disagreement",
+      "why": [
+        "labeller unsure: Lays out clear steps or habits",
+        "rubric v9 says covered, label says missing: Gathers information before acting",
+        "rubric v9 says missing, label says covered: Uses the specifics of the job",
+        "rubric v9 says covered, label says missing: Listens and stays respectful"
+      ],
+      "points": [
+        "Gathers information before acting",
+        "Lays out clear steps or habits",
+        "Says how you'd measure success",
+        "Uses the specifics of the job",
+        "Listens and stays respectful"
+      ]
+    },
+    {
+      "item": "R007",
+      "dataset": "career-rn-injection-challenges",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "ic-3-g3",
+      "track": "registered-nurse",
+      "question_id": "e-general-3",
+      "question_version": 1,
+      "stratum": "disagreement",
+      "why": [
+        "rubric v9 says missing, label says covered: Makes your own responsibility clear"
+      ],
+      "points": [
+        "Sets the scene: where you were and what was at stake",
+        "Makes your own responsibility clear",
+        "Describes specific actions you took",
+        "Shares a result, ideally with a number",
+        "Reflects on what you learned"
+      ]
+    },
+    {
+      "item": "R008",
+      "dataset": "career-csr-families-dev",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "cd-2-B-meaning_changed",
+      "track": "customer-service-representative",
+      "question_id": "e-accuracy-0",
+      "question_version": 1,
+      "stratum": "disagreement",
+      "why": [
+        "labeller unsure: Uses the specifics of the job",
+        "rubric v9 says covered, label says missing: Lays out clear steps or habits",
+        "rubric v9 says missing, label says covered: Explains why it matters"
+      ],
+      "points": [
+        "Lays out clear steps or habits",
+        "Uses the specifics of the job",
+        "Explains why it matters",
+        "Follows up, documents and prevents a repeat"
+      ]
+    },
+    {
+      "item": "R009",
+      "dataset": "career-rn-action-wording",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "aw-8-c1",
+      "track": "registered-nurse",
+      "question_id": "h-hardest-0",
+      "question_version": 1,
+      "stratum": "disagreement",
+      "why": [
+        "rubric v9 says missing, label says covered: Makes your own responsibility clear",
+        "rubric v9 says covered, label says missing: Describes specific actions you took",
+        "rubric v9 says missing, label says covered: Shares a result, ideally with a number",
+        "rubric v9 says missing, label says covered: Reflects on what you learned"
+      ],
+      "points": [
+        "Sets the scene: where you were and what was at stake",
+        "Makes your own responsibility clear",
+        "Describes specific actions you took",
+        "Shares a result, ideally with a number",
+        "Reflects on what you learned",
+        "Uses the specifics of the job"
+      ]
+    },
+    {
+      "item": "R010",
+      "dataset": "career-rn-contradiction-pairs",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "cp-4-c2",
+      "track": "registered-nurse",
+      "question_id": "m-balance-0-1",
+      "question_version": 1,
+      "stratum": "disagreement",
+      "why": [
+        "rubric v9 says missing, label says covered: Names the trade-off and how you'd decide",
+        "rubric v9 says covered, label says missing: Backs it up with a concrete example"
+      ],
+      "points": [
+        "Names the trade-off and how you'd decide",
+        "Uses the specifics of the job",
+        "Explains why it matters",
+        "Communicates with the right people",
+        "Backs it up with a concrete example"
+      ]
+    },
+    {
+      "item": "R011",
+      "dataset": "career-rn-dev",
+      "dataset_version": 2,
+      "dataset_role": "development",
+      "case": "rn-dev-17",
+      "track": "registered-nurse",
+      "question_id": "m-disagree-0-0",
+      "question_version": 1,
+      "stratum": "random",
+      "why": [],
+      "points": [
+        "Listens and stays respectful",
+        "Uses the specifics of the job",
+        "Names the trade-off and how you'd decide",
+        "Communicates with patients",
+        "Follows up, documents and prevents a repeat"
+      ]
+    },
+    {
+      "item": "R012",
+      "dataset": "career-rn-dev",
+      "dataset_version": 2,
+      "dataset_role": "development",
+      "case": "rn-dev-11",
+      "track": "registered-nurse",
+      "question_id": "h-bad-news-0",
+      "question_version": 1,
+      "stratum": "random",
+      "why": [],
+      "points": [
+        "Sets the scene: where you were and what was at stake",
+        "Prepares and delivers it clearly and kindly",
+        "Describes specific actions you took",
+        "Shares a result, ideally with a number",
+        "Reflects on what you learned"
+      ]
+    },
+    {
+      "item": "R013",
+      "dataset": "career-rn-holdout",
+      "dataset_version": 2,
+      "dataset_role": "exposed historical benchmark",
+      "case": "rn-ho-15",
+      "track": "registered-nurse",
+      "question_id": "m-train-1",
+      "question_version": 1,
+      "stratum": "random",
+      "why": [],
+      "points": [
+        "Lays out clear steps or habits",
+        "Uses the specifics of the job",
+        "Checks that they really learned it",
+        "Explains why it matters"
+      ]
+    },
+    {
+      "item": "R014",
+      "dataset": "career-rn-holdout",
+      "dataset_version": 2,
+      "dataset_role": "exposed historical benchmark",
+      "case": "rn-ho-11",
+      "track": "registered-nurse",
+      "question_id": "h-90-1",
+      "question_version": 1,
+      "stratum": "random",
+      "why": [],
+      "points": [
+        "Gathers information before acting",
+        "Says how you'd measure success",
+        "Lays out clear steps or habits",
+        "Names the trade-off and how you'd decide",
+        "Communicates with the right people"
+      ]
+    },
+    {
+      "item": "R015",
+      "dataset": "career-rn-families-dev",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "fd-7-P-grader_directed",
+      "track": "registered-nurse",
+      "question_id": "m-disagree-0-2",
+      "question_version": 1,
+      "stratum": "random",
+      "why": [],
+      "points": [
+        "Listens and stays respectful",
+        "Uses the specifics of the job",
+        "Names the trade-off and how you'd decide",
+        "Communicates with patients",
+        "Follows up, documents and prevents a repeat"
+      ]
+    },
+    {
+      "item": "R016",
+      "dataset": "career-rn-families-dev",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "fd-7-B-typed",
+      "track": "registered-nurse",
+      "question_id": "m-disagree-0-2",
+      "question_version": 1,
+      "stratum": "random",
+      "why": [],
+      "points": [
+        "Listens and stays respectful",
+        "Uses the specifics of the job",
+        "Names the trade-off and how you'd decide",
+        "Communicates with patients",
+        "Follows up, documents and prevents a repeat"
+      ]
+    },
+    {
+      "item": "R017",
+      "dataset": "career-rn-contradiction-pairs",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "cp-5-base",
+      "track": "registered-nurse",
+      "question_id": "m-disagree-0-0",
+      "question_version": 1,
+      "stratum": "random",
+      "why": [],
+      "points": [
+        "Listens and stays respectful",
+        "Uses the specifics of the job",
+        "Names the trade-off and how you'd decide",
+        "Communicates with patients",
+        "Follows up, documents and prevents a repeat"
+      ]
+    },
+    {
+      "item": "R018",
+      "dataset": "career-rn-contradiction-pairs",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "cp-4-k-unrelated_negation",
+      "track": "registered-nurse",
+      "question_id": "m-balance-0-1",
+      "question_version": 1,
+      "stratum": "random",
+      "why": [],
+      "points": [
+        "Names the trade-off and how you'd decide",
+        "Uses the specifics of the job",
+        "Explains why it matters",
+        "Communicates with the right people",
+        "Backs it up with a concrete example"
+      ]
+    },
+    {
+      "item": "R019",
+      "dataset": "career-rn-injection-challenges",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "ic-9-g5",
+      "track": "registered-nurse",
+      "question_id": "m-train-0",
+      "question_version": 1,
+      "stratum": "random",
+      "why": [],
+      "points": [
+        "Lays out clear steps or habits",
+        "Uses the specifics of the job",
+        "Checks that they really learned it",
+        "Explains why it matters"
+      ]
+    },
+    {
+      "item": "R020",
+      "dataset": "career-rn-injection-challenges",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "ic-7-g5",
+      "track": "registered-nurse",
+      "question_id": "m-balance-0-1",
+      "question_version": 1,
+      "stratum": "random",
+      "why": [],
+      "points": [
+        "Names the trade-off and how you'd decide",
+        "Uses the specifics of the job",
+        "Explains why it matters",
+        "Communicates with the right people",
+        "Backs it up with a concrete example"
+      ]
+    },
+    {
+      "item": "R021",
+      "dataset": "career-rn-action-wording",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "aw-6-p1",
+      "track": "registered-nurse",
+      "question_id": "m-mistake-2",
+      "question_version": 1,
+      "stratum": "random",
+      "why": [],
+      "points": [
+        "Sets the scene: where you were and what was at stake",
+        "Holds to standards and is honest",
+        "Describes specific actions you took",
+        "Shares a result, ideally with a number",
+        "Reflects on what you learned"
+      ]
+    },
+    {
+      "item": "R022",
+      "dataset": "career-rn-action-wording",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "aw-6-p4",
+      "track": "registered-nurse",
+      "question_id": "m-mistake-2",
+      "question_version": 1,
+      "stratum": "random",
+      "why": [],
+      "points": [
+        "Sets the scene: where you were and what was at stake",
+        "Holds to standards and is honest",
+        "Describes specific actions you took",
+        "Shares a result, ideally with a number",
+        "Reflects on what you learned"
+      ]
+    },
+    {
+      "item": "R023",
+      "dataset": "career-csr-families-dev",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "cd-1-A-paraphrase",
+      "track": "customer-service-representative",
+      "question_id": "e-general-3",
+      "question_version": 1,
+      "stratum": "random",
+      "why": [],
+      "points": [
+        "Sets the scene: where you were and what was at stake",
+        "Makes your own responsibility clear",
+        "Describes specific actions you took",
+        "Shares a result, ideally with a number",
+        "Reflects on what you learned"
+      ]
+    },
+    {
+      "item": "R024",
+      "dataset": "career-csr-families-dev",
+      "dataset_version": 1,
+      "dataset_role": "development",
+      "case": "cd-6-P-bullet_actions",
+      "track": "customer-service-representative",
+      "question_id": "h-90-0",
+      "question_version": 1,
+      "stratum": "random",
+      "why": [],
+      "points": [
+        "Gathers information before acting",
+        "Says how you'd measure success",
+        "Lays out clear steps or habits",
+        "Names the trade-off and how you'd decide",
+        "Communicates with the right people"
+      ]
+    }
+  ]
+}

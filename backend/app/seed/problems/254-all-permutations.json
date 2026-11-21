@@ -1,0 +1,539 @@
+{
+  "order": 254,
+  "slug": "all-permutations",
+  "title": "All Permutations",
+  "difficulty": "medium",
+  "topics": [
+    "backtracking",
+    "recursion"
+  ],
+  "summary": "List every ordering of distinct numbers.",
+  "statement": "`nums` has distinct values. Return all permutations, in lexicographic (dictionary) order.",
+  "constraints": [
+    "1 <= nums.length <= 6",
+    "distinct values"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 2, 3]",
+      "output": "[[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]"
+    },
+    {
+      "input": "nums = [0, 1]",
+      "output": "[[0, 1], [1, 0]]"
+    },
+    {
+      "input": "nums = [1]",
+      "output": "[[1]]"
+    }
+  ],
+  "signature": {
+    "method": "permute",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[][]"
+  },
+  "starter_code": "class Solution {\n    public int[][] permute(int[] nums) {\n        // TODO: write your solution here\n        return new int[0][];\n    }\n}\n",
+  "hints": [
+    "Build a permutation one position at a time.",
+    "Sort first. At each position, try every unused value in increasing order, recurse, then undo.",
+    "sort nums\ndef build(path, used):\n    if len(path) == n: out.append(copy of path); return\n    for i in 0..n-1:\n        if not used[i]: use i; path.append(nums[i]); build(...); undo\nbuild([], [false]*n)",
+    "Backtracking generates n! permutations at O(n) each: O(n \u00b7 n!). Trying values in sorted order yields lexicographic output."
+  ],
+  "expected_complexity": {
+    "time": "O(n \u00b7 n!)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected_output": [
+        [
+          1,
+          2,
+          3
+        ],
+        [
+          1,
+          3,
+          2
+        ],
+        [
+          2,
+          1,
+          3
+        ],
+        [
+          2,
+          3,
+          1
+        ],
+        [
+          3,
+          1,
+          2
+        ],
+        [
+          3,
+          2,
+          1
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          1
+        ]
+      },
+      "expected_output": [
+        [
+          0,
+          1
+        ],
+        [
+          1,
+          0
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1
+        ]
+      },
+      "expected_output": [
+        [
+          1
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          -1,
+          2
+        ]
+      },
+      "expected_output": [
+        [
+          -1,
+          2,
+          3
+        ],
+        [
+          -1,
+          3,
+          2
+        ],
+        [
+          2,
+          -1,
+          3
+        ],
+        [
+          2,
+          3,
+          -1
+        ],
+        [
+          3,
+          -1,
+          2
+        ],
+        [
+          3,
+          2,
+          -1
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          -5,
+          4,
+          -2
+        ]
+      },
+      "expected_output": [
+        [
+          -5,
+          -2,
+          4,
+          5
+        ],
+        [
+          -5,
+          -2,
+          5,
+          4
+        ],
+        [
+          -5,
+          4,
+          -2,
+          5
+        ],
+        [
+          -5,
+          4,
+          5,
+          -2
+        ],
+        [
+          -5,
+          5,
+          -2,
+          4
+        ],
+        [
+          -5,
+          5,
+          4,
+          -2
+        ],
+        [
+          -2,
+          -5,
+          4,
+          5
+        ],
+        [
+          -2,
+          -5,
+          5,
+          4
+        ],
+        [
+          -2,
+          4,
+          -5,
+          5
+        ],
+        [
+          -2,
+          4,
+          5,
+          -5
+        ],
+        [
+          -2,
+          5,
+          -5,
+          4
+        ],
+        [
+          -2,
+          5,
+          4,
+          -5
+        ],
+        [
+          4,
+          -5,
+          -2,
+          5
+        ],
+        [
+          4,
+          -5,
+          5,
+          -2
+        ],
+        [
+          4,
+          -2,
+          -5,
+          5
+        ],
+        [
+          4,
+          -2,
+          5,
+          -5
+        ],
+        [
+          4,
+          5,
+          -5,
+          -2
+        ],
+        [
+          4,
+          5,
+          -2,
+          -5
+        ],
+        [
+          5,
+          -5,
+          -2,
+          4
+        ],
+        [
+          5,
+          -5,
+          4,
+          -2
+        ],
+        [
+          5,
+          -2,
+          -5,
+          4
+        ],
+        [
+          5,
+          -2,
+          4,
+          -5
+        ],
+        [
+          5,
+          4,
+          -5,
+          -2
+        ],
+        [
+          5,
+          4,
+          -2,
+          -5
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -2,
+          -5,
+          4
+        ]
+      },
+      "expected_output": [
+        [
+          -5,
+          -2,
+          4
+        ],
+        [
+          -5,
+          4,
+          -2
+        ],
+        [
+          -2,
+          -5,
+          4
+        ],
+        [
+          -2,
+          4,
+          -5
+        ],
+        [
+          4,
+          -5,
+          -2
+        ],
+        [
+          4,
+          -2,
+          -5
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -2
+        ]
+      },
+      "expected_output": [
+        [
+          -2
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          -4,
+          -3,
+          5
+        ]
+      },
+      "expected_output": [
+        [
+          -4,
+          -3,
+          1,
+          5
+        ],
+        [
+          -4,
+          -3,
+          5,
+          1
+        ],
+        [
+          -4,
+          1,
+          -3,
+          5
+        ],
+        [
+          -4,
+          1,
+          5,
+          -3
+        ],
+        [
+          -4,
+          5,
+          -3,
+          1
+        ],
+        [
+          -4,
+          5,
+          1,
+          -3
+        ],
+        [
+          -3,
+          -4,
+          1,
+          5
+        ],
+        [
+          -3,
+          -4,
+          5,
+          1
+        ],
+        [
+          -3,
+          1,
+          -4,
+          5
+        ],
+        [
+          -3,
+          1,
+          5,
+          -4
+        ],
+        [
+          -3,
+          5,
+          -4,
+          1
+        ],
+        [
+          -3,
+          5,
+          1,
+          -4
+        ],
+        [
+          1,
+          -4,
+          -3,
+          5
+        ],
+        [
+          1,
+          -4,
+          5,
+          -3
+        ],
+        [
+          1,
+          -3,
+          -4,
+          5
+        ],
+        [
+          1,
+          -3,
+          5,
+          -4
+        ],
+        [
+          1,
+          5,
+          -4,
+          -3
+        ],
+        [
+          1,
+          5,
+          -3,
+          -4
+        ],
+        [
+          5,
+          -4,
+          -3,
+          1
+        ],
+        [
+          5,
+          -4,
+          1,
+          -3
+        ],
+        [
+          5,
+          -3,
+          -4,
+          1
+        ],
+        [
+          5,
+          -3,
+          1,
+          -4
+        ],
+        [
+          5,
+          1,
+          -4,
+          -3
+        ],
+        [
+          5,
+          1,
+          -3,
+          -4
+        ]
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,111 @@
+{
+  "order": 366,
+  "slug": "longest-duplicate-substring",
+  "title": "Longest Repeated Substring",
+  "difficulty": "hard",
+  "topics": [
+    "strings",
+    "binary-search",
+    "hash-maps"
+  ],
+  "summary": "Length of the longest substring that appears at least twice.",
+  "statement": "Return the length of the longest substring that occurs at least twice in `s` (occurrences may overlap).\nReturn `0` if no character repeats.",
+  "constraints": [
+    "2 <= s.length <= 3 * 10^4",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"banana\"",
+      "output": "3"
+    },
+    {
+      "input": "s = \"abcd\"",
+      "output": "0"
+    },
+    {
+      "input": "s = \"aaaaa\"",
+      "output": "4"
+    }
+  ],
+  "signature": {
+    "method": "longestDupSubstring",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int longestDupSubstring(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "If a repeated substring of length L exists, one of length L - 1 does too. That's binary-searchable.",
+    "Binary search on L. For each L, check for a repeat with a rolling hash (Rabin-Karp) and a hash set (verify matches to rule out collisions).",
+    "lo, hi = 0, n - 1\nwhile lo < hi:\n    mid = (lo + hi + 1) // 2\n    if hasRepeat(mid): lo = mid\n    else: hi = mid - 1\nreturn lo",
+    "O(n log n) expected with rolling hashes. A suffix array gives the same answer deterministically."
+  ],
+  "expected_complexity": {
+    "time": "O(n log n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "banana"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abcd"
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aaaaa"
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abcabcab"
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abbbbbaa"
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aababbabaaaab"
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aaba"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbababbabaab"
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

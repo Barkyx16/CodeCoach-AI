@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useCopySince, writeCopy } from "@/lib/deviceCopies";
 import { storage } from "@/lib/storage";
 
 export type SaveState = "saved" | "saving" | "unsaved" | "error";
@@ -20,12 +21,14 @@ export function useDraft(slug: string, starterCode: string, scope = "anon", dela
   }));
   const [saveState, setSaveState] = useState<SaveState>("saved");
   const timer = useRef<number | undefined>(undefined);
-  const pending = useRef<{ key: string; code: string; starter: string } | null>(null);
+  // A copy removed from "Your data" after this editor opened it isn't written back (lib/deviceCopies).
+  const since = useCopySince(storageKey);
+  const pending = useRef<{ key: string; code: string; starter: string; since: number } | null>(null);
   const persist = useCallback(() => {
     const change = pending.current;
     if (!change) return true;
     const saved = change.code === change.starter
-      ? storage.remove(change.key) : storage.set(change.key, change.code);
+      ? storage.remove(change.key) : writeCopy(change.key, change.code, change.since);
     if (saved) pending.current = null;
     return saved;
   }, []);
@@ -44,14 +47,14 @@ export function useDraft(slug: string, starterCode: string, scope = "anon", dela
 
   const setCode = useCallback((next: string) => {
     setDraft({ key: storageKey, starter: starterCode, code: next });
-    pending.current = { key: storageKey, starter: starterCode, code: next };
+    pending.current = { key: storageKey, starter: starterCode, code: next, since };
     setSaveState("unsaved");
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => {
       setSaveState("saving");
       setSaveState(persist() ? "saved" : "error");
     }, delayMs);
-  }, [storageKey, starterCode, delayMs, persist]);
+  }, [storageKey, starterCode, delayMs, persist, since]);
 
   useEffect(() => {
     const flush = () => { window.clearTimeout(timer.current); persist(); };
@@ -71,10 +74,10 @@ export function useDraft(slug: string, starterCode: string, scope = "anon", dela
 
   const reset = useCallback(() => {
     window.clearTimeout(timer.current);
-    pending.current = { key: storageKey, starter: starterCode, code: starterCode };
+    pending.current = { key: storageKey, starter: starterCode, code: starterCode, since };
     setDraft({ key: storageKey, starter: starterCode, code: starterCode });
     setSaveState(persist() ? "saved" : "error");
-  }, [storageKey, starterCode, persist]);
+  }, [storageKey, starterCode, persist, since]);
 
   const isModified = code !== starterCode;
   return { code, setCode, saveState, reset, isModified };

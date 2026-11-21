@@ -1,0 +1,117 @@
+{
+  "order": 128,
+  "slug": "count-primes-below",
+  "title": "Count Primes Below n",
+  "difficulty": "easy",
+  "topics": [
+    "math",
+    "arrays"
+  ],
+  "summary": "How many primes are smaller than n?",
+  "statement": "Return the number of prime numbers strictly less than `n`.",
+  "constraints": [
+    "0 <= n <= 5 * 10^6"
+  ],
+  "examples": [
+    {
+      "input": "n = 10",
+      "output": "4",
+      "explanation": "2, 3, 5 and 7."
+    },
+    {
+      "input": "n = 0",
+      "output": "0"
+    },
+    {
+      "input": "n = 2",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "countPrimes",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int countPrimes(int n) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Testing each number separately is slow for large n. Can you rule out many numbers at once?",
+    "The Sieve of Eratosthenes: for each prime p, cross out p*p, p*p+p, ... as composite.",
+    "composite = [false] * n\ncount = 0\nfor i in 2..n-1:\n    if not composite[i]:\n        count += 1\n        for j in range(i*i, n, i): composite[j] = true\nreturn count",
+    "The sieve runs in O(n log log n) with O(n) memory. Starting at `i * i` is enough because smaller multiples were crossed out by smaller primes. Use a long for `i * i`."
+  ],
+  "expected_complexity": {
+    "time": "O(n log log n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 10
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 0
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 2
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 3
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 100
+      },
+      "expected_output": 25,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 1779
+      },
+      "expected_output": 275,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 2449
+      },
+      "expected_output": 363,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 1971
+      },
+      "expected_output": 297,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 1456
+      },
+      "expected_output": 231,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

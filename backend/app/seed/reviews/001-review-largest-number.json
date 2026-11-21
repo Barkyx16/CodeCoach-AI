@@ -1,0 +1,56 @@
+{
+  "slug": "review-largest-number",
+  "version": 1,
+  "title": "Review: Largest Number",
+  "problem": "find-largest-number",
+  "context": "A teammate wrote this for Find Largest Number and asked you to review it before it's merged. You're reviewing their code, not writing your own.",
+  "code": "class Solution {\n    /** Returns the largest value in nums. */\n    public int max(int[] nums) {\n        if (nums.length == 0) {\n            throw new IllegalArgumentException(\"nums is empty\");\n        }\n        int largest = 0;\n        for (int i = 0; i < nums.length; i++) {\n            if (nums[i] > largest) {\n                largest = nums[i];\n            }\n        }\n        return largest;\n    }\n}\n",
+  "findings": [
+    {
+      "id": "starts-at-zero",
+      "kind": "defect",
+      "lines": [
+        7,
+        7
+      ],
+      "related_lines": [
+        [
+          9,
+          10
+        ],
+        [
+          13,
+          13
+        ]
+      ],
+      "title": "The running maximum starts at 0",
+      "explanation": "largest starts at 0, so a value only replaces it if it is above 0. When every value is negative, none is, and the method returns 0: a number that isn't in the array.",
+      "consequence": "Any array of only negative numbers gets the wrong answer. Public test 2 shows it: [-5, -2, -11] should give -2 and gets 0.",
+      "repair": "Start from a real value: int largest = nums[0]; (the empty case is already handled above it). The loop can then start at index 1.",
+      "evidence": [
+        {
+          "public_test": 2,
+          "actual": 0
+        }
+      ]
+    },
+    {
+      "id": "index-loop",
+      "kind": "observation",
+      "lines": [
+        8,
+        8
+      ],
+      "related_lines": [],
+      "title": "An index loop where only the values are used",
+      "explanation": "The loop uses i only to read nums[i]. for (int n : nums) would say that more directly.",
+      "consequence": "None for correctness: both loops visit every value once.",
+      "repair": "Optional: switch to an enhanced for loop if your team prefers it.",
+      "why_preference": "No input behaves differently either way, so no test can tell the two apart. It's a style choice, not a defect.",
+      "evidence": []
+    }
+  ],
+  "repaired_code": "class Solution {\n    /** Returns the largest value in nums. */\n    public int max(int[] nums) {\n        if (nums.length == 0) {\n            throw new IllegalArgumentException(\"nums is empty\");\n        }\n        int largest = nums[0];\n        for (int i = 0; i < nums.length; i++) {\n            if (nums[i] > largest) {\n                largest = nums[i];\n            }\n        }\n        return largest;\n    }\n}\n",
+  "debrief": "One real defect, shown by a public test: the maximum starts at 0, so all-negative arrays return 0. The empty-array contract is handled correctly. The index loop is a preference; a review that called it a bug would be wrong.",
+  "review_status": "Written for practice and machine-checked: the code and the repair were run against every test of the problem."
+}

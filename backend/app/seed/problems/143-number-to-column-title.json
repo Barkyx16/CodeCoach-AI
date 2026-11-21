@@ -1,0 +1,116 @@
+{
+  "order": 143,
+  "slug": "number-to-column-title",
+  "title": "Number to Spreadsheet Column",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "math"
+  ],
+  "summary": "Convert a column number back to a label like \"AB\".",
+  "statement": "Return the spreadsheet column label for `n` (1 = A, 26 = Z, 27 = AA, 28 = AB).",
+  "constraints": [
+    "1 <= n <= 2^31 - 1"
+  ],
+  "examples": [
+    {
+      "input": "n = 1",
+      "output": "\"A\""
+    },
+    {
+      "input": "n = 28",
+      "output": "\"AB\""
+    },
+    {
+      "input": "n = 701",
+      "output": "\"ZY\""
+    }
+  ],
+  "signature": {
+    "method": "convertToTitle",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String convertToTitle(int n) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "This is the reverse of reading a label. Why doesn't plain base 26 work?",
+    "There's no zero digit. Subtract 1 before taking `% 26` so Z (26) maps to the last letter.",
+    "out = ''\nwhile n > 0:\n    n -= 1\n    out = chr(ord('A') + n % 26) + out\n    n //= 26\nreturn out",
+    "Shifting by one each round turns 1..26 into 0..25: O(log n). Without the `n -= 1`, 26 would come out as \"A@\"."
+  ],
+  "expected_complexity": {
+    "time": "O(log n)",
+    "space": "O(log n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 1
+      },
+      "expected_output": "A",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 28
+      },
+      "expected_output": "AB",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 701
+      },
+      "expected_output": "ZY",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 26
+      },
+      "expected_output": "Z",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 2147483647
+      },
+      "expected_output": "FXSHRXW",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 14189
+      },
+      "expected_output": "TYS",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 519524
+      },
+      "expected_output": "ACNMR",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 6527
+      },
+      "expected_output": "IQA",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 918458
+      },
+      "expected_output": "AZFQH",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

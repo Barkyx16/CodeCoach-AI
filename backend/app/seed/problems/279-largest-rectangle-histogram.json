@@ -1,0 +1,176 @@
+{
+  "order": 279,
+  "slug": "largest-rectangle-histogram",
+  "title": "Largest Rectangle in a Histogram",
+  "difficulty": "hard",
+  "topics": [
+    "stacks",
+    "arrays"
+  ],
+  "summary": "Biggest rectangle that fits under a bar chart.",
+  "statement": "`heights[i]` is the height of a bar of width 1. Return the area of the largest rectangle that fits\nentirely under the bars.",
+  "constraints": [
+    "1 <= heights.length <= 10^5",
+    "0 <= heights[i] <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "heights = [2, 1, 5, 6, 2, 3]",
+      "output": "10"
+    },
+    {
+      "input": "heights = [2, 4]",
+      "output": "4"
+    },
+    {
+      "input": "heights = [0]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "largestRectangleArea",
+    "params": [
+      {
+        "name": "heights",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int largestRectangleArea(int[] heights) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "For each bar, imagine the widest rectangle that uses that bar's height.",
+    "It extends left and right until a shorter bar. A stack of increasing heights finds both boundaries.",
+    "stack = []\nbest = 0\nfor i in 0..n (treat heights[n] as 0):\n    while stack and heights[stack[-1]] > h:\n        top = stack.pop()\n        left = stack[-1] + 1 if stack else 0\n        best = max(best, heights[top] * (i - left))\n    stack.append(i)\nreturn best",
+    "When a bar is popped, the current index is its right boundary and the new stack top is its left boundary. Each bar is pushed and popped once: O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "heights": [
+          2,
+          1,
+          5,
+          6,
+          2,
+          3
+        ]
+      },
+      "expected_output": 10,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "heights": [
+          2,
+          4
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "heights": [
+          0
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "heights": [
+          3,
+          3,
+          3
+        ]
+      },
+      "expected_output": 9,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "heights": [
+          7,
+          2,
+          1,
+          0,
+          7,
+          5,
+          7,
+          2,
+          9,
+          1,
+          9,
+          7,
+          0
+        ]
+      },
+      "expected_output": 15,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "heights": [
+          5,
+          7,
+          8,
+          0,
+          8,
+          0,
+          1,
+          0,
+          7,
+          7,
+          3,
+          6,
+          4
+        ]
+      },
+      "expected_output": 15,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "heights": [
+          3,
+          2,
+          9,
+          7,
+          0,
+          0,
+          8
+        ]
+      },
+      "expected_output": 14,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "heights": [
+          8,
+          9,
+          1,
+          9,
+          8,
+          7,
+          7,
+          8,
+          9,
+          8,
+          1,
+          6,
+          4
+        ]
+      },
+      "expected_output": 49,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

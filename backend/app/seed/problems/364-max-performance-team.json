@@ -1,0 +1,198 @@
+{
+  "order": 364,
+  "slug": "max-performance-team",
+  "title": "Maximum Performance of a Team",
+  "difficulty": "hard",
+  "topics": [
+    "heaps",
+    "greedy",
+    "sorting"
+  ],
+  "summary": "Choose up to k engineers maximizing (sum of speeds) \u00d7 (minimum efficiency).",
+  "statement": "Engineer `i` has `speed[i]` and `efficiency[i]`. A team's performance is the sum of its speeds times the\nminimum efficiency in the team. Choose at most `k` engineers (at least one) to maximize performance. Return it.",
+  "constraints": [
+    "1 <= k <= n <= 10^5",
+    "1 <= speed[i] <= 10^5",
+    "1 <= efficiency[i] <= 10^8"
+  ],
+  "examples": [
+    {
+      "input": "n = 6, speed = [2, 10, 3, 1, 5, 8], efficiency = [5, 4, 3, 9, 7, 2], k = 2",
+      "output": "60"
+    },
+    {
+      "input": "n = 6, speed = [2, 10, 3, 1, 5, 8], efficiency = [5, 4, 3, 9, 7, 2], k = 3",
+      "output": "68"
+    },
+    {
+      "input": "n = 1, speed = [100000], efficiency = [100000000], k = 1",
+      "output": "10000000000000"
+    }
+  ],
+  "signature": {
+    "method": "maxPerformance",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      },
+      {
+        "name": "speed",
+        "type": "int[]"
+      },
+      {
+        "name": "efficiency",
+        "type": "int[]"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "long"
+  },
+  "starter_code": "class Solution {\n    public long maxPerformance(int n, int[] speed, int[] efficiency, int k) {\n        // TODO: write your solution here\n        return 0L;\n    }\n}\n",
+  "hints": [
+    "Fix the engineer with the lowest efficiency in the team. Who else should join?",
+    "Process engineers by decreasing efficiency. The current one sets the minimum; add the fastest k - 1 seen so far (a min-heap of speeds).",
+    "sort by efficiency descending\nheap = []; total = best = 0\nfor speed, eff in engineers:\n    push speed; total += speed\n    if len(heap) > k: total -= pop min\n    best = max(best, total * eff)\nreturn best",
+    "O(n log n). The product exceeds an int, so return a long."
+  ],
+  "expected_complexity": {
+    "time": "O(n log n)",
+    "space": "O(k)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 6,
+        "speed": [
+          2,
+          10,
+          3,
+          1,
+          5,
+          8
+        ],
+        "efficiency": [
+          5,
+          4,
+          3,
+          9,
+          7,
+          2
+        ],
+        "k": 2
+      },
+      "expected_output": 60,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 6,
+        "speed": [
+          2,
+          10,
+          3,
+          1,
+          5,
+          8
+        ],
+        "efficiency": [
+          5,
+          4,
+          3,
+          9,
+          7,
+          2
+        ],
+        "k": 3
+      },
+      "expected_output": 68,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 1,
+        "speed": [
+          100000
+        ],
+        "efficiency": [
+          100000000
+        ],
+        "k": 1
+      },
+      "expected_output": 10000000000000,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 1,
+        "speed": [
+          6
+        ],
+        "efficiency": [
+          6
+        ],
+        "k": 1
+      },
+      "expected_output": 36,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 2,
+        "speed": [
+          15,
+          6
+        ],
+        "efficiency": [
+          1,
+          3
+        ],
+        "k": 1
+      },
+      "expected_output": 18,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 3,
+        "speed": [
+          8,
+          20,
+          11
+        ],
+        "efficiency": [
+          3,
+          9,
+          18
+        ],
+        "k": 1
+      },
+      "expected_output": 198,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 4,
+        "speed": [
+          12,
+          18,
+          2,
+          15
+        ],
+        "efficiency": [
+          9,
+          5,
+          20,
+          10
+        ],
+        "k": 3
+      },
+      "expected_output": 261,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

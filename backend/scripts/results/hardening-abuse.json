@@ -1,0 +1,46 @@
+{
+  "scenario": "abuse",
+  "at": "2026-11-06T19:57:14+00:00",
+  "duration_s": 20.0,
+  "args": {
+    "scenario": "abuse",
+    "base_url": "http://127.0.0.1:8000",
+    "clients": 8,
+    "duration": 20.0,
+    "ai_users": 40,
+    "readers": 8,
+    "label": "",
+    "note": "1 process, default limits (10/min per IP, 20 wrong passwords per account per 15 min)"
+  },
+  "machine": {
+    "cpus": 4,
+    "python": "3.13.18",
+    "platform": "Linux-6.18.44-fc-v242-x86_64-with-glibc2.39"
+  },
+  "results": {
+    "GET /me/progress (reader)": {
+      "requests": 335,
+      "per_second": 16.8,
+      "status": {
+        "200": 335
+      },
+      "p50_ms": 109.4,
+      "p95_ms": 157.9,
+      "p99_ms": 409.4,
+      "max_ms": 712.1
+    },
+    "POST /auth/login (wrong password, one address)": {
+      "requests": 1337,
+      "per_second": 66.8,
+      "status": {
+        "401": 8,
+        "429": 1329
+      },
+      "p50_ms": 87.8,
+      "p95_ms": 307.9,
+      "p99_ms": 498.4,
+      "max_ms": 1130.7
+    }
+  },
+  "wall_s": 20.4
+}

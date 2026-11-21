@@ -21,6 +21,11 @@ export function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
+/** A time later today, such as when an undo window closes: "14:05" or "2:05 PM". */
+export function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString(undefined, { timeStyle: "short" });
+}
+
 export function percent(value: number | null | undefined): string {
   return value === null || value === undefined ? "—" : `${Math.round(value * 100)}%`;
 }

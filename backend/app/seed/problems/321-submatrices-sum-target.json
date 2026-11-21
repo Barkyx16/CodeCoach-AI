@@ -1,0 +1,191 @@
+{
+  "order": 321,
+  "slug": "submatrices-sum-target",
+  "title": "Submatrices That Sum to Target",
+  "difficulty": "hard",
+  "topics": [
+    "matrix",
+    "prefix-sums",
+    "hash-maps"
+  ],
+  "summary": "Count rectangles in a matrix whose values add up to a target.",
+  "statement": "Return the number of non-empty rectangular submatrices of `matrix` whose values sum to `target`.",
+  "constraints": [
+    "1 <= rows, cols <= 100",
+    "-1000 <= matrix[i][j] <= 1000"
+  ],
+  "examples": [
+    {
+      "input": "matrix = [[0, 1, 0], [1, 1, 1], [0, 1, 0]], target = 0",
+      "output": "4"
+    },
+    {
+      "input": "matrix = [[1, -1], [-1, 1]], target = 0",
+      "output": "5"
+    },
+    {
+      "input": "matrix = [[904]], target = 0",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "numSubmatrixSumTarget",
+    "params": [
+      {
+        "name": "matrix",
+        "type": "int[][]"
+      },
+      {
+        "name": "target",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int numSubmatrixSumTarget(int[][] matrix, int target) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Fix the top and bottom rows; then it's a 1-D problem.",
+    "For each pair of rows, compress columns into sums and count subarrays with sum `target` using prefix sums and a hash map.",
+    "for top in rows:\n    colSums = [0]*n\n    for bottom from top down:\n        add row bottom into colSums\n        count += subarraysWithSum(colSums, target)   # prefix-count map\nreturn count",
+    "O(m^2 n) time: every row pair runs a linear subarray-sum count."
+  ],
+  "expected_complexity": {
+    "time": "O(m^2 n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "matrix": [
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            0
+          ]
+        ],
+        "target": 0
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            1,
+            -1
+          ],
+          [
+            -1,
+            1
+          ]
+        ],
+        "target": 0
+      },
+      "expected_output": 5,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            904
+          ]
+        ],
+        "target": 0
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            2,
+            2
+          ],
+          [
+            2,
+            -2
+          ],
+          [
+            1,
+            -1
+          ]
+        ],
+        "target": -1
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            1,
+            -1
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            -2,
+            2
+          ],
+          [
+            1,
+            0
+          ]
+        ],
+        "target": 2
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            -2
+          ],
+          [
+            0
+          ]
+        ],
+        "target": -1
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            -2
+          ],
+          [
+            1
+          ],
+          [
+            0
+          ]
+        ],
+        "target": 0
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

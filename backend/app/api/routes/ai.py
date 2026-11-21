@@ -4,12 +4,19 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, get_db, get_settings_dep
 from app.config import Settings
+from app.errors import NotFoundError, RateLimitedError
 from app.models import AIAction, AIInteraction, Problem, User
 from app.schemas.ai import (
     AIHistoryItem,
     AIUsage,
+    CoachPreview,
+    ExplainFailurePreviewRequest,
+    ExplainFailureRequest,
+    ExplainFailureResponse,
+    HintPreviewRequest,
     HintRequest,
     HintResponse,
+    ReviewPreviewRequest,
     ReviewRequest,
     ReviewResponse,
 )
@@ -26,6 +33,15 @@ def get_coach(
     return CoachService(db, settings, request.app.state.ai_provider)
 
 
+def _preview_allowed(request: Request, user: User) -> None:
+    """Previews are free but limited: 60 a minute per account, for every operation together."""
+    allowed, retry_after = request.app.state.coach_preview_limiter.hit(f"coach-preview:{user.id}")
+    if not allowed:
+        raise RateLimitedError.wait(
+            "That's a lot of previews in a minute. Try again in a moment.", retry_after
+        )
+
+
 @router.post(
     "/ai/hint",
     response_model=HintResponse,
@@ -39,6 +55,22 @@ def hint(
 
 
 @router.post(
+    "/ai/hint/preview",
+    response_model=CoachPreview,
+    responses=_ERRORS,
+    summary="What a hint would send to the coach, exactly (no provider call, no budget)",
+)
+def hint_preview(
+    body: HintPreviewRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    coach: CoachService = Depends(get_coach),
+) -> CoachPreview:
+    _preview_allowed(request, user)
+    return coach.hint_preview(user, body)
+
+
+@router.post(
     "/ai/review",
     response_model=ReviewResponse,
     responses=_ERRORS,
@@ -48,6 +80,52 @@ def review(
     body: ReviewRequest, user: User = Depends(get_current_user), coach: CoachService = Depends(get_coach)
 ) -> ReviewResponse:
     return coach.review(user, body)
+
+
+@router.post(
+    "/ai/review/preview",
+    response_model=CoachPreview,
+    responses=_ERRORS,
+    summary="What a code review would send to the coach, exactly (no provider call, no budget)",
+)
+def review_preview(
+    body: ReviewPreviewRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    coach: CoachService = Depends(get_coach),
+) -> CoachPreview:
+    _preview_allowed(request, user)
+    return coach.review_preview(user, body)
+
+
+@router.post(
+    "/ai/explain-failure/preview",
+    response_model=CoachPreview,
+    responses=_ERRORS,
+    summary="What explaining a failed submission would send to the coach, exactly (no provider call, no budget)",
+)
+def explain_failure_preview(
+    body: ExplainFailurePreviewRequest,
+    request: Request,
+    user: User = Depends(get_current_user),
+    coach: CoachService = Depends(get_coach),
+) -> CoachPreview:
+    _preview_allowed(request, user)
+    return coach.explain_preview(user, body)
+
+
+@router.post(
+    "/ai/explain-failure",
+    response_model=ExplainFailureResponse,
+    responses=_ERRORS,
+    summary="Explain why a judged submission failed (public evidence only; cached per submission)",
+)
+def explain_failure(
+    body: ExplainFailureRequest,
+    user: User = Depends(get_current_user),
+    coach: CoachService = Depends(get_coach),
+) -> ExplainFailureResponse:
+    return coach.explain_failure(user, body)
 
 
 @router.get("/ai/usage", response_model=AIUsage, responses=_ERRORS, summary="Your AI budget for the last 24h")
@@ -98,3 +176,32 @@ def ai_history(
         for ai, p in rows
     ]
     return Page[AIHistoryItem](items=items, total=total, page=page, page_size=page_size)
+
+
+@router.get(
+    "/me/ai-history/{interaction_id}",
+    response_model=AIHistoryItem,
+    responses=_ERRORS,
+    summary="One saved hint, review or failure explanation (owner only)",
+)
+def ai_history_item(
+    interaction_id: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)
+) -> AIHistoryItem:
+    row = db.execute(
+        select(AIInteraction, Problem)
+        .join(Problem, Problem.id == AIInteraction.problem_id)
+        .where(AIInteraction.id == interaction_id, AIInteraction.user_id == user.id)
+    ).first()
+    if row is None:
+        raise NotFoundError("Feedback not found")
+    ai, p = row
+    return AIHistoryItem(
+        id=ai.id,
+        problem_slug=p.slug,
+        problem_title=p.title,
+        action=ai.action.value,
+        hint_level=ai.hint_level,
+        provider=ai.provider,
+        created_at=ai.created_at,
+        response=ai.response,
+    )

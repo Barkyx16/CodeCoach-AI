@@ -1,0 +1,205 @@
+{
+  "order": 314,
+  "slug": "shortest-path-eliminate-obstacles",
+  "title": "Shortest Path, Breaking Up to K Walls",
+  "difficulty": "hard",
+  "topics": [
+    "graphs",
+    "matrix"
+  ],
+  "summary": "Fewest steps across a grid when you may remove up to k obstacles.",
+  "statement": "In `grid`, `0` is open and `1` is an obstacle. Moving up/down/left/right, you may pass through at most `k`\nobstacles in total. Return the fewest steps from the top-left to the bottom-right, or `-1`.",
+  "constraints": [
+    "1 <= rows, cols <= 40",
+    "1 <= k <= rows * cols",
+    "the corners are 0"
+  ],
+  "examples": [
+    {
+      "input": "grid = [[0, 0, 0], [1, 1, 0], [0, 0, 0], [0, 1, 1], [0, 0, 0]], k = 1",
+      "output": "6"
+    },
+    {
+      "input": "grid = [[0, 1, 1], [1, 1, 1], [1, 0, 0]], k = 1",
+      "output": "-1"
+    },
+    {
+      "input": "grid = [[0]], k = 1",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "shortestPathWithK",
+    "params": [
+      {
+        "name": "grid",
+        "type": "int[][]"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int shortestPathWithK(int[][] grid, int k) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Reaching a cell with more removals left is better than reaching it with fewer.",
+    "BFS over states (row, col, removals left). Stepping onto a 1 costs one removal.",
+    "queue = [(0, 0, k)]; seen = {(0, 0, k)}\nsteps = 0\nwhile queue:\n    for each state in this level:\n        if goal: return steps\n        for neighbors: left = rem - grid[nr][nc]; if left >= 0 and unseen: enqueue\n    steps += 1\nreturn -1",
+    "At most m \u00d7 n \u00d7 (k + 1) states: O(m n k). If k \u2265 m + n - 2 you can go straight there in m + n - 2 steps."
+  ],
+  "expected_complexity": {
+    "time": "O(m n k)",
+    "space": "O(m n k)"
+  },
+  "tests": [
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0
+          ]
+        ],
+        "k": 1
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            0
+          ]
+        ],
+        "k": 1
+      },
+      "expected_output": -1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0
+          ]
+        ],
+        "k": 1
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "k": 3
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ]
+        ],
+        "k": 2
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0,
+            0
+          ]
+        ],
+        "k": 1
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            0
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ]
+        ],
+        "k": 1
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

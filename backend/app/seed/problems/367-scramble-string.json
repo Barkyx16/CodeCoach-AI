@@ -1,0 +1,123 @@
+{
+  "order": 367,
+  "slug": "scramble-string",
+  "title": "Scramble String",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "recursion",
+    "strings"
+  ],
+  "summary": "Can one string be scrambled into another by recursive split-and-swap?",
+  "statement": "To scramble a string of length > 1, split it into two non-empty parts at any point, optionally swap the two\nparts, and scramble each part recursively. Return `true` if `s2` is a scrambled form of `s1`.",
+  "constraints": [
+    "1 <= s1.length == s2.length <= 30",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s1 = \"great\", s2 = \"rgeat\"",
+      "output": "true"
+    },
+    {
+      "input": "s1 = \"abcde\", s2 = \"caebd\"",
+      "output": "false"
+    },
+    {
+      "input": "s1 = \"a\", s2 = \"a\"",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "isScramble",
+    "params": [
+      {
+        "name": "s1",
+        "type": "String"
+      },
+      {
+        "name": "s2",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isScramble(String s1, String s2) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Try every split point, with and without the swap.",
+    "s1 = a + b matches s2 if (a ~ s2's same-length prefix and b ~ the rest) or (a ~ s2's same-length suffix and b ~ the rest).",
+    "def scr(x, y):\n    if x == y: return true\n    if sorted(x) != sorted(y): return false\n    for i in 1..len-1:\n        if scr(x[:i], y[:i]) and scr(x[i:], y[i:]): return true\n        if scr(x[:i], y[-i:]) and scr(x[i:], y[:-i]): return true\n    return false",
+    "Memoizing on (x, y) (or on index triples) gives O(n^4). The sorted-letters check prunes most branches early."
+  ],
+  "expected_complexity": {
+    "time": "O(n^4)",
+    "space": "O(n^3)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s1": "great",
+        "s2": "rgeat"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s1": "abcde",
+        "s2": "caebd"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s1": "a",
+        "s2": "a"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s1": "abc",
+        "s2": "bca"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "cb",
+        "s2": "cb"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "bbcbaa",
+        "s2": "cbaabb"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "abbacb",
+        "s2": "bbcaba"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "baabbbb",
+        "s2": "abbabbb"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

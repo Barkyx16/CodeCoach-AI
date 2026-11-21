@@ -39,6 +39,11 @@ ignore = [
     "UP046",  # keep typing.Generic: clearer for readers new to Python 3.12 generics
 ]
 
+[tool.ruff.lint.per-file-ignores]
+# Problem-bank models are deliberately compact reference lambdas evaluated immediately inside
+# comprehensions, which B023 can't tell apart from late-binding bugs.
+"scripts/problembank/*" = ["B023"]
+
 [tool.mypy]
 python_version = "3.12"
 plugins = ["pydantic.mypy"]

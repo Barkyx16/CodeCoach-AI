@@ -1,0 +1,131 @@
+{
+  "order": 330,
+  "slug": "integer-to-english",
+  "title": "Integer to English Words",
+  "difficulty": "hard",
+  "topics": [
+    "strings",
+    "math",
+    "recursion"
+  ],
+  "summary": "Spell out a number in English.",
+  "statement": "Return the English words for the non-negative integer `num`, capitalized as in the examples:\n`123` \u2192 `\"One Hundred Twenty Three\"`, `1234567` \u2192 `\"One Million Two Hundred Thirty Four Thousand Five Hundred Sixty Seven\"`.\nZero is `\"Zero\"`. No \"and\", no hyphens.",
+  "constraints": [
+    "0 <= num <= 2^31 - 1"
+  ],
+  "examples": [
+    {
+      "input": "num = 123",
+      "output": "\"One Hundred Twenty Three\""
+    },
+    {
+      "input": "num = 12345",
+      "output": "\"Twelve Thousand Three Hundred Forty Five\""
+    },
+    {
+      "input": "num = 1234567",
+      "output": "\"One Million Two Hundred Thirty Four Thousand Five Hundred Sixty Seven\""
+    }
+  ],
+  "signature": {
+    "method": "numberToWords",
+    "params": [
+      {
+        "name": "num",
+        "type": "int"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String numberToWords(int num) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Numbers repeat in groups of three digits: billions, millions, thousands, ones.",
+    "Write a helper for 0-999 (hundreds, then tens/teens, then ones) and apply it to each group with its scale word.",
+    "for value, name in [(1e9, 'Billion'), (1e6, 'Million'), (1e3, 'Thousand'), (1, '')]:\n    if num >= value: words += helper(num // value) + [name]; num %= value\nreturn ' '.join(words)",
+    "Constant work (at most four groups). The teen numbers (10-19) need their own words; skipping empty groups avoids \"Zero Thousand\"."
+  ],
+  "expected_complexity": {
+    "time": "O(1)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "num": 123
+      },
+      "expected_output": "One Hundred Twenty Three",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "num": 12345
+      },
+      "expected_output": "Twelve Thousand Three Hundred Forty Five",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "num": 1234567
+      },
+      "expected_output": "One Million Two Hundred Thirty Four Thousand Five Hundred Sixty Seven",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "num": 0
+      },
+      "expected_output": "Zero",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 1000010
+      },
+      "expected_output": "One Million Ten",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 2147483647
+      },
+      "expected_output": "Two Billion One Hundred Forty Seven Million Four Hundred Eighty Three Thousand Six Hundred Forty Seven",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 100
+      },
+      "expected_output": "One Hundred",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 772949
+      },
+      "expected_output": "Seven Hundred Seventy Two Thousand Nine Hundred Forty Nine",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 798388
+      },
+      "expected_output": "Seven Hundred Ninety Eight Thousand Three Hundred Eighty Eight",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 202010
+      },
+      "expected_output": "Two Hundred Two Thousand Ten",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 394
+      },
+      "expected_output": "Three Hundred Ninety Four",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

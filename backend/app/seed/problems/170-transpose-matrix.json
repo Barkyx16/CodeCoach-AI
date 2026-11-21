@@ -1,0 +1,283 @@
+{
+  "order": 170,
+  "slug": "transpose-matrix",
+  "title": "Transpose a Matrix",
+  "difficulty": "easy",
+  "topics": [
+    "matrix",
+    "arrays"
+  ],
+  "summary": "Flip a matrix over its diagonal.",
+  "statement": "Return the transpose of `matrix`: row `i`, column `j` of the result is row `j`, column `i` of the input.\nThe matrix is not necessarily square.",
+  "constraints": [
+    "1 <= rows, cols <= 1000",
+    "rows * cols <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "matrix = [[1, 2, 3], [4, 5, 6], [7, 8, 9]]",
+      "output": "[[1, 4, 7], [2, 5, 8], [3, 6, 9]]"
+    },
+    {
+      "input": "matrix = [[1, 2, 3], [4, 5, 6]]",
+      "output": "[[1, 4], [2, 5], [3, 6]]"
+    },
+    {
+      "input": "matrix = [[5]]",
+      "output": "[[5]]"
+    }
+  ],
+  "signature": {
+    "method": "transpose",
+    "params": [
+      {
+        "name": "matrix",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int[][]"
+  },
+  "starter_code": "class Solution {\n    public int[][] transpose(int[][] matrix) {\n        // TODO: write your solution here\n        return new int[0][];\n    }\n}\n",
+  "hints": [
+    "What are the dimensions of the result?",
+    "A rows\u00d7cols matrix becomes cols\u00d7rows. Copy `matrix[i][j]` to `out[j][i]`.",
+    "out = new matrix of size cols x rows\nfor i in rows:\n    for j in cols:\n        out[j][i] = matrix[i][j]\nreturn out",
+    "Visiting every cell once is O(rows \u00d7 cols). For non-square input you must allocate a new array."
+  ],
+  "expected_complexity": {
+    "time": "O(m * n)",
+    "space": "O(m * n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "matrix": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            4,
+            5,
+            6
+          ],
+          [
+            7,
+            8,
+            9
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          1,
+          4,
+          7
+        ],
+        [
+          2,
+          5,
+          8
+        ],
+        [
+          3,
+          6,
+          9
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            4,
+            5,
+            6
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          1,
+          4
+        ],
+        [
+          2,
+          5
+        ],
+        [
+          3,
+          6
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            5
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          5
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            4,
+            -2,
+            -5
+          ],
+          [
+            -3,
+            -3,
+            -9
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          4,
+          -3
+        ],
+        [
+          -2,
+          -3
+        ],
+        [
+          -5,
+          -9
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            8,
+            4,
+            4,
+            -4
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          8
+        ],
+        [
+          4
+        ],
+        [
+          4
+        ],
+        [
+          -4
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            0,
+            0,
+            4
+          ],
+          [
+            -7,
+            -6,
+            7
+          ],
+          [
+            -3,
+            -3,
+            5
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          0,
+          -7,
+          -3
+        ],
+        [
+          0,
+          -6,
+          -3
+        ],
+        [
+          4,
+          7,
+          5
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            9,
+            7,
+            -6,
+            -9
+          ],
+          [
+            -9,
+            -7,
+            4,
+            -4
+          ],
+          [
+            -9,
+            -8,
+            -3,
+            3
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          9,
+          -9,
+          -9
+        ],
+        [
+          7,
+          -7,
+          -8
+        ],
+        [
+          -6,
+          4,
+          -3
+        ],
+        [
+          -9,
+          -4,
+          3
+        ]
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

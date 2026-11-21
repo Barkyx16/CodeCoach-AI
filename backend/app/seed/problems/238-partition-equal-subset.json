@@ -1,0 +1,153 @@
+{
+  "order": 238,
+  "slug": "partition-equal-subset",
+  "title": "Split Into Two Equal Sums",
+  "difficulty": "medium",
+  "topics": [
+    "dynamic-programming"
+  ],
+  "summary": "Can an array be divided into two parts with equal sums?",
+  "statement": "Return `true` if `nums` can be split into two groups (every value in exactly one group) whose sums are equal.",
+  "constraints": [
+    "1 <= nums.length <= 200",
+    "1 <= nums[i] <= 100"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 5, 11, 5]",
+      "output": "true"
+    },
+    {
+      "input": "nums = [1, 2, 3, 5]",
+      "output": "false"
+    },
+    {
+      "input": "nums = [2]",
+      "output": "false"
+    }
+  ],
+  "signature": {
+    "method": "canPartition",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean canPartition(int[] nums) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Each group must sum to half the total. When is that impossible right away?",
+    "If the total is odd, no. Otherwise it's subset sum: can some values add up to total / 2?",
+    "if total % 2: return false\ntarget = total // 2\nreachable = {0}\nfor x in nums:\n    reachable |= {s + x for s in reachable if s + x <= target}\nreturn target in reachable",
+    "A boolean DP over sums 0..target, updated from high to low for each value: O(n \u00d7 target) time, O(target) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n * S)",
+    "space": "O(S)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          5,
+          11,
+          5
+        ]
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          5
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          2
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          6,
+          11,
+          10,
+          1,
+          5,
+          12,
+          6,
+          10
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          12,
+          11
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          11,
+          12,
+          3,
+          8,
+          2,
+          6,
+          4,
+          3,
+          6
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          2,
+          4,
+          8,
+          10
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

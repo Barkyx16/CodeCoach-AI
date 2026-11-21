@@ -3,8 +3,9 @@ deterministic, and is what the test-suite and the public demo run on by default.
 
 from __future__ import annotations
 
-from app.schemas.ai import CodeReview, Complexity, HintContent, ReviewIssue
-from app.services.ai.base import HintContext, ProviderResult, ReviewContext
+from app.schemas.ai import CodeReview, Complexity, FailureExplanation, HintContent, ReviewIssue
+from app.services.ai.base import FailureContext, HintContext, ProviderResult, ReviewContext
+from app.services.ai.failure_offline import explain_offline
 from app.services.ai.interviewer_offline import OfflineInterviewer
 
 _FOCUS = {
@@ -89,3 +90,6 @@ class OfflineCoach(OfflineInterviewer):
             provider=self.name,
             model=self.model,
         )
+
+    def explain_failure(self, ctx: FailureContext) -> ProviderResult[FailureExplanation]:
+        return ProviderResult(content=explain_offline(ctx), provider=self.name, model=self.model)

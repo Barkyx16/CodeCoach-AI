@@ -1,0 +1,130 @@
+{
+  "order": 118,
+  "slug": "power-of-two",
+  "title": "Power of Two",
+  "difficulty": "easy",
+  "topics": [
+    "bit-manipulation",
+    "math"
+  ],
+  "summary": "Check whether a number is a power of two.",
+  "statement": "Return `true` if `n` is a power of two (`1, 2, 4, 8, ...`), otherwise `false`. Zero and\nnegative numbers are not powers of two.",
+  "constraints": [
+    "-2^31 <= n <= 2^31 - 1"
+  ],
+  "examples": [
+    {
+      "input": "n = 16",
+      "output": "true"
+    },
+    {
+      "input": "n = 6",
+      "output": "false"
+    },
+    {
+      "input": "n = 1",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "isPowerOfTwo",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isPowerOfTwo(int n) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "What does a power of two look like in binary?",
+    "It has exactly one `1` bit. `n & (n - 1)` clears the lowest set bit.",
+    "return n > 0 and (n & (n - 1)) == 0",
+    "A positive number with a single set bit becomes 0 after clearing it: O(1). The `n > 0` check rules out 0 and negative numbers (the minimum int has one set bit but is negative)."
+  ],
+  "expected_complexity": {
+    "time": "O(1)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 16
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 6
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 1
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 0
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": -8
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": -2147483648
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 1073741824
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 2048
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 16777216
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 786242
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 632774
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

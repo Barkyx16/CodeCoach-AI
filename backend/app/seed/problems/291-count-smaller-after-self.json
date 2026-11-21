@@ -1,0 +1,215 @@
+{
+  "order": 291,
+  "slug": "count-smaller-after-self",
+  "title": "Count Smaller Numbers to the Right",
+  "difficulty": "hard",
+  "topics": [
+    "arrays",
+    "sorting",
+    "binary-search"
+  ],
+  "summary": "For each value, how many later values are smaller?",
+  "statement": "Return an array `counts` where `counts[i]` is how many values to the right of `nums[i]` are strictly smaller than it.",
+  "constraints": [
+    "1 <= nums.length <= 10^5",
+    "-10^4 <= nums[i] <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "nums = [5, 2, 6, 1]",
+      "output": "[2, 1, 1, 0]"
+    },
+    {
+      "input": "nums = [-1]",
+      "output": "[0]"
+    },
+    {
+      "input": "nums = [-1, -1]",
+      "output": "[0, 0]"
+    }
+  ],
+  "signature": {
+    "method": "countSmaller",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] countSmaller(int[] nums) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Checking every pair is O(n^2). Which data structure answers \"how many seen values are smaller than x?\" quickly?",
+    "Scan from the right, inserting values into a Fenwick tree (binary indexed tree) over the value range and querying the prefix count before inserting.",
+    "for i from n-1 down to 0:\n    counts[i] = bit.prefixSum(index(nums[i]) - 1)\n    bit.add(index(nums[i]), 1)\nreturn counts",
+    "Each query and update is O(log V): O(n log V) total. Merge sort that counts moves during merging also gives O(n log n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n log n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          5,
+          2,
+          6,
+          1
+        ]
+      },
+      "expected_output": [
+        2,
+        1,
+        1,
+        0
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          -1
+        ]
+      },
+      "expected_output": [
+        0
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          -1,
+          -1
+        ]
+      },
+      "expected_output": [
+        0,
+        0
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          10000,
+          -10000,
+          0
+        ]
+      },
+      "expected_output": [
+        2,
+        0,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          9,
+          -5,
+          5,
+          1,
+          2,
+          -2
+        ]
+      },
+      "expected_output": [
+        5,
+        0,
+        3,
+        1,
+        1,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -6,
+          5,
+          7,
+          -9,
+          -4,
+          3
+        ]
+      },
+      "expected_output": [
+        1,
+        3,
+        3,
+        0,
+        0,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          -4,
+          -4,
+          -9,
+          -7,
+          8,
+          5,
+          -6,
+          1,
+          -8,
+          2
+        ]
+      },
+      "expected_output": [
+        7,
+        4,
+        4,
+        0,
+        1,
+        5,
+        4,
+        1,
+        1,
+        0,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          4,
+          -8,
+          -4,
+          10,
+          4,
+          -1,
+          -4,
+          -10,
+          -2,
+          -4
+        ]
+      },
+      "expected_output": [
+        7,
+        7,
+        1,
+        1,
+        6,
+        5,
+        4,
+        1,
+        0,
+        1,
+        0
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

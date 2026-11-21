@@ -1,0 +1,110 @@
+{
+  "order": 153,
+  "slug": "max-occurring-char",
+  "title": "Most Frequent Character",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "counting"
+  ],
+  "summary": "Which letter appears most often? Ties go to the alphabetically first.",
+  "statement": "Return the letter that appears most often in `s` as a one-character string. If several letters\ntie, return the one that comes first in the alphabet.",
+  "constraints": [
+    "1 <= s.length <= 10^5",
+    "lower-case English letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"banana\"",
+      "output": "\"a\""
+    },
+    {
+      "input": "s = \"abc\"",
+      "output": "\"a\""
+    },
+    {
+      "input": "s = \"zzyy\"",
+      "output": "\"y\""
+    }
+  ],
+  "signature": {
+    "method": "mostFrequent",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String mostFrequent(String s) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Count every letter first.",
+    "Then scan the 26 counts from 'a' to 'z', keeping the first letter with the highest count.",
+    "counts = [0]*26\nfor c in s: counts[c] += 1\nbest = 0\nfor i in 1..25:\n    if counts[i] > counts[best]: best = i\nreturn letter(best)",
+    "O(n) to count, O(26) to choose. Scanning a\u2192z and only replacing on a strictly greater count makes ties go to the earlier letter."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "banana"
+      },
+      "expected_output": "a",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abc"
+      },
+      "expected_output": "a",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "zzyy"
+      },
+      "expected_output": "y",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "q"
+      },
+      "expected_output": "q",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "eeeebececbadbaecb"
+      },
+      "expected_output": "e",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "ccecbbcaeaeaccdbc"
+      },
+      "expected_output": "c",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "db"
+      },
+      "expected_output": "b",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "dbbdaecebaedabd"
+      },
+      "expected_output": "b",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,170 @@
+{
+  "order": 204,
+  "slug": "min-subarray-at-least",
+  "title": "Shortest Subarray With Sum at Least Target",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "sliding-window"
+  ],
+  "summary": "Shortest window of positive numbers reaching a target sum.",
+  "statement": "`nums` holds positive integers. Return the length of the shortest contiguous subarray whose sum is\nat least `target`, or `0` if no such subarray exists.",
+  "constraints": [
+    "1 <= nums.length <= 10^5",
+    "1 <= nums[i] <= 10^4",
+    "1 <= target <= 10^9"
+  ],
+  "examples": [
+    {
+      "input": "target = 7, nums = [2, 3, 1, 2, 4, 3]",
+      "output": "2"
+    },
+    {
+      "input": "target = 4, nums = [1, 4, 4]",
+      "output": "1"
+    },
+    {
+      "input": "target = 11, nums = [1, 1, 1, 1]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "minSubArrayLen",
+    "params": [
+      {
+        "name": "target",
+        "type": "int"
+      },
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minSubArrayLen(int target, int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "With only positive numbers, growing a window raises its sum and shrinking lowers it.",
+    "Extend the right edge; while the sum reaches the target, record the length and shrink from the left.",
+    "left = total = 0\nbest = infinity\nfor right, x in enumerate(nums):\n    total += x\n    while total >= target:\n        best = min(best, right - left + 1)\n        total -= nums[left]; left += 1\nreturn 0 if best is infinity else best",
+    "Positivity is what makes the two-pointer window correct: O(n). (With negatives you'd need a deque of prefix sums.)"
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "target": 7,
+        "nums": [
+          2,
+          3,
+          1,
+          2,
+          4,
+          3
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "target": 4,
+        "nums": [
+          1,
+          4,
+          4
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "target": 11,
+        "nums": [
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "target": 19,
+        "nums": [
+          4,
+          8,
+          1,
+          4,
+          7,
+          5,
+          9,
+          7
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "target": 16,
+        "nums": [
+          6,
+          2,
+          9,
+          7
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "target": 1,
+        "nums": [
+          3,
+          5,
+          7,
+          6,
+          6,
+          4,
+          7,
+          4,
+          7,
+          7,
+          4,
+          2
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "target": 2,
+        "nums": [
+          7,
+          9,
+          6,
+          4,
+          3,
+          3,
+          9,
+          9,
+          4,
+          3,
+          8
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

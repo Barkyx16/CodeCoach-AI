@@ -1,0 +1,122 @@
+{
+  "order": 117,
+  "slug": "hamming-distance",
+  "title": "Hamming Distance",
+  "difficulty": "easy",
+  "topics": [
+    "bit-manipulation",
+    "math"
+  ],
+  "summary": "Count the bit positions where two numbers differ.",
+  "statement": "Return the number of bit positions at which the binary forms of the non-negative integers\n`x` and `y` differ.",
+  "constraints": [
+    "0 <= x, y <= 2^31 - 1"
+  ],
+  "examples": [
+    {
+      "input": "x = 1, y = 4",
+      "output": "2",
+      "explanation": "0001 vs 0100: two bits differ."
+    },
+    {
+      "input": "x = 3, y = 1",
+      "output": "1"
+    },
+    {
+      "input": "x = 0, y = 0",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "hammingDistance",
+    "params": [
+      {
+        "name": "x",
+        "type": "int"
+      },
+      {
+        "name": "y",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int hammingDistance(int x, int y) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Which operator marks exactly the bits where two numbers differ?",
+    "`x ^ y` has a 1 wherever the bits differ. Count its 1 bits.",
+    "d = x ^ y\ncount = 0\nwhile d > 0:\n    d &= d - 1   # clears the lowest set bit\n    count += 1\nreturn count",
+    "XOR then popcount: O(number of bits). `d & (d - 1)` removes one set bit per step, so the loop runs once per differing bit. `Integer.bitCount(x ^ y)` does the same."
+  ],
+  "expected_complexity": {
+    "time": "O(1)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "x": 1,
+        "y": 4
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "x": 3,
+        "y": 1
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "x": 0,
+        "y": 0
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "x": 2147483647,
+        "y": 0
+      },
+      "expected_output": 31,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 42268,
+        "y": 492623
+      },
+      "expected_output": 9,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 509960,
+        "y": 995739
+      },
+      "expected_output": 11,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 750412,
+        "y": 901332
+      },
+      "expected_output": 10,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "x": 245994,
+        "y": 176436
+      },
+      "expected_output": 11,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

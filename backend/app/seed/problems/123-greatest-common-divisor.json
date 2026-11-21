@@ -1,0 +1,121 @@
+{
+  "order": 123,
+  "slug": "greatest-common-divisor",
+  "title": "Greatest Common Divisor",
+  "difficulty": "easy",
+  "topics": [
+    "math",
+    "recursion"
+  ],
+  "summary": "Find the largest number that divides both inputs.",
+  "statement": "Return the greatest common divisor of the positive integers `a` and `b`.",
+  "constraints": [
+    "1 <= a, b <= 10^9"
+  ],
+  "examples": [
+    {
+      "input": "a = 12, b = 18",
+      "output": "6"
+    },
+    {
+      "input": "a = 7, b = 13",
+      "output": "1"
+    },
+    {
+      "input": "a = 100, b = 10",
+      "output": "10"
+    }
+  ],
+  "signature": {
+    "method": "gcd",
+    "params": [
+      {
+        "name": "a",
+        "type": "int"
+      },
+      {
+        "name": "b",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int gcd(int a, int b) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Trying every divisor works but is slow for big numbers. Is there a classic shortcut?",
+    "Euclid's algorithm: gcd(a, b) = gcd(b, a % b), and gcd(a, 0) = a.",
+    "while b != 0:\n    a, b = b, a % b\nreturn a",
+    "Each step at least halves the larger value every two steps, so Euclid's algorithm is O(log min(a, b)), versus O(min(a, b)) for trial division."
+  ],
+  "expected_complexity": {
+    "time": "O(log min(a, b))",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "a": 12,
+        "b": 18
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": 7,
+        "b": 13
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": 100,
+        "b": 10
+      },
+      "expected_output": 10,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": 1000000000,
+        "b": 999999999
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": 138284,
+        "b": 146115
+      },
+      "expected_output": 191,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": 87230,
+        "b": 14030
+      },
+      "expected_output": 610,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": 45078,
+        "b": 39732
+      },
+      "expected_output": 66,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": 74315,
+        "b": 5340
+      },
+      "expected_output": 445,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

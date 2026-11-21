@@ -1,0 +1,207 @@
+{
+  "order": 113,
+  "slug": "plus-one",
+  "title": "Add One to a Digit Array",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "math"
+  ],
+  "summary": "A number is stored as digits; add one to it.",
+  "statement": "`digits` holds a non-negative integer, most significant digit first, with no leading zeros\n(except the number 0 itself). Return the digits of that number plus one.",
+  "constraints": [
+    "1 <= digits.length <= 100",
+    "0 <= digits[i] <= 9"
+  ],
+  "examples": [
+    {
+      "input": "digits = [1, 2, 3]",
+      "output": "[1, 2, 4]"
+    },
+    {
+      "input": "digits = [9, 9]",
+      "output": "[1, 0, 0]"
+    },
+    {
+      "input": "digits = [0]",
+      "output": "[1]"
+    }
+  ],
+  "signature": {
+    "method": "plusOne",
+    "params": [
+      {
+        "name": "digits",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] plusOne(int[] digits) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Do it the way you would on paper, starting from the last digit.",
+    "A 9 becomes 0 and carries 1 to the left. If the carry falls off the front, you need one more digit.",
+    "for i from n-1 down to 0:\n    if digits[i] < 9: digits[i] += 1; return digits\n    digits[i] = 0\nreturn [1] + digits",
+    "Stop at the first digit that isn't 9: O(n) in the worst case (all 9s) and usually much less. Converting to a long would overflow for 100 digits, so work on the digits directly."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "digits": [
+          1,
+          2,
+          3
+        ]
+      },
+      "expected_output": [
+        1,
+        2,
+        4
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "digits": [
+          9,
+          9
+        ]
+      },
+      "expected_output": [
+        1,
+        0,
+        0
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "digits": [
+          0
+        ]
+      },
+      "expected_output": [
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "digits": [
+          4,
+          9,
+          9
+        ]
+      },
+      "expected_output": [
+        5,
+        0,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "digits": [
+          9
+        ]
+      },
+      "expected_output": [
+        1,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "digits": [
+          1,
+          9,
+          9,
+          9,
+          0,
+          8,
+          9,
+          9
+        ]
+      },
+      "expected_output": [
+        1,
+        9,
+        9,
+        9,
+        0,
+        9,
+        0,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "digits": [
+          2,
+          9,
+          0,
+          9,
+          8,
+          9,
+          9
+        ]
+      },
+      "expected_output": [
+        2,
+        9,
+        0,
+        9,
+        9,
+        0,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "digits": [
+          3,
+          3,
+          4,
+          0
+        ]
+      },
+      "expected_output": [
+        3,
+        3,
+        4,
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "digits": [
+          3,
+          9,
+          2,
+          5,
+          9,
+          1
+        ]
+      },
+      "expected_output": [
+        3,
+        9,
+        2,
+        5,
+        9,
+        2
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

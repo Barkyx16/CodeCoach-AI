@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Markdown from "react-markdown";
 
 import type { ProblemDetail } from "@/api/types";
@@ -6,9 +7,10 @@ import { formatArgs, formatValue } from "@/lib/format";
 import { Icon } from "@/components/Icon";
 
 /** Problem text is Markdown from our own seed files; react-markdown renders no raw HTML. */
-export function ProblemStatement({ problem }: { problem: ProblemDetail }) {
+export function ProblemStatement({ problem, before, after }: { problem: ProblemDetail; before?: ReactNode; after?: ReactNode }) {
   return (
     <article className="statement" aria-labelledby="problem-title">
+      {before}
       <header className="statement__header">
         <p className="statement__eyebrow"><Icon name="book" size={14} /> PROBLEM STATEMENT</p>
         <h1 id="problem-title" className="statement__title">{problem.title}</h1>
@@ -61,6 +63,7 @@ export function ProblemStatement({ problem }: { problem: ProblemDetail }) {
           ))}
         </ul>
       </section>
+      {after}
     </article>
   );
 }

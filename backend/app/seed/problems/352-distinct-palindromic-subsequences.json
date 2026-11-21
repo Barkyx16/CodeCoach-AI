@@ -1,0 +1,111 @@
+{
+  "order": 352,
+  "slug": "distinct-palindromic-subsequences",
+  "title": "Count Distinct Palindromic Subsequences",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "strings"
+  ],
+  "summary": "How many different non-empty palindromic subsequences does a string have?",
+  "statement": "Return the number of **different** non-empty palindromic subsequences of `s` (as strings, so equal sequences\nfrom different positions count once), modulo `10^9 + 7`. `s` contains only `a`, `b`, `c` and `d`.",
+  "constraints": [
+    "1 <= s.length <= 1000",
+    "s[i] in {a, b, c, d}"
+  ],
+  "examples": [
+    {
+      "input": "s = \"bccb\"",
+      "output": "6",
+      "explanation": "b, c, bb, cc, bcb, bccb."
+    },
+    {
+      "input": "s = \"abcd\"",
+      "output": "4"
+    },
+    {
+      "input": "s = \"aaa\"",
+      "output": "3"
+    }
+  ],
+  "signature": {
+    "method": "countPalindromicSubsequences",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int countPalindromicSubsequences(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Count palindromes by their outer letter: for each letter, look inside the first and last occurrence in a range.",
+    "dp[i][j] for each letter x: palindromes in s[i..j] that start and end with x. Use the first/last x in the range and recurse inside.",
+    "def count(i, j):\n    total = 0\n    for x in 'abcd':\n        lo, hi = first and last index of x in [i, j]\n        if none: continue\n        total += 1 if lo == hi else 2 + count(lo + 1, hi - 1)\n    return total % MOD",
+    "Memoize on (i, j): O(4 n^2) states, each O(1) with precomputed next/previous occurrence tables."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2)",
+    "space": "O(n^2)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "bccb"
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abcd"
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aaa"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abcba"
+      },
+      "expected_output": 10,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aacad"
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "dd"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bcdbbdbba"
+      },
+      "expected_output": 17,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "b"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

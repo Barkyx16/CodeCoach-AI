@@ -1,0 +1,117 @@
+{
+  "order": 285,
+  "slug": "longest-valid-parentheses",
+  "title": "Longest Valid Parentheses",
+  "difficulty": "hard",
+  "topics": [
+    "stacks",
+    "dynamic-programming",
+    "strings"
+  ],
+  "summary": "Length of the longest well-formed parentheses substring.",
+  "statement": "`s` contains only `(` and `)`. Return the length of the longest contiguous substring that is a\nwell-formed (balanced) parentheses string.",
+  "constraints": [
+    "0 <= s.length <= 3 * 10^4"
+  ],
+  "examples": [
+    {
+      "input": "s = \"(()\"",
+      "output": "2"
+    },
+    {
+      "input": "s = \")()())\"",
+      "output": "4"
+    },
+    {
+      "input": "s = \"\"",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "longestValidParentheses",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int longestValidParentheses(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "An unmatched `)` splits the string into independent parts.",
+    "Keep a stack of indices, starting with -1 as a base. On `)`, pop; if the stack is empty, push this index as the new base; otherwise the valid run is `i - top`.",
+    "stack = [-1]\nbest = 0\nfor i, c in enumerate(s):\n    if c == '(': stack.append(i)\n    else:\n        stack.pop()\n        if not stack: stack.append(i)\n        else: best = max(best, i - stack[-1])\nreturn best",
+    "The stack bottom always marks the last position a valid run can't cross. O(n) time and space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "(()"
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": ")()())"
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": ""
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "()(())"
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "(()(((()"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": ")"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "()((()))((("
+      },
+      "expected_output": 8,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "))(((()"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "))(()()("
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

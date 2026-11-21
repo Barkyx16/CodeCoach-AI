@@ -1,0 +1,203 @@
+{
+  "order": 112,
+  "slug": "array-intersection",
+  "title": "Intersection of Two Arrays",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "hash-sets"
+  ],
+  "summary": "List the distinct values that appear in both arrays, sorted.",
+  "statement": "Return the distinct values that appear in both `a` and `b`, in ascending order.",
+  "constraints": [
+    "0 <= a.length, b.length <= 1000",
+    "0 <= values <= 1000"
+  ],
+  "examples": [
+    {
+      "input": "a = [1, 2, 2, 1], b = [2, 2]",
+      "output": "[2]"
+    },
+    {
+      "input": "a = [4, 9, 5], b = [9, 4, 9, 8, 4]",
+      "output": "[4, 9]"
+    },
+    {
+      "input": "a = [1], b = []",
+      "output": "[]"
+    }
+  ],
+  "signature": {
+    "method": "intersection",
+    "params": [
+      {
+        "name": "a",
+        "type": "int[]"
+      },
+      {
+        "name": "b",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] intersection(int[] a, int[] b) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Checking every pair works but is slow. How can you check membership quickly?",
+    "Put one array's values in a set; keep values of the other array that are in it.",
+    "seen = set(a)\nresult = sorted({x for x in b if x in seen})\nreturn result",
+    "Building a set is O(n) and each lookup is O(1) on average, so the work is O(n + m) plus O(k log k) to sort the k common values. Using a set for the result removes duplicates."
+  ],
+  "expected_complexity": {
+    "time": "O(n + m + k log k)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "a": [
+          1,
+          2,
+          2,
+          1
+        ],
+        "b": [
+          2,
+          2
+        ]
+      },
+      "expected_output": [
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": [
+          4,
+          9,
+          5
+        ],
+        "b": [
+          9,
+          4,
+          9,
+          8,
+          4
+        ]
+      },
+      "expected_output": [
+        4,
+        9
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": [
+          1
+        ],
+        "b": []
+      },
+      "expected_output": [],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": [
+          3,
+          1
+        ],
+        "b": [
+          5,
+          6
+        ]
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": [
+          5
+        ],
+        "b": [
+          8,
+          0,
+          13,
+          13,
+          1,
+          6
+        ]
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": [
+          6
+        ],
+        "b": [
+          11,
+          0,
+          2,
+          8
+        ]
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": [
+          15,
+          2,
+          2,
+          11,
+          2,
+          11,
+          9,
+          6,
+          10,
+          7,
+          10
+        ],
+        "b": []
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": [
+          13,
+          0,
+          6,
+          8,
+          4,
+          12,
+          0,
+          2,
+          7,
+          10,
+          3,
+          13
+        ],
+        "b": [
+          6,
+          7,
+          1,
+          1,
+          1
+        ]
+      },
+      "expected_output": [
+        6,
+        7
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

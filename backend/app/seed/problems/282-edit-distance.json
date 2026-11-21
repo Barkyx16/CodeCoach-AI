@@ -1,0 +1,122 @@
+{
+  "order": 282,
+  "slug": "edit-distance",
+  "title": "Edit Distance",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "strings"
+  ],
+  "summary": "Fewest inserts, deletes and replacements to turn one word into another.",
+  "statement": "Return the minimum number of single-character insertions, deletions and replacements needed to turn\n`a` into `b`.",
+  "constraints": [
+    "0 <= a.length, b.length <= 500",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "a = \"horse\", b = \"ros\"",
+      "output": "3"
+    },
+    {
+      "input": "a = \"intention\", b = \"execution\"",
+      "output": "5"
+    },
+    {
+      "input": "a = \"\", b = \"abc\"",
+      "output": "3"
+    }
+  ],
+  "signature": {
+    "method": "minDistance",
+    "params": [
+      {
+        "name": "a",
+        "type": "String"
+      },
+      {
+        "name": "b",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minDistance(String a, String b) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Compare the last characters of the two prefixes.",
+    "If they match, no cost; otherwise take 1 + the best of insert, delete or replace.",
+    "dp[i][0] = i; dp[0][j] = j\nfor i, j:\n    if a[i-1] == b[j-1]: dp[i][j] = dp[i-1][j-1]\n    else: dp[i][j] = 1 + min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1])\nreturn dp[n][m]",
+    "O(n m) time; keeping two rows makes it O(m) space. Delete = up, insert = left, replace = diagonal."
+  ],
+  "expected_complexity": {
+    "time": "O(n m)",
+    "space": "O(n m)"
+  },
+  "tests": [
+    {
+      "input": {
+        "a": "horse",
+        "b": "ros"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": "intention",
+        "b": "execution"
+      },
+      "expected_output": 5,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": "",
+        "b": "abc"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": "same",
+        "b": "same"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "abbaca",
+        "b": "a"
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "",
+        "b": "cccba"
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "b",
+        "b": "b"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "bcca",
+        "b": "ab"
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

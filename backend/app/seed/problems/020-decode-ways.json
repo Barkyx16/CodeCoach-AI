@@ -1,0 +1,126 @@
+{
+  "order": 20,
+  "slug": "decode-ways",
+  "title": "Decode Ways",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "dynamic-programming"
+  ],
+  "summary": "Count the ways a string of digits can be read as letters A=1 ... Z=26.",
+  "statement": "Letters are encoded as numbers: `A` is `\"1\"`, `B` is `\"2\"`, ..., `Z` is `\"26\"`. Given a string `s` of digits, return the number of ways to decode it.\n\nA group can't start with `0`, so `\"06\"` is not a valid code for `F`. If `s` can't be decoded at all, return 0.",
+  "constraints": [
+    "1 <= s.length <= 100",
+    "s contains only digits",
+    "The answer fits in a 32-bit int"
+  ],
+  "examples": [
+    {
+      "input": "s = \"12\"",
+      "output": "2",
+      "explanation": "\"AB\" (1 2) or \"L\" (12)."
+    },
+    {
+      "input": "s = \"226\"",
+      "output": "3",
+      "explanation": "\"BZ\" (2 26), \"VF\" (22 6) or \"BBF\" (2 2 6)."
+    },
+    {
+      "input": "s = \"06\"",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "numDecodings",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int numDecodings(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Look at how a decoding of the string ends: its last group is either one digit or two digits. Each valid choice leaves a shorter string to decode. How does the count for the whole string relate to the counts for those shorter strings?",
+    "Dynamic programming over prefixes: ways[i] counts decodings of the first i characters. Add ways[i - 1] if the single digit s[i - 1] is not '0', and add ways[i - 2] if the two digits s[i - 2..i - 1] form a number from 10 to 26.",
+    "prev2 = 1   // ways for the empty prefix\nprev1 = (s[0] != '0') ? 1 : 0\nfor i from 2 to n:\n    current = 0\n    if s[i - 1] != '0': current += prev1\n    two = number formed by s[i - 2], s[i - 1]\n    if 10 <= two <= 26: current += prev2\n    prev2 = prev1\n    prev1 = current\nreturn prev1",
+    "Trying every split recursively is exponential because the same suffixes are decoded again and again. Counting by prefix length removes the repetition: each position adds the counts of the one or two shorter prefixes that can precede it, like Fibonacci with conditions. Only the last two counts are needed, so it's O(n) time and O(1) space. Zeros are the tricky part: '0' can only appear as the second digit of 10 or 20."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "12"
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "226"
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "06"
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "0"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "10"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "11106"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "2101"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "1111111111"
+      },
+      "expected_output": 89,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "27"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "100"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    }
+  ]
+}

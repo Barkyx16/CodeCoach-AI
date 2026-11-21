@@ -29,7 +29,15 @@ uvicorn app.main:app_factory --factory --port 8100
 "stdout": "…", "stderr": "…", "compile_output": null, "run_started": true, "output_truncated": false,
 "duration_ms": 4012}`. Returns `503` when all `MAX_CONCURRENCY` slots are busy, so the caller retries.
 
-`GET /health` → `{"status": "ok"}`. There are no public docs endpoints (private service).
+`sandbox_error` means the learner's code **never started** (the entrypoint's run marker was
+never printed and it wasn't a compile error, timeout, output flood or OOM kill): Docker
+unreachable, image missing, a bad payload. The API treats it as infrastructure: it retries and
+then reports `INTERNAL_ERROR` ("not your fault"), never a runtime error in the learner's code.
+
+`GET /health` → `{"status": "ok"}` (liveness: the process is up).
+`GET /ready` → `200 {"status": "ok"}` or `503 {"status": "unavailable"}` (readiness: the Docker
+daemon answers). The image's healthcheck uses `/ready`. There are no public docs endpoints
+(private service).
 
 ## Tests
 ```bash

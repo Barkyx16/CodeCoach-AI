@@ -1,0 +1,110 @@
+{
+  "order": 370,
+  "slug": "min-insertions-palindrome",
+  "title": "Fewest Insertions to Make a Palindrome",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "strings"
+  ],
+  "summary": "Insert the fewest characters anywhere to make a palindrome.",
+  "statement": "In one step you can insert any character anywhere in `s`. Return the minimum number of steps to make `s` a palindrome.",
+  "constraints": [
+    "1 <= s.length <= 500",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"zzazz\"",
+      "output": "0"
+    },
+    {
+      "input": "s = \"mbadm\"",
+      "output": "2"
+    },
+    {
+      "input": "s = \"leetcode\"",
+      "output": "5"
+    }
+  ],
+  "signature": {
+    "method": "minInsertions",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minInsertions(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Characters that already pair up don't need help. Which ones do?",
+    "The answer is `n - LPS`, where LPS is the longest palindromic subsequence (= LCS of `s` and its reverse).",
+    "dp[i][j] = min insertions for s[i..j]\nif s[i] == s[j]: dp[i][j] = dp[i+1][j-1]\nelse: dp[i][j] = 1 + min(dp[i+1][j], dp[i][j-1])\nreturn dp[0][n-1]",
+    "Interval DP, O(n^2) time and O(n^2) (or O(n)) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2)",
+    "space": "O(n^2)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "zzazz"
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "mbadm"
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "leetcode"
+      },
+      "expected_output": 5,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bab"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "cccbbcacbc"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "ab"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "cacac"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

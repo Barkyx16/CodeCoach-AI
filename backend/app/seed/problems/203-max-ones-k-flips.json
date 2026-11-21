@@ -1,0 +1,174 @@
+{
+  "order": 203,
+  "slug": "max-ones-k-flips",
+  "title": "Longest Ones With K Flips",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "sliding-window"
+  ],
+  "summary": "Flip at most k zeros to get the longest run of ones.",
+  "statement": "`nums` is a binary array. You may change at most `k` zeros into ones. Return the length of the\nlongest run of consecutive ones you can get.",
+  "constraints": [
+    "1 <= nums.length <= 10^5",
+    "0 <= k <= nums.length"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 1, 1, 0, 0, 0, 1, 1, 1, 1, 0], k = 2",
+      "output": "6"
+    },
+    {
+      "input": "nums = [0, 0, 1, 1, 0, 0, 1, 1, 1, 0, 1, 1, 0, 0, 0, 1, 1, 1, 1], k = 3",
+      "output": "10"
+    },
+    {
+      "input": "nums = [0, 0], k = 0",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "longestOnesWithFlips",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int longestOnesWithFlips(int[] nums, int k) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Restate it: find the longest window that contains at most `k` zeros.",
+    "Slide a window; when it holds more than `k` zeros, move the left edge past a zero.",
+    "left = zeros = best = 0\nfor right, x in enumerate(nums):\n    zeros += x == 0\n    while zeros > k:\n        zeros -= nums[left] == 0; left += 1\n    best = max(best, right - left + 1)\nreturn best",
+    "Each index enters and leaves once: O(n) time, O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          1,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1,
+          0
+        ],
+        "k": 2
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          1,
+          1,
+          0,
+          0,
+          1,
+          1,
+          1,
+          0,
+          1,
+          1,
+          0,
+          0,
+          0,
+          1,
+          1,
+          1,
+          1
+        ],
+        "k": 3
+      },
+      "expected_output": 10,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0
+        ],
+        "k": 0
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          0,
+          0,
+          0
+        ],
+        "k": 1
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          1,
+          1,
+          0,
+          0,
+          1,
+          0,
+          1,
+          0
+        ],
+        "k": 1
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1
+        ],
+        "k": 3
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "k": 3
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

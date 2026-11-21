@@ -1,0 +1,189 @@
+{
+  "order": 209,
+  "slug": "next-greater-circular",
+  "title": "Next Greater Element in a Circle",
+  "difficulty": "medium",
+  "topics": [
+    "stacks",
+    "arrays"
+  ],
+  "summary": "Next bigger value to the right, wrapping around the end.",
+  "statement": "`nums` is circular: after the last value comes the first. For each value, return the first greater\nvalue found by moving right (wrapping around), or `-1` if there is none.",
+  "constraints": [
+    "1 <= nums.length <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 2, 1]",
+      "output": "[2, -1, 2]"
+    },
+    {
+      "input": "nums = [1, 2, 3, 4, 3]",
+      "output": "[2, 3, 4, -1, 4]"
+    },
+    {
+      "input": "nums = [5]",
+      "output": "[-1]"
+    }
+  ],
+  "signature": {
+    "method": "nextGreaterElements",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] nextGreaterElements(int[] nums) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Wrapping around is like scanning the array twice.",
+    "Run a decreasing stack of indices over `2n` steps using `i % n`, only pushing during the first pass.",
+    "ans = [-1]*n\nstack = []\nfor i in range(2*n):\n    x = nums[i % n]\n    while stack and nums[stack[-1]] < x: ans[stack.pop()] = x\n    if i < n: stack.append(i)\nreturn ans",
+    "Two passes with a monotonic stack: O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          1
+        ]
+      },
+      "expected_output": [
+        2,
+        -1,
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          4,
+          3
+        ]
+      },
+      "expected_output": [
+        2,
+        3,
+        4,
+        -1,
+        4
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          5
+        ]
+      },
+      "expected_output": [
+        -1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          3
+        ]
+      },
+      "expected_output": [
+        -1,
+        -1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          4,
+          7,
+          3,
+          4,
+          0,
+          7,
+          5
+        ]
+      },
+      "expected_output": [
+        4,
+        4,
+        7,
+        -1,
+        4,
+        7,
+        7,
+        -1,
+        7
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          4,
+          0,
+          9,
+          1
+        ]
+      },
+      "expected_output": [
+        4,
+        9,
+        9,
+        -1,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          9,
+          5,
+          6
+        ]
+      },
+      "expected_output": [
+        -1,
+        6,
+        9
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          9,
+          5,
+          4,
+          4
+        ]
+      },
+      "expected_output": [
+        -1,
+        9,
+        9,
+        9
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

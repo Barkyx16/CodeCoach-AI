@@ -1,0 +1,226 @@
+{
+  "order": 339,
+  "slug": "smallest-range-k-lists",
+  "title": "Smallest Range Covering K Lists",
+  "difficulty": "hard",
+  "topics": [
+    "heaps",
+    "sliding-window",
+    "sorting"
+  ],
+  "summary": "Tightest range that includes a value from every sorted list.",
+  "statement": "`lists` holds `k` sorted lists. Return the smallest range `[a, b]` such that every list has at least one value\nin it. A range is smaller if `b - a` is smaller, or if equal, `a` is smaller.",
+  "constraints": [
+    "1 <= k <= 3500",
+    "1 <= lists[i].length <= 50",
+    "each list is sorted"
+  ],
+  "examples": [
+    {
+      "input": "lists = [[4, 10, 15, 24, 26], [0, 9, 12, 20], [5, 18, 22, 30]]",
+      "output": "[20, 24]"
+    },
+    {
+      "input": "lists = [[1, 2, 3], [1, 2, 3], [1, 2, 3]]",
+      "output": "[1, 1]"
+    },
+    {
+      "input": "lists = [[7]]",
+      "output": "[7, 7]"
+    }
+  ],
+  "signature": {
+    "method": "smallestRange",
+    "params": [
+      {
+        "name": "lists",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] smallestRange(int[][] lists) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Keep one pointer per list; the current range is from the smallest to the largest pointed value.",
+    "A min-heap gives the smallest value. Advance the list it came from (the only move that could shrink the range), tracking the max.",
+    "heap = first value of each list; hi = max of them\nwhile true:\n    lo, list, idx = pop min\n    update best with [lo, hi]\n    if idx + 1 == len(list): break\n    push next value of that list; hi = max(hi, it)\nreturn best",
+    "Each value enters the heap once: O(N log k) for N total values."
+  ],
+  "expected_complexity": {
+    "time": "O(N log k)",
+    "space": "O(k)"
+  },
+  "tests": [
+    {
+      "input": {
+        "lists": [
+          [
+            4,
+            10,
+            15,
+            24,
+            26
+          ],
+          [
+            0,
+            9,
+            12,
+            20
+          ],
+          [
+            5,
+            18,
+            22,
+            30
+          ]
+        ]
+      },
+      "expected_output": [
+        20,
+        24
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "lists": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            1,
+            2,
+            3
+          ]
+        ]
+      },
+      "expected_output": [
+        1,
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "lists": [
+          [
+            7
+          ]
+        ]
+      },
+      "expected_output": [
+        7,
+        7
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "lists": [
+          [
+            13,
+            13,
+            19
+          ]
+        ]
+      },
+      "expected_output": [
+        13,
+        13
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "lists": [
+          [
+            4
+          ],
+          [
+            4,
+            7,
+            11,
+            16,
+            19
+          ],
+          [
+            16
+          ],
+          [
+            20,
+            21
+          ]
+        ]
+      },
+      "expected_output": [
+        4,
+        20
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "lists": [
+          [
+            5,
+            21,
+            23,
+            24
+          ],
+          [
+            3,
+            19,
+            21,
+            21
+          ],
+          [
+            0,
+            12
+          ]
+        ]
+      },
+      "expected_output": [
+        0,
+        5
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "lists": [
+          [
+            7,
+            7,
+            12,
+            12
+          ],
+          [
+            14
+          ],
+          [
+            13,
+            18,
+            19
+          ],
+          [
+            6,
+            7
+          ]
+        ]
+      },
+      "expected_output": [
+        7,
+        14
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,201 @@
+{
+  "order": 160,
+  "slug": "stock-profit-many",
+  "title": "Buy and Sell Many Times",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "greedy"
+  ],
+  "summary": "Trade as often as you like; maximize total profit.",
+  "statement": "`prices[i]` is the price on day `i`. You may buy and sell many times, but hold at most one share\nat a time. Return the maximum total profit.",
+  "constraints": [
+    "1 <= prices.length <= 3 * 10^4",
+    "0 <= prices[i] <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "prices = [7, 1, 5, 3, 6, 4]",
+      "output": "7"
+    },
+    {
+      "input": "prices = [1, 2, 3, 4, 5]",
+      "output": "4"
+    },
+    {
+      "input": "prices = [7, 6, 4, 3, 1]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "maxProfitMany",
+    "params": [
+      {
+        "name": "prices",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int maxProfitMany(int[] prices) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Think about every day-to-day price rise.",
+    "Collecting every positive difference `prices[i] - prices[i-1]` equals the best trading plan.",
+    "profit = 0\nfor i in 1..n-1:\n    if prices[i] > prices[i-1]: profit += prices[i] - prices[i-1]\nreturn profit",
+    "Any rising stretch's profit is the sum of its daily rises, so summing all rises is optimal. O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "prices": [
+          7,
+          1,
+          5,
+          3,
+          6,
+          4
+        ]
+      },
+      "expected_output": 7,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "prices": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "prices": [
+          7,
+          6,
+          4,
+          3,
+          1
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "prices": [
+          10,
+          46,
+          4,
+          31,
+          6,
+          25,
+          48,
+          19,
+          41,
+          37,
+          34,
+          12,
+          1,
+          45,
+          35,
+          50,
+          33,
+          18,
+          24,
+          14,
+          11,
+          1,
+          5,
+          14,
+          26,
+          11,
+          0,
+          37,
+          38,
+          42
+        ]
+      },
+      "expected_output": 259,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "prices": [
+          5,
+          4,
+          20,
+          37,
+          50,
+          1,
+          1,
+          4,
+          38,
+          35,
+          39,
+          49,
+          6,
+          29,
+          29,
+          31,
+          39,
+          48,
+          12,
+          49,
+          11,
+          41,
+          7
+        ]
+      },
+      "expected_output": 206,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "prices": [
+          6,
+          23,
+          43,
+          17,
+          26,
+          49,
+          38,
+          49,
+          17,
+          24,
+          27,
+          21,
+          45,
+          32
+        ]
+      },
+      "expected_output": 114,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "prices": [
+          36,
+          30,
+          32,
+          40,
+          26,
+          38,
+          39,
+          30
+        ]
+      },
+      "expected_output": 23,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

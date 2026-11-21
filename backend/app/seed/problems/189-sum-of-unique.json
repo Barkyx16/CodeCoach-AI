@@ -1,0 +1,146 @@
+{
+  "order": 189,
+  "slug": "sum-of-unique",
+  "title": "Sum of Unique Values",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "hash-maps"
+  ],
+  "summary": "Add up the values that appear exactly once.",
+  "statement": "Return the sum of all values in `nums` that appear exactly once.",
+  "constraints": [
+    "1 <= nums.length <= 100",
+    "1 <= nums[i] <= 100"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 2, 3, 2]",
+      "output": "4"
+    },
+    {
+      "input": "nums = [1, 1, 1, 1, 1]",
+      "output": "0"
+    },
+    {
+      "input": "nums = [1, 2, 3, 4, 5]",
+      "output": "15"
+    }
+  ],
+  "signature": {
+    "method": "sumOfUnique",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int sumOfUnique(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "You need to know how often each value appears.",
+    "Count first, then add the values whose count is 1.",
+    "counts = count each value\nreturn sum(v for v, c in counts if c == 1)",
+    "Counting with an array of 101 slots makes it O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          2
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ]
+      },
+      "expected_output": 15,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          1,
+          7,
+          7,
+          2
+        ]
+      },
+      "expected_output": 7,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          10
+        ]
+      },
+      "expected_output": 10,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          8,
+          7,
+          2,
+          8,
+          1,
+          3
+        ]
+      },
+      "expected_output": 13,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          6,
+          5,
+          2,
+          6,
+          9,
+          4,
+          7,
+          1,
+          5,
+          3
+        ]
+      },
+      "expected_output": 26,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}
