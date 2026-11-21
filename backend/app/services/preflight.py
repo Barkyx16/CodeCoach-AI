@@ -113,6 +113,15 @@ def _client_address_check(trusted: str | None) -> Check:
 
 def _mail_checks(s: Settings, connect: bool) -> list[Check]:
     out = []
+    if s.demo_mode and s.email_backend != "smtp":
+        return [
+            Check(
+                "mail transport",
+                OPTIONAL,
+                "demo mode sends no email: registration, resets, address changes and verification are refused "
+                "(docs/DEMO.md)",
+            )
+        ]
     if s.email_backend != "smtp":
         out.append(
             Check(

@@ -106,6 +106,9 @@ What this rehearsal does **not** show:
 
 ## Runbook
 
+For a public portfolio demo (guest sessions only, no email, no real accounts), follow
+[DEMO.md](DEMO.md), "Publishing it": the same compose and checks, with no mail provider needed.
+
 **Before launch:**
 1. Choose a host and a mail provider. Register the sender domain with the provider and add the
    DNS records it gives you ([EMAIL.md](EMAIL.md)).

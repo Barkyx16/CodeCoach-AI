@@ -29,7 +29,8 @@ services:
       # The image's bootstrap superuser: used once, by deploy/postgres-init, to make the two roles.
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set POSTGRES_SUPERUSER_PASSWORD}
-      POSTGRES_DB: codecoach
+      # The database's name: codecoach, or one containing "demo" for a portfolio demo (docs/DEMO.md).
+      POSTGRES_DB: ${CODECOACH_DB:-codecoach}
       CODECOACH_OWNER_PASSWORD: ${CODECOACH_OWNER_PASSWORD:?set CODECOACH_OWNER_PASSWORD}
       CODECOACH_APP_PASSWORD: ${CODECOACH_APP_PASSWORD:?set CODECOACH_APP_PASSWORD}
     volumes:
@@ -37,7 +38,7 @@ services:
       - ./postgres-init:/docker-entrypoint-initdb.d:ro
     # No `ports:`: only the services on this compose network can reach the database.
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d codecoach"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -50,7 +51,7 @@ services:
     environment:
       ENVIRONMENT: production
       AUTO_MIGRATE: "false"
-      DATABASE_URL: postgresql+psycopg://codecoach_owner:${CODECOACH_OWNER_PASSWORD}@db:5432/codecoach
+      DATABASE_URL: postgresql+psycopg://codecoach_owner:${CODECOACH_OWNER_PASSWORD}@db:5432/${CODECOACH_DB:-codecoach}
     command: >-
       sh -c "alembic upgrade head
       && python -m app.cli seed
@@ -67,7 +68,7 @@ services:
       ENVIRONMENT: production
       AUTO_MIGRATE: "false"
       # The app role: row access only. The owner's password is not in this container.
-      DATABASE_URL: postgresql+psycopg://codecoach_app:${CODECOACH_APP_PASSWORD}@db:5432/codecoach
+      DATABASE_URL: postgresql+psycopg://codecoach_app:${CODECOACH_APP_PASSWORD}@db:5432/${CODECOACH_DB:-codecoach}
       # Whose X-Forwarded-For to believe. A proxy on the host reaches this container through
       # Docker's gateway (e.g. 172.18.0.1), never 127.0.0.1, so uvicorn's default would make every
       # visitor share the gateway's address, and its sign-in rate limit (10 a minute, for everyone).
@@ -101,7 +102,7 @@ services:
     environment:
       ENVIRONMENT: production
       AUTO_MIGRATE: "false"
-      DATABASE_URL: postgresql+psycopg://codecoach_owner:${CODECOACH_OWNER_PASSWORD}@db:5432/codecoach
+      DATABASE_URL: postgresql+psycopg://codecoach_owner:${CODECOACH_OWNER_PASSWORD}@db:5432/${CODECOACH_DB:-codecoach}
     volumes:
       - backups:/backups
       - type: bind

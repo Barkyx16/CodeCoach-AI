@@ -340,14 +340,22 @@ class Settings(BaseSettings):
                     "SMTP_SECURITY=none (or SMTP_STARTTLS=false) isn't allowed in production: emailed reset "
                     "links would cross the network unencrypted. Use starttls or ssl"
                 )
-            if _address_domain(self.email_from) in ("", "localhost"):
+            # A portfolio demo (DEMO_MODE=true) sends no email: it refuses registration, resets,
+            # address changes and verification, and the email helper refuses again (docs/DEMO.md).
+            # So it needs no mail server; everything else here still applies.
+            if not self.demo_mode and _address_domain(self.email_from) in ("", "localhost"):
                 raise ValueError(
                     "EMAIL_FROM must be an address on a domain you send from, e.g. "
                     "'CodeCoach AI <no-reply@example.com>' (not @localhost)"
                 )
-            if self.email_backend != "smtp" or not self.smtp_host:
+            if not self.demo_mode and (self.email_backend != "smtp" or not self.smtp_host):
                 raise ValueError(
                     "Production needs EMAIL_BACKEND=smtp and SMTP_HOST (other backends expose reset links)"
+                )
+            if self.demo_mode and self.email_backend == "console":
+                raise ValueError(
+                    "A production demo can't use EMAIL_BACKEND=console (it would print messages to the logs): "
+                    "use file, or smtp"
                 )
             if not self.app_base_url.startswith("https://"):
                 raise ValueError("APP_BASE_URL must be https in production (it goes into emailed links)")
