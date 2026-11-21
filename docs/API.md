@@ -137,6 +137,7 @@ Every non-2xx response has this shape:
 | 400 | `bad_request` | Generic bad input | Show `message` |
 | 400 | `payload_too_large` | Source code over `MAX_SOURCE_CHARS` (`details.max_source_chars`) | Inline editor error |
 | 400 | `guest_disabled` | Guest sessions turned off | Hide the guest button |
+| 429 | `guest_sessions_limited` | This address started its day's guest sessions (`GUEST_SESSIONS_PER_DAY`) | Offer sign-in or registration; `Retry-After` says when |
 | 401 | `unauthorized` | No token on a protected route | Redirect to login |
 | 401 | `invalid_token` | Token invalid, expired, or revoked | Clear token, redirect to login |
 | 401 | `invalid_refresh` / `refresh_reused` / `refresh_race` | Refresh cookie missing/expired/revoked, replayed (family revoked), or another request using it right now (retry a few times, with a short wait) | Sign in again / retry |

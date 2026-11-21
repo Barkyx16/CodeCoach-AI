@@ -85,6 +85,8 @@ export default defineConfig({
         EMAIL_BACKEND: "file",
         EMAIL_FILE_DIR: `./e2e-outbox${suffix}`,
         AUTH_RATE_LIMIT_PER_MINUTE: "1000",
+        // Every guest in the suite starts from 127.0.0.1: the daily cap per address would stop the run.
+        GUEST_SESSIONS_PER_DAY: "100000",
         // Every test runs from 127.0.0.1 and every page load refreshes the session.
         REFRESH_RATE_LIMIT_PER_MINUTE: "10000",
         LOG_LEVEL: "WARNING",

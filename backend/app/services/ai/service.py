@@ -226,9 +226,17 @@ class CoachService:
 
     # --- public API -------------------------------------------------------------------
 
+    def daily_limit(self, user: User) -> int:
+        """Requests a day for this account. Guests and accounts whose email isn't verified get the
+        smaller allowance (anyone can make one); verifying the address lifts it."""
+        limit = self.settings.ai_daily_request_limit
+        if user.is_guest or user.email_verified_at is None:
+            return min(limit, self.settings.ai_unverified_daily_request_limit)
+        return limit
+
     def usage(self, user: User) -> AIUsage:
         used = self._used_today(user)
-        limit = self.settings.ai_daily_request_limit
+        limit = self.daily_limit(user)
         return AIUsage(
             used_today=used,
             daily_limit=limit,
@@ -664,7 +672,7 @@ class CoachService:
                 if external
                 else None
             ),
-            remaining_today=max(0, self.settings.ai_daily_request_limit - self._used_today(user)),
+            remaining_today=max(0, self.daily_limit(user) - self._used_today(user)),
             context_fingerprint=fingerprint,
             names_replaced=sum(i.names_replaced for i in items),
             names_note=names_note(sum(i.names_replaced for i in items)),
@@ -1046,7 +1054,7 @@ class CoachService:
                 2,
                 code="ai_request_in_progress",
             )
-        limit = self.settings.ai_daily_request_limit
+        limit = self.daily_limit(user)
         if self._used_today(user) >= limit:
             since = datetime.now(UTC) - timedelta(days=1)
             # The window is rolling: a request frees up when the oldest in the last 24 h ages out.
@@ -1059,11 +1067,14 @@ class CoachService:
             if oldest is not None:
                 oldest = oldest if oldest.tzinfo else oldest.replace(tzinfo=UTC)
                 wait = (oldest + timedelta(days=1) - datetime.now(UTC)).total_seconds()
-            raise RateLimitedError.wait(
-                "You've used today's AI coaching budget. It resets on a rolling 24-hour window.",
-                wait,
-                daily_limit=limit,
-            )
+            message = "You've used today's AI coaching budget. It resets on a rolling 24-hour window."
+            if limit < self.settings.ai_daily_request_limit:
+                message += (
+                    " A guest session gets a smaller one: an account with a verified email gets more."
+                    if user.is_guest
+                    else " Verify your email address to get the full daily budget."
+                )
+            raise RateLimitedError.wait(message, wait, daily_limit=limit)
 
     def call_with_fallback(self, call: Callable[[CoachProvider], ProviderResult[T]]) -> ProviderResult[T]:
         """Run `call` on the configured provider; on ProviderError, answer with the offline coach.

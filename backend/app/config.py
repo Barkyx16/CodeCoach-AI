@@ -133,6 +133,9 @@ class Settings(BaseSettings):
     # Secure cookies need HTTPS. Unset means: secure in production, not in development/tests.
     refresh_cookie_secure: bool | None = None
     allow_guest_sessions: bool = True
+    # Guest sessions one client address may start in a rolling day (IPv6 by /64): each is a fresh
+    # account with its own AI allowance and stored data, so they can't be made without end.
+    guest_sessions_per_day: int = Field(default=20, ge=1)
     # A portfolio demo (docs/DEMO.md): visitors use their own guest sessions; creating accounts,
     # upgrading a guest, password resets, email changes and verification emails are refused, so
     # this server never sends email. Its database is a demo database: python -m app.cli demo-reset.
@@ -204,6 +207,14 @@ class Settings(BaseSettings):
     anthropic_model: str = "claude-opus-5-5"
     anthropic_effort: Literal["low", "medium", "high"] = "low"
     ai_daily_request_limit: int = Field(default=50, ge=0)
+    # Guests and accounts whose email isn't verified yet: anyone can make one, so each gets this
+    # smaller daily allowance (never more than the one above). Verifying the address lifts it.
+    ai_unverified_daily_request_limit: int = Field(default=10, ge=0)
+    # Calls to a paid provider across every account, in a rolling day. With none left the built-in
+    # coach answers (labelled as a fallback) until the window frees up, so what the deployment
+    # spends has a ceiling however many accounts are made. 0: no paid calls at all. Not used with
+    # the offline provider (docs/SECURITY.md, "AI spending").
+    ai_app_daily_paid_call_limit: int = Field(default=200, ge=0)
     # Calls to a paid provider running at once in one API process. When all are busy, the free
     # offline coach answers at once (labelled as a fallback) instead of queueing: a slow provider
     # can't tie up every database connection and worker thread. Each user has one AI request in

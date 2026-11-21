@@ -79,12 +79,16 @@ def close_interviews(
     """The interviews_expired step: each interview past its deadline closed in its learner's own
     session (services/interviews.py, `close_overdue`), one failing not stopping the others."""
     from app.services.ai.service import build_provider
+    from app.services.ai.spend_cap import capped
     from app.services.interviews import close_overdue
 
     try:
         return {
             "interviews_expired": close_overdue(
-                session_factory, settings, provider or build_provider(settings)
+                session_factory,
+                settings,
+                # The same ceiling on paid calls as the API's, from the same counter.
+                provider or capped(build_provider(settings), settings, session_factory),
             )
         }
     except Exception:  # noqa: BLE001 - housekeeping must never take anything else down

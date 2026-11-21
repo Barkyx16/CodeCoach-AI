@@ -40,12 +40,33 @@ built yet**. Nothing in the "designed" sections should be described as working.
 | Prompt injection via code or problem text | Tutor role lives in the system prompt; learner code, problem text, analysis, compiler output and the failing public test are wrapped in `<learner_code>` / `<problem>` / `<analysis>` / `<compiler_output>` / `<failing_public_test>` tags and declared untrusted data. Output is constrained to a JSON schema and validated. **Model output is never executed.** |
 | AI overriding correctness | The judge verdict is passed in as authoritative; responses carry a disclaimer; the API never derives pass/fail from AI output. |
 | Leaking secrets to a vendor | API keys, AWS keys, GitHub tokens, private keys and `password = "…"` literals are redacted before any model call. |
-| Excessive usage and cost | Per-user daily budget enforced from the database (`429`); input length cap; `effort=low`; offline provider by default. |
+| Excessive usage and cost | Per-user daily budget enforced from the database (`429`), smaller for guests and unverified emails; one ceiling on paid calls for the whole deployment, past which the built-in coach answers; a daily cap on guest sessions per address; input length cap; `effort=low`; offline provider by default. See "AI spending" below. |
 | Spoilers | Hint levels unlock in order, enforced server-side (`409 hint_locked`). Failure explanations are told not to write the corrected solution. |
 | Hidden tests reaching the AI | Failure explanations are built from the same public-only view the learner sees (`public_result_view`): first failing **public** test, redacted compiler output, pass counts. Hidden inputs are never in the prompt. |
 | Provider outage or refusal | Typed SDK errors, `refusal` and `max_tokens` stop reasons all fall back to the offline coach, as does a reply that is schema-valid but unusable (empty required text, no Big-O notation, a failure explanation with no evidence or invented evidence); the learner sees that the built-in coach answered. |
 | Live evaluation | Only with `--allow-paid-calls` and a call budget; tokens reserved before each request, so retries and concurrency can't overspend; the API key is checked for presence only and never printed or stored in a report. |
 | Data retention | Prompts (which contain code) are not stored; only the feedback shown to the user is saved, linked to the user, and deleted with them (cascade). |
+
+### AI spending
+
+Anyone can start a guest session or register, so per-account budgets alone don't bound what a
+deployment with a paid provider spends. Three limits do, all in the database so every API replica,
+restart and the worker share them (tests: `tests/test_ai_spending.py`):
+
+| Limit | Setting (default) | What happens past it |
+|---|---|---|
+| Paid calls for the whole deployment, rolling 24 h | `AI_APP_DAILY_PAID_CALL_LIMIT` (200; 0 = none) | The paid provider isn't called; the built-in coach answers, labelled as a fallback (metrics count it as `fallback_app_budget`). Requests keep working. |
+| Requests per account, rolling 24 h | `AI_DAILY_REQUEST_LIMIT` (50); guests and accounts whose email isn't verified: `AI_UNVERIFIED_DAILY_REQUEST_LIMIT` (10, never more than the first) | `429` with `Retry-After`, saying that verifying the email raises it. A finished interview's feedback still comes, from the built-in scorer. |
+| Guest sessions one address starts, rolling 24 h | `GUEST_SESSIONS_PER_DAY` (20; IPv6 by /64) | `429 guest_sessions_limited`; signing in and registering stay open. A start sent again by the same browser resumes its guest and isn't counted. |
+
+The ceiling covers every paid call: hints, code reviews, failure explanations, the coding
+interviewer's turns and its feedback, from the API and from the worker that closes overdue
+interviews (`app/services/ai/spend_cap.py`). It counts a call when it's attempted, however it ends,
+and a refused call isn't counted, so it frees up on its own. It can be passed by at most the calls
+in flight at that moment (`AI_MAX_CONCURRENT_CALLS` per API process). What a day costs at most is
+the ceiling times the most one call can cost with your model and effort: set the ceiling from your
+provider's prices, and set a spending limit in the provider's own console as well, which is the
+one control here that doesn't depend on this code.
 
 Prompt-injection defenses lower the risk; they don't remove it. Because model output is only
 ever *displayed* (as structured text) and never executed or used for authorization, a

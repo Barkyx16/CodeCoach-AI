@@ -21,6 +21,7 @@ export function describeError(error: unknown): { title: string; message: string;
       server_busy: "The server is busy",
       database_unavailable: "The server can't reach its database",
       ai_request_in_progress: "Another coaching request is still running",
+      guest_sessions_limited: "No more guest sessions today",
       request_in_progress: "Still being answered",
       idempotency_key_reused: "Already sent with different content",
       session_changed: "You signed in or out meanwhile",

@@ -67,6 +67,7 @@ from app.jobs import JobsRunner
 from app.metrics import Metrics
 from app.observability import RequestContextMiddleware, configure_access_file, configure_logging
 from app.services.ai.service import build_provider
+from app.services.ai.spend_cap import capped
 from app.services.email import build_email_sender
 from app.services.judge.backends import build_backend
 from app.services.judge.health import ExecutionHealth
@@ -260,7 +261,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.state.settings = settings
     app.state.engine = engine
     app.state.session_factory = session_factory
-    app.state.ai_provider = build_provider(settings)
+    # A paid provider sits behind one daily ceiling for the whole deployment (docs/SECURITY.md, "AI spending").
+    app.state.ai_provider = capped(build_provider(settings), settings, session_factory)
     app.state.execution_backend = build_backend(settings)
     app.state.execution_health = ExecutionHealth(settings)
     app.state.email_sender = build_email_sender(settings)
@@ -292,6 +294,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         120, 60
     )  # per account: workspace searches a minute (typing is debounced)
     app.state.packet_limiter = limiter(30, 60)  # per account: packet previews a minute (docs/PACKET.md)
+    app.state.guest_limiter = limiter(settings.guest_sessions_per_day, 86_400)  # per client address
     app.state.coach_preview_limiter = limiter(
         60, 60
     )  # per account: coach previews a minute (docs/COACH_CONTEXT.md)

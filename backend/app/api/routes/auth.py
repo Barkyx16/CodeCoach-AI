@@ -294,6 +294,14 @@ def guest(
     _throttle(request)
     if (resumed := create_intents.made_by(db, cc_create, "guest")) is not None:
         return _resumed(db, resumed, response, settings, "guest")
+    # Each guest is a new account with its own AI allowance: a day's worth per address, at most.
+    allowed, retry_after = request.app.state.guest_limiter.hit(f"guest:{client_key(request)}")
+    if not allowed:
+        raise RateLimitedError.wait(
+            "Too many guest sessions from this network today. Sign in or create an account instead.",
+            retry_after,
+            code="guest_sessions_limited",
+        )
     user = User(
         auth_provider_id=f"guest:{new_id()}",
         is_guest=True,
