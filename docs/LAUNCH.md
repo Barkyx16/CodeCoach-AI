@@ -144,4 +144,8 @@ For a public portfolio demo (guest sessions only, no email, no real accounts), f
 3. **No backup schedule on a host, and no off-site storage.** The backup job, its retention,
    its check and the cron line are ready and rehearsed. Scheduling them needs the host, and
    off-site copies need a storage provider ([BACKUP.md](BACKUP.md)).
-4. **CI** has not run on these commits: they're local until you approve a push.
+4. **Publishing is the owner's step.** CI runs on every pushed commit of the branch; deploying,
+   a domain and a certificate need the owner's accounts. For a portfolio, the demo needs no mail
+   provider and keeps no real accounts ([DEMO.md](DEMO.md), "Publishing it"), which removes
+   blocker 2 for it and softens 3: `demo-reset` recreates its starting state, so a lost database
+   costs only visitors' guest work, which the demo keeps for a day after its last use.
