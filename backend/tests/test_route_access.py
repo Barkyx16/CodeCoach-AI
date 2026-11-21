@@ -279,12 +279,15 @@ def test_another_account_changes_nothing_of_yours_on_any_write_route(client):
     bea = auth_headers(register(client, email="bea@example.com", career_track=TRACK))
     ids = seed(client, ada)
     before = client.get("/api/v1/me/export", headers=ada).json()
-    walked = 0
+    walked, skipped = 0, set()
     for method, path, kind, _ in route_table(client.app):
         if method == "GET" or kind != "user":
             continue
         private = set(re.findall(r"{(\w+)(?::\w+)?}", path)) - PUBLIC_PARAMS
-        if not private or not private <= ids.keys():
+        if not private:
+            continue
+        if not private <= ids.keys():
+            skipped.add((method, path))
             continue
         r = client.request(method, concrete(path, ids), headers=bea, json={})
         walked += 1
@@ -292,6 +295,14 @@ def test_another_account_changes_nothing_of_yours_on_any_write_route(client):
         assert not 200 <= r.status_code < 300, (method, path, r.status_code)
         assert SECRET not in r.text, (method, path)
     assert walked >= 30, walked
+    # A write route this walk can't call with its ids is called in test_route_access_writes.py with
+    # real ones; a new one must be added there (docs/SECURITY.md).
+    from tests.test_route_access_writes import SKIPPED_WRITES
+
+    assert skipped == SKIPPED_WRITES, (
+        f"write routes with ids neither walk covers: {sorted(skipped - SKIPPED_WRITES)}; "
+        f"listed but no longer skipped: {sorted(SKIPPED_WRITES - skipped)}"
+    )
     after = client.get("/api/v1/me/export", headers=ada).json()
     for section in ("notes", "applications", "stories", "schedule"):
         assert after.get(section) == before.get(section), section
