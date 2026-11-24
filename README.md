@@ -12,9 +12,13 @@ always comes from test cases, never from the AI.
 > Java in an isolated gVisor sandbox**, verified by unit, integration, threat-model and
 > real-browser tests in CI.
 
+The coding pictures (workspace, mock interview and the judge's results) show the sidebar collapsed
+to icons, which gives the editor more room; the others show it in full. Its top button, or Settings ›
+Display › Sidebar, switches between the two.
+
 | Workspace | Mock interview |
 |---|---|
-| ![Workspace with AI code review](docs/screenshots/premium-workspace.png) | ![Live mock interview](docs/screenshots/premium-interview-live.png) |
+| ![Workspace with AI code review, sidebar collapsed to icons](docs/screenshots/premium-workspace.png) | ![Live mock interview, sidebar collapsed to icons](docs/screenshots/premium-interview-live.png) |
 | **Interview feedback** | **Dashboard** |
 | ![Rubric feedback](docs/screenshots/premium-interview-feedback.png) | ![Progress dashboard](docs/screenshots/premium-dashboard.png) |
 | **Sign in** | **Reset password** |
@@ -22,7 +26,7 @@ always comes from test cases, never from the AI.
 | **Settings** | **Settings on a phone** |
 | ![Settings grouped into sections](docs/screenshots/18-settings-redesign.png) | ![Settings on a phone](docs/screenshots/19-settings-mobile.png) |
 | **Judged in the gVisor sandbox** | **Explain my failure** |
-| ![Submission passed](docs/screenshots/08-judged-pass.png) | ![Failure explanation](docs/screenshots/10-explain-failure.png) |
+| ![Submission passed, sidebar collapsed to icons](docs/screenshots/08-judged-pass.png) | ![Failure explanation, sidebar collapsed to icons](docs/screenshots/10-explain-failure.png) |
 
 ## What works today
 
