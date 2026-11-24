@@ -1,7 +1,7 @@
 .eyebrow { color: var(--color-link); font: 500 0.6875rem/1.6 var(--font-mono); letter-spacing: .12em; text-transform: uppercase; }
 .landing { width: 100%; max-width: 1280px; margin: auto; padding: 0 40px; }
 .landing__hero { padding: 92px 0 64px; text-align: center; display: grid; gap: 24px; justify-items: center; position: relative; background: radial-gradient(ellipse at 50% 30%, var(--color-primary-soft), transparent 65%); }
-.landing__eyebrow { display: inline-flex; align-items: center; gap: 10px; color: var(--color-text-muted); font: 500 0.6875rem var(--font-mono); letter-spacing: .1em; }
+.landing__eyebrow { display: inline-flex; align-items: center; gap: 10px; color: var(--color-text-muted); font: 600 0.6875rem var(--font-sans); letter-spacing: var(--tracking-eyebrow); }
 .landing__eyebrow span { width: 6px; height: 6px; border-radius: 50%; background: var(--color-link); box-shadow: 0 0 12px var(--tint-link-border); }
 .landing__title { max-width: 1000px; font-size: clamp(2.5rem, 5.4vw, 4.5rem); font-weight: 650; letter-spacing: -.055em; line-height: 1.08; }
 .landing__title span { color: var(--color-link); }

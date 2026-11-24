@@ -7,6 +7,13 @@
   src: url('/fonts/inter-latin.woff2') format('woff2');
 }
 @font-face {
+  font-family: Newsreader;
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('/fonts/newsreader-latin.woff2') format('woff2');
+}
+@font-face {
   font-family: 'JetBrains Mono';
   font-style: normal;
   font-weight: 100 800;
@@ -183,7 +190,8 @@ main:focus { outline: none; box-shadow: none; }
 @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
 
 /* Links inside running text are underlined, so they never rely on color alone (WCAG 1.4.1). */
-#main p a:not(.btn):not(.back-link), #main li > p a:not(.btn), #main dd a:not(.btn) {
+#main p a:not(.btn):not(.back-link), #main li > p a:not(.btn), #main dd a:not(.btn),
+#main .mini-list li a:not([class]) {
   text-decoration: underline;
   text-underline-offset: 2px;
 }

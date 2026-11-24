@@ -202,14 +202,18 @@ export async function chooseJob(
   await scope.locator(`[role="option"][data-value="${slug}"]`).click();
 }
 
-/** Go to a page through the main navigation as a person does: open the heading its link sits under
- * (a panel), then click the link. In the narrow-screen menu every section is already listed. */
+/** Go to a page through the main navigation as a person does: click its link in the sidebar (or in
+ * the narrow-screen menu, once that's open), opening its section first if the section is collapsed. */
 export async function navTo(page: import("@playwright/test").Page, name: string): Promise<void> {
   const nav = page.getByRole("navigation", { name: "Main", exact: true });
   const link = nav.getByRole("link", { name, exact: true });
+  // The wide layout lists every page in the sidebar; a section's own button shows only where pages
+  // are tucked into a disclosure. Open it only when there is one to press, then wait for the link
+  // (an admin's extra pages appear once their permissions have loaded).
   if (!(await link.isVisible())) {
     const title = page.locator(".nav-item__title").filter({ hasText: new RegExp(`^${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`) });
-    await nav.locator(".nav-group").filter({ has: title }).getByRole("button").click();
+    const group = nav.locator(".nav-group").filter({ has: title }).getByRole("button");
+    if (await group.isVisible()) await group.click();
   }
   await link.click();
 }

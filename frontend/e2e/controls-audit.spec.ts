@@ -194,7 +194,8 @@ test("the audit flags a control that does nothing, and one that throws", async (
     close.textContent = "Audit self-test: dismisses";
     close.addEventListener("click", () => note.remove());
     note.append("A note. ", close);
-    document.body.prepend(dead, throws, details, note);
+    // Into the page's own content: the top-left corner of <body> sits under the fixed sidebar.
+    (document.getElementById("main") ?? document.body).prepend(dead, throws, details, note);
   });
   const at = async (name: string) =>
     (await page.locator(CONTROLS).evaluateAll((els, n) => els.findIndex((e) => e.textContent === n), name));

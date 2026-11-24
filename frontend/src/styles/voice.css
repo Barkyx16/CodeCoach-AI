@@ -73,4 +73,8 @@
 }
 /* A round answer that wasn't sent (the question was answered elsewhere): kept, readable, copyable. */
 .round__kept { margin: 0; padding: var(--space-2) var(--space-3); border-left: 2px solid var(--color-border); white-space: pre-wrap; }
-.interview__leave-note { margin: 0 0 var(--space-2); font-size: var(--text-xs); }
+.interview__leave-note { margin: var(--space-2) 24px 0; font-size: var(--text-xs); }
+/* The conversation keeps most of the column: the answer box starts at four lines here (a career
+   answer page gives it 220px) and can still be dragged taller. */
+.interview__chat .answer-input { min-height: 104px; }
+@media (max-width: 600px) { .interview__leave-note { margin: var(--space-2) 16px 0; } }

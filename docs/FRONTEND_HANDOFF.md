@@ -10,8 +10,22 @@
 | UX copy suggestions (send as a list; engineering applies them) | Accessible names, roles and labels that tests depend on (see §7) |
 | Iconography, illustrations, empty-state art | API contract (`docs/API.md`, `docs/openapi.json`) |
 
-The app is **fully functional today** with a working dark theme, so the design pass is a
-restyle, not a build. Screenshots of the current state are in [`docs/screenshots/`](screenshots/).
+The app is **fully functional today**, so a design pass is a restyle, not a build. Screenshots of
+the current state are in [`docs/screenshots/`](screenshots/) (the README's gallery was retaken in
+the current design; older files there record earlier designs).
+
+**The current design (November 2026): warm and editorial.** Light is warm paper (`#f4f1ea` page,
+white cards, ink `#1d1a15` text); dark is warm charcoal (`#121110` page, `#1a1917` cards). One
+gold-bronze accent marks the main action and the current place: primary buttons are a gold
+gradient with white text, links and the active page's rule are gold. Titles and section headings
+use a serif (Newsreader); everything else is Inter; small uppercase "eyebrow" labels sit above
+titles and name sections. Cards are white (light) with hairline borders and soft warm shadows;
+`card--accent` plus `card--blue|red|amber|green` gives a card a coloured top edge when cards need
+telling apart. **The shell is a left sidebar wider than 1100px**: brand, a "New mock interview"
+button, the "Go to" search (Ctrl K), every section's pages listed, and the account at the bottom
+(initial, name, a light/dark toggle, What's new, Help, Sign out). Narrower, it's a top bar whose
+Menu opens the same list; focus mode keeps a slim top bar at every width. Every colour pair is
+re-checked by `src/test/contrast.test.ts` (4.5:1 normal, 7:1 higher contrast).
 
 ---
 
@@ -20,8 +34,9 @@ restyle, not a build. Screenshots of the current state are in [`docs/screenshots
 - React 18 + TypeScript + Vite. Plain CSS with BEM-style class names, **no CSS-in-JS**, no
   Tailwind. Every visual value comes from CSS custom properties in `tokens.css`.
 - Monaco (the VS Code editor) for Java, themed in `src/features/workspace/monacoSetup.ts`
-  (`codecoach-dark`). Editor colors are set there in hex, not via CSS variables, because
-  Monaco needs literal colors.
+  (`codecoach-dark`: warm charcoal with gold keywords; `vs` is the light choice in Settings ›
+  Editor). Editor colors are set there in hex, not via CSS variables, because Monaco needs
+  literal colors.
 - Resizable three-panel workspace on desktop (`react-resizable-panels`), tabs on screens ≤ 900px wide.
 - Run it: `cd frontend && npm install && npm run dev`, with the backend on :8000
   (see the root README). Or `docker compose up --build` and open http://localhost:3000.
@@ -31,7 +46,8 @@ src/
   styles/tokens.css      ← start here: every color, size, radius, shadow, duration
   styles/base.css        ← element defaults, page container, utilities
   styles/components.css  ← buttons, badges, cards, inputs, banners, states
-  styles/layout.css      ← header / nav / app shell
+  styles/layout.css      ← the app shell: sidebar (wide) / top bar and menu (narrow)
+  styles/theme.css       ← the editorial layer: serif titles, gold buttons, cards, eyebrows (loaded last)
   styles/features.css    ← per-screen styles (landing, library, workspace, dashboard, history)
   components/            ← Button, Badge, Card, Field, Spinner, States (Loading/Error/Empty)
   features/<screen>/     ← screen components
@@ -50,23 +66,23 @@ names); change values freely.
 | Semantic | `--color-success`, `--color-warning`, `--color-danger`, `--color-info` (+ `-soft` tints) |
 | Difficulty | `--color-easy`, `--color-medium`, `--color-hard` |
 | Data viz | `--viz-solved`, `--viz-attempted`, `--viz-track`, `--viz-heat-0` … `--viz-heat-4` |
-| Type | `--font-sans`, `--font-mono`, `--text-xs` … `--text-3xl`, `--leading-*`, `--weight-*` |
+| Type | `--font-sans` (Inter), `--font-display` (Newsreader, titles), `--font-mono`, `--text-xs` … `--text-3xl`, `--leading-*`, `--weight-*`, `--tracking-eyebrow` |
 | Spacing | `--space-1` (4px) … `--space-16` (64px) |
 | Shape / depth | `--radius-sm/md/lg/full`, `--shadow-sm/md`, `--focus-ring` |
 | Motion | `--duration-fast/normal`, `--ease-standard` (zeroed under `prefers-reduced-motion`) |
-| Layout | `--header-height`, `--content-max-width` |
+| Layout | `--header-height` (0 in sidebar mode), `--sidebar-width`, `--content-max-width` |
+| Accents | `--accent-blue/red/amber/green` (card tops and icon tiles, never text), `--gradient-button`, `--gradient-brand` |
 
 **Chart colors were validated** (the dataviz palette checker) against `--color-surface`
-`#0d1628`: the solved/attempted pair is an ordinal blue ramp; the heatmap is a single-hue
-sequential ramp whose zero step deliberately fades into the surface. **If you change
+(`#ffffff` light, `#1a1917` dark): the solved/attempted pair is an ordinal bronze ramp; the
+heatmap is a single-hue sequential ramp whose zero step deliberately fades into the surface. **If you change
 `--color-surface` or any `--viz-*` value, keep these rules:** one hue, light = more on dark
 backgrounds, the non-zero steps at least 2:1 against the surface, and visibly different
 adjacent steps. Don't introduce a rainbow, and don't reuse status colors (success, warning,
 danger) as chart series.
 
-Fonts: the stack names Inter and JetBrains Mono but **doesn't load them** (no external font
-requests, which keeps the CSP strict). To use them, self-host the files under `public/fonts`
-and add `@font-face` rules to `base.css`.
+Fonts: Inter, Newsreader and JetBrains Mono are self-hosted under `public/fonts` (with their
+OFL licences) and declared in `base.css`: no external font requests, which keeps the CSP strict.
 
 ## 3. Screens and states
 
@@ -242,7 +258,9 @@ If copy changes are wanted, list them and engineering will update the tests in t
 Run `npm test && npm run e2e` to check.
 
 ## 8. Ideas for the design pass (optional)
-Self-hosted fonts · a logo mark · illustrations for empty states · a richer landing hero
-(animated hint-ladder demo) · celebratory state when a problem is solved (once the judge
-ships) · a light theme (add a `[data-theme="light"]` token block, and re-validate the chart
-colors for the light surface).
+Done since this list was written: self-hosted fonts, a logo mark, a light theme (re-validated
+chart colours) and the sidebar shell. Still open: illustrations for empty states · a richer
+landing hero (animated hint-ladder demo) · a celebratory state when a problem is solved · a
+sidebar that collapses to an icon rail, so the three-panel workspace gets more width on
+laptop screens (today focus mode is the way to hide the sidebar there) · a warm light editor
+theme to replace `vs`.

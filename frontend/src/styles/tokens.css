@@ -1,73 +1,88 @@
 /*
  * Design tokens: the single source of truth for the visual system.
- * The design pass (docs/FRONTEND_HANDOFF.md) should change values HERE, not in components.
- * Direction: near-black workspace with violet surfaces, high-contrast text, a pink-to-violet
- * brand sweep for actions and accents, semantic success/error colors, crisp type, generous spacing.
+ * Direction (the 2026-11 redesign): a calm, editorial workspace. Warm paper surfaces in light, warm
+ * charcoal in dark; ink-dark text; a gold-bronze accent for actions and the current place; a
+ * serif (Newsreader) for titles and headings and a clean sans (Inter) for everything else; soft
+ * shadows, hairline borders, generous space. Change values HERE, not in components; every
+ * text/background pair is re-checked by src/test/contrast.test.ts.
  */
 :root {
-  /* Surfaces */
-  --color-bg: #07060c;
-  --color-surface: #110e1b;
-  --color-surface-raised: #1b1729;
-  --color-surface-sunken: #0b0912;
-  --color-border: #2b2541;
-  --color-border-strong: #463c6b;
+  /* Surfaces (dark: warm charcoal) */
+  --color-bg: #121110;
+  --color-surface: #1a1917;
+  --color-surface-raised: #23211e;
+  --color-surface-sunken: #0e0d0c;
+  --color-border: #2f2c27;
+  --color-border-strong: #4a453d;
+  --color-sidebar-bg: #161513;
+  /* Form fields: the outline is >= 3:1 against the field and the page (WCAG 1.4.11). */
+  --color-input-bg: #0e0d0c;
+  --color-input-border: #6f675b;
 
   /* Text */
-  --color-text: #f6f3ff;
-  --color-text-muted: #bdb5d6;
-  --color-text-subtle: #aca3cb;
+  --color-text: #f3efe6;
+  --color-text-muted: #c2b9aa;
+  --color-text-subtle: #b0a798;
   --color-text-inverse: #ffffff;
 
-  /* Brand / actions */
-  --color-primary: #7c3aed;
-  --color-primary-hover: #6d28d9;
-  --color-primary-soft: rgba(139, 92, 246, 0.16);
-  --color-link: #c4b5fd;
-  --color-accent: #f0abfc;
+  /* Brand / actions: gold-bronze */
+  --color-primary: #8a6424;
+  --color-primary-hover: #74531a;
+  --color-primary-soft: rgba(214, 170, 90, 0.16);
+  --color-link: #e2c07a;
+  --color-accent: #e2c07a;
 
   /* Semantic */
-  --color-success: #34d399;
-  --color-success-soft: rgba(52, 211, 153, 0.12);
-  --color-warning: #fbbf24;
-  --color-warning-soft: rgba(251, 191, 36, 0.12);
-  --color-danger: #f08086;
-  --color-danger-soft: rgba(248, 113, 113, 0.12);
-  --color-info: #7cb4fb;
-  --color-info-soft: rgba(96, 165, 250, 0.12);
+  --color-success: #7fd39b;
+  --color-success-soft: rgba(127, 211, 155, 0.12);
+  --color-warning: #f0c164;
+  --color-warning-soft: rgba(240, 193, 100, 0.12);
+  --color-danger: #f2958c;
+  --color-danger-soft: rgba(242, 149, 140, 0.12);
+  --color-info: #93b8f2;
+  --color-info-soft: rgba(147, 184, 242, 0.12);
+
+  /* Four accents for cards that need telling apart (blue, red, amber, green), as hairline tops
+     and icon tiles; text never takes them. */
+  --accent-blue: #7ea6ec;
+  --accent-red: #ea8a80;
+  --accent-amber: #e6b65c;
+  --accent-green: #72c690;
 
   /* Difficulty */
   --color-easy: var(--color-success);
   --color-medium: var(--color-warning);
   --color-hard: var(--color-danger);
 
-  /* Data visualization: validated with the dataviz skill's palette checker (--ordinal) against
-     --color-surface (#110e1b; light: #ffffff). Ordinal violet ramp; change values here, re-run the validator. */
-  --viz-solved: #b39cfb;      /* ordinal step 400 */
-  --viz-attempted: #6446b8;   /* ordinal step 600, clears 2:1 vs surface */
-  --viz-track: #1e1830;       /* unfilled track: one step off the surface */
-  --viz-heat-0: #1e1830;      /* zero activity: recedes toward the surface (sequential rule) */
-  --viz-heat-1: #6446b8;
-  --viz-heat-2: #8667d6;
-  --viz-heat-3: #b39cfb;
-  --viz-heat-4: #ddd2ff;
+  /* Data visualization: one bronze ordinal ramp, validated with the dataviz skill's palette checker
+     (--ordinal) against --color-surface (#1a1917; light: #ffffff). Change values here, re-run it. */
+  --viz-solved: #c9a058;
+  --viz-attempted: #6b5226;   /* clears 2:1 vs the surface */
+  --viz-track: #26231f;       /* unfilled track: one step off the surface */
+  --viz-heat-0: #26231f;      /* zero activity: recedes toward the surface (sequential rule) */
+  --viz-heat-1: #6b5226;
+  --viz-heat-2: #97743a;
+  --viz-heat-3: #c9a058;
+  --viz-heat-4: #ecd39e;
 
-  /* Typography */
+  /* Typography: Inter for the interface, Newsreader for titles (both self-hosted: base.css, public/fonts). */
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Newsreader", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-md: 1rem;
   --text-lg: 1.125rem;
   --text-xl: 1.375rem;
-  --text-2xl: 1.75rem;
-  --text-3xl: 2.5rem;
-  --leading-tight: 1.2;
+  --text-2xl: 1.875rem;
+  --text-3xl: 2.625rem;
+  --leading-tight: 1.15;
   --leading-normal: 1.55;
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
+  --tracking-eyebrow: 0.12em;
 
   /* Spacing (4px scale) */
   --space-1: 0.25rem;
@@ -82,13 +97,14 @@
   --space-16: 4rem;
 
   /* Shape & depth */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
   --radius-full: 999px;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
-  --focus-ring: 0 0 0 3px #c4b5fd;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -8px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px -12px rgba(0, 0, 0, 0.45);
+  --focus-ring: 0 0 0 3px #e2c07a;
 
   /* Motion */
   --duration-fast: 120ms;
@@ -97,118 +113,126 @@
 
   /* Layout */
   --header-height: 3.75rem; /* 60px at default text size; grows with the text-size preference */
-  --content-max-width: 1240px;
+  --sidebar-width: 17rem;
+  --content-max-width: 1180px;
 
   /* Tints: decorative washes and hairlines, themed like everything else */
-  --color-header-bg: rgba(7, 6, 12, 0.86);
-  --tint-panel: #1b172999;
-  --tint-hover: #1b172990;
-  --tint-link-border: #c4b5fd40;
-  --tint-link-faint: #c4b5fd0d;
-  --tint-success-border: #34d39940;
-  --tint-warning-border: #fbbf2440;
-  --tint-info-border: #60a5fa40;
-  --tint-danger-border: rgba(240, 128, 134, 0.4);
+  --color-header-bg: rgba(22, 21, 19, 0.92);
+  --tint-panel: #23211e99;
+  --tint-hover: #23211e;
+  --tint-link-border: #e2c07a40;
+  --tint-link-faint: #e2c07a0d;
+  --tint-success-border: #7fd39b40;
+  --tint-warning-border: #f0c16440;
+  --tint-info-border: #93b8f240;
+  --tint-danger-border: rgba(242, 149, 140, 0.4);
   --tint-hairline: #ffffff0a;
-  /* Purple-and-black brand: a pink-to-violet sweep. Decorative (gradients, glows, the active
-     marker); buttons use the darker sweep, where white text stays >= 4.5:1 on every stop. */
-  --gradient-brand: linear-gradient(100deg, #f472b6 0%, #c084fc 45%, #8b5cf6 75%, #6d28d9 100%);
-  --gradient-button: linear-gradient(110deg, #c026d3 0%, #9333ea 50%, #6d28d9 100%);
-  --gradient-button-hover: linear-gradient(110deg, #a21caf 0%, #7e22ce 50%, #5b21b6 100%);
-  --color-primary-border: rgba(167, 139, 250, 0.35);
-  --color-panel-bg: linear-gradient(180deg, #0d0b16 0%, #0a0911 100%);
-  --glow-brand: 0 0 0 1px rgba(167, 139, 250, 0.22), 0 12px 40px -12px rgba(139, 92, 246, 0.5);
-  --gradient-text: linear-gradient(100deg, #f9a8d4 0%, #d8b4fe 50%, #a78bfa 100%); /* >= 7:1 on --color-bg */
-  --page-glow: radial-gradient(1100px 520px at 12% -10%, rgba(139, 92, 246, 0.16), transparent 60%),
-    radial-gradient(900px 480px at 100% 0%, rgba(236, 72, 153, 0.09), transparent 55%);
+  /* Gold: the accent sweep (decorative) and the button sweep, where white text stays >= 4.5:1 on
+     every stop. */
+  --gradient-brand: linear-gradient(100deg, #e8cf95 0%, #c9a058 55%, #9c7430 100%);
+  --gradient-button: linear-gradient(180deg, #906d2b 0%, #74531a 100%);
+  --gradient-button-hover: linear-gradient(180deg, #7d5c22 0%, #5f4313 100%);
+  --color-primary-border: rgba(226, 192, 122, 0.35);
+  --color-panel-bg: #1a1917;
+  --glow-brand: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 6px 18px -8px rgba(201, 160, 88, 0.55);
+  --gradient-text: linear-gradient(100deg, #f1dcab 0%, #e2c07a 60%, #d6ad62 100%); /* >= 7:1 on --color-bg */
+  --page-glow: radial-gradient(1000px 480px at 85% -10%, rgba(201, 160, 88, 0.07), transparent 60%);
   color-scheme: dark;
 }
 
 /*
- * Light theme. Every text/background pair used in the app was checked (WCAG 2.x relative
- * luminance): text, muted, subtle, link and semantic colors are >= 4.5:1 on bg, surface and
- * raised; white on primary is >= 4.5:1. src/test/contrast.test.ts re-checks these values.
+ * Light theme: warm paper. Every text/background pair used in the app was checked (WCAG 2.x
+ * relative luminance): text, muted, subtle, link and semantic colors are >= 4.5:1 on bg, surface
+ * and raised; white on primary is >= 4.5:1. src/test/contrast.test.ts re-checks these values.
  */
 :root[data-theme="light"] {
-  --color-bg: #f7f5fc;
+  --color-bg: #f4f1ea;
   --color-surface: #ffffff;
-  --color-surface-raised: #f1edfa;
-  --color-surface-sunken: #f4f1fb;
-  --color-border: #ddd6ee;
-  --color-border-strong: #a89cc8;
-  --color-text: #140f24;
-  --color-text-muted: #463d5e;
-  --color-text-subtle: #51486a;
+  --color-surface-raised: #f8f5ef;
+  --color-surface-sunken: #efebe3;
+  --color-border: #e6e0d5;
+  --color-border-strong: #c8bdab;
+  --color-sidebar-bg: #faf8f4;
+  --color-input-bg: #ffffff;
+  --color-input-border: #958771;
+  --color-text: #1d1a15;
+  --color-text-muted: #575045;
+  --color-text-subtle: #665e51;
   --color-text-inverse: #ffffff;
-  --color-primary: #6d28d9;
-  --color-primary-hover: #5b21b6;
-  --color-primary-soft: rgba(109, 40, 217, 0.1);
-  --color-link: #5b21b6;
-  --color-accent: #5b21b6;
-  --color-success: #0b6b44;
-  --color-success-soft: rgba(11, 107, 68, 0.1);
-  --color-warning: #7a4f00;
+  --color-primary: #8a6424;
+  --color-primary-hover: #74531a;
+  --color-primary-soft: rgba(176, 132, 52, 0.14);
+  --color-link: #7a5617;
+  --color-accent: #7a5617;
+  --color-success: #2b6a3c;
+  --color-success-soft: rgba(43, 106, 60, 0.1);
+  --color-warning: #80530a;
   --color-warning-soft: rgba(176, 116, 0, 0.12);
-  --color-danger: #a8202d;
-  --color-danger-soft: rgba(168, 32, 45, 0.08);
-  --color-info: #1a56a8;
-  --color-info-soft: rgba(26, 86, 168, 0.1);
-  --viz-solved: #5f33c4;
-  --viz-attempted: #a68bea;
-  --viz-track: #ece6f8;
-  --viz-heat-0: #ece6f8;
-  --viz-heat-1: #a68bea;
-  --viz-heat-2: #835fdc;
-  --viz-heat-3: #5f33c4;
-  --viz-heat-4: #3c138c;
-  --shadow-sm: 0 1px 2px rgba(15, 26, 43, 0.12);
-  --shadow-md: 0 8px 24px rgba(15, 26, 43, 0.12);
-  --focus-ring: 0 0 0 3px #5b21b6;
-  --color-header-bg: rgba(255, 255, 255, 0.96);
-  --tint-panel: #f1edfa;
-  --tint-hover: #ebe5f8;
-  --tint-link-border: #5b21b640;
-  --tint-link-faint: #5b21b60d;
-  --tint-success-border: #0b6b4440;
-  --tint-warning-border: #7a4f0040;
-  --tint-info-border: #1a56a840;
-  --tint-danger-border: rgba(168, 32, 45, 0.35);
-  --tint-hairline: #140f2414;
+  --color-danger: #a3302a;
+  --color-danger-soft: rgba(163, 48, 42, 0.08);
+  --color-info: #2a5597;
+  --color-info-soft: rgba(42, 85, 151, 0.1);
+  --accent-blue: #5b8fe8;
+  --accent-red: #e0695d;
+  --accent-amber: #e3a63c;
+  --accent-green: #4fae73;
+  --viz-solved: #8d6524;
+  --viz-attempted: #d1a861;
+  --viz-track: #f1ebe0;
+  --viz-heat-0: #f1ebe0;
+  --viz-heat-1: #d1a861;
+  --viz-heat-2: #b68638;
+  --viz-heat-3: #8d6524;
+  --viz-heat-4: #5f4313;
+  --shadow-sm: 0 1px 2px rgba(60, 45, 20, 0.06);
+  --shadow-md: 0 1px 2px rgba(60, 45, 20, 0.05), 0 12px 32px -8px rgba(60, 45, 20, 0.14);
+  --shadow-card: 0 1px 2px rgba(60, 45, 20, 0.05), 0 6px 20px -10px rgba(60, 45, 20, 0.12);
+  --focus-ring: 0 0 0 3px #7a5617;
+  --color-header-bg: rgba(250, 248, 244, 0.94);
+  --tint-panel: #f8f5ef;
+  --tint-hover: #f3efe7;
+  --tint-link-border: #7a561740;
+  --tint-link-faint: #7a56170d;
+  --tint-success-border: #2b6a3c40;
+  --tint-warning-border: #80530a40;
+  --tint-info-border: #2a559740;
+  --tint-danger-border: rgba(163, 48, 42, 0.35);
+  --tint-hairline: #1d1a150f;
   color-scheme: light;
-  --gradient-brand: linear-gradient(100deg, #db2777 0%, #9333ea 50%, #6d28d9 100%);
-  --color-primary-border: rgba(109, 40, 217, 0.3);
+  --gradient-brand: linear-gradient(100deg, #c9a058 0%, #a47b34 55%, #7a5617 100%);
+  --color-primary-border: rgba(138, 100, 36, 0.3);
   --color-panel-bg: #ffffff;
-  --glow-brand: 0 0 0 1px rgba(109, 40, 217, 0.18), 0 12px 32px -14px rgba(109, 40, 217, 0.35);
-  --page-glow: radial-gradient(1100px 520px at 12% -10%, rgba(139, 92, 246, 0.10), transparent 60%);
-  --gradient-text: linear-gradient(100deg, #be185d 0%, #7e22ce 50%, #5b21b6 100%); /* >= 4.5:1 on white */
+  --glow-brand: 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 6px 16px -8px rgba(138, 100, 36, 0.55);
+  --page-glow: radial-gradient(1000px 480px at 85% -10%, rgba(201, 160, 88, 0.08), transparent 60%);
+  --gradient-text: linear-gradient(100deg, #8a6424 0%, #7a5617 60%, #6b4b12 100%); /* >= 4.5:1 on white */
 }
 
 /* Higher contrast (dark): text >= 7:1 on every surface, stronger borders, no faint washes. */
 :root[data-contrast="high"] {
   --color-bg: #000000;
-  --color-surface: #0b0912;
-  --color-surface-raised: #17131f;
-  --color-surface-sunken: #05040a;
+  --color-surface: #0b0a09;
+  --color-surface-raised: #171512;
+  --color-surface-sunken: #050404;
   --color-border: #7d8ca3;
   --color-border-strong: #c3cede;
   --color-text: #ffffff;
   --color-text-muted: #e9e4f7;
   --color-text-subtle: #ddd6f0;
-  --color-primary: #5b21b6;
-  --color-primary-hover: #4c1d95;
-  --color-link: #ddd3ff;
-  --color-accent: #ddd3ff;
+  --color-primary: #5c4215;
+  --color-primary-hover: #4f3810;
+  --color-link: #f0d79e;
+  --color-accent: #f0d79e;
   --color-success: #5ef0b4;
   --color-warning: #ffd34d;
   --color-danger: #ffa3a8;
   --color-info: #9cc8ff;
   --focus-ring: 0 0 0 3px #ffffff;
   --tint-panel: transparent;
-  --tint-hover: #17131f;
-  --tint-link-border: #ddd3ff;
+  --tint-hover: #171512;
+  --tint-link-border: #f0d79e;
   --tint-hairline: #ffffff33;
-  --gradient-button: linear-gradient(110deg, #5b21b6 0%, #4c1d95 100%);
-  --gradient-button-hover: linear-gradient(110deg, #4c1d95 0%, #3b0764 100%);
+  --gradient-button: linear-gradient(180deg, #5c4215 0%, #4f3810 100%);
+  --gradient-button-hover: linear-gradient(180deg, #4f3810 0%, #3d2b0b 100%);
   --page-glow: none;
   --gradient-text: linear-gradient(var(--color-link), var(--color-link));
 }
@@ -217,17 +241,17 @@
 :root[data-theme="light"][data-contrast="high"] {
   --color-bg: #ffffff;
   --color-surface: #ffffff;
-  --color-surface-raised: #f4f1fa;
+  --color-surface-raised: #f6f2ea;
   --color-surface-sunken: #f7f8fa;
   --color-border: #4b5563;
   --color-border-strong: #1f2937;
   --color-text: #000000;
   --color-text-muted: #1f1a2e;
   --color-text-subtle: #2a2340;
-  --color-primary: #4c1d95;
-  --color-primary-hover: #3b0764;
-  --color-link: #3b1580;
-  --color-accent: #3b1580;
+  --color-primary: #4f3810;
+  --color-primary-hover: #3d2b0b;
+  --color-link: #4f3608;
+  --color-accent: #4f3608;
   --color-success: #064d31;
   --color-warning: #5c3b00;
   --color-danger: #7f1520;
@@ -235,10 +259,10 @@
   --focus-ring: 0 0 0 3px #000000;
   --tint-panel: transparent;
   --tint-hover: #f2f4f8;
-  --tint-link-border: #0a3a99;
+  --tint-link-border: #4f3608;
   --tint-hairline: #00000033;
-  --gradient-button: linear-gradient(110deg, #4c1d95 0%, #3b0764 100%);
-  --gradient-button-hover: linear-gradient(110deg, #3b0764 0%, #2e1065 100%);
+  --gradient-button: linear-gradient(180deg, #4f3810 0%, #3d2b0b 100%);
+  --gradient-button-hover: linear-gradient(180deg, #3d2b0b 0%, #2c1f07 100%);
   --page-glow: none;
   --gradient-text: linear-gradient(var(--color-link), var(--color-link));
 }

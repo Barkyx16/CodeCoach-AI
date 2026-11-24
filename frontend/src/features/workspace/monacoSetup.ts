@@ -18,17 +18,20 @@ loader.config({ monaco });
 monaco.editor.defineTheme("codecoach-dark", {
   base: "vs-dark",
   inherit: true,
+  // Warm charcoal with gold keywords, matching the site's dark surface; every token colour is
+  // >= 4.5:1 on the background and on the current line.
   rules: [
-    { token: "comment", foreground: "99AAC4" },
-    { token: "keyword", foreground: "A4BCFF" },
-    { token: "number", foreground: "C5D7FB" },
-    { token: "string", foreground: "A5D8CE" },
+    { token: "comment", foreground: "A69D8C" },
+    { token: "keyword", foreground: "E2C07A" },
+    { token: "number", foreground: "F2C6A0" },
+    { token: "string", foreground: "A9D6A6" },
   ],
   colors: {
-    "editor.background": "#0b1220",
-    "editor.lineHighlightBackground": "#17243a",
-    "editorLineNumber.foreground": "#99aac4",
-    "editorLineNumber.activeForeground": "#f3f6fc",
+    "editor.background": "#1a1917",
+    "editor.foreground": "#ece6da",
+    "editor.lineHighlightBackground": "#24221f",
+    "editorLineNumber.foreground": "#9c937f",
+    "editorLineNumber.activeForeground": "#ece6da",
   },
 });
 

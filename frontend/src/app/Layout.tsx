@@ -23,6 +23,7 @@ import { MainNav, type NavGroup } from "./MainNav";
 import { NAV_ICONS } from "./navIcons";
 import { RouteAccessibility } from "./RouteAccessibility";
 import { SessionEndedBanner } from "./SessionEndedBanner";
+import { ThemeToggle } from "./ThemeToggle";
 import { useRecordFreshness } from "./useRecordFreshness";
 
 export function Layout() {
@@ -185,16 +186,32 @@ export function Layout() {
         </button>
         <div id="primary-navigation" className="nav-shell" data-open={menuOpen}
           onClick={(event) => { if ((event.target as HTMLElement).closest("a")) setOpenPath(null); }}>
+        {/* The main action, first in the sidebar: a new mock interview. */}
+        {isAuthenticated && (
+          <NavLink to="/interviews" className="btn btn--primary btn--md header__new">
+            <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+            New mock interview
+          </NavLink>
+        )}
         <MainNav groups={navGroups} />
         <div className="header__account">
-          <WhatsNewLink className={navClass} />
-          <NavLink to="/help" className={navClass}>Help</NavLink>
           {isAuthenticated ? (
-            <>
-              <NavLink to="/settings" className="header__user" title="Account settings"
-                aria-label={`${user?.is_guest ? "Guest" : (user?.display_name ?? user?.email ?? "")}, account settings`}>
-                {user?.is_guest ? <span className="badge">Guest</span> : (user?.display_name ?? user?.email)}
-              </NavLink>
+            <div className="header__account-row">
+              {/* The initial sits beside the link, not in it, so the link's visible text is its name. */}
+              <span className="header__person">
+                <span className="header__avatar" aria-hidden="true">{(user?.is_guest ? "G" : (user?.display_name ?? user?.email ?? "?").trim().charAt(0)).toUpperCase()}</span>
+                <NavLink to="/settings" className="header__user" title="Account settings"
+                  aria-label={`${user?.is_guest ? "Guest" : (user?.display_name ?? user?.email ?? "")}, account settings`}>
+                  {user?.is_guest ? <span className="badge">Guest</span> : <span className="header__user-name">{user?.display_name ?? user?.email}</span>}
+                </NavLink>
+              </span>
+              <ThemeToggle />
+            </div>
+          ) : null}
+          <div className="header__account-row">
+            <WhatsNewLink className={navClass} />
+            <NavLink to="/help" className={navClass}>Help</NavLink>
+            {isAuthenticated ? (
               <Button variant="ghost" size="sm" onClick={async () => {
                 const unsent = user ? countLocalWork(user.id) : 0;
                 if (unsent > 0 && !window.confirm(`You have ${unsent} unsent ${unsent === 1 ? "draft" : "drafts"} on this device. Signing out deletes ${unsent === 1 ? "it" : "them"} from this device. Sign out anyway?`)) return;
@@ -202,19 +219,20 @@ export function Layout() {
               }}>
                 Sign out
               </Button>
-            </>
-          ) : isRestoring ? null /* checking the session cookie: don't flash "Sign in" */ : offlineUser ? (
+            ) : <ThemeToggle />}
+          </div>
+          {isAuthenticated ? null : isRestoring ? null /* checking the session cookie: don't flash "Sign in" */ : offlineUser ? (
             <span className="header__user" title="Offline: your sign-in will be checked when you're back online">
               <span className="badge">Offline</span> {offlineUser.display_name ?? (offlineUser.is_guest ? "Guest" : "")}
             </span>
           ) : demoMode ? (
             <NavLink to="/demo" className="btn btn--primary btn--sm" onClick={() => setOpenPath(null)}>Guided demo</NavLink>
           ) : (
-            <>
+            <div className="header__account-row header__account-row--auth">
               <NavLink to="/login" className="nav__link">Sign in</NavLink>
               {/* A link like "Sign in": on /register it's marked as the current page, not a button that does nothing. */}
               <NavLink to="/register" className="btn btn--primary btn--sm" onClick={() => setOpenPath(null)}>Create account</NavLink>
-            </>
+            </div>
           )}
         </div>
         </div>
