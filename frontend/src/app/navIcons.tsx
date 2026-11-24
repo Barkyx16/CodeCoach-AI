@@ -25,3 +25,16 @@ export const NAV_ICONS = {
   search: icon("M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14ZM20 20l-4-4"),
   triage: icon("M12 3 2 21h20L12 3ZM12 10v5M12 18h.01"),
 };
+
+/** The sidebar's own controls, shown as icons only when it's narrowed to a rail. */
+export const RAIL_ICONS = {
+  whatsNew: icon("m12 3 2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2L12 3Z"),
+  help: icon("M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18ZM9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.6v.6M12 17h.01"),
+  signOut: icon("M10 4H5v16h5M14 16l4-4-4-4M18 12H9"),
+  signIn: icon("M14 4h5v16h-5M10 16l4-4-4-4M14 12H4"),
+  createAccount: icon("M15 8a4 4 0 1 1-8 0 4 4 0 0 1 8 0ZM3 21v-1a7 7 0 0 1 11-5.7M19 14v6M16 17h6"),
+  demo: icon("M7 4v16l13-8L7 4Z"),
+  /** A panel with its left column, and an arrow: which way the sidebar will go. */
+  collapse: icon("M4 4h16v16H4zM9 4v16M16 9l-3 3 3 3"),
+  expand: icon("M4 4h16v16H4zM9 4v16M13 9l3 3-3 3"),
+};

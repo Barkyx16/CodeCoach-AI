@@ -9,10 +9,12 @@ export interface DisplayPrefs {
   spacing: "default" | "spacious";
   motion: "system" | "reduce";
   contrast: "standard" | "high";
+  /** Wider than 1100px: the sidebar with its labels, or narrowed to a rail of icons. */
+  sidebar: "full" | "icons";
 }
 
 export const DISPLAY_KEY = "codecoach.display.v1";
-export const DEFAULT_DISPLAY: DisplayPrefs = { theme: "system", text: "default", spacing: "default", motion: "system", contrast: "standard" };
+export const DEFAULT_DISPLAY: DisplayPrefs = { theme: "system", text: "default", spacing: "default", motion: "system", contrast: "standard", sidebar: "full" };
 
 const ALLOWED: { [K in keyof DisplayPrefs]: readonly DisplayPrefs[K][] } = {
   theme: ["system", "light", "dark"],
@@ -20,6 +22,7 @@ const ALLOWED: { [K in keyof DisplayPrefs]: readonly DisplayPrefs[K][] } = {
   spacing: ["default", "spacious"],
   motion: ["system", "reduce"],
   contrast: ["standard", "high"],
+  sidebar: ["full", "icons"],
 };
 
 /** Saved values are validated field by field; anything unknown falls back to the default. */
@@ -61,6 +64,7 @@ export function applyDisplayPrefs(prefs: DisplayPrefs, root: HTMLElement = docum
   set("data-spacing", prefs.spacing === "spacious" ? "spacious" : null);
   set("data-motion", prefs.motion === "reduce" ? "reduce" : null);
   set("data-contrast", prefs.contrast === "high" ? "high" : null);
+  set("data-sidebar", prefs.sidebar === "icons" ? "icons" : null);
   document.querySelector('meta[name="color-scheme"]')?.setAttribute("content", theme);
 }
 

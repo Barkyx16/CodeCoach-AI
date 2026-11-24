@@ -1,5 +1,6 @@
 import { NavLink, type NavLinkProps } from "react-router-dom";
 
+import { RAIL_ICONS } from "@/app/navIcons";
 import { useAuth } from "@/auth/useAuth";
 
 import { forThisCareer } from "./whatsNew";
@@ -21,8 +22,10 @@ export function WhatsNewLink({ className }: { className: NavLinkProps["className
   const count = candidates.filter((e) => (e.audience === "coding" ? careerKnown && forThisCareer(e, context) : true)).length;
   return (
     // The name is set outright when there's a count, so every browser reads the same words.
-    <NavLink to="/whats-new" className={className} aria-label={count > 0 ? `What's new, ${count} new` : undefined}>
-      What&apos;s new
+    <NavLink to="/whats-new" className={className} aria-label={count > 0 ? `What's new, ${count} new` : undefined}
+      data-tip={count > 0 ? `What's new · ${count} new` : "What's new"}>
+      <span className="header__icon" aria-hidden="true">{RAIL_ICONS.whatsNew}</span>
+      <span className="header__label">What&apos;s new</span>
       {count > 0 && <span className="whats-new-dot" aria-hidden="true" />}
     </NavLink>
   );

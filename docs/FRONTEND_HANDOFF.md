@@ -23,8 +23,10 @@ titles and name sections. Cards are white (light) with hairline borders and soft
 `card--accent` plus `card--blue|red|amber|green` gives a card a coloured top edge when cards need
 telling apart. **The shell is a left sidebar wider than 1100px**: brand, a "New mock interview"
 button, the "Go to" search (Ctrl K), every section's pages listed, and the account at the bottom
-(initial, name, a light/dark toggle, What's new, Help, Sign out). Narrower, it's a top bar whose
-Menu opens the same list; focus mode keeps a slim top bar at every width. Every colour pair is
+(initial, name, a light/dark toggle, What's new, Help, Sign out). Its top-right button (or
+Settings › Display › Sidebar) narrows it to a 76px rail of icons whose names show beside it on
+hover and keyboard focus (`RailTooltip.tsx`; every control takes a `data-tip`). Narrower, it's
+a top bar whose Menu opens the same list; focus mode keeps a slim top bar at every width. Every colour pair is
 re-checked by `src/test/contrast.test.ts` (4.5:1 normal, 7:1 higher contrast).
 
 ---
@@ -259,8 +261,6 @@ Run `npm test && npm run e2e` to check.
 
 ## 8. Ideas for the design pass (optional)
 Done since this list was written: self-hosted fonts, a logo mark, a light theme (re-validated
-chart colours) and the sidebar shell. Still open: illustrations for empty states · a richer
+chart colours), the sidebar shell and its icon rail. Still open: illustrations for empty states · a richer
 landing hero (animated hint-ladder demo) · a celebratory state when a problem is solved · a
-sidebar that collapses to an icon rail, so the three-panel workspace gets more width on
-laptop screens (today focus mode is the way to hide the sidebar there) · a warm light editor
-theme to replace `vs`.
+warm light editor theme to replace `vs`.

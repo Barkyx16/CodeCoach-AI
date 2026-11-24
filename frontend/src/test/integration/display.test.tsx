@@ -36,7 +36,7 @@ describe("display preferences", () => {
     expect(html).toHaveAttribute("data-text", "larger");
     expect(html).toHaveAttribute("data-spacing", "spacious");
     expect(html).toHaveAttribute("data-motion", "reduce");
-    expect(JSON.parse(localStorage.getItem(DISPLAY_KEY)!)).toEqual({ theme: "light", contrast: "high", text: "larger", spacing: "spacious", motion: "reduce" });
+    expect(JSON.parse(localStorage.getItem(DISPLAY_KEY)!)).toEqual({ theme: "light", contrast: "high", text: "larger", spacing: "spacious", motion: "reduce", sidebar: "full" });
 
     // Keyboard: arrow keys move within a group like any radio group.
     within(section).getByRole("radio", { name: "Larger" }).focus();

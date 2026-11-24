@@ -13,6 +13,7 @@
   if (prefs.spacing === "spacious") root.setAttribute("data-spacing", "spacious");
   if (prefs.motion === "reduce") root.setAttribute("data-motion", "reduce");
   if (prefs.contrast === "high") root.setAttribute("data-contrast", "high");
+  if (prefs.sidebar === "icons") root.setAttribute("data-sidebar", "icons");
   var meta = document.querySelector('meta[name="color-scheme"]');
   if (meta) meta.setAttribute("content", theme);
 })();

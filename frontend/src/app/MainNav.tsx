@@ -110,6 +110,7 @@ export function MainNav({ groups }: { groups: NavGroup[] }) {
                         <li key={item.to}>
                           <NavLink to={item.to} className={({ isActive }) => `nav-item${isActive ? " is-active" : ""}`}
                             aria-describedby={describedBy}
+                            data-tip={item.title}
                             // Close as soon as a page is chosen, not when it has rendered (a page
                             // that loads its code first would otherwise keep the panel open).
                             onClick={() => setOpen(null)}>

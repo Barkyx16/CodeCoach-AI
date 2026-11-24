@@ -5,6 +5,7 @@ import { useCapabilities } from "@/api/queries";
 import { useAuth } from "@/auth/useAuth";
 import { Button } from "@/components/Button";
 import { BrandMark } from "@/components/BrandMark";
+import { useDisplayPrefs } from "@/features/display/displayPrefs";
 import { FocusModeContext } from "@/features/display/focusContext";
 import { countLocalWork } from "@/auth/localWork";
 import { noteLocation } from "@/lib/documentEntry";
@@ -20,9 +21,11 @@ import { WhatsNewLink } from "@/features/whatsnew/WhatsNewLink";
 import { TourFinishReconciler } from "@/features/onboarding/TourFinishReconciler";
 import { PlanReturn } from "@/features/plan/PlanReturn";
 import { MainNav, type NavGroup } from "./MainNav";
-import { NAV_ICONS } from "./navIcons";
+import { NAV_ICONS, RAIL_ICONS } from "./navIcons";
+import { RailTooltip } from "./RailTooltip";
 import { RouteAccessibility } from "./RouteAccessibility";
 import { SessionEndedBanner } from "./SessionEndedBanner";
+import { SidebarToggle } from "./SidebarToggle";
 import { ThemeToggle } from "./ThemeToggle";
 import { useRecordFreshness } from "./useRecordFreshness";
 
@@ -30,6 +33,9 @@ export function Layout() {
   const { user, isAuthenticated, isRestoring, logout, signedOutReason, offlineUser } = useAuth();
   useRecordFreshness(); // other tabs' "this record changed" hints (docs/FRESHNESS.md)
   const navigate = useNavigate();
+  // In the icon rail each control's name shows in RailTooltip, so the browser's own tooltip
+  // (title) would only repeat it.
+  const rail = useDisplayPrefs().prefs.sidebar === "icons";
   const { pathname, key: locationKey } = useLocation();
   // Every location shown, so a list can tell a page opened directly from a return to it.
   useLayoutEffect(() => noteLocation(locationKey), [locationKey]);
@@ -166,14 +172,15 @@ export function Layout() {
         </header>
       ) : (
       <header className="header" ref={headerRef}>
-        <NavLink to="/" className="brand" aria-label="CodeCoach AI home">
+        <NavLink to="/" className="brand" aria-label="CodeCoach AI home" data-tip="Home">
           <BrandMark />
           <span className="brand__name">CodeCoach AI</span>
         </NavLink>
+        <SidebarToggle />
         <button type="button" className="palette-button btn btn--secondary btn--sm" aria-haspopup="dialog"
-          aria-keyshortcuts="Control+K Meta+K" onClick={() => { setOpenPath(null); openPalette(); }}>
+          aria-keyshortcuts="Control+K Meta+K" data-tip={`Go to… ${shortcutLabel}`} onClick={() => { setOpenPath(null); openPalette(); }}>
           <Icon name="search" size={16} aria-hidden="true" />
-          <span>Go to…</span>
+          <span className="header__label">Go to…</span>
           <kbd className="palette-button__keys" aria-hidden="true">{shortcutLabel}</kbd>
         </button>
         <button className="menu-toggle btn btn--ghost btn--md" type="button" ref={toggleRef}
@@ -188,9 +195,9 @@ export function Layout() {
           onClick={(event) => { if ((event.target as HTMLElement).closest("a")) setOpenPath(null); }}>
         {/* The main action, first in the sidebar: a new mock interview. */}
         {isAuthenticated && (
-          <NavLink to="/interviews" className="btn btn--primary btn--md header__new">
+          <NavLink to="/interviews" className="btn btn--primary btn--md header__new" data-tip="New mock interview">
             <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
-            New mock interview
+            <span className="header__label">New mock interview</span>
           </NavLink>
         )}
         <MainNav groups={navGroups} />
@@ -200,7 +207,8 @@ export function Layout() {
               {/* The initial sits beside the link, not in it, so the link's visible text is its name. */}
               <span className="header__person">
                 <span className="header__avatar" aria-hidden="true">{(user?.is_guest ? "G" : (user?.display_name ?? user?.email ?? "?").trim().charAt(0)).toUpperCase()}</span>
-                <NavLink to="/settings" className="header__user" title="Account settings"
+                <NavLink to="/settings" className="header__user" title={rail ? undefined : "Account settings"}
+                  data-tip={`${user?.is_guest ? "Guest" : (user?.display_name ?? user?.email ?? "")} · Account settings`}
                   aria-label={`${user?.is_guest ? "Guest" : (user?.display_name ?? user?.email ?? "")}, account settings`}>
                   {user?.is_guest ? <span className="badge">Guest</span> : <span className="header__user-name">{user?.display_name ?? user?.email}</span>}
                 </NavLink>
@@ -210,34 +218,48 @@ export function Layout() {
           ) : null}
           <div className="header__account-row">
             <WhatsNewLink className={navClass} />
-            <NavLink to="/help" className={navClass}>Help</NavLink>
+            <NavLink to="/help" className={navClass} data-tip="Help">
+              <span className="header__icon" aria-hidden="true">{RAIL_ICONS.help}</span>
+              <span className="header__label">Help</span>
+            </NavLink>
             {isAuthenticated ? (
-              <Button variant="ghost" size="sm" onClick={async () => {
+              <Button variant="ghost" size="sm" data-tip="Sign out" onClick={async () => {
                 const unsent = user ? countLocalWork(user.id) : 0;
                 if (unsent > 0 && !window.confirm(`You have ${unsent} unsent ${unsent === 1 ? "draft" : "drafts"} on this device. Signing out deletes ${unsent === 1 ? "it" : "them"} from this device. Sign out anyway?`)) return;
                 setOpenPath(null); await logout(); navigate("/");
               }}>
-                Sign out
+                <span className="header__icon" aria-hidden="true">{RAIL_ICONS.signOut}</span>
+                <span className="header__label">Sign out</span>
               </Button>
             ) : <ThemeToggle />}
           </div>
           {isAuthenticated ? null : isRestoring ? null /* checking the session cookie: don't flash "Sign in" */ : offlineUser ? (
-            <span className="header__user" title="Offline: your sign-in will be checked when you're back online">
-              <span className="badge">Offline</span> {offlineUser.display_name ?? (offlineUser.is_guest ? "Guest" : "")}
+            <span className="header__user header__user--offline" title="Offline: your sign-in will be checked when you're back online">
+              <span className="badge">Offline</span> <span className="header__label">{offlineUser.display_name ?? (offlineUser.is_guest ? "Guest" : "")}</span>
             </span>
           ) : demoMode ? (
-            <NavLink to="/demo" className="btn btn--primary btn--sm" onClick={() => setOpenPath(null)}>Guided demo</NavLink>
+            <NavLink to="/demo" className="btn btn--primary btn--sm" data-tip="Guided demo" onClick={() => setOpenPath(null)}>
+              <span className="header__icon" aria-hidden="true">{RAIL_ICONS.demo}</span>
+              <span className="header__label">Guided demo</span>
+            </NavLink>
           ) : (
             <div className="header__account-row header__account-row--auth">
-              <NavLink to="/login" className="nav__link">Sign in</NavLink>
+              <NavLink to="/login" className="nav__link" data-tip="Sign in">
+                <span className="header__icon" aria-hidden="true">{RAIL_ICONS.signIn}</span>
+                <span className="header__label">Sign in</span>
+              </NavLink>
               {/* A link like "Sign in": on /register it's marked as the current page, not a button that does nothing. */}
-              <NavLink to="/register" className="btn btn--primary btn--sm" onClick={() => setOpenPath(null)}>Create account</NavLink>
+              <NavLink to="/register" className="btn btn--primary btn--sm" data-tip="Create account" onClick={() => setOpenPath(null)}>
+                <span className="header__icon" aria-hidden="true">{RAIL_ICONS.createAccount}</span>
+                <span className="header__label">Create account</span>
+              </NavLink>
             </div>
           )}
         </div>
         </div>
       </header>
       )}
+      {!focusOn && <RailTooltip container={headerRef} />}
       {palette && (
         <CommandPalette opener={palette.opener} onClose={() => setPalette(null)} onGo={(to) => navigate(to)} />
       )}

@@ -9,7 +9,8 @@ export function ThemeToggle() {
   const next = resolvedTheme(prefs) === "dark" ? "light" : "dark";
   return (
     <button type="button" className="theme-toggle btn btn--ghost btn--sm" aria-label={`Switch to ${next} theme`}
-      title={`Switch to ${next} theme`} onClick={() => update({ theme: next })}>
+      title={prefs.sidebar === "icons" ? undefined : `Switch to ${next} theme`} data-tip={`Switch to ${next} theme`}
+      onClick={() => update({ theme: next })}>
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7"
         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         {next === "dark" ? (

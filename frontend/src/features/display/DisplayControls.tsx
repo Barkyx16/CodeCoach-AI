@@ -26,7 +26,7 @@ function Choice<K extends keyof DisplayPrefs>({ name, legend, hint, options }: {
   );
 }
 
-/** Theme, contrast, text size, spacing and motion. Presentation only; stored in this browser. */
+/** Theme, contrast, text size, spacing, motion and the sidebar. Presentation only; stored in this browser. */
 export function DisplayControls() {
   const { prefs, reset, persisted } = useDisplayPrefs();
   const isDefault = JSON.stringify(prefs) === JSON.stringify(DEFAULT_DISPLAY);
@@ -41,6 +41,8 @@ export function DisplayControls() {
         options={[{ value: "default", label: "Standard" }, { value: "spacious", label: "Spacious" }]} />
       <Choice name="motion" legend="Motion" hint="Your device's reduced-motion setting is always followed; this also reduces motion here."
         options={[{ value: "system", label: "Follow device" }, { value: "reduce", label: "Reduce" }]} />
+      <Choice name="sidebar" legend="Sidebar" hint="On wider screens: every page with its name, or a narrow rail of icons that shows each name when you point at it or tab to it. The button at the top of the sidebar does the same."
+        options={[{ value: "full", label: "Full" }, { value: "icons", label: "Icons only" }]} />
       <div className="row display-controls__footer">
         <Button size="sm" variant="ghost" disabled={isDefault} onClick={reset}>Reset to defaults</Button>
         <span className="subtle" role="status">

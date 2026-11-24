@@ -18,6 +18,7 @@ key `codecoach.display.v1`), never sent to the server, not part of career data o
 | Text size | Default, Large (112.5%), Larger (125%) | The root font size; every app size is in `rem`, so all text scales. The code editor keeps its own font size (Settings → Editor). |
 | Reading layout | Standard, Spacious | More line height and paragraph spacing in the main content. |
 | Motion | Follow device, Reduce | Turns off transitions and animations. The device's reduced-motion setting is honoured either way. |
+| Sidebar | Full (default), Icons only | Wider than 1100px: the sidebar with every page's name, or a 76px rail of icons (the sidebar's own top button does the same). In the rail each control keeps its accessible name (the label is clipped, not removed); its name shows beside the rail on hover and on keyboard focus, stays while the pointer moves onto it, and Escape dismisses it (WCAG 1.4.13). The floating label is `aria-hidden`, since it repeats the name. Narrower windows keep the top bar and menu with every label. |
 
 - **Applied before the first paint** by `public/display-init.js` (a tiny same-origin script, so
   the Content-Security-Policy is unchanged): no flash of the wrong theme.
@@ -109,6 +110,11 @@ Automated, run in CI or locally:
   - forced colours: the focus indicator is still drawn.
 - `e2e/a11y.spec.ts`: axe-core scans of every main screen in the default theme on desktop and a
   phone (since 2026-11-04 including a written answer with its feedback), and the skip link.
+- `e2e/sidebar.spec.ts`: the icon rail's real widths, its labels on keyboard focus and hover
+  (Escape dismisses, the pointer can move onto a label), a rail link navigating, axe in light and
+  dark with a label showing, the choice applied before render after a reload, the narrow-window
+  menu unaffected, and Settings turning it back. Unit checks in
+  `src/test/integration/sidebar.test.tsx`.
 - `src/test/integration/careers.test.tsx`, "Answering with the keyboard": Enter in the answer
   box is a new line, never a submission (dictation inserts line breaks); keyboard submit moves
   focus to the feedback; a failed send keeps the text, the focus and the linked error, and a
