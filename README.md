@@ -213,6 +213,7 @@ Docker builds: [.github/workflows/ci.yml](.github/workflows/ci.yml).
 | [docs/EVAL_PROTOCOL.md](docs/EVAL_PROTOCOL.md) | The frozen evaluation protocol: set roles and exposure, sealed final set, duplicate checks, metrics with intervals, release rule, label review |
 | [docs/SECURITY.md](docs/SECURITY.md) | Implemented controls, AI safeguards, sandbox threat model and design |
 | [docs/LAUNCH_READINESS.md](docs/LAUNCH_READINESS.md) | Launch readiness: what each step changed, the defects found, how far each is verified, what's still needed |
+| [docs/GO_LIVE.md](docs/GO_LIVE.md) | **Putting it online**: one server and a domain, `deploy/setup.sh` (generated secrets), the compose with automatic https (Caddy) and the optional judge, then the preflight, `judge-check` and `deploy/smoke-check.py` |
 | [docs/LAUNCH.md](docs/LAUNCH.md) | The `preflight` command (ready / blocked / optional / unverified), the production-shaped rehearsal, the runbook |
 | [docs/EMAIL.md](docs/EMAIL.md) | Sending email for real: SMTP with verified TLS, delivery stages, verification, changing the address, diagnosing problems |
 | [docs/VERIFICATION_JOURNEY.md](docs/VERIFICATION_JOURNEY.md) | What the learner sees while confirming an email: masked address, honest delivery states, resend, links that don't work, other tabs |

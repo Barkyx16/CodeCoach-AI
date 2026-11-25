@@ -106,15 +106,20 @@ What this rehearsal does **not** show:
 
 ## Runbook
 
-For a public portfolio demo (guest sessions only, no email, no real accounts), follow
-[DEMO.md](DEMO.md), "Publishing it": the same compose and checks, with no mail provider needed.
+**The step-by-step launch is [GO_LIVE.md](GO_LIVE.md)**: a server, a domain, `deploy/setup.sh`
+(settings with generated secrets), the compose with its https proxy (Caddy, automatic
+certificates) and, optionally, the judge, then the preflight, `judge-check` and
+`deploy/smoke-check.py`. For a public portfolio demo (guest sessions only, no email, no real
+accounts) it needs no mail provider ([DEMO.md](DEMO.md)).
 
 **Before launch:**
 1. Choose a host and a mail provider. Register the sender domain with the provider and add the
    DNS records it gives you ([EMAIL.md](EMAIL.md)).
-2. Fill `deploy/.env.production` and `deploy/.env.app` from the `*.example` files, on the server.
+2. On the server, `deploy/setup.sh --domain <your domain> --mode full` writes
+   `deploy/.env.production` and `deploy/.env.app` with generated secrets; fill in the mail
+   provider's `SMTP_*` and `EMAIL_FROM` ([GO_LIVE.md](GO_LIVE.md), step 4).
 3. `docker compose --env-file deploy/.env.production -f deploy/docker-compose.production.yml up -d --build`
-   ([STORAGE.md](STORAGE.md)).
+   ([STORAGE.md](STORAGE.md)). Its `proxy` service serves https with a certificate it gets itself.
 4. In the api container: `python -m app.cli preflight --connect-email`. Fix every **blocked**.
 5. Close each **unverified** with its evidence:
    - `check-email --send-test` to an inbox you own: arrives, not in spam;
@@ -122,8 +127,9 @@ For a public portfolio demo (guest sessions only, no email, no real accounts), f
      a restore rehearsal ([BACKUP.md](BACKUP.md) "Scheduling");
    - one AI hint if Claude is on;
    - `judge-check` if execution is on.
-6. Put an https proxy in front, sign up with a real account you own, and walk through sign-up,
-   verification, a saved note, sign-out and sign-in.
+6. Run `python3 deploy/smoke-check.py https://<your domain>` from your own computer, then sign up
+   with a real account you own and walk through sign-up, verification, a saved note, sign-out and
+   sign-in.
 
 **When something breaks:**
 
@@ -137,15 +143,18 @@ For a public portfolio demo (guest sessions only, no email, no real accounts), f
 
 ## Remaining launch blockers (as of this batch)
 
-1. **No host or managed database chosen**, so nothing is deployed. The production compose is
-   prepared and rehearsed locally only.
+1. **No host chosen yet**, so nothing is deployed. Everything to deploy is ready and rehearsed:
+   the compose with its https proxy and optional judge, `deploy/setup.sh`, the checks and the
+   steps in [GO_LIVE.md](GO_LIVE.md) (rehearsal of 2026-11-25 there). What's left needs the
+   owner's accounts: a server and a domain.
 2. **No mail provider**: no real email has been sent, SPF/DKIM/DMARC aren't set, and bounces are
    invisible until its webhooks are connected ([EMAIL.md](EMAIL.md)).
 3. **No backup schedule on a host, and no off-site storage.** The backup job, its retention,
    its check and the cron line are ready and rehearsed. Scheduling them needs the host, and
    off-site copies need a storage provider ([BACKUP.md](BACKUP.md)).
-4. **Publishing is the owner's step.** CI runs on every pushed commit of the branch; deploying,
-   a domain and a certificate need the owner's accounts. For a portfolio, the demo needs no mail
+4. **Publishing is the owner's step.** CI runs on every pushed commit of the branch; deploying
+   and a domain need the owner's accounts (the certificate is automatic once the domain points at
+   the server). For a portfolio, the demo needs no mail
    provider and keeps no real accounts ([DEMO.md](DEMO.md), "Publishing it"), which removes
    blocker 2 for it and softens 3: `demo-reset` recreates its starting state, so a lost database
    costs only visitors' guest work, which the demo keeps for a day after its last use.

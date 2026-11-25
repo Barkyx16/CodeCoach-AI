@@ -74,36 +74,37 @@ The safest way to put CodeCoach online for a portfolio: no real accounts, so no 
 data is kept, and no email, so no mail provider. It runs on the production compose with production
 settings (https, PostgreSQL, strong secrets, owner and app database roles); only the mail
 requirement is lifted, because demo mode sends nothing. Each step is yours to take: nothing here
-buys a server, a domain or a certificate.
+buys a server or a domain.
 
-1. **A host** that runs Docker Compose and can be reached over https (any small Linux server or
-   container host), and a domain or subdomain pointed at it.
-2. **On the server**, from a checkout of this repository, write two files there (never commit
-   them; `.gitignore` excludes `.env.*`):
-   - `deploy/.env.production` from `deploy/production.env.example`: three unique database
-     passwords, `PUBLIC_API_URL`, and `CODECOACH_DB=codecoach_demo` (the demo's database name must
-     contain `demo`).
-   - `deploy/.env.app` from `deploy/demo.app.env.example`: `SECRET_KEY` and `METRICS_TOKEN`
-     (generate each with the command in the file), `APP_BASE_URL` and `CORS_ORIGINS` (the site's
-     https address). Put them in from the host's secret store, not a chat or a ticket.
+**[GO_LIVE.md](GO_LIVE.md) is the step-by-step**, in short:
+
+1. **A server** (Ubuntu 24.04, Docker; gVisor too for the judge) and a domain or subdomain whose A
+   record points at it.
+2. **The settings**, written on the server with every secret generated there:
+   `deploy/setup.sh --domain demo.example.com` (add `--judge` to run code). Demo mode is the
+   default: `CODECOACH_DB=codecoach_demo` (the demo's database name must contain `demo`), no email.
 3. **Start it:** `docker compose --env-file deploy/.env.production -f deploy/docker-compose.production.yml up -d --build`.
+   Its `proxy` service (Caddy) serves the app and the API on that one https address and gets the
+   certificate itself.
 4. **Load the sample learners** as the database owner (the API's app role can't empty the tables):
    `docker compose --env-file deploy/.env.production -f deploy/docker-compose.production.yml run --rm migrate python -m app.cli demo-reset --confirm codecoach_demo`.
-5. **An https proxy in front** (the host's, or Caddy or nginx), with `FORWARDED_ALLOW_IPS` set to
-   the proxy's address in `deploy/.env.app`, so the per-address limits (guest sessions, sign-in)
-   see each visitor rather than the proxy.
-6. **Check it:** in the api container, `python -m app.cli preflight`. Mail says optional (demo mode
-   sends no email); fix anything blocked. Then, in a private window, take the walkthrough above,
-   and check that `/docs` answers 404 and a second private window can't see the first one's work.
+5. **Check it:** in the api container, `python -m app.cli preflight` (mail says optional; fix
+   anything blocked); from your own computer, `python3 deploy/smoke-check.py https://demo.example.com`.
+   Then, in a private window, take the walkthrough above; `/api/docs` answers 404 and a second
+   private window can't see the first one's work.
 
-What it costs and allows: the built-in coach and no judge, so no paid service is called. Visitors'
+What it costs and allows: the built-in coach, so no paid service is called. Visitors'
 guest sessions are deleted a day after their last use, and one address starts at most 20 a day. To
 show Claude instead of the built-in coach, set `AI_PROVIDER=anthropic` and the key from your secret
 store, keep `AI_APP_DAILY_PAID_CALL_LIMIT` low, and set a spending limit in the provider's console
-as well ([SECURITY.md](SECURITY.md), "AI spending"). The judge needs a separate Linux gVisor host
+as well ([SECURITY.md](SECURITY.md), "AI spending"). The judge needs gVisor on the server
+(`deploy/setup.sh --judge`; GO_LIVE.md, step 3) or a separate Linux host
 ([REMOTE_JUDGE.md](REMOTE_JUDGE.md)); without it, submissions say they weren't run.
 
-Tests: `tests/test_demo_publishing.py` (the example file, filled in, passes the production checks;
+Tests: `tests/test_go_live.py` (what `deploy/setup.sh` writes passes the production checks for the
+demo, the demo with the judge, and real accounts once mail is filled in; secrets generated, never
+printed or overwritten; the proxy and judge profiles; the Caddyfile's routes) and
+`tests/test_demo_publishing.py` (the example file, filled in, passes the production checks;
 a production server that isn't a demo still needs SMTP; the preflight; the compose file's database
 name).
 
@@ -160,8 +161,8 @@ name).
 
 ## Limits
 
-- **A configuration, not a deployment.** Publishing a demo (a host, a domain, HTTPS, production
-  settings) is a separate step, yours to take: "Publishing it" above lists it.
+- **A configuration, not a deployment.** Publishing a demo (a server and a domain; https and the
+  settings are automated) is a separate step, yours to take: [GO_LIVE.md](GO_LIVE.md).
 - **No judge or AI provider here.** The demo shows the unavailable states those produce. With a
   Linux sandbox or an AI key, the same pages show the real ones.
 - **No CAPTCHA, and no global cap on guest sessions.** A public demo relies on the per-address
