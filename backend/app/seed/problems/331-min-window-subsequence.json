@@ -1,0 +1,123 @@
+{
+  "order": 331,
+  "slug": "min-window-subsequence",
+  "title": "Minimum Window Subsequence",
+  "difficulty": "hard",
+  "topics": [
+    "strings",
+    "dynamic-programming",
+    "two-pointers"
+  ],
+  "summary": "Shortest substring of s1 that contains s2 as a subsequence.",
+  "statement": "Return the shortest substring of `s1` that contains `s2` as a subsequence (in order, not necessarily\ncontiguous). If several are equally short, return the leftmost. If none exists, return `\"\"`.",
+  "constraints": [
+    "1 <= s1.length <= 2 * 10^4",
+    "1 <= s2.length <= 100"
+  ],
+  "examples": [
+    {
+      "input": "s1 = \"abcdebdde\", s2 = \"bde\"",
+      "output": "\"bcde\""
+    },
+    {
+      "input": "s1 = \"jmeqksfrsdcmsiwvaovztaqenprpvnbstl\", s2 = \"u\"",
+      "output": "\"\""
+    },
+    {
+      "input": "s1 = \"aaa\", s2 = \"a\"",
+      "output": "\"a\""
+    }
+  ],
+  "signature": {
+    "method": "minWindowSubsequence",
+    "params": [
+      {
+        "name": "s1",
+        "type": "String"
+      },
+      {
+        "name": "s2",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String minWindowSubsequence(String s1, String s2) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Find a window that ends where s2 is fully matched, then tighten its start.",
+    "Scan forward matching s2; when it's complete, scan backward from that end matching s2 in reverse to find the latest possible start.",
+    "i = 0\nwhile i < len(s1):\n    match s2 forward from i to find end e (or stop)\n    walk back from e matching s2 backwards to find start b\n    record s1[b:e+1] if shorter\n    i = b + 1\nreturn best",
+    "The backward pass gives the shortest window ending at that position. Restarting from `b + 1` makes it O(|s1| \u00d7 |s2|) worst case."
+  ],
+  "expected_complexity": {
+    "time": "O(n m)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s1": "abcdebdde",
+        "s2": "bde"
+      },
+      "expected_output": "bcde",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s1": "jmeqksfrsdcmsiwvaovztaqenprpvnbstl",
+        "s2": "u"
+      },
+      "expected_output": "",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s1": "aaa",
+        "s2": "a"
+      },
+      "expected_output": "a",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s1": "cnhczmccqouqadqtmjjzl",
+        "s2": "mm"
+      },
+      "expected_output": "mccqouqadqtm",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "aacabbcbaa",
+        "s2": "abb"
+      },
+      "expected_output": "abb",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "ccab",
+        "s2": "bb"
+      },
+      "expected_output": "",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "aabab",
+        "s2": "ccb"
+      },
+      "expected_output": "",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "acabc",
+        "s2": "bc"
+      },
+      "expected_output": "bc",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

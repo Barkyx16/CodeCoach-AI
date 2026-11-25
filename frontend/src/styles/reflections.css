@@ -1,0 +1,16 @@
+/* Private reflections on real interviews. */
+
+.reflection-page form textarea, .reflection-page form .input { width: 100%; }
+.reflection-guidance ul { margin: 0; }
+.reflection-observations, .reflection-stories { border: 0; padding: 0; margin: 0; }
+.reflection-observations .mini-list li { flex-wrap: wrap; }
+.reflection-observations__add { flex-wrap: wrap; align-items: end; }
+.reflection-observations__add .field { flex: 1 1 240px; }
+.reflection-actions { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-3); }
+.reflection-action { display: grid; gap: var(--space-1); padding: var(--space-3) 0; border-top: 1px solid var(--color-border); }
+.reflection-action .row { flex-wrap: wrap; }
+.reflection-action__buttons { align-items: end; }
+.reflection-action__date { max-width: 220px; }
+.reflection-action__done { color: var(--color-success); font-weight: 600; margin: 0; }
+.reflections-filters { flex-wrap: wrap; align-items: end; gap: var(--space-3); margin: var(--space-4) 0; }
+.reflections-filters .field { flex: 1 1 200px; }

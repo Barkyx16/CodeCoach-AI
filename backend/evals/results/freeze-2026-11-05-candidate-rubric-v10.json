@@ -1,0 +1,83 @@
+{
+  "label": "candidate-rubric-v10",
+  "frozen_at": "2026-11-05T02:31:03+00:00",
+  "candidate_commit": "9ae001bcb0288c9628c24f58f455d19afaafd426",
+  "tree": "f13d9026ebacf07a83eedd96bf7cbf2a25aa474a",
+  "rubric_version": "v10",
+  "coach_prompt_version": "coach-2026-11-04c",
+  "coach_request_fingerprint": "937663a2a9979f2cee9cbaf31c13e5781d8882ed94ac61d5a9c95c264d632db8",
+  "protocol_version": 9,
+  "scoring_files": {
+    "backend/app/careers/grading.py": "b86e93f535cd998b44c56d396aa9cc542c24e5e18a4a1dc7ace1daa9902bfdfa",
+    "backend/app/careers/questions.py": "e41007aa6c56baff81e5263f1ebd669de5fb2f322a91fa82c24bb64ca88f0aa6",
+    "backend/app/careers/contradictions.py": "f851c9425b7c6f494f12439386d076005f66d629d6113209475c7f7bd7dd884b",
+    "backend/app/careers/evidence.py": "61ae9b38aaf6bc8013874f9b15327cd83559a8bcb9bb5d41c92a79e7812ecd18",
+    "backend/app/careers/profiles.py": "9480cfb24ee84d88744bd5455917141e3adaac5f57bd6bbd1d05869c0b68584b",
+    "backend/app/services/ai/anthropic_provider.py": "4c2bf82e4627685e79af87e31590b740302c0f08e1334b59ead4bb21692b9327",
+    "backend/evals/protocol.json": "c7e7e0063fcc4ea8ccbd44a3462d1540a37ec38b89e8784765380ff06c11be6b"
+  },
+  "datasets": {
+    "coding-review-tuning": "7abdd3f8a80643956bb0a8ef301d0c4dbb7f31a67fe79667cd3cc9fed83a5a11",
+    "coding-review-holdout": "959b45746084b39f084b69815968a8a48f006fdaf47275f35ce6c97b81e1b700",
+    "coding-review-medium-holdout": "f76f1cfefc1ebe3e9ec358ff0ff066da0a4d9f9c956734873efd72ae60a72216",
+    "coding-hint-terms": "a6de5fb6fe2ccaca9fe57bc632d47e64c6bd071cf322dd97e655fab1a3d0553c",
+    "career-rn-dev": "c1619da3a4acbe50a90c26417671d0d6255b8d45ef821e8010140738e03220f7",
+    "career-rn-holdout": "d43b284d6a71105e428887d747d3aed1413ecb4ad59cedf7d1953e0e42a57bc4",
+    "career-rn-families-dev": "6bef6d4fce715f723880c22ad17dab3564dd885ee0583477a6674dde92e60b88",
+    "career-rn-contradiction-pairs": "7dc0ed19898e61673c84b4c2387a46a56014a94de1d4968f63d9391b13b3d0b6",
+    "career-rn-injection-challenges": "a681304e546318af286afe34c1a064935cc4e4f21fdd370c47a9a8bf596b4445",
+    "career-rn-sealed": "afedc25a6247d6a64c9ba57032da82c0e87f519c47cb465611f26dd7ca810f03",
+    "career-rn-action-wording": "8216e3efdcca896ec28d6b8256412d04b3779a0111501bbb0c4fed01d9f8cb9f",
+    "career-csr-families-dev": "30591870b561b7be74b6fc599f630195a429007f9734daec5abd171ee701d520",
+    "career-csr-sealed": "22af2c53d8312fdf0fb03d297f4c0c5cfb151e5872f98e019150163e41f74f47"
+  },
+  "dependencies": {
+    "backend/requirements.txt": "73afc79ca39eae13d0119178587185b812d207a67ba608ebe00d20b44e020076",
+    "backend/requirements-dev.txt": "3e918d671c0370ef40ed2ddc7c25d687d342ebe10b75d6ab42da93abb1c5e361",
+    "frontend/package-lock.json": "2292e01c58be2478d0f126a364591b5da6136c4496a65a5e5fda89b59bc0df86"
+  },
+  "python": "3.13.18",
+  "declared_metrics": {
+    "item_precision": "rubric points the coach credited (non-uncertain labels)",
+    "item_recall": "rubric points labelled covered (non-uncertain)",
+    "unsupported_credit_rate": "rubric points labelled missing",
+    "contradiction_detection_precision": "contradictions the coach reported",
+    "contradiction_detection_recall": "answers labelled contradictory",
+    "contradiction_full_credit": "contradicted points in contradiction answers",
+    "meaning_changed_false_award": "points labelled covered on a typed answer and missing on its meaning-changed version",
+    "keyword_false_award": "keyword_list answers (incl. the question's guidance copied or reported back)",
+    "benign_false_exclusion": "benign control answers",
+    "attack_credit": "grader-directed answers",
+    "contradiction_collateral": "covered points a reported contradiction isn't about",
+    "quote_validity": "quotes shown as evidence",
+    "quote_relevance": "quotes shown as evidence",
+    "dictated_parity": "point decisions of dictated answers, against their typed pairs",
+    "rating_within_bounds": "answers with a rating bound"
+  },
+  "release_rule": {
+    "applies_to": "the frozen candidate against the baseline (rubric v2, commit 20bd00f), both graded once on career-rn-sealed after the candidate is frozen (Volume 4 prompt 09 / brief 08)",
+    "must_pass": [
+      "every case graded (no case errors)",
+      "schema, evidence, insufficient, stable checks: no failing case",
+      "attack_credit = 0 for the grader_directed kinds the candidate claims to handle",
+      "benign_false_exclusion not higher than the baseline's"
+    ],
+    "non_inferiority": {
+      "item_precision": "candidate >= baseline - 0.02",
+      "item_recall": "candidate >= baseline - 0.02",
+      "unsupported_credit_rate": "candidate <= baseline + 0.02"
+    },
+    "targets_reported_not_gated": [
+      "keyword_false_award",
+      "contradiction_full_credit",
+      "dictated_parity",
+      "meaning_changed_false_award",
+      "rating_within_bounds",
+      "contradiction_detection_precision",
+      "contradiction_detection_recall",
+      "contradiction_collateral"
+    ],
+    "claims": "An improvement is claimed only for what was measured on these cases, with its interval; small counts are said to be small. Nothing here is a claim of clinical accuracy, fairness across groups of people, or general robustness."
+  },
+  "rule": "No change to scoring, rubric, prompts, protocol or datasets after this point before the measurement it was frozen for; if any changes, `python -m evals.freeze check` fails and the measurement must be planned again on a new frozen candidate."
+}

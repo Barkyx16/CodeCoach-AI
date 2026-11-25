@@ -1,0 +1,21 @@
+/* Interview formats: picker, preview, panel roster, follow-up turns and speaker labels. */
+
+.format-picker { display: grid; gap: var(--space-2); border: none; padding: 0; margin: 0; }
+.format-option {
+  display: flex; gap: var(--space-2); align-items: flex-start; padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border); border-radius: var(--radius-md); cursor: pointer;
+}
+.format-option input { margin-top: 0.3em; }
+.format-option__text { display: grid; gap: 2px; }
+.format-option--active { border-color: var(--color-link); background: var(--color-primary-soft); }
+.format-option--off { cursor: not-allowed; opacity: 0.8; }
+.format-option--off strong { color: var(--color-text-muted); }
+.format-preview { border-left: 3px solid var(--color-border-strong); padding-left: var(--space-3); display: grid; gap: var(--space-1); }
+
+.panel-roster { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
+.panel-roster li { display: grid; gap: 2px; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+.panel-roster li[aria-current="true"] { border-color: var(--color-link); border-width: 2px; }
+.speaker-label { font-weight: 600; }
+.turn-cue { margin: 0; font-weight: 600; }
+.followup-card { border-color: var(--color-link); }
+.perspectives { display: grid; gap: var(--space-2); grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }

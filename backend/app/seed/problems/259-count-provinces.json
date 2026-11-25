@@ -1,0 +1,240 @@
+{
+  "order": 259,
+  "slug": "count-provinces",
+  "title": "Count Provinces",
+  "difficulty": "medium",
+  "topics": [
+    "graphs",
+    "union-find"
+  ],
+  "summary": "Count groups of directly or indirectly connected cities.",
+  "statement": "`isConnected[i][j]` is `1` if cities `i` and `j` are directly connected (the matrix is symmetric with\n1s on the diagonal). A province is a group of cities connected directly or through other cities.\nReturn the number of provinces.",
+  "constraints": [
+    "1 <= n <= 200"
+  ],
+  "examples": [
+    {
+      "input": "isConnected = [[1, 1, 0], [1, 1, 0], [0, 0, 1]]",
+      "output": "2"
+    },
+    {
+      "input": "isConnected = [[1, 0, 0], [0, 1, 0], [0, 0, 1]]",
+      "output": "3"
+    },
+    {
+      "input": "isConnected = [[1]]",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "findCircleNum",
+    "params": [
+      {
+        "name": "isConnected",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int findCircleNum(int[][] isConnected) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "This is counting connected components in a graph given as an adjacency matrix.",
+    "Union-find: union every connected pair, then count distinct roots. DFS from each unvisited city also works.",
+    "parent = list(range(n))\nfor i, j with isConnected[i][j]: union(i, j)\nreturn number of i with find(i) == i",
+    "Reading the matrix is O(n^2); union-find with path compression is near-constant per operation."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "isConnected": [
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "isConnected": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "isConnected": [
+          [
+            1
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "isConnected": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            1
+          ]
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "isConnected": [
+          [
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "isConnected": [
+          [
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            1,
+            1
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "isConnected": [
+          [
+            1,
+            1,
+            0,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            1
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

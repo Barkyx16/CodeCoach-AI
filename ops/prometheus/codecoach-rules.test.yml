@@ -1,0 +1,52 @@
+# Unit tests for the alert rules, with synthetic series: `promtool test rules` (see the rules file).
+rule_files:
+  - codecoach-rules.yml
+evaluation_interval: 1m
+tests:
+  # 10% of 4 answers per minute fail for an hour: the round-actions alert fires after its 15 minutes.
+  - interval: 1m
+    input_series:
+      - series: 'codecoach_round_actions_total{action="answer",outcome="advanced"}'
+        values: '0+36x60'
+      - series: 'codecoach_round_actions_total{action="answer",outcome="error"}'
+        values: '0+4x60'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: CodeCoachRoundActionsFailing
+        exp_alerts: []
+      - eval_time: 60m
+        alertname: CodeCoachRoundActionsFailing
+        exp_alerts:
+          - exp_labels:
+              severity: page
+            exp_annotations:
+              summary: More than 2% of interview answers are failing on the server
+              runbook: docs/OBSERVABILITY.md#runbook-round-actions-failing
+  # The same failure rate on a quiet night (below the 50-action minimum): no page.
+  - interval: 1m
+    input_series:
+      - series: 'codecoach_round_actions_total{action="answer",outcome="advanced"}'
+        values: '0+0.5x60'
+      - series: 'codecoach_round_actions_total{action="answer",outcome="error"}'
+        values: '0+0.1x60'
+    alert_rule_test:
+      - eval_time: 60m
+        alertname: CodeCoachRoundActionsFailing
+        exp_alerts: []
+  # A submission waiting 10 minutes: the queue alert fires once it has held for 10 minutes.
+  - interval: 1m
+    input_series:
+      - series: 'codecoach_judge_oldest_queued_seconds'
+        values: '0+60x30'
+    alert_rule_test:
+      - eval_time: 12m
+        alertname: CodeCoachJudgeQueueStuck
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: CodeCoachJudgeQueueStuck
+        exp_alerts:
+          - exp_labels:
+              severity: page
+            exp_annotations:
+              summary: A code submission has waited more than 5 minutes for the judge
+              runbook: docs/OBSERVABILITY.md#runbook-judge-queue-stuck

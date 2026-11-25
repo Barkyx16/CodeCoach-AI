@@ -18,6 +18,10 @@ from app.models import Difficulty, Problem, TestCase, TestVisibility
 
 logger = logging.getLogger("codecoach.seed")
 SEED_DIR = Path(__file__).resolve().parents[1] / "seed" / "problems"
+# Debugging exercises (Volume 10, prompt 2): the same format with "kind": "debug" and a "lab" block;
+# the faulty code is the starter, the repair is reference/<slug>.java (docs/DEBUGGING_LAB.md).
+DEBUGGING_DIR = Path(__file__).resolve().parents[1] / "seed" / "debugging"
+REFERENCE_DIR = Path(__file__).resolve().parents[1] / "seed" / "reference"
 
 _PROBLEM_FIELDS = (
     "title",
@@ -41,9 +45,12 @@ def _tests_signature(tests: list) -> list:
     return [(t["input"], t["expected_output"], str(t["visibility"])) for t in tests]
 
 
-def seed_problems(session: Session, seed_dir: Path = SEED_DIR) -> int:
+def seed_problems(session: Session, seed_dir: Path = SEED_DIR, debugging_dir: Path | None = None) -> int:
     count = 0
-    for data in load_seed_files(seed_dir):
+    if debugging_dir is None and seed_dir == SEED_DIR:
+        debugging_dir = DEBUGGING_DIR
+    files = load_seed_files(seed_dir) + (load_seed_files(debugging_dir) if debugging_dir else [])
+    for data in files:
         problem = session.scalar(select(Problem).where(Problem.slug == data["slug"]))
         if problem is None:
             problem = Problem(slug=data["slug"])
@@ -52,6 +59,15 @@ def seed_problems(session: Session, seed_dir: Path = SEED_DIR) -> int:
             setattr(problem, field, data[field])
         problem.difficulty = Difficulty(data["difficulty"])
         problem.order_index = data["order"]
+        problem.kind = data.get("kind", "problem")
+        problem.lab = (
+            {
+                **data["lab"],
+                "reference_repair": (REFERENCE_DIR / f"{data['slug']}.java").read_text(encoding="utf-8"),
+            }
+            if problem.kind == "debug"
+            else None
+        )
 
         existing = [
             {"input": t.input, "expected_output": t.expected_output, "visibility": t.visibility.value}

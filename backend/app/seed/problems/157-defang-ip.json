@@ -1,0 +1,101 @@
+{
+  "order": 157,
+  "slug": "defang-ip",
+  "title": "Defang an IP Address",
+  "difficulty": "easy",
+  "topics": [
+    "strings"
+  ],
+  "summary": "Replace every dot in an IP address with [.]",
+  "statement": "Return the IPv4 address `address` with every `.` replaced by `[.]`.",
+  "constraints": [
+    "address is a valid IPv4 address"
+  ],
+  "examples": [
+    {
+      "input": "address = \"1.1.1.1\"",
+      "output": "\"1[.]1[.]1[.]1\""
+    },
+    {
+      "input": "address = \"255.100.50.0\"",
+      "output": "\"255[.]100[.]50[.]0\""
+    },
+    {
+      "input": "address = \"10.0.0.255\"",
+      "output": "\"10[.]0[.]0[.]255\""
+    }
+  ],
+  "signature": {
+    "method": "defangIPaddr",
+    "params": [
+      {
+        "name": "address",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String defangIPaddr(String address) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Build the result character by character.",
+    "Append `[.]` for a dot and the character itself otherwise.",
+    "out = ''\nfor c in address: out += '[.]' if c == '.' else c\nreturn out",
+    "One pass with a StringBuilder: O(n). (`address.replace(\".\", \"[.]\")` also works.)"
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "address": "1.1.1.1"
+      },
+      "expected_output": "1[.]1[.]1[.]1",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "address": "255.100.50.0"
+      },
+      "expected_output": "255[.]100[.]50[.]0",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "address": "10.0.0.255"
+      },
+      "expected_output": "10[.]0[.]0[.]255",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "address": "114.77.14.252"
+      },
+      "expected_output": "114[.]77[.]14[.]252",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "address": "254.105.230.196"
+      },
+      "expected_output": "254[.]105[.]230[.]196",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "address": "195.107.127.138"
+      },
+      "expected_output": "195[.]107[.]127[.]138",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "address": "240.51.101.64"
+      },
+      "expected_output": "240[.]51[.]101[.]64",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

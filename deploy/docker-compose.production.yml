@@ -1,0 +1,229 @@
+# One realistic production layout on a single server: PostgreSQL on a named volume, a one-shot
+# migrate job as the table owner, and the API as an app role that owns nothing. PREPARED, not a
+# deployment: nothing here buys hosting, opens DNS or sends email. docs/STORAGE.md explains each
+# part and the procedure; docs/EMAIL.md covers the mail settings it needs.
+#
+#   deploy/setup.sh --domain demo.example.com                  # writes both files below, secrets generated
+#   docker compose --env-file deploy/.env.production -f deploy/docker-compose.production.yml up -d --build
+#
+# (Or by hand: deploy/production.env.example -> deploy/.env.production and deploy/app.env.example
+# or demo.app.env.example -> deploy/.env.app.) docs/GO_LIVE.md walks through a whole launch.
+#
+# Optional parts, switched on by COMPOSE_PROFILES in deploy/.env.production (setup.sh writes it):
+#   https  the `proxy` service: Caddy on ports 80/443 with a certificate it gets and renews itself
+#          (deploy/Caddyfile). Leave it off if the host already has an https proxy.
+#   judge  the `runner` and `worker`: learners' code judged in gVisor sandboxes on this host.
+#   backup the nightly `backup` job, run by the host's scheduler (docs/BACKUP.md).
+#
+# Two files on purpose: .env.production is read by compose itself to fill in the database URLs,
+# and its values reach a container only where this file names them. So the API gets the app
+# role's password and never the owner's or the superuser's. .env.app goes into the migrate and
+# api containers whole. Both are excluded by .gitignore (.env.*).
+#
+# Data lives in the volume `codecoach_pgdata`. Restarting, recreating or upgrading containers keeps
+# it, and so does `docker compose down`. Only `down -v`, or removing the volume by name, deletes it:
+# never do either outside a disposable rehearsal (`down -v` also deletes the backups volume).
+# Take a backup first (docs/BACKUP.md).
+# TLS: the `proxy` service (profile https), or your own https reverse proxy or load balancer in
+# front of `web` (127.0.0.1:3000) and `api` (127.0.0.1:8000). Production refuses a non-https
+# APP_BASE_URL.
+
+name: codecoach
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      # The image's bootstrap superuser: used once, by deploy/postgres-init, to make the two roles.
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_SUPERUSER_PASSWORD:?set POSTGRES_SUPERUSER_PASSWORD}
+      # The database's name: codecoach, or one containing "demo" for a portfolio demo (docs/DEMO.md).
+      POSTGRES_DB: ${CODECOACH_DB:-codecoach}
+      CODECOACH_OWNER_PASSWORD: ${CODECOACH_OWNER_PASSWORD:?set CODECOACH_OWNER_PASSWORD}
+      CODECOACH_APP_PASSWORD: ${CODECOACH_APP_PASSWORD:?set CODECOACH_APP_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    # No `ports:`: only the services on this compose network can reach the database.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    # Runs to completion on every `up`, then exits; the API waits for it to succeed.
+    build: ../backend
+    restart: "no"
+    env_file: [.env.app]
+    environment:
+      ENVIRONMENT: production
+      AUTO_MIGRATE: "false"
+      DATABASE_URL: postgresql+psycopg://codecoach_owner:${CODECOACH_OWNER_PASSWORD}@db:5432/${CODECOACH_DB:-codecoach}
+      # Migrating runs no learner code: the judge's switch and token stay with the api and worker.
+      EXECUTION_ENABLED: "false"
+    command: >-
+      sh -c "alembic upgrade head
+      && python -m app.cli seed
+      && python -m app.cli grant-app-role codecoach_app"
+    healthcheck: {disable: true}
+    depends_on:
+      db: {condition: service_healthy}
+
+  api:
+    build: ../backend
+    restart: unless-stopped
+    env_file: [.env.app]
+    environment:
+      ENVIRONMENT: production
+      AUTO_MIGRATE: "false"
+      # The app role: row access only. The owner's password is not in this container.
+      DATABASE_URL: postgresql+psycopg://codecoach_app:${CODECOACH_APP_PASSWORD}@db:5432/${CODECOACH_DB:-codecoach}
+      # Whose X-Forwarded-For to believe. A proxy on the host reaches this container through
+      # Docker's gateway (e.g. 172.18.0.1), never 127.0.0.1, so uvicorn's default would make every
+      # visitor share the gateway's address, and its sign-in rate limit (10 a minute, for everyone).
+      # Private ranges cover the gateway on any Docker network. That's safe here because the port
+      # below is published on 127.0.0.1 only: nothing outside this host can reach the API directly.
+      # Narrow it in .env.production if you like (e.g. FORWARDED_ALLOW_IPS=172.18.0.1).
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-10.0.0.0/8,172.16.0.0/12,192.168.0.0/16}
+      # The judge (profile judge): where the runner is and its token, so the API can report whether
+      # code runs. EXECUTION_ENABLED in .env.app turns it on; unset, these do nothing.
+      RUNNER_URL: http://runner:8100
+      RUNNER_TOKEN: ${RUNNER_TOKEN:-}
+    ports: ["127.0.0.1:8000:8000"]   # for a reverse proxy on this host (the `proxy` service uses the network)
+    healthcheck:
+      # Ready = the database answers and its schema isn't behind this code (/health/ready).
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3).status == 200 else 1)"]
+      interval: 15s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+
+  backup:
+    # Not started by `up`. A scheduler on the host runs it nightly (docs/BACKUP.md "Scheduling"):
+    #   docker compose --env-file deploy/.env.production -f deploy/docker-compose.production.yml \
+    #     --profile backup run --rm -T backup
+    # It backs up (encrypted to the public keys in deploy/backup-recipients.txt), prunes to 7 daily,
+    # 4 weekly and 3 monthly, then checks the newest; a failure exits non-zero for the scheduler.
+    # As the table owner, like migrate: a backup must see every row. The API never gets this
+    # password, and can't see the backups volume.
+    profiles: ["backup"]
+    build: {context: ../backend, target: backup}
+    restart: "no"
+    env_file: [.env.app]
+    environment:
+      ENVIRONMENT: production
+      AUTO_MIGRATE: "false"
+      DATABASE_URL: postgresql+psycopg://codecoach_owner:${CODECOACH_OWNER_PASSWORD}@db:5432/${CODECOACH_DB:-codecoach}
+      EXECUTION_ENABLED: "false"   # a backup runs no learner code
+    volumes:
+      - backups:/backups
+      - type: bind
+        source: ./backup-recipients.txt   # age PUBLIC keys only; the private key never comes here
+        target: /run/codecoach/recipients.txt
+        read_only: true
+        bind: {create_host_path: false}
+    command: >-
+      sh -c "python -m app.cli backup-database --out /backups --recipients /run/codecoach/recipients.txt
+      && python -m app.cli prune-backups --dir /backups --apply
+      && python -m app.cli check-backups --dir /backups"
+    healthcheck: {disable: true}
+    depends_on:
+      db: {condition: service_healthy}
+
+  web:
+    build:
+      context: ../frontend
+      args:
+        VITE_API_BASE_URL: ${PUBLIC_API_URL:?set PUBLIC_API_URL (the https address of the API)}
+    restart: unless-stopped
+    ports: ["127.0.0.1:3000:8080"]
+    depends_on: [api]
+
+  # --- https (profile https) ------------------------------------------------------------------
+  proxy:
+    # The front door: https on 443 (and 80, which redirects and answers Let's Encrypt). Caddy gets
+    # the certificate for SITE_ADDRESS itself once the domain points here, and renews it. It
+    # serves the app and the API on that one address (deploy/Caddyfile).
+    profiles: ["https"]
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-}
+    # Refuse to start without an address, rather than serve something else.
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        if [ -z "$$SITE_ADDRESS" ]; then echo "proxy: set SITE_ADDRESS in deploy/.env.production (the site's domain)" >&2; exit 1; fi;
+        exec caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+    ports: ["80:80", "443:443", "443:443/udp"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data     # the certificate and its account: kept across restarts, so no re-issue
+      - caddy_config:/config
+    depends_on:
+      web: {condition: service_started}
+      api: {condition: service_healthy}
+
+  # --- the judge (profile judge) --------------------------------------------------------------
+  # Learners' code runs only in the runner's sandboxes: a fresh container per run, under gVisor
+  # (runsc), no network, read-only, capped (docs/SECURITY.md §4). The host needs gVisor installed
+  # and registered with Docker as `runsc` (docs/GO_LIVE.md). The runner starts sandboxes through
+  # the Docker socket, which is root on this host: it holds no other secret and no database access,
+  # is reachable only on this compose network with its token, and the stricter layout puts it on a
+  # separate VM (docs/REMOTE_JUDGE.md).
+  sandbox-image:
+    profiles: ["judge"]
+    build: ../runner/sandbox-image
+    image: codecoach-java-sandbox:21
+    entrypoint: ["true"]   # build-only: the image every submission runs in
+    restart: "no"
+
+  runner:
+    profiles: ["judge"]
+    build: ../runner
+    restart: unless-stopped
+    environment:
+      RUNNER_TOKEN: ${RUNNER_TOKEN:-}   # the runner refuses to start without one
+      SANDBOX_RUNTIME: runsc
+      ALLOW_INSECURE_RUNTIME: "false"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    # No `ports:`: only the API and the worker on this network can reach it.
+    depends_on:
+      sandbox-image: {condition: service_completed_successfully}
+
+  worker:
+    # Claims queued submissions and calls the runner. The app role, like the API: it sees a
+    # learner's rows only while working for that learner (docs/ROW_LEVEL_SECURITY.md).
+    profiles: ["judge"]
+    build: ../backend
+    restart: unless-stopped
+    command: ["python", "-m", "app.worker"]
+    env_file: [.env.app]
+    environment:
+      ENVIRONMENT: production
+      AUTO_MIGRATE: "false"
+      DATABASE_URL: postgresql+psycopg://codecoach_app:${CODECOACH_APP_PASSWORD}@db:5432/${CODECOACH_DB:-codecoach}
+      EXECUTION_ENABLED: "true"
+      RUNNER_URL: http://runner:8100
+      RUNNER_TOKEN: ${RUNNER_TOKEN:-}
+    healthcheck: {disable: true}   # the image's check is the API's; the worker serves no HTTP
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      runner: {condition: service_healthy}
+
+volumes:
+  pgdata:
+    name: codecoach_pgdata   # a fixed name, so another project's `down -v` can't match it by accident
+  backups:
+    # On the same disk as the database: it guards against a bad change or a dropped table, NOT a
+    # lost disk. Copy each new backup off the host (docs/BACKUP.md "Off-site copies").
+    name: codecoach_backups
+  caddy_data:
+    name: codecoach_caddy_data
+  caddy_config:
+    name: codecoach_caddy_config

@@ -1,0 +1,123 @@
+{
+  "order": 234,
+  "slug": "wildcard-parentheses",
+  "title": "Parentheses With Wildcards",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "greedy"
+  ],
+  "summary": "Can '*' stand for '(', ')' or nothing to make the string valid?",
+  "statement": "`s` contains `(`, `)` and `*`. Each `*` can be `(`, `)` or an empty string. Return `true` if some\nchoice makes `s` a valid parentheses string.",
+  "constraints": [
+    "1 <= s.length <= 100"
+  ],
+  "examples": [
+    {
+      "input": "s = \"()\"",
+      "output": "true"
+    },
+    {
+      "input": "s = \"(*)\"",
+      "output": "true"
+    },
+    {
+      "input": "s = \"(*))\"",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "checkValidString",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean checkValidString(String s) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Track the range of possible open-bracket counts rather than one number.",
+    "Keep `low` and `high`: `(` raises both, `)` lowers both, `*` lowers `low` and raises `high`. Clamp `low` at 0.",
+    "low = high = 0\nfor c in s:\n    if c == '(': low += 1; high += 1\n    elif c == ')': low -= 1; high -= 1\n    else: low -= 1; high += 1\n    if high < 0: return false\n    low = max(low, 0)\nreturn low == 0",
+    "`high < 0` means too many `)` even if every `*` is `(`. Ending with `low == 0` means some choice closes everything. O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "()"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "(*)"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "(*))"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": ")("
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "((*"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "*"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "(*()*()(("
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "())))((***"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "(((***"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "()*(()(*"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,162 @@
+{
+  "order": 225,
+  "slug": "koko-eating-speed",
+  "title": "Slowest Eating Speed",
+  "difficulty": "medium",
+  "topics": [
+    "binary-search"
+  ],
+  "summary": "Find the minimum speed to finish all piles within h hours.",
+  "statement": "There are piles of bananas, `piles[i]` in pile `i`. Each hour you pick one pile and eat up to `k`\nbananas from it (if fewer remain, you finish the pile and wait out the hour). Return the minimum\ninteger speed `k` that finishes everything within `h` hours.",
+  "constraints": [
+    "1 <= piles.length <= 10^4",
+    "piles.length <= h <= 10^9",
+    "1 <= piles[i] <= 10^9"
+  ],
+  "examples": [
+    {
+      "input": "piles = [3, 6, 7, 11], h = 8",
+      "output": "4"
+    },
+    {
+      "input": "piles = [30, 11, 23, 4, 20], h = 5",
+      "output": "30"
+    },
+    {
+      "input": "piles = [30, 11, 23, 4, 20], h = 6",
+      "output": "23"
+    }
+  ],
+  "signature": {
+    "method": "minEatingSpeed",
+    "params": [
+      {
+        "name": "piles",
+        "type": "int[]"
+      },
+      {
+        "name": "h",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minEatingSpeed(int[] piles, int h) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "If speed `k` works, does every faster speed work too?",
+    "Yes, so binary search on `k` between 1 and the largest pile. Hours at speed `k` = sum of `ceil(p / k)`.",
+    "lo, hi = 1, max(piles)\nwhile lo < hi:\n    mid = (lo + hi) // 2\n    if hours(mid) <= h: hi = mid\n    else: lo = mid + 1\nreturn lo",
+    "Binary search on the answer: O(n log max(piles)). Sum hours in a long, and compute `ceil(p / k)` as `(p + k - 1) / k`."
+  ],
+  "expected_complexity": {
+    "time": "O(n log m)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "piles": [
+          3,
+          6,
+          7,
+          11
+        ],
+        "h": 8
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "piles": [
+          30,
+          11,
+          23,
+          4,
+          20
+        ],
+        "h": 5
+      },
+      "expected_output": 30,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "piles": [
+          30,
+          11,
+          23,
+          4,
+          20
+        ],
+        "h": 6
+      },
+      "expected_output": 23,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "piles": [
+          1
+        ],
+        "h": 1
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "piles": [
+          49,
+          56,
+          52,
+          48,
+          33,
+          22
+        ],
+        "h": 22
+      },
+      "expected_output": 13,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "piles": [
+          31,
+          37,
+          60
+        ],
+        "h": 7
+      },
+      "expected_output": 20,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "piles": [
+          6,
+          29,
+          10
+        ],
+        "h": 12
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "piles": [
+          46,
+          16,
+          19,
+          9,
+          51
+        ],
+        "h": 19
+      },
+      "expected_output": 9,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

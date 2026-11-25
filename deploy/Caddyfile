@@ -1,0 +1,29 @@
+# The https front door for deploy/docker-compose.production.yml (the `proxy` service, profile
+# "https"). Caddy gets and renews the certificate itself (Let's Encrypt) once the domain in
+# SITE_ADDRESS points at this server and ports 80 and 443 are open; nothing to buy or paste.
+#
+# One origin for everything: the app at /, the API at /api/ and /health on the same address, so
+# the browser makes no cross-origin calls, the session cookie stays first-party, and one
+# certificate covers it all. PUBLIC_API_URL and APP_BASE_URL are both this address.
+#
+# Not routed, on purpose: /metrics (scrape it from the host with METRICS_TOKEN, or not at all)
+# and the API's /docs, which production turns off anyway.
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	@api path /api/* /health /health/*
+	handle @api {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		reverse_proxy web:8080
+	}
+
+	# Browsers keep to https for this site once they've seen it here. Subdomains aren't included:
+	# they may be served by something else.
+	header Strict-Transport-Security "max-age=31536000"
+	# Caddy's own name isn't the visitor's business.
+	header -Server
+}

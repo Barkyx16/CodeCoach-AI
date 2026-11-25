@@ -1,0 +1,194 @@
+{
+  "order": 280,
+  "slug": "sliding-window-maximum",
+  "title": "Sliding Window Maximum",
+  "difficulty": "hard",
+  "topics": [
+    "sliding-window",
+    "queues",
+    "arrays"
+  ],
+  "summary": "The maximum of every window of size k.",
+  "statement": "Return the maximum of each contiguous window of size `k` as it slides from the left of `nums` to the right.",
+  "constraints": [
+    "1 <= k <= nums.length <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 3, -1, -3, 5, 3, 6, 7], k = 3",
+      "output": "[3, 3, 5, 5, 6, 7]"
+    },
+    {
+      "input": "nums = [1], k = 1",
+      "output": "[1]"
+    },
+    {
+      "input": "nums = [9, 8, 7], k = 2",
+      "output": "[9, 8]"
+    }
+  ],
+  "signature": {
+    "method": "maxSlidingWindow",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] maxSlidingWindow(int[] nums, int k) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Recomputing each window's max is O(n k). Which values can never be a future maximum?",
+    "A value is useless once a larger value arrives after it. Keep a deque of indices with decreasing values.",
+    "dq = deque()\nfor i, x in enumerate(nums):\n    if dq and dq[0] <= i - k: dq.popleft()\n    while dq and nums[dq[-1]] <= x: dq.pop()\n    dq.append(i)\n    if i >= k - 1: out.append(nums[dq[0]])\nreturn out",
+    "The deque front is always the window's maximum, and each index enters and leaves once: O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(k)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          3,
+          -1,
+          -3,
+          5,
+          3,
+          6,
+          7
+        ],
+        "k": 3
+      },
+      "expected_output": [
+        3,
+        3,
+        5,
+        5,
+        6,
+        7
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1
+        ],
+        "k": 1
+      },
+      "expected_output": [
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          9,
+          8,
+          7
+        ],
+        "k": 2
+      },
+      "expected_output": [
+        9,
+        8
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          -1,
+          5,
+          2,
+          4,
+          4,
+          -7,
+          -6,
+          -1,
+          8,
+          7,
+          7,
+          -8
+        ],
+        "k": 2
+      },
+      "expected_output": [
+        5,
+        5,
+        4,
+        4,
+        4,
+        -6,
+        -1,
+        8,
+        8,
+        7,
+        7
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          7
+        ],
+        "k": 1
+      },
+      "expected_output": [
+        0,
+        7
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          9,
+          0,
+          -1,
+          -6,
+          -5,
+          -9,
+          7
+        ],
+        "k": 6
+      },
+      "expected_output": [
+        9,
+        9,
+        7
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -8,
+          2,
+          1,
+          9
+        ],
+        "k": 2
+      },
+      "expected_output": [
+        2,
+        2,
+        9
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

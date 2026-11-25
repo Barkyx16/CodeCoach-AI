@@ -1,0 +1,176 @@
+{
+  "order": 191,
+  "slug": "group-anagrams",
+  "title": "Group Anagrams",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "hash-maps",
+    "sorting"
+  ],
+  "summary": "Group words that are anagrams of each other.",
+  "statement": "Group the words of `words` that are anagrams of each other. Return one string per group: the\ngroup's words sorted alphabetically and joined with commas. Sort the groups alphabetically too.\nFor `[\"eat\",\"tea\",\"tan\",\"ate\",\"nat\",\"bat\"]` the answer is `[\"ate,eat,tea\", \"bat\", \"nat,tan\"]`.",
+  "constraints": [
+    "1 <= words.length <= 10^4",
+    "0 <= words[i].length <= 100",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "words = [\"eat\", \"tea\", \"tan\", \"ate\", \"nat\", \"bat\"]",
+      "output": "[\"ate,eat,tea\", \"bat\", \"nat,tan\"]"
+    },
+    {
+      "input": "words = [\"\"]",
+      "output": "[\"\"]"
+    },
+    {
+      "input": "words = [\"a\"]",
+      "output": "[\"a\"]"
+    }
+  ],
+  "signature": {
+    "method": "groupAnagrams",
+    "params": [
+      {
+        "name": "words",
+        "type": "String[]"
+      }
+    ],
+    "returns": "String[]"
+  },
+  "starter_code": "class Solution {\n    public String[] groupAnagrams(String[] words) {\n        // TODO: write your solution here\n        return new String[0];\n    }\n}\n",
+  "hints": [
+    "Anagrams look identical once you put their letters in a standard order.",
+    "Use the sorted letters (or a 26-count signature) as a hash-map key that collects each group.",
+    "groups = {}\nfor w in words:\n    groups[sorted(w)].append(w)\nreturn sorted(','.join(sorted(g)) for g in groups.values())",
+    "Each word's key costs O(k log k) to build, so grouping is O(n k log k). A count-based key makes it O(n k)."
+  ],
+  "expected_complexity": {
+    "time": "O(n k log k)",
+    "space": "O(n k)"
+  },
+  "tests": [
+    {
+      "input": {
+        "words": [
+          "eat",
+          "tea",
+          "tan",
+          "ate",
+          "nat",
+          "bat"
+        ]
+      },
+      "expected_output": [
+        "ate,eat,tea",
+        "bat",
+        "nat,tan"
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "words": [
+          ""
+        ]
+      },
+      "expected_output": [
+        ""
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "words": [
+          "a"
+        ]
+      },
+      "expected_output": [
+        "a"
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "words": [
+          "ab",
+          "ba",
+          "ab"
+        ]
+      },
+      "expected_output": [
+        "ab,ab,ba"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "words": [
+          "caa",
+          "cc",
+          "cc",
+          "bac",
+          "ba",
+          "ac",
+          "cb",
+          "cc"
+        ]
+      },
+      "expected_output": [
+        "ac",
+        "ba",
+        "bac",
+        "caa",
+        "cb",
+        "cc,cc,cc"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "words": [
+          "bba",
+          "c",
+          "a",
+          "ccb"
+        ]
+      },
+      "expected_output": [
+        "a",
+        "bba",
+        "c",
+        "ccb"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "words": [
+          "bcc"
+        ]
+      },
+      "expected_output": [
+        "bcc"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "words": [
+          "cca",
+          "ac",
+          "c",
+          "c"
+        ]
+      },
+      "expected_output": [
+        "ac",
+        "c,c",
+        "cca"
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

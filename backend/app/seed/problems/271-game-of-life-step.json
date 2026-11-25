@@ -1,0 +1,346 @@
+{
+  "order": 271,
+  "slug": "game-of-life-step",
+  "title": "Game of Life: Next Step",
+  "difficulty": "medium",
+  "topics": [
+    "matrix",
+    "simulation"
+  ],
+  "summary": "Compute one generation of Conway's Game of Life.",
+  "statement": "Each cell of `board` is alive (`1`) or dead (`0`). Using the 8 neighbors of each cell, all at once:\na live cell with 2 or 3 live neighbors survives; a dead cell with exactly 3 live neighbors comes alive;\nevery other cell is dead. Return the next board.",
+  "constraints": [
+    "1 <= rows, cols <= 25"
+  ],
+  "examples": [
+    {
+      "input": "board = [[0, 1, 0], [0, 0, 1], [1, 1, 1], [0, 0, 0]]",
+      "output": "[[0, 0, 0], [1, 0, 1], [0, 1, 1], [0, 1, 0]]"
+    },
+    {
+      "input": "board = [[1, 1], [1, 0]]",
+      "output": "[[1, 1], [1, 1]]"
+    },
+    {
+      "input": "board = [[1]]",
+      "output": "[[0]]"
+    }
+  ],
+  "signature": {
+    "method": "gameOfLife",
+    "params": [
+      {
+        "name": "board",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int[][]"
+  },
+  "starter_code": "class Solution {\n    public int[][] gameOfLife(int[][] board) {\n        // TODO: write your solution here\n        return new int[0][];\n    }\n}\n",
+  "hints": [
+    "All cells update at the same time, so don't let updated cells affect their neighbors' counts.",
+    "Either write into a new board, or encode the transition in place (e.g. 2 = was alive, now dead).",
+    "next = copy\nfor each cell:\n    live = count live among 8 neighbors in the ORIGINAL board\n    next[cell] = 1 if live == 3 or (board[cell] and live == 2) else 0\nreturn next",
+    "O(m n \u00d7 8) time. The in-place encoding trick makes it O(1) extra space."
+  ],
+  "expected_complexity": {
+    "time": "O(m n)",
+    "space": "O(m n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "board": [
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1
+          ],
+          [
+            0,
+            0,
+            0
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          1
+        ],
+        [
+          0,
+          1,
+          0
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "board": [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          1,
+          1
+        ],
+        [
+          1,
+          1
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "board": [
+          [
+            1
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          0
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "board": [
+          [
+            1,
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1,
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          1,
+          0,
+          1
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "board": [
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          0,
+          0
+        ],
+        [
+          1,
+          1
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "board": [
+          [
+            1
+          ],
+          [
+            0
+          ],
+          [
+            0
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          0
+        ],
+        [
+          0
+        ],
+        [
+          0
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "board": [
+          [
+            1,
+            0,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            1,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1,
+            0
+          ]
+        ]
+      },
+      "expected_output": [
+        [
+          0,
+          0,
+          0,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          1,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        [
+          0,
+          1,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          1,
+          0,
+          1,
+          1
+        ]
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,122 @@
+{
+  "order": 334,
+  "slug": "count-digit-one",
+  "title": "Count the Digit One",
+  "difficulty": "hard",
+  "topics": [
+    "math"
+  ],
+  "summary": "How many times does the digit 1 appear in all numbers up to n?",
+  "statement": "Return the total number of times the digit `1` appears when you write out every integer from `0` to `n`.",
+  "constraints": [
+    "0 <= n <= 10^9"
+  ],
+  "examples": [
+    {
+      "input": "n = 13",
+      "output": "6"
+    },
+    {
+      "input": "n = 0",
+      "output": "0"
+    },
+    {
+      "input": "n = 1",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "countDigitOne",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int countDigitOne(int n) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Count position by position: how often is the ones digit 1? The tens digit?",
+    "For the digit at place value `p`, split n into `high`, the digit `cur`, and `low`. The count is based on `high`, plus extra depending on `cur`.",
+    "count = 0\np = 1\nwhile p <= n:\n    high, cur, low = n // (p*10), (n // p) % 10, n % p\n    count += high * p\n    if cur == 1: count += low + 1\n    elif cur > 1: count += p\n    p *= 10\nreturn count",
+    "One loop per digit: O(log n). Use long arithmetic for `p * 10` near 10^9."
+  ],
+  "expected_complexity": {
+    "time": "O(log n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 13
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 0
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 1
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 100
+      },
+      "expected_output": 21,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 199999
+      },
+      "expected_output": 200000,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 111
+      },
+      "expected_output": 36,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 3192
+      },
+      "expected_output": 2033,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 37278
+      },
+      "expected_output": 25258,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 9165
+      },
+      "expected_output": 3803,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 2429
+      },
+      "expected_output": 1793,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

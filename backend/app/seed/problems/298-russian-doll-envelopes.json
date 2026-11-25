@@ -1,0 +1,198 @@
+{
+  "order": 298,
+  "slug": "russian-doll-envelopes",
+  "title": "Russian Doll Envelopes",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "binary-search",
+    "sorting"
+  ],
+  "summary": "Most envelopes you can nest inside each other.",
+  "statement": "`envelopes[i] = [w, h]`. One envelope fits in another only if both its width and height are strictly\nsmaller. Return the maximum number of envelopes you can nest (no rotating).",
+  "constraints": [
+    "1 <= envelopes.length <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "envelopes = [[5, 4], [6, 4], [6, 7], [2, 3]]",
+      "output": "3"
+    },
+    {
+      "input": "envelopes = [[1, 1], [1, 1], [1, 1]]",
+      "output": "1"
+    },
+    {
+      "input": "envelopes = [[4, 5], [4, 6], [6, 7], [2, 3], [1, 1]]",
+      "output": "4"
+    }
+  ],
+  "signature": {
+    "method": "maxEnvelopes",
+    "params": [
+      {
+        "name": "envelopes",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int maxEnvelopes(int[][] envelopes) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Sort by width so you only have to think about heights.",
+    "Sort width ascending and, for equal widths, height descending. Then find the longest strictly increasing subsequence of heights.",
+    "sort by (w, -h)\ntails = []\nfor _, h in envelopes:\n    i = lower_bound(tails, h)\n    if i == len(tails): tails.append(h) else: tails[i] = h\nreturn len(tails)",
+    "The descending tie-break stops two equal-width envelopes from both appearing in the chain. LIS with binary search: O(n log n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n log n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "envelopes": [
+          [
+            5,
+            4
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "envelopes": [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "envelopes": [
+          [
+            4,
+            5
+          ],
+          [
+            4,
+            6
+          ],
+          [
+            6,
+            7
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "envelopes": [
+          [
+            8,
+            3
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "envelopes": [
+          [
+            5,
+            4
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "envelopes": [
+          [
+            2,
+            3
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "envelopes": [
+          [
+            1,
+            1
+          ],
+          [
+            6,
+            5
+          ],
+          [
+            7,
+            6
+          ],
+          [
+            6,
+            4
+          ],
+          [
+            2,
+            4
+          ],
+          [
+            3,
+            2
+          ]
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

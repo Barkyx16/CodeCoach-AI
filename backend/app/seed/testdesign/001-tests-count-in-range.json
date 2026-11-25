@@ -1,0 +1,120 @@
+{
+  "slug": "tests-count-in-range",
+  "version": 1,
+  "title": "Test design: Count in Range",
+  "summary": "Count the values between two bounds. Most cases look alike; a few find the bugs.",
+  "spec": "`countInRange(nums, lo, hi)` returns how many values in `nums` are **at least `lo` and at most `hi`**: both bounds are included.\n\nIf `lo` is greater than `hi`, the range is empty and the answer is `0`. An empty array gives `0`.",
+  "signature": {
+    "method": "countInRange",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "lo",
+        "type": "int"
+      },
+      {
+        "name": "hi",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "limits": {
+    "max_cases": 12,
+    "max_length": 20,
+    "min_value": -1000,
+    "max_value": 1000
+  },
+  "examples": [
+    {
+      "input": {
+        "nums": [
+          1,
+          5,
+          9
+        ],
+        "lo": 2,
+        "hi": 8
+      },
+      "expected": 1
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          40
+        ],
+        "lo": 0,
+        "hi": 10
+      },
+      "expected": 1
+    }
+  ],
+  "reference": "class Solution {\n    public int countInRange(int[] nums, int lo, int hi) {\n        if (lo > hi) {\n            return 0;\n        }\n        int count = 0;\n        for (int v : nums) {\n            if (v >= lo && v <= hi) {\n                count++;\n            }\n        }\n        return count;\n    }\n}\n",
+  "variants": [
+    {
+      "id": "exclusive-upper",
+      "title": "Leaves out values equal to hi",
+      "defect": "The comparison is v < hi, so a value exactly at the upper bound isn't counted.",
+      "gap": "Every value in your cases sits strictly inside or clearly outside the range. What happens to a value that equals one of the bounds exactly?",
+      "witness": {
+        "nums": [
+          3,
+          7
+        ],
+        "lo": 1,
+        "hi": 7
+      },
+      "code": "class Solution {\n    public int countInRange(int[] nums, int lo, int hi) {\n        if (lo > hi) {\n            return 0;\n        }\n        int count = 0;\n        for (int v : nums) {\n            if (v >= lo && v < hi) {\n                count++;\n            }\n        }\n        return count;\n    }\n}\n"
+    },
+    {
+      "id": "exclusive-lower",
+      "title": "Leaves out values equal to lo",
+      "defect": "The comparison is v > lo, so a value exactly at the lower bound isn't counted.",
+      "gap": "Try a value that equals lo exactly: is it inside the range or not, according to the specification?",
+      "witness": {
+        "nums": [
+          2,
+          5
+        ],
+        "lo": 2,
+        "hi": 9
+      },
+      "code": "class Solution {\n    public int countInRange(int[] nums, int lo, int hi) {\n        if (lo > hi) {\n            return 0;\n        }\n        int count = 0;\n        for (int v : nums) {\n            if (v > lo && v <= hi) {\n                count++;\n            }\n        }\n        return count;\n    }\n}\n"
+    },
+    {
+      "id": "skips-last",
+      "title": "Never looks at the last value",
+      "defect": "The loop runs i < nums.length - 1, so the last value is never checked.",
+      "gap": "In your cases, is the last value in the array ever inside the range? Where in the array a value sits can matter as much as its size.",
+      "witness": {
+        "nums": [
+          0,
+          4
+        ],
+        "lo": 3,
+        "hi": 5
+      },
+      "code": "class Solution {\n    public int countInRange(int[] nums, int lo, int hi) {\n        if (lo > hi) {\n            return 0;\n        }\n        int count = 0;\n        for (int i = 0; i < nums.length - 1; i++) {\n            if (nums[i] >= lo && nums[i] <= hi) {\n                count++;\n            }\n        }\n        return count;\n    }\n}\n"
+    },
+    {
+      "id": "swaps-reversed-range",
+      "title": "Treats a reversed range as if it were the right way round",
+      "defect": "When lo > hi it swaps them and counts, but the specification says a reversed range is empty: the answer is 0.",
+      "gap": "The specification says what happens when lo is greater than hi. None of your cases asks that question.",
+      "witness": {
+        "nums": [
+          4
+        ],
+        "lo": 6,
+        "hi": 2
+      },
+      "code": "class Solution {\n    public int countInRange(int[] nums, int lo, int hi) {\n        if (lo > hi) {\n            int t = lo;\n            lo = hi;\n            hi = t;\n        }\n        int count = 0;\n        for (int v : nums) {\n            if (v >= lo && v <= hi) {\n                count++;\n            }\n        }\n        return count;\n    }\n}\n"
+    }
+  ],
+  "lesson": null,
+  "review_status": "Written for practice and machine-checked: the reference and every faulty version were compiled and run with a real JDK, and each version's defect was shown on a case."
+}

@@ -1,0 +1,133 @@
+{
+  "order": 357,
+  "slug": "music-playlists",
+  "title": "Number of Music Playlists",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "math"
+  ],
+  "summary": "Count playlists that use every song, with a replay gap.",
+  "statement": "You have `n` different songs and want a playlist of `goal` songs (goal \u2265 n) where every song plays at least once\nand a song can only replay after `k` other songs have played since its last play. Return the number of\nplaylists modulo `10^9 + 7`.",
+  "constraints": [
+    "0 <= k < n <= goal <= 100"
+  ],
+  "examples": [
+    {
+      "input": "n = 3, goal = 3, k = 1",
+      "output": "6"
+    },
+    {
+      "input": "n = 2, goal = 3, k = 0",
+      "output": "6"
+    },
+    {
+      "input": "n = 2, goal = 3, k = 1",
+      "output": "2"
+    }
+  ],
+  "signature": {
+    "method": "numMusicPlaylists",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      },
+      {
+        "name": "goal",
+        "type": "int"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int numMusicPlaylists(int n, int goal, int k) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Build the playlist one slot at a time, tracking how many distinct songs you've used.",
+    "dp[i][j] = playlists of length i using j distinct songs. Next song is new (n - j choices) or a replay (j - k choices if j > k).",
+    "dp[0][0] = 1\nfor i in 1..goal:\n    for j in 1..n:\n        dp[i][j] = dp[i-1][j-1] * (n - j + 1) + dp[i-1][j] * max(j - k, 0)\nreturn dp[goal][n]",
+    "O(goal \u00d7 n). A replay can only use songs outside the last k played, which is why the count is `j - k`."
+  ],
+  "expected_complexity": {
+    "time": "O(goal \u00b7 n)",
+    "space": "O(goal \u00b7 n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 3,
+        "goal": 3,
+        "k": 1
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 2,
+        "goal": 3,
+        "k": 0
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 2,
+        "goal": 3,
+        "k": 1
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 3,
+        "goal": 5,
+        "k": 1
+      },
+      "expected_output": 42,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 1,
+        "goal": 2,
+        "k": 0
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 2,
+        "goal": 5,
+        "k": 0
+      },
+      "expected_output": 30,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 3,
+        "goal": 4,
+        "k": 0
+      },
+      "expected_output": 36,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 4,
+        "goal": 5,
+        "k": 0
+      },
+      "expected_output": 240,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,174 @@
+{
+  "order": 227,
+  "slug": "rotated-minimum",
+  "title": "Minimum of a Rotated Sorted Array",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "binary-search"
+  ],
+  "summary": "Find the smallest value of a sorted array that was rotated.",
+  "statement": "A sorted array of distinct values was rotated at an unknown point (`[0,1,2,4,5,6,7]` might become\n`[4,5,6,7,0,1,2]`). Return its minimum in O(log n).",
+  "constraints": [
+    "1 <= nums.length <= 5000",
+    "distinct values"
+  ],
+  "examples": [
+    {
+      "input": "nums = [3, 4, 5, 1, 2]",
+      "output": "1"
+    },
+    {
+      "input": "nums = [4, 5, 6, 7, 0, 1, 2]",
+      "output": "0"
+    },
+    {
+      "input": "nums = [11, 13, 15, 17]",
+      "output": "11"
+    }
+  ],
+  "signature": {
+    "method": "findMin",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int findMin(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Compare the middle value with the last value.",
+    "If `nums[mid] > nums[hi]`, the drop (and the minimum) is to the right of `mid`; otherwise it's at `mid` or left.",
+    "lo, hi = 0, n-1\nwhile lo < hi:\n    mid = (lo + hi) // 2\n    if nums[mid] > nums[hi]: lo = mid + 1\n    else: hi = mid\nreturn nums[lo]",
+    "Each step keeps the half that contains the rotation point: O(log n)."
+  ],
+  "expected_complexity": {
+    "time": "O(log n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          3,
+          4,
+          5,
+          1,
+          2
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          5,
+          6,
+          7,
+          0,
+          1,
+          2
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          11,
+          13,
+          15,
+          17
+        ]
+      },
+      "expected_output": 11,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          1
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -12,
+          -4,
+          14,
+          21,
+          26,
+          -37,
+          -34,
+          -19
+        ]
+      },
+      "expected_output": -37,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          29,
+          38,
+          -33,
+          -28,
+          -22,
+          -19,
+          -17,
+          -14,
+          -2,
+          14,
+          23,
+          25
+        ]
+      },
+      "expected_output": -33,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          3,
+          23,
+          28,
+          35,
+          -16
+        ]
+      },
+      "expected_output": -16,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -23,
+          -21,
+          -6,
+          -1,
+          0,
+          18,
+          20,
+          21,
+          27,
+          36,
+          -31,
+          -26
+        ]
+      },
+      "expected_output": -31,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

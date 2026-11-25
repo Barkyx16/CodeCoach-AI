@@ -1,0 +1,130 @@
+{
+  "order": 137,
+  "slug": "isomorphic-strings",
+  "title": "Isomorphic Strings",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "hash-maps"
+  ],
+  "summary": "Can one string's letters be consistently renamed into the other?",
+  "statement": "Two strings are isomorphic if the characters of `s` can be replaced to get `t`, where each\ncharacter always maps to the same character and no two characters map to the same one.\nReturn whether `s` and `t` are isomorphic.",
+  "constraints": [
+    "1 <= s.length == t.length <= 5 * 10^4",
+    "ASCII characters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"egg\", t = \"add\"",
+      "output": "true"
+    },
+    {
+      "input": "s = \"foo\", t = \"bar\"",
+      "output": "false"
+    },
+    {
+      "input": "s = \"paper\", t = \"title\"",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "isIsomorphic",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      },
+      {
+        "name": "t",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isIsomorphic(String s, String t) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "You need a consistent mapping in both directions.",
+    "Keep two maps: s-char \u2192 t-char and t-char \u2192 s-char. Any conflict means false.",
+    "for a, b in zip(s, t):\n    if fwd.get(a, b) != b or back.get(b, a) != a: return false\n    fwd[a] = b; back[b] = a\nreturn true",
+    "Two maps catch both kinds of conflict (one char mapping to two, two chars mapping to one) in O(n) time. With ASCII, two 256-slot arrays work as maps."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "egg",
+        "t": "add"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "foo",
+        "t": "bar"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "paper",
+        "t": "title"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "ab",
+        "t": "aa"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "badc",
+        "t": "baba"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bcbccc",
+        "t": "yxyzzy"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abacac",
+        "t": "yxxxyy"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "cccaaa",
+        "t": "yzxyyz"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "baccaaaa",
+        "t": "xyyyxxxx"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

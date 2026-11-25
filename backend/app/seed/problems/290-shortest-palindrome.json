@@ -1,0 +1,109 @@
+{
+  "order": 290,
+  "slug": "shortest-palindrome",
+  "title": "Shortest Palindrome by Adding to the Front",
+  "difficulty": "hard",
+  "topics": [
+    "strings"
+  ],
+  "summary": "Add the fewest characters in front to make a palindrome.",
+  "statement": "Return the shortest palindrome you can make by adding characters only to the front of `s`.",
+  "constraints": [
+    "0 <= s.length <= 5 * 10^4",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"aacecaaa\"",
+      "output": "\"aaacecaaa\""
+    },
+    {
+      "input": "s = \"abcd\"",
+      "output": "\"dcbabcd\""
+    },
+    {
+      "input": "s = \"\"",
+      "output": "\"\""
+    }
+  ],
+  "signature": {
+    "method": "shortestPalindrome",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String shortestPalindrome(String s) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "What part of `s` can you keep as the middle of the palindrome?",
+    "Find the longest prefix of `s` that is a palindrome; reverse the rest and put it in front.",
+    "longest palindromic prefix length L = KMP failure value of (s + '#' + reverse(s)) at the end\nreturn reverse(s[L:]) + s",
+    "Checking each prefix naively is O(n^2). The KMP prefix function on `s + '#' + reversed(s)` finds the longest palindromic prefix in O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "aacecaaa"
+      },
+      "expected_output": "aaacecaaa",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abcd"
+      },
+      "expected_output": "dcbabcd",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": ""
+      },
+      "expected_output": "",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aba"
+      },
+      "expected_output": "aba",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aabbabaa"
+      },
+      "expected_output": "aababbaabbabaa",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aaba"
+      },
+      "expected_output": "abaaba",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbaabaaa"
+      },
+      "expected_output": "aaabaabbaabaaa",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aa"
+      },
+      "expected_output": "aa",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

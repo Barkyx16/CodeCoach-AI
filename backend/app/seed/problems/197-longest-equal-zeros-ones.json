@@ -1,0 +1,179 @@
+{
+  "order": 197,
+  "slug": "longest-equal-zeros-ones",
+  "title": "Longest Balanced Binary Subarray",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "hash-maps",
+    "prefix-sums"
+  ],
+  "summary": "Longest subarray with as many 0s as 1s.",
+  "statement": "`nums` contains only `0`s and `1`s. Return the length of the longest contiguous subarray with\nan equal number of `0`s and `1`s.",
+  "constraints": [
+    "1 <= nums.length <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "nums = [0, 1]",
+      "output": "2"
+    },
+    {
+      "input": "nums = [0, 1, 0]",
+      "output": "2"
+    },
+    {
+      "input": "nums = [0, 0, 1, 0, 0, 0, 1, 1]",
+      "output": "6"
+    }
+  ],
+  "signature": {
+    "method": "findMaxLength",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int findMaxLength(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Count a 0 as -1. What does a balanced subarray then sum to?",
+    "Zero. Two equal prefix sums mark a balanced subarray between them; keep the first index of each sum.",
+    "first = {0: -1}\ntotal = best = 0\nfor i, x in enumerate(nums):\n    total += 1 if x == 1 else -1\n    if total in first: best = max(best, i - first[total])\n    else: first[total] = i\nreturn best",
+    "Turning it into \"longest zero-sum subarray\" with a first-index map gives O(n) time and space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          0,
+          1
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          1,
+          0
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          1,
+          0,
+          0,
+          0,
+          1,
+          1
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          1
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          0,
+          1,
+          1,
+          0,
+          0,
+          0
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          1,
+          1,
+          0,
+          1,
+          1,
+          0,
+          0
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          1,
+          0,
+          1,
+          1,
+          1,
+          0,
+          0,
+          1,
+          0,
+          1,
+          1,
+          1,
+          0
+        ]
+      },
+      "expected_output": 8,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          0,
+          0,
+          1,
+          0,
+          1
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

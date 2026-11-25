@@ -1,0 +1,109 @@
+{
+  "order": 360,
+  "slug": "count-pickup-delivery",
+  "title": "Count Valid Pickup/Delivery Orders",
+  "difficulty": "hard",
+  "topics": [
+    "math",
+    "dynamic-programming"
+  ],
+  "summary": "Orderings of n pickups and deliveries where each delivery follows its pickup.",
+  "statement": "There are `n` orders, each with a pickup and a delivery. Count the sequences of all `2n` events where every\ndelivery comes after its own pickup, modulo `10^9 + 7`.",
+  "constraints": [
+    "1 <= n <= 500"
+  ],
+  "examples": [
+    {
+      "input": "n = 1",
+      "output": "1"
+    },
+    {
+      "input": "n = 2",
+      "output": "6"
+    },
+    {
+      "input": "n = 3",
+      "output": "90"
+    }
+  ],
+  "signature": {
+    "method": "countOrders",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int countOrders(int n) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Insert order number n into a valid sequence of the first n - 1 orders.",
+    "There are `2n - 1` slots for the pickup... count the ways to place both: `(2n - 1)(2n) / 2 = n(2n - 1)`.",
+    "ways = 1\nfor i in 2..n:\n    ways = ways * i * (2*i - 1) % MOD\nreturn ways",
+    "O(n). Equivalently (2n)! / 2^n, since each order's two events must be in one of their two possible orders."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 1
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 2
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 3
+      },
+      "expected_output": 90,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 500
+      },
+      "expected_output": 764678010,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 26
+      },
+      "expected_output": 157365993,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 130
+      },
+      "expected_output": 626049316,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 66
+      },
+      "expected_output": 905304912,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 148
+      },
+      "expected_output": 532404610,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

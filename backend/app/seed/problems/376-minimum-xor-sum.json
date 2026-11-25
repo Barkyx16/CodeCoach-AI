@@ -1,0 +1,170 @@
+{
+  "order": 376,
+  "slug": "minimum-xor-sum",
+  "title": "Minimum XOR Sum of Two Arrays",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "bit-manipulation"
+  ],
+  "summary": "Rearrange one array to minimize the sum of pairwise XORs.",
+  "statement": "Rearrange `b` (any permutation) to minimize `(a[0] XOR b[0]) + (a[1] XOR b[1]) + ...`. Return the minimum sum.",
+  "constraints": [
+    "1 <= n <= 14",
+    "0 <= values <= 10^7"
+  ],
+  "examples": [
+    {
+      "input": "a = [1, 2], b = [2, 3]",
+      "output": "2"
+    },
+    {
+      "input": "a = [1, 0, 3], b = [5, 3, 4]",
+      "output": "8"
+    },
+    {
+      "input": "a = [7], b = [7]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "minimumXORSum",
+    "params": [
+      {
+        "name": "a",
+        "type": "int[]"
+      },
+      {
+        "name": "b",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minimumXORSum(int[] a, int[] b) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Trying all n! permutations is too slow for n = 14. What do you need to remember after assigning the first i elements of a?",
+    "Only which elements of b are used: a bitmask. The number of set bits tells you which index of a comes next.",
+    "dp = [inf] * 2^n; dp[0] = 0\nfor mask in range(2^n):\n    i = popcount(mask)\n    for j not in mask:\n        dp[mask | 1<<j] = min(.., dp[mask] + (a[i] ^ b[j]))\nreturn dp[full]",
+    "O(n \u00d7 2^n) \u2014 the standard bitmask DP for assignment problems."
+  ],
+  "expected_complexity": {
+    "time": "O(n \u00b7 2^n)",
+    "space": "O(2^n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "a": [
+          1,
+          2
+        ],
+        "b": [
+          2,
+          3
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": [
+          1,
+          0,
+          3
+        ],
+        "b": [
+          5,
+          3,
+          4
+        ]
+      },
+      "expected_output": 8,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": [
+          7
+        ],
+        "b": [
+          7
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": [
+          7,
+          9,
+          15,
+          0,
+          5,
+          12
+        ],
+        "b": [
+          12,
+          4,
+          12,
+          6,
+          11,
+          11
+        ]
+      },
+      "expected_output": 18,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": [
+          15,
+          2
+        ],
+        "b": [
+          5,
+          2
+        ]
+      },
+      "expected_output": 10,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": [
+          7,
+          1,
+          4,
+          1,
+          12,
+          12
+        ],
+        "b": [
+          0,
+          5,
+          4,
+          5,
+          6,
+          15
+        ]
+      },
+      "expected_output": 18,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": [
+          11
+        ],
+        "b": [
+          1
+        ]
+      },
+      "expected_output": 10,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

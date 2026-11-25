@@ -1,0 +1,184 @@
+{
+  "order": 295,
+  "slug": "stock-profit-k-trades",
+  "title": "Best Profit With at Most K Trades",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "arrays"
+  ],
+  "summary": "Maximize profit with at most k buy-sell transactions.",
+  "statement": "`prices[i]` is the price on day `i`. You may complete at most `k` transactions (buy then sell), holding at\nmost one share at a time. Return the maximum profit.",
+  "constraints": [
+    "1 <= k <= 100",
+    "1 <= prices.length <= 1000"
+  ],
+  "examples": [
+    {
+      "input": "k = 2, prices = [2, 4, 1]",
+      "output": "2"
+    },
+    {
+      "input": "k = 2, prices = [3, 2, 6, 5, 0, 3]",
+      "output": "7"
+    },
+    {
+      "input": "k = 1, prices = [7, 6, 4, 3, 1]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "maxProfitK",
+    "params": [
+      {
+        "name": "k",
+        "type": "int"
+      },
+      {
+        "name": "prices",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int maxProfitK(int k, int[] prices) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Track your best balance after each number of buys and sells.",
+    "buy[j] = best balance holding a share in transaction j; sell[j] = best balance after completing j transactions.",
+    "buy = [-inf]*(k+1); sell = [0]*(k+1)\nfor p in prices:\n    for j in 1..k:\n        buy[j] = max(buy[j], sell[j-1] - p)\n        sell[j] = max(sell[j], buy[j] + p)\nreturn sell[k]",
+    "O(n k) time and O(k) space. If k \u2265 n/2, it's the unlimited case: just sum every rise."
+  ],
+  "expected_complexity": {
+    "time": "O(n k)",
+    "space": "O(k)"
+  },
+  "tests": [
+    {
+      "input": {
+        "k": 2,
+        "prices": [
+          2,
+          4,
+          1
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "k": 2,
+        "prices": [
+          3,
+          2,
+          6,
+          5,
+          0,
+          3
+        ]
+      },
+      "expected_output": 7,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "k": 1,
+        "prices": [
+          7,
+          6,
+          4,
+          3,
+          1
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "k": 3,
+        "prices": [
+          1,
+          5,
+          2,
+          8,
+          3,
+          9
+        ]
+      },
+      "expected_output": 16,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "k": 1,
+        "prices": [
+          7,
+          14,
+          12,
+          14,
+          6,
+          13,
+          4,
+          6,
+          12,
+          0,
+          2,
+          15
+        ]
+      },
+      "expected_output": 15,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "k": 3,
+        "prices": [
+          12,
+          0,
+          3,
+          13
+        ]
+      },
+      "expected_output": 13,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "k": 1,
+        "prices": [
+          0,
+          2,
+          11,
+          3,
+          12,
+          15,
+          9,
+          6,
+          2,
+          0,
+          2
+        ]
+      },
+      "expected_output": 15,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "k": 3,
+        "prices": [
+          3,
+          1,
+          5,
+          0,
+          6,
+          0,
+          7
+        ]
+      },
+      "expected_output": 17,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

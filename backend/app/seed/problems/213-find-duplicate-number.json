@@ -1,0 +1,157 @@
+{
+  "order": 213,
+  "slug": "find-duplicate-number",
+  "title": "Find the Repeated Number",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "two-pointers",
+    "binary-search"
+  ],
+  "summary": "n+1 numbers in 1..n: find the one that repeats, without changing the array.",
+  "statement": "`nums` has `n + 1` values, each in `[1, n]`. Exactly one value repeats (possibly more than twice).\nReturn it without modifying `nums` and using O(1) extra space.",
+  "constraints": [
+    "1 <= n <= 10^5",
+    "one value repeats"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 3, 4, 2, 2]",
+      "output": "2"
+    },
+    {
+      "input": "nums = [3, 1, 3, 4, 2]",
+      "output": "3"
+    },
+    {
+      "input": "nums = [3, 3, 3, 3, 3]",
+      "output": "3"
+    }
+  ],
+  "signature": {
+    "method": "findDuplicate",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int findDuplicate(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Treat the array as a linked list: index `i` points to `nums[i]`.",
+    "The repeated value is where two pointers enter a cycle. Use Floyd's tortoise and hare.",
+    "slow = fast = nums[0]\ndo: slow = nums[slow]; fast = nums[nums[fast]] until slow == fast\nslow = nums[0]\nwhile slow != fast: slow = nums[slow]; fast = nums[fast]\nreturn slow",
+    "Two indices point to the duplicate value, which creates a cycle whose entry is the answer. O(n) time, O(1) space. Binary searching on the value range with counting also works in O(n log n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          3,
+          4,
+          2,
+          2
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          1,
+          3,
+          4,
+          2
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          3,
+          3,
+          3,
+          3
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          3
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          10,
+          6,
+          8,
+          9,
+          3,
+          1,
+          2,
+          4,
+          7,
+          7,
+          5
+        ]
+      },
+      "expected_output": 7,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          1,
+          2
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          2,
+          1
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

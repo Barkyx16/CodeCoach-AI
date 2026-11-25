@@ -1,0 +1,140 @@
+{
+  "order": 277,
+  "slug": "maximal-square",
+  "title": "Largest Square of Ones",
+  "difficulty": "medium",
+  "topics": [
+    "dynamic-programming",
+    "matrix"
+  ],
+  "summary": "Area of the biggest all-'1' square in a binary matrix.",
+  "statement": "`matrix` rows are strings of `'0'` and `'1'`. Return the area of the largest square containing only `'1'`s.",
+  "constraints": [
+    "1 <= rows, cols <= 300"
+  ],
+  "examples": [
+    {
+      "input": "matrix = [\"10100\", \"10111\", \"11111\", \"10010\"]",
+      "output": "4"
+    },
+    {
+      "input": "matrix = [\"01\", \"10\"]",
+      "output": "1"
+    },
+    {
+      "input": "matrix = [\"0\"]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "maximalSquare",
+    "params": [
+      {
+        "name": "matrix",
+        "type": "String[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int maximalSquare(String[] matrix) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Think about the largest square whose bottom-right corner is a given cell.",
+    "side[r][c] = 1 + min(side[r-1][c], side[r][c-1], side[r-1][c-1]) when the cell is '1', else 0.",
+    "best = 0\nfor r, c:\n    if matrix[r][c] == '1':\n        side[r][c] = 1 + min(up, left, diagonal)\n        best = max(best, side[r][c])\nreturn best * best",
+    "Each cell is computed once from three neighbors: O(m n) time, O(n) space with a rolling row."
+  ],
+  "expected_complexity": {
+    "time": "O(m n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "matrix": [
+          "10100",
+          "10111",
+          "11111",
+          "10010"
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          "01",
+          "10"
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          "0"
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          "111",
+          "111",
+          "111"
+        ]
+      },
+      "expected_output": 9,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          "1",
+          "0"
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          "1",
+          "1",
+          "1",
+          "0"
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          "1101",
+          "0100",
+          "1111",
+          "1111",
+          "1111"
+        ]
+      },
+      "expected_output": 9,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          "1",
+          "1"
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

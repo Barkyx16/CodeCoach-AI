@@ -1,0 +1,123 @@
+{
+  "order": 201,
+  "slug": "permutation-in-string",
+  "title": "Permutation Inside a String",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "sliding-window",
+    "hash-maps"
+  ],
+  "summary": "Does one string contain a rearrangement of another?",
+  "statement": "Return `true` if some substring of `s2` is a permutation (rearrangement) of `s1`.",
+  "constraints": [
+    "1 <= s1.length, s2.length <= 10^4",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s1 = \"ab\", s2 = \"eidbaooo\"",
+      "output": "true"
+    },
+    {
+      "input": "s1 = \"ab\", s2 = \"eidboaoo\"",
+      "output": "false"
+    },
+    {
+      "input": "s1 = \"abc\", s2 = \"ab\"",
+      "output": "false"
+    }
+  ],
+  "signature": {
+    "method": "checkInclusion",
+    "params": [
+      {
+        "name": "s1",
+        "type": "String"
+      },
+      {
+        "name": "s2",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean checkInclusion(String s1, String s2) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "A permutation has exactly the same letter counts and the same length.",
+    "Slide a window of length `len(s1)` over `s2`, updating counts as one letter enters and one leaves.",
+    "need = counts(s1)\nwindow = counts(s2[:m])\nif window == need: return true\nfor i in m..n-1:\n    add s2[i], remove s2[i-m]\n    if window == need: return true\nreturn false",
+    "Each slide updates two counts and compares 26 slots: O(26 n) = O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s1": "ab",
+        "s2": "eidbaooo"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s1": "ab",
+        "s2": "eidboaoo"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s1": "abc",
+        "s2": "ab"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s1": "a",
+        "s2": "a"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "ca",
+        "s2": "cacacbacaaba"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "a",
+        "s2": "bb"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "cca",
+        "s2": "ac"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "cb",
+        "s2": "aa"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

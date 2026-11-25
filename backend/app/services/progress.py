@@ -26,6 +26,7 @@ from app.models import (
     Problem,
     ProgressEvent,
     Submission,
+    SubmissionMode,
     SubmissionStatus,
     User,
 )
@@ -37,6 +38,7 @@ from app.schemas.progress import (
     Recommendation,
     TopicProgress,
 )
+from app.services.content import retired_problem_slugs
 
 _DIFFICULTY_RANK = {Difficulty.EASY: 0, Difficulty.MEDIUM: 1, Difficulty.HARD: 2}
 
@@ -95,42 +97,91 @@ def _streaks(days: set[date], today: date) -> tuple[int, int]:
     return current, longest
 
 
+@dataclass
+class FactRows:
+    """The rows problem facts are built from, read once (`ProgressService.fact_rows`)."""
+
+    problems: list[Problem]
+    submissions: list[Submission]
+    coaching: list[AIInteraction]
+    events: list[ProgressEvent]
+
+
+def build_facts(
+    rows: FactRows, leave_out: set[str] | None = None, *, plan: bool = False
+) -> dict[int, _ProblemFacts]:
+    """Problem facts from rows already read, leaving out the submissions named (in memory)."""
+    facts = {p.id: _ProblemFacts(problem=p) for p in rows.problems}
+    for sub in rows.submissions:
+        f = facts.get(sub.problem_id)
+        if f is None or (leave_out and sub.id in leave_out):
+            continue
+        if plan and (
+            sub.status == SubmissionStatus.INTERNAL_ERROR
+            or (f.problem.kind == "debug" and not sub.status.is_terminal)
+        ):
+            continue  # no verdict on the learner's code (yet): not evidence for the plan
+        f.submissions += 1
+        f.last_status = sub.status
+        f.last_activity = _aware(sub.created_at)
+        if sub.status == SubmissionStatus.PASSED:
+            f.solved = True
+    for ai in rows.coaching:
+        f = facts.get(ai.problem_id)
+        if f is None or f.problem.kind != "problem":
+            continue
+        if ai.action == AIAction.HINT:
+            f.hints += 1
+        elif ai.action == AIAction.REVIEW:
+            f.reviews += 1
+        ts = _aware(ai.created_at)
+        f.last_activity = max(f.last_activity or ts, ts)
+    for ev in rows.events:
+        f = facts.get(ev.problem_id)
+        if f is not None and f.problem.kind == "problem":
+            f.opened = True
+    return facts
+
+
 class ProgressService:
     def __init__(self, db: Session):
         self.db = db
 
-    def _facts(self, user: User) -> dict[int, _ProblemFacts]:
-        problems = self.db.scalars(select(Problem).order_by(Problem.order_index)).all()
-        facts = {p.id: _ProblemFacts(problem=p) for p in problems}
+    def _facts(
+        self, user: User, leave_out: set[str] | None = None, *, plan: bool = False
+    ) -> dict[int, _ProblemFacts]:
+        """`leave_out`: submissions to read as if they didn't exist (the plan without what's new since
+        a version, to see whether that changes anything: Roadmap._news).
 
-        for sub in self.db.scalars(
-            select(Submission).where(Submission.user_id == user.id).order_by(Submission.created_at)
-        ):
-            f = facts.get(sub.problem_id)
-            if f is None:
-                continue
-            f.submissions += 1
-            f.last_status = sub.status
-            f.last_activity = _aware(sub.created_at)
-            if sub.status == SubmissionStatus.PASSED:
-                f.solved = True
+        `plan` (the practice plan's reading, Volume 16, prompt 7; docs/PLAN_UPDATES.md): a submission
+        the judge failed to run (INTERNAL_ERROR: the judge's problem, not the learner's code) isn't
+        read, and debugging exercises are read too, by their judged submissions only, as evidence for
+        the topics they name (never recommended themselves: `recommend`)."""
+        return build_facts(self.fact_rows(user, plan=plan), leave_out, plan=plan)
 
-        for ai in self.db.scalars(select(AIInteraction).where(AIInteraction.user_id == user.id)):
-            f = facts.get(ai.problem_id)
-            if f is None:
-                continue
-            if ai.action == AIAction.HINT:
-                f.hints += 1
-            elif ai.action == AIAction.REVIEW:
-                f.reviews += 1
-            ts = _aware(ai.created_at)
-            f.last_activity = max(f.last_activity or ts, ts)
-
-        for ev in self.db.scalars(select(ProgressEvent).where(ProgressEvent.user_id == user.id)):
-            f = facts.get(ev.problem_id)
-            if f is not None:
-                f.opened = True
-        return facts
+    def fact_rows(self, user: User, *, plan: bool = False) -> FactRows:
+        """Everything `_facts` reads, read once (Volume 17, prompt 9): the plan's preview then builds
+        the facts for each skill's leave-out in memory, so its statements don't grow with the skills."""
+        # Debugging exercises (kind "debug") are in History, not in problem progress or recommendations.
+        kinds = ("problem", "debug") if plan else ("problem",)
+        return FactRows(
+            problems=list(
+                self.db.scalars(
+                    select(Problem).where(Problem.kind.in_(kinds)).order_by(Problem.order_index)
+                ).all()
+            ),
+            submissions=list(
+                self.db.scalars(
+                    select(Submission)
+                    .where(Submission.user_id == user.id, Submission.mode == SubmissionMode.SUBMIT)
+                    .order_by(Submission.created_at)
+                ).all()
+            ),
+            coaching=list(
+                self.db.scalars(select(AIInteraction).where(AIInteraction.user_id == user.id)).all()
+            ),
+            events=list(self.db.scalars(select(ProgressEvent).where(ProgressEvent.user_id == user.id)).all()),
+        )
 
     def progress(self, user: User, *, now: datetime | None = None) -> ProgressOut:
         now = now or datetime.now(UTC)
@@ -175,7 +226,7 @@ class ProgressService:
         status_counts = dict(
             self.db.execute(
                 select(Submission.status, func.count())
-                .where(Submission.user_id == user.id)
+                .where(Submission.user_id == user.id, Submission.mode == SubmissionMode.SUBMIT)
                 .group_by(Submission.status)
             ).all()
         )
@@ -234,10 +285,20 @@ class ProgressService:
         ][:limit]
 
     def recommend(
-        self, user: User, *, limit: int = 5, facts: dict[int, _ProblemFacts] | None = None
+        self,
+        user: User,
+        *,
+        limit: int = 5,
+        facts: dict[int, _ProblemFacts] | None = None,
+        leave_out: set[str] | None = None,
+        plan: bool = False,
     ) -> list[Recommendation]:
-        facts = facts if facts is not None else self._facts(user)
-        values = list(facts.values())
+        """`plan`: the practice plan's reading (`_facts`). Debugging exercises then count toward the
+        weak topics and the difficulty ladder by the same rule as problems (a pass is solved, any
+        other verdict is tried), and are never recommended."""
+        facts = facts if facts is not None else self._facts(user, leave_out, plan=plan)
+        retired = retired_problem_slugs()  # never recommended; still counted in history
+        values = [f for f in facts.values() if f.problem.slug not in retired and f.problem.kind == "problem"]
         picks: list[Recommendation] = []
         chosen: set[str] = set()
 
@@ -269,8 +330,8 @@ class ProgressService:
         # 2. Weak topics: easiest unsolved problem in each.
         solved_easy_topics = {
             t
-            for f in values
-            if f.solved and f.problem.difficulty == Difficulty.EASY
+            for f in facts.values()
+            if f.solved and f.problem.difficulty == Difficulty.EASY and f.problem.slug not in retired
             for t in f.problem.topics
         }
         for topic in self.weakest_topics(facts, limit=5):

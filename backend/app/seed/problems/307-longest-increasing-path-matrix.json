@@ -1,0 +1,187 @@
+{
+  "order": 307,
+  "slug": "longest-increasing-path-matrix",
+  "title": "Longest Increasing Path in a Matrix",
+  "difficulty": "hard",
+  "topics": [
+    "graphs",
+    "dynamic-programming",
+    "matrix"
+  ],
+  "summary": "Longest strictly increasing walk through neighboring cells.",
+  "statement": "Return the length of the longest strictly increasing path in `matrix`, moving up, down, left or right\n(no diagonals, no wrapping).",
+  "constraints": [
+    "1 <= rows, cols <= 200"
+  ],
+  "examples": [
+    {
+      "input": "matrix = [[9, 9, 4], [6, 6, 8], [2, 1, 1]]",
+      "output": "4"
+    },
+    {
+      "input": "matrix = [[3, 4, 5], [3, 2, 6], [2, 2, 1]]",
+      "output": "4"
+    },
+    {
+      "input": "matrix = [[1]]",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "longestIncreasingPath",
+    "params": [
+      {
+        "name": "matrix",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int longestIncreasingPath(int[][] matrix) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "A strictly increasing path can never revisit a cell, so there are no cycles to worry about.",
+    "Memoized DFS: longest(r, c) = 1 + max(longest(neighbor)) over neighbors with a larger value.",
+    "memo = {}\ndef longest(r, c):\n    if (r, c) in memo: return it\n    best = 1\n    for each neighbor with larger value: best = max(best, 1 + longest(neighbor))\n    memo[(r, c)] = best; return best\nreturn max(longest(r, c) for all cells)",
+    "Each cell's answer is computed once: O(m n). It's a longest path in a DAG."
+  ],
+  "expected_complexity": {
+    "time": "O(m n)",
+    "space": "O(m n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "matrix": [
+          [
+            9,
+            9,
+            4
+          ],
+          [
+            6,
+            6,
+            8
+          ],
+          [
+            2,
+            1,
+            1
+          ]
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            3,
+            4,
+            5
+          ],
+          [
+            3,
+            2,
+            6
+          ],
+          [
+            2,
+            2,
+            1
+          ]
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            1
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            5,
+            7,
+            6
+          ]
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            4,
+            2,
+            0
+          ]
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            8,
+            5,
+            0,
+            6
+          ],
+          [
+            8,
+            7,
+            7,
+            9
+          ],
+          [
+            0,
+            3,
+            9,
+            5
+          ],
+          [
+            2,
+            0,
+            7,
+            1
+          ]
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            3,
+            7,
+            5
+          ],
+          [
+            8,
+            4,
+            2
+          ]
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

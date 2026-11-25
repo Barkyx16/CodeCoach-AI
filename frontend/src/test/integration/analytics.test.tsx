@@ -7,9 +7,9 @@ describe("Analytics", () => {
   it("uses backend metrics and identifies the activity window honestly", async () => {
     const { user } = renderApp("/analytics", { signedIn: true });
     expect(await screen.findByRole("heading", { name: "Analytics" })).toBeInTheDocument();
-    const summary = within(screen.getByRole("region", { name: "Practice statistics" }));
+    const summary = within(await screen.findByRole("region", { name: "Practice statistics" }));
     expect(summary.getByText("50%")).toBeInTheDocument();
-    expect(screen.getByText(/includes problem opens, submissions, coaching and completed interviews/)).toBeInTheDocument();
+    expect(screen.getByText(/Acceptance counts only submissions the judge evaluated/)).toBeInTheDocument();
     expect(screen.getAllByTestId("heat-cell")).toHaveLength(28);
     await user.click(screen.getByRole("button", { name: "Show table" }));
     expect(screen.getAllByRole("row")).toHaveLength(29);

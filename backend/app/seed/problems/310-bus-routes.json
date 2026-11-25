@@ -1,0 +1,244 @@
+{
+  "order": 310,
+  "slug": "bus-routes",
+  "title": "Fewest Buses to Your Stop",
+  "difficulty": "hard",
+  "topics": [
+    "graphs",
+    "hash-maps"
+  ],
+  "summary": "Minimum number of buses to ride from source to target.",
+  "statement": "`routes[i]` lists the stops bus `i` visits (it loops forever). Starting at stop `source` (not on a bus),\nreturn the fewest buses you must take to reach stop `target`, or `-1` if impossible. If `source == target`, the answer is 0.",
+  "constraints": [
+    "1 <= routes.length <= 500",
+    "stops are 0..10^6"
+  ],
+  "examples": [
+    {
+      "input": "routes = [[1, 2, 7], [3, 6, 7]], source = 1, target = 6",
+      "output": "2"
+    },
+    {
+      "input": "routes = [[7, 12], [4, 5, 15], [6], [15, 19], [9, 12, 13]], source = 15, target = 12",
+      "output": "-1"
+    },
+    {
+      "input": "routes = [[1, 2]], source = 3, target = 3",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "numBusesToDestination",
+    "params": [
+      {
+        "name": "routes",
+        "type": "int[][]"
+      },
+      {
+        "name": "source",
+        "type": "int"
+      },
+      {
+        "name": "target",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int numBusesToDestination(int[][] routes, int source, int target) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Count buses, not stops: the graph's nodes should be bus routes.",
+    "BFS over buses. Map each stop to the buses that visit it; boarding a bus reveals all its stops at once.",
+    "if source == target: return 0\nqueue = buses at source (depth 1)\nwhile queue:\n    for bus in this level:\n        if target in bus: return depth\n        for stop in bus: for next_bus at stop: if unseen: enqueue\n    depth += 1\nreturn -1",
+    "Each bus and each stop is processed once: O(total stops across routes)."
+  ],
+  "expected_complexity": {
+    "time": "O(S)",
+    "space": "O(S)"
+  },
+  "tests": [
+    {
+      "input": {
+        "routes": [
+          [
+            1,
+            2,
+            7
+          ],
+          [
+            3,
+            6,
+            7
+          ]
+        ],
+        "source": 1,
+        "target": 6
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "routes": [
+          [
+            7,
+            12
+          ],
+          [
+            4,
+            5,
+            15
+          ],
+          [
+            6
+          ],
+          [
+            15,
+            19
+          ],
+          [
+            9,
+            12,
+            13
+          ]
+        ],
+        "source": 15,
+        "target": 12
+      },
+      "expected_output": -1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "routes": [
+          [
+            1,
+            2
+          ]
+        ],
+        "source": 3,
+        "target": 3
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "routes": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ]
+        ],
+        "source": 1,
+        "target": 4
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "routes": [
+          [
+            5
+          ],
+          [
+            3,
+            2,
+            6
+          ],
+          [
+            6,
+            9,
+            4,
+            0
+          ]
+        ],
+        "source": 8,
+        "target": 8
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "routes": [
+          [
+            3,
+            4,
+            1
+          ],
+          [
+            8,
+            9
+          ],
+          [
+            8,
+            2,
+            7
+          ],
+          [
+            9,
+            2,
+            5
+          ]
+        ],
+        "source": 3,
+        "target": 1
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "routes": [
+          [
+            5,
+            3
+          ],
+          [
+            5,
+            0,
+            4,
+            1
+          ],
+          [
+            7
+          ],
+          [
+            4,
+            6,
+            2,
+            8
+          ]
+        ],
+        "source": 1,
+        "target": 7
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "routes": [
+          [
+            9
+          ],
+          [
+            5,
+            0
+          ]
+        ],
+        "source": 2,
+        "target": 9
+      },
+      "expected_output": -1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

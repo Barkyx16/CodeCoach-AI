@@ -1,0 +1,171 @@
+/*
+ * The dashboard, after the Pristine Dashboard Blueprint: one recommendation with one filled action,
+ * a support rail beside it, compact progress and calm format links. Sizes follow its type scale
+ * (page 32/40, recommendation 24/32, sections 20/28, metrics 32/40 tabular) and geometry (16 px
+ * cards, 44 px controls). Colours are tokens, so the purple theme and contrast checks apply.
+ */
+
+/* ---------- Header ---------- */
+.dashboard__header { align-items: flex-end; }
+.dashboard .page__title { font-size: 2rem; line-height: 2.5rem; font-weight: var(--weight-semibold); letter-spacing: -.025em; }
+.dashboard .page__subtitle { font-size: var(--text-md); line-height: 1.5rem; color: var(--color-text-muted); }
+.dashboard__section-title { margin: var(--space-8) 0 var(--space-3); font-size: 1.25rem; line-height: 1.75rem; font-weight: var(--weight-semibold); letter-spacing: -.01em; }
+
+/* ---------- Today's practice ---------- */
+.today { margin: var(--space-6) 0 0; }
+.today__head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-3) var(--space-6); margin-bottom: var(--space-4); }
+.today__title { margin: 0; font-size: 1.25rem; line-height: 1.75rem; font-weight: var(--weight-semibold); letter-spacing: -.01em; }
+.today__grid { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: var(--space-6); align-items: start; }
+.today__main { display: grid; gap: var(--space-3); min-width: 0; }
+.today__rail { display: grid; gap: var(--space-4); align-content: start; min-width: 0; }
+.today__empty { margin: 0; padding: var(--space-6); border: 1px solid var(--color-border); border-radius: 16px; background: var(--color-surface); color: var(--color-text-muted); }
+
+/* Time available: one labelled single-select group (radios), shown as a segmented control. */
+.segmented { margin: 0; padding: 0; border: 0; min-width: 0; }
+.segmented__legend { float: left; margin-right: var(--space-3); padding: 0; line-height: 46px; font-size: var(--text-xs); font-weight: var(--weight-medium); color: var(--color-text-subtle); }
+.segmented__options { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--color-border-strong); border-radius: 12px; background: var(--color-surface-sunken); }
+.segmented__option {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; min-height: 38px; padding: 0 var(--space-4);
+  border-radius: 9px; color: var(--color-text-muted); font-size: var(--text-sm); font-variant-numeric: tabular-nums; cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease;
+}
+.segmented__option:hover { color: var(--color-text); }
+.segmented__option.is-selected { background: var(--color-surface-raised); color: var(--color-text); font-weight: var(--weight-semibold); box-shadow: inset 0 0 0 1px var(--color-primary-border); }
+.segmented__option input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.segmented__option:focus-within { outline: 2px solid var(--color-link); outline-offset: 2px; }
+
+/* The recommendation: quiet metadata, the task leads, one filled action. */
+.today__card { border: 1px solid var(--color-border); border-radius: 16px; background: var(--color-surface); min-width: 0; }
+.activity-card--featured { gap: var(--space-3); padding: var(--space-6) 28px var(--space-4); border: 0; border-radius: 16px 16px 0 0; background: transparent; }
+.activity-card__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4); font-size: 0.8125rem; color: var(--color-text-subtle); }
+.activity-card__kind { display: inline-flex; align-items: center; gap: var(--space-2); color: var(--color-text-muted); font-weight: var(--weight-medium); }
+.activity-card__kind-icon { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 8px; color: var(--color-link); background: var(--color-primary-soft); }
+.activity-card__time { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.activity-card--featured .activity-card__title { font-size: 1.5rem; line-height: 2rem; font-weight: var(--weight-semibold); letter-spacing: -.02em; }
+.activity-card__why { color: var(--color-text-muted); }
+/* Something derived from feedback the learner disputed (docs/DISPUTES.md): the link sits in the
+   sentence, so it's underlined, not told apart by colour alone. */
+.disputed-note { color: var(--color-text-muted); font-size: var(--text-sm); }
+.disputed-note a, .plan-withheld a, .schedule-entry__disputed a { text-decoration: underline; text-underline-offset: 2px; }
+.activity-card--featured .activity-card__why { font-size: var(--text-md); line-height: 1.5rem; }
+.activity-card__done { margin: 0; font-size: var(--text-sm); color: var(--color-text-subtle); }
+.activity-card__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin-top: var(--space-1); }
+.activity-card__actions .btn { min-height: 44px; }
+.activity-card__swap { color: var(--color-link); }
+.today__card-footer {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) 28px; border-top: 1px solid var(--color-border); font-size: 0.8125rem; color: var(--color-text-subtle);
+}
+.today__card-footer .today__follow { flex: 1 1 auto; min-width: 0; }
+.today__card-footer .today__follow[open] { flex-basis: 100%; }
+.today__card-footer .today__follow[open] > .activity-card { margin-top: var(--space-2); }
+.today__estimate { font-variant-numeric: tabular-nums; }
+
+/* More options: secondary actions in a small panel under its button. */
+.more-options { position: relative; }
+.more-options__chevron { transition: transform 140ms ease; }
+.more-options__toggle[aria-expanded="true"] .more-options__chevron { transform: rotate(180deg); }
+.more-options__panel {
+  position: absolute; z-index: 25; top: calc(100% + 6px); left: 0; display: grid; gap: 2px; min-width: 210px; padding: 6px;
+  background: var(--color-surface-raised); border: 1px solid var(--color-border-strong); border-radius: 12px; box-shadow: var(--shadow-md);
+}
+.more-options__panel[hidden] { display: none; }
+.more-options__panel > a, .more-options__panel > .btn {
+  display: flex; align-items: center; justify-content: flex-start; width: 100%; min-height: 40px; padding: 8px 12px;
+  border: 0; border-radius: 8px; color: var(--color-text); font-size: var(--text-sm); font-weight: var(--weight-medium); text-decoration: none; background: transparent;
+}
+.more-options__panel > a:hover, .more-options__panel > .btn:hover:not(:disabled) { background: var(--color-primary-soft); text-decoration: none; }
+
+/* Support rail: this week's planned minutes, and the optional goal setup. */
+.rail-card { display: grid; gap: var(--space-2); padding: var(--space-5) var(--space-6); border: 1px solid var(--color-border); border-radius: 16px; background: var(--color-surface); }
+.rail-card p { margin: 0; }
+.rail-card__eyebrow { margin: 0; font-size: var(--text-xs); font-weight: var(--weight-semibold); letter-spacing: .08em; text-transform: uppercase; color: var(--color-text-subtle); }
+.rail-card__title { margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold); }
+.rail-card__value { font-size: 2rem; line-height: 2.5rem; font-weight: var(--weight-semibold); font-variant-numeric: tabular-nums; }
+.rail-card__detail { font-size: var(--text-sm); }
+.rail-card__links, .rail-card__actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2) var(--space-4); font-size: var(--text-sm); }
+.rail-card__link { font-weight: var(--weight-semibold); }
+
+/* ---------- Progress: compact, real numbers ---------- */
+.dashboard .stat-row { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--space-3); margin-bottom: 0; }
+.dashboard .stat { align-content: start; gap: 2px; padding: var(--space-4) var(--space-5); border-radius: 16px; border-top: 1px solid var(--color-border); }
+.dashboard .stat__label { font-size: 0.8125rem; color: var(--color-text-muted); }
+.dashboard .stat__value { margin: 2px 0; font-size: 2rem; line-height: 2.5rem; font-weight: var(--weight-semibold); }
+.dashboard .stat .subtle { font-size: var(--text-xs); line-height: 1rem; }
+.dashboard-onboarding { display: flex; flex-wrap: nowrap; align-items: flex-start; gap: var(--space-2); margin: var(--space-3) 0 0; font-size: var(--text-sm); color: var(--color-text-subtle); }
+.dashboard-onboarding svg { flex-shrink: 0; margin-top: 2px; color: var(--color-link); }
+
+/* ---------- More ways to practice: one coherent link per format ---------- */
+.more-practice { margin: 0; }
+.more-practice__list { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.format-link {
+  display: flex; align-items: center; gap: var(--space-3); height: 100%; min-height: 64px; padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface); color: var(--color-text);
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+.format-link:hover { text-decoration: none; color: var(--color-text); border-color: var(--color-primary-border); background: var(--color-surface-raised); }
+.format-link__icon { display: inline-grid; place-items: center; flex-shrink: 0; width: 36px; height: 36px; border-radius: 10px; color: var(--color-link); background: var(--color-primary-soft); }
+.format-link__text { display: grid; gap: 2px; min-width: 0; }
+.format-link__title { font-weight: var(--weight-semibold); font-size: 0.9375rem; }
+.format-link__detail { font-size: 0.8125rem; color: var(--color-text-subtle); }
+.format-link__arrow { margin-left: auto; flex-shrink: 0; color: var(--color-text-subtle); }
+.dashboard .dashboard__layout { margin-top: var(--space-8); }
+
+/* ---------- Narrower screens ---------- */
+@media (max-width: 1023px) {
+  .today__grid { grid-template-columns: minmax(0, 1fr); }
+  .today__rail { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .dashboard .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 767px) {
+  .dashboard .page__title { font-size: 1.75rem; line-height: 2.25rem; }
+  .dashboard__header > .btn { width: 100%; }
+  .segmented { width: 100%; }
+  .segmented__legend { float: none; display: block; line-height: 1.5; margin-bottom: var(--space-1); }
+  .segmented__options { display: flex; width: 100%; }
+  .segmented__option { flex: 1 1 0; min-height: 40px; }
+  .activity-card--featured { padding: var(--space-5) var(--space-5) var(--space-4); }
+  .activity-card--featured .activity-card__title { font-size: 1.25rem; line-height: 1.75rem; }
+  .today__card-footer { padding: var(--space-3) var(--space-5); }
+  .activity-card--featured .activity-card__actions > .btn--primary { flex: 1 1 100%; justify-content: center; }
+  .dashboard .stat { padding: var(--space-3) var(--space-4); }
+  .dashboard .stat__value { font-size: 1.75rem; line-height: 2.25rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .segmented__option, .format-link, .more-options__chevron { transition: none; }
+}
+
+/* ---------- From your plan (PlanReturn): on a page opened from the plan ---------- */
+.plan-return {
+  display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap;
+  width: min(100% - 2 * var(--space-6), var(--content-max-width)); margin: var(--space-4) auto 0; padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-primary-border); border-radius: 12px; background: var(--color-primary-soft); font-size: var(--text-sm);
+}
+.plan-return--done { border-color: var(--tint-success-border); background: var(--color-success-soft); }
+.plan-return__icon { display: inline-grid; place-items: center; color: var(--color-link); }
+.plan-return--done .plan-return__icon { color: var(--color-success); }
+.plan-return__text { flex: 1 1 260px; margin: 0; min-width: 0; }
+.plan-return__link { font-weight: var(--weight-semibold); white-space: nowrap; }
+.plan-return__close {
+  display: inline-grid; place-items: center; width: 32px; height: 32px; border: 0; border-radius: 8px;
+  background: transparent; color: var(--color-text-muted); font-size: 1.25rem; cursor: pointer;
+}
+.plan-return__close:hover { background: var(--color-surface-raised); color: var(--color-text); }
+@media (max-width: 767px) { .plan-return { width: calc(100% - 2 * var(--space-4)); } }
+
+/* Today: activities the learner chose to add, and the offer to add one within the time left. */
+.today__added { display: grid; gap: var(--space-2); }
+.today__added-title { margin: var(--space-2) 0 0; font-size: var(--text-sm); font-weight: var(--weight-semibold); color: var(--color-text-muted); }
+.today__topup { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); margin: 0; font-size: var(--text-sm); color: var(--color-text-muted); }
+.today__topup .btn { min-height: 40px; white-space: normal; text-align: left; }
+.activity-card__scheduled { color: var(--color-link); }
+
+/* An ended-early mock interview: a quiet pointer to its review, not a resume button. */
+.ended-early {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3) var(--space-4); margin-top: var(--space-4);
+  padding: var(--space-4) var(--space-5); border: 1px solid var(--color-border); border-radius: 16px; background: var(--color-surface);
+}
+.ended-early__icon { display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: 10px; color: var(--color-warning); background: var(--color-warning-soft); }
+.ended-early__text { flex: 1 1 280px; min-width: 0; display: grid; gap: 2px; }
+.ended-early__title { margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold); }
+.ended-early__text p { margin: 0; font-size: var(--text-sm); }

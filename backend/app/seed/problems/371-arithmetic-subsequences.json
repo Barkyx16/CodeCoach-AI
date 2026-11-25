@@ -1,0 +1,151 @@
+{
+  "order": 371,
+  "slug": "arithmetic-subsequences",
+  "title": "Count Arithmetic Subsequences",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "hash-maps"
+  ],
+  "summary": "Count subsequences of length 3+ with a constant difference.",
+  "statement": "Return the number of subsequences of `nums` (by index positions) with at least three elements where every pair of\nconsecutive elements has the same difference. The answer fits in an int.",
+  "constraints": [
+    "1 <= nums.length <= 1000",
+    "-2^31 <= nums[i] <= 2^31 - 1"
+  ],
+  "examples": [
+    {
+      "input": "nums = [2, 4, 6, 8, 10]",
+      "output": "7"
+    },
+    {
+      "input": "nums = [7, 7, 7, 7, 7]",
+      "output": "16"
+    },
+    {
+      "input": "nums = [1, 2]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "numberOfArithmeticSlices",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int numberOfArithmeticSlices(int[] nums) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Count \"weak\" arithmetic subsequences of length 2+ ending at each index, grouped by difference.",
+    "dp[i][d] = number of subsequences of length \u2265 2 ending at i with difference d. Extending one that ends at j adds dp[j][d] to the answer (those become length \u2265 3).",
+    "for i in range(n):\n    for j in range(i):\n        d = nums[i] - nums[j]\n        count = dp[j].get(d, 0)\n        answer += count\n        dp[i][d] += count + 1\nreturn answer",
+    "O(n^2) time with hash maps per index. Use long for the difference: it can overflow an int."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2)",
+    "space": "O(n^2)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          2,
+          4,
+          6,
+          8,
+          10
+        ]
+      },
+      "expected_output": 7,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          7,
+          7,
+          7,
+          7,
+          7
+        ]
+      },
+      "expected_output": 16,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          3,
+          5,
+          2,
+          4,
+          6
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          6,
+          2,
+          2,
+          5,
+          1,
+          3,
+          0,
+          6
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          0
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          2,
+          4,
+          5
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

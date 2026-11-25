@@ -1,0 +1,222 @@
+{
+  "order": 194,
+  "slug": "rotate-array",
+  "title": "Rotate an Array",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "two-pointers"
+  ],
+  "summary": "Shift every value k places to the right, wrapping around.",
+  "statement": "Rotate `nums` to the right by `k` steps: the last value moves to the front, `k` times. `k`\nmay be larger than the array length. Try to use O(1) extra space.",
+  "constraints": [
+    "1 <= nums.length <= 10^5",
+    "0 <= k <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 2, 3, 4, 5, 6, 7], k = 3",
+      "output": "[5, 6, 7, 1, 2, 3, 4]"
+    },
+    {
+      "input": "nums = [-1, -100, 3, 99], k = 2",
+      "output": "[3, 99, -1, -100]"
+    },
+    {
+      "input": "nums = [1, 2], k = 5",
+      "output": "[2, 1]"
+    }
+  ],
+  "signature": {
+    "method": "rotate",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] rotate(int[] nums, int k) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Rotating by `n` changes nothing, so reduce `k` first.",
+    "Reverse the whole array, then reverse the first `k` values and the rest separately.",
+    "k %= n\nreverse(nums, 0, n-1)\nreverse(nums, 0, k-1)\nreverse(nums, k, n-1)\nreturn nums",
+    "Three reversals put every value in place: O(n) time, O(1) extra space."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7
+        ],
+        "k": 3
+      },
+      "expected_output": [
+        5,
+        6,
+        7,
+        1,
+        2,
+        3,
+        4
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          -1,
+          -100,
+          3,
+          99
+        ],
+        "k": 2
+      },
+      "expected_output": [
+        3,
+        99,
+        -1,
+        -100
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2
+        ],
+        "k": 5
+      },
+      "expected_output": [
+        2,
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          9
+        ],
+        "k": 0
+      },
+      "expected_output": [
+        9
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -1,
+          0,
+          -3,
+          -3,
+          -3,
+          9,
+          -7,
+          1
+        ],
+        "k": 16
+      },
+      "expected_output": [
+        -1,
+        0,
+        -3,
+        -3,
+        -3,
+        9,
+        -7,
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -8
+        ],
+        "k": 25
+      },
+      "expected_output": [
+        -8
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          6,
+          6,
+          -2,
+          8,
+          -8,
+          9,
+          -3,
+          -8,
+          6,
+          5,
+          -2,
+          5
+        ],
+        "k": 14
+      },
+      "expected_output": [
+        -2,
+        5,
+        6,
+        6,
+        -2,
+        8,
+        -8,
+        9,
+        -3,
+        -8,
+        6,
+        5
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          1,
+          9,
+          5,
+          -1,
+          6,
+          -3
+        ],
+        "k": 6
+      },
+      "expected_output": [
+        1,
+        9,
+        5,
+        -1,
+        6,
+        -3,
+        5
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

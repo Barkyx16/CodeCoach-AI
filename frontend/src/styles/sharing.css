@@ -1,0 +1,91 @@
+/* Sharing an answer for feedback: composer, link panel, owner pages and the reviewer's page. */
+.share-page { display: grid; gap: var(--space-4); align-content: start; }
+.share-page > .back-link, .share-page > .row { justify-self: start; }
+.share-page .page__header { margin-bottom: 0; }
+.shared-snapshot__title { font-size: 1.25rem; line-height: 1.35; margin: 0; }
+.share-composer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+.share-review { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+@media (max-width: 900px) { .share-composer, .share-review { grid-template-columns: minmax(0, 1fr); } }
+.share-preview { position: sticky; top: calc(var(--header-height) + var(--space-4)); max-height: calc(100dvh - var(--header-height) - 2rem); overflow: auto; }
+@media (max-width: 900px) { .share-preview { position: static; max-height: none; } }
+
+.share-sentences { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-1); }
+.share-sentences__item { align-items: flex-start; padding: var(--space-2); border-radius: var(--radius-sm); line-height: 1.5; }
+.share-sentences__item:hover { background: var(--tint-hover); }
+.share-sentences__item input { margin-top: 0.15rem; flex-shrink: 0; }
+.share-sentences__n { color: var(--color-text-subtle); font-variant-numeric: tabular-nums; }
+.share-consent { align-items: flex-start; padding: var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); }
+.share-consent input { margin-top: 0.15rem; flex-shrink: 0; }
+
+.shared-snapshot__prompt { font-size: var(--text-lg, 1.0625rem); line-height: 1.6; }
+.shared-excerpt { margin: 0; padding-left: 2.25rem; display: grid; gap: var(--space-2); line-height: 1.65; }
+.shared-excerpt li::marker { color: var(--color-text-subtle); font-variant-numeric: tabular-nums; }
+.shared-excerpt__gap { list-style: none; margin-left: -2.25rem; color: var(--color-text-subtle); font-style: italic; font-size: var(--text-sm); }
+.shared-snapshot__reply, .share-comments__quote { margin: 0; padding: var(--space-2) var(--space-3); border-left: 3px solid var(--color-border-strong); color: var(--color-text-muted); }
+.shared-snapshot__note { white-space: pre-wrap; }
+.shared-ai { padding: var(--space-4); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-md); background: var(--tint-panel); }
+
+.share-link__row { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.share-link__url { flex: 1 1 16rem; min-width: 0; font-family: var(--font-mono, ui-monospace, monospace); font-size: var(--text-sm); }
+
+.share-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.share-list__item { display: grid; gap: var(--space-2); }
+.share-list__title { font-weight: var(--weight-bold); font-size: 1.0625rem; }
+.share-list__meta { flex-wrap: wrap; font-size: var(--text-sm); }
+.share-controls__actions { flex-wrap: wrap; }
+
+.share-feedback-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.share-feedback__head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-2); }
+.share-feedback__head p { margin: 0; }
+.share-feedback__answers { margin: 0; display: grid; gap: var(--space-3); }
+.share-feedback__answers dt { font-size: var(--text-sm); font-weight: var(--weight-bold); color: var(--color-text-muted); }
+.share-feedback__answers dd { margin: var(--space-1) 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.share-feedback__sub { font-size: var(--text-sm); margin: 0; }
+.share-comments { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.share-comments p { margin: var(--space-1) 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.share-entry { flex-wrap: wrap; }
+
+/* Visually hidden status lines are absolutely positioned: keep them inside their card, or their
+   static position inside a scrolled panel stretches the whole page. */
+.save-offline { position: relative; }
+.offline-list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.offline-list__item { display: grid; gap: var(--space-1); }
+.offline-list__title { font-weight: var(--weight-bold); }
+.offline-page { display: grid; gap: var(--space-4); align-content: start; }
+.offline-page__summary { flex-wrap: wrap; justify-content: space-between; }
+.app-status { align-items: center; flex-wrap: wrap; justify-content: space-between; }
+
+/* Content quality: info, reports and triage. */
+.content-info { border: 1px solid var(--color-border); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); background: var(--color-surface); }
+.content-info summary { cursor: pointer; font-size: var(--text-sm); color: var(--color-text-muted); min-height: 32px; display: flex; align-items: center; }
+.content-info[open] { display: grid; gap: var(--space-3); padding-bottom: var(--space-3); }
+.content-info__facts { margin: 0; display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); }
+.content-info__facts dt { font-size: var(--text-xs); color: var(--color-text-muted); }
+.content-info__facts dd { margin: 0; }
+.content-info__labels { margin: 0; padding-left: 1.25rem; display: grid; gap: var(--space-1); font-size: var(--text-sm); }
+.content-info__sub { font-size: var(--text-sm); margin: 0; }
+.content-info__changes { margin: 0; padding-left: 1.5rem; font-size: var(--text-sm); }
+.report-issue { display: grid; gap: var(--space-2); justify-items: start; }
+.report-issue__toggle { font-size: var(--text-sm); }
+.report-issue__panel { width: 100%; position: relative; }
+.report-issue__categories { display: grid; gap: var(--space-1); grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); }
+.answered-version summary { cursor: pointer; font-size: var(--text-sm); }
+.answered-version__quote { margin: var(--space-2) 0 0; padding-left: var(--space-3); border-left: 3px solid var(--color-border-strong); color: var(--color-text-muted); }
+.reports-page, .admin-page { display: grid; gap: var(--space-4); align-content: start; }
+.report-list, .admin-groups, .admin-reports, .admin-audit { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.admin-reports { gap: var(--space-2); }
+.admin-reports__dup { padding-left: var(--space-4); border-left: 2px solid var(--color-border-strong); }
+.report-list__head { flex-wrap: wrap; }
+.report-list__text, .admin-report__text { white-space: pre-wrap; overflow-wrap: anywhere; }
+.admin-groups__title { text-transform: none; letter-spacing: 0; font-size: 1rem; }
+.admin-report { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--space-5); align-items: start; }
+@media (max-width: 900px) { .admin-report { grid-template-columns: minmax(0, 1fr); } }
+.admin-audit__detail { display: block; font-size: var(--text-xs); overflow-wrap: anywhere; color: var(--color-text-muted); }
+.admin-audit__note { margin: var(--space-1) 0 0; font-size: var(--text-sm); white-space: pre-wrap; }
+.workspace-content-info { margin-top: var(--space-4); }
+.admin-reports a, .report-list__head a, .content-info a { text-decoration: underline; text-underline-offset: 0.15em; }
+
+/* Admin trace lookup: server steps as a nested list, browser reports below. */
+.trace-spans, .trace-events { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2, 0.5rem); }
+.trace-spans li, .trace-events li { overflow-wrap: anywhere; }
+.trace-attrs { font-family: var(--font-mono, ui-monospace, monospace); font-size: 0.875em; }

@@ -1,0 +1,290 @@
+{
+  "order": 190,
+  "slug": "three-sum",
+  "title": "Three Numbers That Sum to Zero",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "two-pointers",
+    "sorting"
+  ],
+  "summary": "List every distinct triplet that adds up to zero.",
+  "statement": "Return all distinct triplets `[a, b, c]` of values from `nums` (at different indices) with\n`a + b + c == 0`. Each triplet is sorted ascending, and the list of triplets is sorted\nascending (compare first values, then second). No duplicate triplets.",
+  "constraints": [
+    "0 <= nums.length <= 3000",
+    "-10^5 <= nums[i] <= 10^5"
+  ],
+  "examples": [
+    {
+      "input": "nums = [-1, 0, 1, 2, -1, -4]",
+      "output": "[[-1, -1, 2], [-1, 0, 1]]",
+      "explanation": "Two triplets: -1 + -1 + 2 and -1 + 0 + 1."
+    },
+    {
+      "input": "nums = [0, 1, 1]",
+      "output": "[]"
+    },
+    {
+      "input": "nums = [0, 0, 0, 0]",
+      "output": "[[0, 0, 0]]"
+    }
+  ],
+  "signature": {
+    "method": "threeSum",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[][]"
+  },
+  "starter_code": "class Solution {\n    public int[][] threeSum(int[] nums) {\n        // TODO: write your solution here\n        return new int[0][];\n    }\n}\n",
+  "hints": [
+    "Fix one value, and the problem becomes a two-number search for the rest.",
+    "Sort first. For each index `i`, run two pointers on the part after it, looking for `-nums[i]`. Skip equal values to avoid duplicates.",
+    "sort nums\nfor i in range(n):\n    if i > 0 and nums[i] == nums[i-1]: continue\n    lo, hi = i+1, n-1\n    while lo < hi:\n        s = nums[i] + nums[lo] + nums[hi]\n        if s == 0: record; lo += 1 while duplicate; hi -= 1 while duplicate\n        elif s < 0: lo += 1\n        else: hi -= 1",
+    "Sorting is O(n log n) and each fixed `i` costs O(n) with two pointers, so O(n^2) total versus O(n^3) brute force. Because the array is sorted, triplets come out in sorted order and skipping repeats removes duplicates."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          -1,
+          0,
+          1,
+          2,
+          -1,
+          -4
+        ]
+      },
+      "expected_output": [
+        [
+          -1,
+          -1,
+          2
+        ],
+        [
+          -1,
+          0,
+          1
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          1,
+          1
+        ]
+      },
+      "expected_output": [],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      "expected_output": [
+        [
+          0,
+          0,
+          0
+        ]
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": []
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -2,
+          0,
+          1,
+          1,
+          2
+        ]
+      },
+      "expected_output": [
+        [
+          -2,
+          0,
+          2
+        ],
+        [
+          -2,
+          1,
+          1
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -1,
+          -6,
+          1,
+          0,
+          6,
+          4,
+          -6,
+          6,
+          4,
+          -2,
+          -2,
+          -5,
+          6
+        ]
+      },
+      "expected_output": [
+        [
+          -6,
+          0,
+          6
+        ],
+        [
+          -5,
+          -1,
+          6
+        ],
+        [
+          -5,
+          1,
+          4
+        ],
+        [
+          -2,
+          -2,
+          4
+        ],
+        [
+          -1,
+          0,
+          1
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -3,
+          -3,
+          1,
+          -1,
+          3,
+          4,
+          5,
+          1,
+          0,
+          -4,
+          2,
+          0,
+          -3,
+          5
+        ]
+      },
+      "expected_output": [
+        [
+          -4,
+          -1,
+          5
+        ],
+        [
+          -4,
+          0,
+          4
+        ],
+        [
+          -4,
+          1,
+          3
+        ],
+        [
+          -3,
+          -1,
+          4
+        ],
+        [
+          -3,
+          0,
+          3
+        ],
+        [
+          -3,
+          1,
+          2
+        ],
+        [
+          -1,
+          0,
+          1
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          6,
+          -2,
+          -1,
+          -5,
+          5
+        ]
+      },
+      "expected_output": [
+        [
+          -5,
+          -1,
+          6
+        ]
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          6,
+          0,
+          6,
+          4,
+          4,
+          4,
+          -2,
+          -1,
+          1
+        ]
+      },
+      "expected_output": [
+        [
+          -1,
+          0,
+          1
+        ]
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

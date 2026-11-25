@@ -1,0 +1,316 @@
+/** A small in-memory stand-in for the explorer, bookmarks and collections endpoints. */
+import { http, HttpResponse } from "msw";
+
+import type { Bookmark, Collection, CollectionItem, ExploreResult, ItemStatus, MyExploreResult, SavedItemRef } from "@/api/types";
+
+import { nurseQuestions } from "./fixtures";
+
+const API = "http://localhost:8000";
+const KINDS = { knowledge: "Knowledge", behavioral: "Behavioral", situational: "Scenario", leadership: "Leadership", motivation: "Motivation" } as const;
+const LEVELS = { easy: "Easy", medium: "Medium", hard: "Hard" } as const;
+const SKILL: Record<string, string> = { "e-good-0": "patient assessment", "e-time-0": "patient assessment", "m-pressure-0": "Judgment under pressure" };
+
+export const store = {
+  bookmarks: [] as Bookmark[],
+  collections: [] as Collection[],
+  failBookmarks: false,
+  seq: 0,
+  /** The server's MAX_ITEMS per collection, lowered by a test that needs a full one. */
+  itemLimit: 200,
+  /** Apply the next copy or move, then lose its reply (the client sees a network error). */
+  loseTransferReply: false,
+  /** The next copy or move never reaches the server (Volume 20, prompt 5): nothing is done, no receipt. */
+  dropTransferRequest: false,
+  /** Each keyed copy or move's first results, as the server keeps them (Volume 18, prompt 5). */
+  transferReplies: new Map<string, unknown[]>(),
+  /** Where each keyed copy or move went (Volume 19, prompt 1), as the server's receipt keeps it. */
+  transferMade: new Map<string, { source: string; to: string; move: boolean; at: string }>(),
+};
+
+export function resetExploreStore() {
+  store.bookmarks = [];
+  store.collections = [];
+  store.failBookmarks = false;
+  store.seq = 0;
+  store.itemLimit = 200;
+  store.loseTransferReply = false;
+  store.dropTransferRequest = false;
+  store.transferReplies = new Map();
+  store.transferMade = new Map();
+}
+
+const err = (status: number, code: string, message: string) =>
+  HttpResponse.json({ error: { code, message, request_id: "r", details: null } }, { status });
+
+function titleOf(ref: SavedItemRef) {
+  if (ref.item_type === "problem") return ref.ref_id === "two-sum" ? "Two Sum" : null;
+  return nurseQuestions.find((q) => q.id === ref.ref_id)?.title ?? null;
+}
+
+function hrefOf(ref: SavedItemRef) {
+  return ref.item_type === "problem" ? `/problems/${ref.ref_id}` : `/careers/${ref.track}/questions/${ref.ref_id}`;
+}
+
+function status(): Record<string, ItemStatus> {
+  const out: Record<string, ItemStatus> = {};
+  for (const q of nurseQuestions) {
+    const bookmarked = store.bookmarks.some((b) => b.item_type === "question" && b.ref_id === q.id);
+    const collection_ids = store.collections.filter((c) => c.item_list.some((i) => i.ref_id === q.id)).map((c) => c.id);
+    out[q.id] = {
+      best_score: q.best_score ?? null, attempts: q.best_score === null || q.best_score === undefined ? 0 : 1,
+      // Fixtures answered with a scoreable answer (the eligibility fields follow best_score).
+      best_scored: q.best_scored ?? q.best_score ?? null,
+      score_status: q.score_status ?? (q.best_score === null || q.best_score === undefined ? null : "scored"),
+      last_practiced_at: q.best_score ? "2026-11-01T09:00:00Z" : null, bookmarked, collection_ids,
+    };
+  }
+  return out;
+}
+
+function explore(url: URL, personal: boolean): ExploreResult | MyExploreResult {
+  const p = url.searchParams;
+  const q = (p.get("q") ?? "").toLowerCase().trim();
+  const st = status();
+  const words = q.split(/\s+/).filter(Boolean);
+  const keep = (x: (typeof nurseQuestions)[number], skip = "") =>
+    words.every((w) => `${x.title} ${x.prompt} ${SKILL[x.id]}`.toLowerCase().includes(w))
+    && (skip === "difficulty" || !p.get("difficulty") || x.difficulty === p.get("difficulty"))
+    && (skip === "kind" || !p.get("kind") || x.kind === p.get("kind"))
+    && (skip === "skill" || !p.get("skill") || SKILL[x.id] === p.get("skill"))
+    && (!personal || !p.get("status")
+      || (p.get("status") === "bookmarked" && st[x.id]!.bookmarked)
+      || (p.get("status") === "attempted" && st[x.id]!.attempts > 0)
+      || (p.get("status") === "unattempted" && st[x.id]!.attempts === 0));
+  const rows = nurseQuestions.filter((x) => keep(x));
+  const size = Number(p.get("page_size") ?? 20);
+  const items = rows.slice(0, size).map((x) => ({
+    id: x.id, title: x.title, prompt: x.prompt, difficulty: x.difficulty, kind: x.kind, skills: [SKILL[x.id]!], tags: [], estimated_minutes: null,
+  }));
+  const facet = (field: "difficulty" | "kind" | "skill", values: Record<string, string>) =>
+    Object.entries(values).map(([value, label]) => ({
+      value, label,
+      count: nurseQuestions.filter((x) => keep(x, field) && (field === "skill" ? SKILL[x.id] === value : x[field] === value)).length,
+    }));
+  const explanation = [
+    q && `Matching “${q}” in titles, skills, tags and question text`,
+    p.get("difficulty") && `Difficulty: ${LEVELS[p.get("difficulty") as keyof typeof LEVELS]}`,
+    p.get("kind") && `Format: ${KINDS[p.get("kind") as keyof typeof KINDS]}`,
+    p.get("skill") && `Skill: ${p.get("skill")}`,
+  ].filter(Boolean) as string[];
+  const result: ExploreResult = {
+    track: "registered-nurse", career_title: "Registered Nurse", items, total: rows.length, page: 1, page_size: size,
+    facets: {
+      difficulty: facet("difficulty", LEVELS), kind: facet("kind", KINDS),
+      skill: facet("skill", { "patient assessment": "Patient assessment", "Judgment under pressure": "Judgment under pressure" }),
+    },
+    explanation, suggestions: rows.length ? [] : ["Try fewer or more general words.", "Remove a filter to widen the results."],
+    sorts: [...(q ? ["relevance" as const] : []), "library" as const, ...(personal ? ["last_practiced" as const, "lowest_score" as const] : [])],
+  };
+  return personal ? { ...result, status: Object.fromEntries(items.map((i) => [i.id, st[i.id]!])) } : result;
+}
+
+function summary(c: Collection, ref?: SavedItemRef) {
+  const { id, name, queue_position, queue_started, updated_at } = c;
+  return { id, name, queue_position, queue_started, updated_at, items: c.item_list.length, contains: ref ? c.item_list.some((i) => i.item_type === ref.item_type && i.ref_id === ref.ref_id) : null };
+}
+
+function fresh(c: Collection): Collection {
+  c.items = c.item_list.length;
+  c.queue_done = c.item_list.filter((i) => i.queue_done).length;
+  c.item_list.forEach((i, n) => { i.position = n; });
+  c.updated_at = new Date().toISOString();
+  return structuredClone(c);
+}
+
+const find = (id: string) => store.collections.find((c) => c.id === id);
+
+export const exploreHandlers = [
+  http.get(`${API}/api/v1/careers/:track/explore`, ({ request }) => HttpResponse.json(explore(new URL(request.url), false))),
+  http.get(`${API}/api/v1/me/explore/:track`, ({ request }) => HttpResponse.json(explore(new URL(request.url), true))),
+  http.get(`${API}/api/v1/me/bookmarks`, () => HttpResponse.json(store.bookmarks)),
+  http.put(`${API}/api/v1/me/bookmarks`, async ({ request }) => {
+    if (store.failBookmarks) return err(503, "unavailable", "The service is busy. Try again.");
+    const ref = (await request.json()) as SavedItemRef;
+    const title = titleOf(ref);
+    if (!title) return err(404, "not_found", "That item isn't in the library");
+    if (!store.bookmarks.some((b) => b.item_type === ref.item_type && b.ref_id === ref.ref_id)) {
+      store.bookmarks.unshift({ id: `b-${ref.ref_id}`, item_type: ref.item_type, track: ref.track ?? "", ref_id: ref.ref_id, title, href: hrefOf(ref), available: true, created_at: new Date().toISOString() });
+    }
+    return HttpResponse.json(store.bookmarks);
+  }),
+  http.delete(`${API}/api/v1/me/bookmarks`, ({ request }) => {
+    if (store.failBookmarks) return err(503, "unavailable", "The service is busy. Try again.");
+    const p = new URL(request.url).searchParams;
+    store.bookmarks = store.bookmarks.filter((b) => !(b.item_type === p.get("item_type") && b.ref_id === p.get("ref_id")));
+    return HttpResponse.json(store.bookmarks);
+  }),
+  http.get(`${API}/api/v1/me/collections`, ({ request }) => {
+    const p = new URL(request.url).searchParams;
+    const ref = p.get("ref_id") ? { item_type: p.get("item_type") as "question", track: p.get("track") ?? "", ref_id: p.get("ref_id")! } : undefined;
+    return HttpResponse.json(store.collections.map((c) => summary(c, ref)));
+  }),
+  http.post(`${API}/api/v1/me/collections`, async ({ request }) => {
+    const { name } = (await request.json()) as { name: string };
+    const c: Collection = {
+      id: `c-${++store.seq}`, name: name.trim() || "Untitled", items: 0, queue_position: 0, queue_started: false,
+      updated_at: new Date().toISOString(), item_list: [], queue_done: 0, contains: null,
+    };
+    store.collections.unshift(c);
+    return HttpResponse.json(fresh(c), { status: 201 });
+  }),
+  http.get(`${API}/api/v1/me/collections/:id`, ({ params }) => {
+    const c = find(String(params.id));
+    return c ? HttpResponse.json(fresh(c)) : err(404, "not_found", "Collection not found");
+  }),
+  http.patch(`${API}/api/v1/me/collections/:id`, async ({ params, request }) => {
+    const c = find(String(params.id));
+    if (!c) return err(404, "not_found", "Collection not found");
+    c.name = ((await request.json()) as { name: string }).name;
+    return HttpResponse.json(fresh(c));
+  }),
+  http.delete(`${API}/api/v1/me/collections/:id`, ({ params }) => {
+    store.collections = store.collections.filter((c) => c.id !== params.id);
+    return new HttpResponse(null, { status: 204 });
+  }),
+  http.post(`${API}/api/v1/me/collections/:id/items`, async ({ params, request }) => {
+    const c = find(String(params.id));
+    if (!c) return err(404, "not_found", "Collection not found");
+    const ref = (await request.json()) as SavedItemRef;
+    if (c.item_list.some((i) => i.item_type === ref.item_type && i.ref_id === ref.ref_id)) {
+      return err(409, "already_in_collection", `It's already in “${c.name}”.`);
+    }
+    const title = titleOf(ref);
+    if (!title) return err(404, "not_found", "That item isn't in the library");
+    const item: CollectionItem = {
+      id: `i-${++store.seq}`, item_type: ref.item_type, track: ref.item_type === "question" ? ref.track ?? "" : "", ref_id: ref.ref_id,
+      position: c.item_list.length, title, href: hrefOf(ref), available: true, unavailable_reason: null, queue_done: false, practiced_since_added: false,
+    };
+    c.item_list.push(item);
+    return HttpResponse.json(fresh(c));
+  }),
+  // Several at once, an outcome each (the server's rules: docs/BULK_ACTIONS.md).
+  http.post(`${API}/api/v1/me/collections/:id/items/batch`, async ({ params, request }) => {
+    const c = find(String(params.id));
+    if (!c) return err(404, "not_found", "Collection not found");
+    const body = (await request.json()) as { add?: SavedItemRef[]; remove?: string[] };
+    const results: { key: string; outcome: string; message: string }[] = [];
+    const seen = new Set<string>();
+    if (body.add?.length) {
+      for (const ref of body.add) {
+        const track = ref.item_type === "question" ? ref.track ?? "" : "";
+        const key = `${ref.item_type}:${track}:${ref.ref_id}`;
+        if (seen.has(key)) { results.push({ key, outcome: "repeated", message: "Listed twice; counted once." }); continue; }
+        seen.add(key);
+        if (c.item_list.some((i) => i.item_type === ref.item_type && i.ref_id === ref.ref_id)) {
+          results.push({ key, outcome: "already_there", message: `Already in “${c.name}”.` });
+          continue;
+        }
+        const title = titleOf(ref);
+        if (!title) { results.push({ key, outcome: "unavailable", message: "Not in the library any more." }); continue; }
+        c.item_list.push({
+          id: `i-${++store.seq}`, item_type: ref.item_type, track, ref_id: ref.ref_id, position: c.item_list.length, title,
+          href: hrefOf(ref), available: true, unavailable_reason: null, queue_done: false, practiced_since_added: false,
+        });
+        results.push({ key, outcome: "added", message: `Added to “${c.name}”.` });
+      }
+    } else {
+      for (const id of body.remove ?? []) {
+        if (seen.has(id)) { results.push({ key: id, outcome: "repeated", message: "Listed twice; counted once." }); continue; }
+        seen.add(id);
+        if (!c.item_list.some((i) => i.id === id)) { results.push({ key: id, outcome: "not_there", message: `Not in “${c.name}” (any more).` }); continue; }
+        c.item_list = c.item_list.filter((i) => i.id !== id);
+        results.push({ key: id, outcome: "removed", message: `Taken out of “${c.name}”.` });
+      }
+      c.item_list.forEach((i, n) => { i.position = n; });
+    }
+    return HttpResponse.json({ collection: fresh(c), results });
+  }),
+  // Copy or move chosen items (Volume 17, prompt 6), by the server's rules: each in the source's order,
+  // at the end of the other one; already there is never doubled (a move just takes it out of here);
+  // past the limit, "full"; a queue mark isn't carried.
+  http.post(`${API}/api/v1/me/collections/:id/items/transfer`, async ({ params, request }) => {
+    if (store.dropTransferRequest) { store.dropTransferRequest = false; return HttpResponse.error(); }
+    const src = find(String(params.id));
+    const body = (await request.json()) as { to: string; move: boolean; items: SavedItemRef[]; client_request_id?: string };
+    const dst = find(body.to);
+    if (!src || !dst) return err(404, "not_found", "Collection not found");
+    const kept = body.client_request_id ? store.transferReplies.get(body.client_request_id) : undefined;
+    if (kept) return HttpResponse.json({ source: fresh(src), destination: fresh(dst), results: kept, replayed: true });
+    if (src.id === dst.id) return err(409, "same_collection", "Choose another collection to copy or move them to.");
+    const keyOf = (r: SavedItemRef) => `${r.item_type}:${r.item_type === "question" ? r.track ?? "" : ""}:${r.ref_id}`;
+    const has = (c: Collection, r: SavedItemRef) => c.item_list.some((i) => keyOf(i) === keyOf(r));
+    const sent = body.items.map((r) => keyOf(r));
+    const outcome = new Map<string, { key: string; outcome: string; message: string }>();
+    const chosen = src.item_list.filter((i) => sent.includes(keyOf(i)));
+    for (const i of chosen) {
+      const key = keyOf(i);
+      if (has(dst, i)) {
+        if (body.move) src.item_list = src.item_list.filter((x) => x !== i);
+        outcome.set(key, body.move
+          ? { key, outcome: "moved", message: `Already in “${dst.name}”; taken out of “${src.name}”.` }
+          : { key, outcome: "already_there", message: `Already in “${dst.name}”.` });
+        continue;
+      }
+      if (dst.item_list.length >= store.itemLimit) {
+        outcome.set(key, { key, outcome: "full", message: `“${dst.name}” holds up to ${store.itemLimit} items.` });
+        continue;
+      }
+      dst.item_list.push({ ...structuredClone(i), id: `i-${++store.seq}`, position: dst.item_list.length, queue_done: false });
+      if (body.move) src.item_list = src.item_list.filter((x) => x !== i);
+      outcome.set(key, { key, outcome: body.move ? "moved" : "copied", message: `${body.move ? "Moved" : "Copied"} to “${dst.name}”.` });
+    }
+    const seen = new Set<string>();
+    const results = sent.map((key) => {
+      if (seen.has(key)) return { key, outcome: "repeated", message: "Listed twice; counted once." };
+      seen.add(key);
+      return outcome.get(key) ?? (dst.item_list.some((i) => keyOf(i) === key)
+        ? { key, outcome: "already_there", message: `Already in “${dst.name}”.` }
+        : { key, outcome: "not_there", message: `Not in “${src.name}” (any more).` });
+    });
+    const out = { source: fresh(src), destination: fresh(dst), results, replayed: false };
+    if (body.client_request_id) {
+      store.transferReplies.set(body.client_request_id, results);
+      store.transferMade.set(body.client_request_id, { source: src.id, to: dst.id, move: body.move, at: new Date().toISOString() });
+    }
+    if (store.loseTransferReply) { store.loseTransferReply = false; return HttpResponse.error(); }
+    return HttpResponse.json(out);
+  }),
+  // What a key made (Volume 19, prompt 1): a keyed copy or move's receipt, read only.
+  http.get(`${API}/api/v1/me/requests/:key`, ({ params }) => {
+    const key = String(params.key);
+    const made = store.transferMade.get(key);
+    if (!made) return err(404, "request_not_found", "The server has no record of this request: it never arrived, or what it made has since been deleted.");
+    return HttpResponse.json({
+      kind: "transfer", state: "done", id: made.source, created_at: made.at, problem_slug: null, hint_level: null,
+      transfer: { source_id: made.source, destination_id: made.to, move: made.move, results: store.transferReplies.get(key) ?? [] },
+    });
+  }),
+  http.delete(`${API}/api/v1/me/collections/:id/items/:item`, ({ params }) => {
+    const c = find(String(params.id));
+    if (!c) return err(404, "not_found", "Collection not found");
+    c.item_list = c.item_list.filter((i) => i.id !== params.item);
+    c.queue_position = Math.min(c.queue_position, Math.max(0, c.item_list.length - 1));
+    return HttpResponse.json(fresh(c));
+  }),
+  http.put(`${API}/api/v1/me/collections/:id/order`, async ({ params, request }) => {
+    const c = find(String(params.id));
+    if (!c) return err(404, "not_found", "Collection not found");
+    const { item_ids } = (await request.json()) as { item_ids: string[] };
+    c.item_list = item_ids.map((id) => c.item_list.find((i) => i.id === id)!);
+    return HttpResponse.json(fresh(c));
+  }),
+  http.put(`${API}/api/v1/me/collections/:id/queue`, async ({ params, request }) => {
+    const c = find(String(params.id));
+    if (!c) return err(404, "not_found", "Collection not found");
+    c.queue_position = Math.min(((await request.json()) as { position: number }).position, c.item_list.length - 1);
+    c.queue_started = true;
+    return HttpResponse.json(fresh(c));
+  }),
+  http.put(`${API}/api/v1/me/collections/:id/items/:item/done`, async ({ params, request }) => {
+    const c = find(String(params.id));
+    const item = c?.item_list.find((i) => i.id === params.item);
+    if (!c || !item) return err(404, "not_found", "Item not found");
+    item.queue_done = ((await request.json()) as { done: boolean }).done;
+    return HttpResponse.json(fresh(c));
+  }),
+];

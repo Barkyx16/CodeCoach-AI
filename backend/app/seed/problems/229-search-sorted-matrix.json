@@ -1,0 +1,182 @@
+{
+  "order": 229,
+  "slug": "search-sorted-matrix",
+  "title": "Search a Sorted Matrix",
+  "difficulty": "medium",
+  "topics": [
+    "matrix",
+    "binary-search"
+  ],
+  "summary": "Find a value in a matrix sorted row by row.",
+  "statement": "Each row of `matrix` is sorted ascending, and each row's first value is greater than the previous\nrow's last value. Return whether `target` is in the matrix, in O(log(rows \u00d7 cols)).",
+  "constraints": [
+    "1 <= rows, cols <= 100"
+  ],
+  "examples": [
+    {
+      "input": "matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], target = 3",
+      "output": "true"
+    },
+    {
+      "input": "matrix = [[1, 3, 5, 7], [10, 11, 16, 20], [23, 30, 34, 60]], target = 13",
+      "output": "false"
+    },
+    {
+      "input": "matrix = [[1]], target = 1",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "searchMatrix",
+    "params": [
+      {
+        "name": "matrix",
+        "type": "int[][]"
+      },
+      {
+        "name": "target",
+        "type": "int"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean searchMatrix(int[][] matrix, int target) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Read row by row, the matrix is one long sorted list.",
+    "Binary search over positions `0 .. rows*cols - 1`, mapping position `p` to `matrix[p / cols][p % cols]`.",
+    "lo, hi = 0, rows*cols - 1\nwhile lo <= hi:\n    mid = (lo + hi) // 2\n    v = matrix[mid // cols][mid % cols]\n    if v == target: return true\n    if v < target: lo = mid + 1\n    else: hi = mid - 1\nreturn false",
+    "Treating the matrix as a flattened sorted array gives O(log(m n))."
+  ],
+  "expected_complexity": {
+    "time": "O(log(m n))",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "matrix": [
+          [
+            1,
+            3,
+            5,
+            7
+          ],
+          [
+            10,
+            11,
+            16,
+            20
+          ],
+          [
+            23,
+            30,
+            34,
+            60
+          ]
+        ],
+        "target": 3
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            1,
+            3,
+            5,
+            7
+          ],
+          [
+            10,
+            11,
+            16,
+            20
+          ],
+          [
+            23,
+            30,
+            34,
+            60
+          ]
+        ],
+        "target": 13
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            1
+          ]
+        ],
+        "target": 1
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            10,
+            12,
+            31
+          ],
+          [
+            44,
+            48,
+            57
+          ]
+        ],
+        "target": 5
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            32
+          ],
+          [
+            37
+          ]
+        ],
+        "target": 39
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            19,
+            52
+          ]
+        ],
+        "target": 18
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "matrix": [
+          [
+            55
+          ]
+        ],
+        "target": 55
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,168 @@
+{
+  "order": 312,
+  "slug": "word-ladder",
+  "title": "Word Ladder",
+  "difficulty": "hard",
+  "topics": [
+    "graphs",
+    "strings",
+    "hash-sets"
+  ],
+  "summary": "Fewest one-letter changes from one word to another.",
+  "statement": "Change `begin` into `end` one letter at a time, where every intermediate word (and `end`) must be in\n`words`. Return the number of words in the shortest such sequence, counting `begin` and `end`, or `0` if\nit's impossible.",
+  "constraints": [
+    "1 <= begin.length <= 10",
+    "1 <= words.length <= 5000",
+    "all words have the same length"
+  ],
+  "examples": [
+    {
+      "input": "begin = \"hit\", end = \"cog\", words = [\"hot\", \"dot\", \"dog\", \"lot\", \"log\", \"cog\"]",
+      "output": "5"
+    },
+    {
+      "input": "begin = \"hit\", end = \"cog\", words = [\"hot\", \"dot\", \"dog\", \"lot\", \"log\"]",
+      "output": "0"
+    },
+    {
+      "input": "begin = \"a\", end = \"c\", words = [\"a\", \"b\", \"c\"]",
+      "output": "2"
+    }
+  ],
+  "signature": {
+    "method": "ladderLength",
+    "params": [
+      {
+        "name": "begin",
+        "type": "String"
+      },
+      {
+        "name": "end",
+        "type": "String"
+      },
+      {
+        "name": "words",
+        "type": "String[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int ladderLength(String begin, String end, String[] words) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Words are nodes; an edge joins words that differ in exactly one position.",
+    "BFS from `begin`. Generate neighbors by trying every letter at every position and checking the word set.",
+    "dictionary = set(words)\nif end not in dictionary: return 0\nqueue = [(begin, 1)]\nwhile queue:\n    w, d = pop front\n    if w == end: return d\n    for each one-letter variant v in dictionary: remove v from dictionary; push (v, d + 1)\nreturn 0",
+    "Each word is visited once with 26 \u00d7 L variants: O(N \u00d7 26 \u00d7 L). Removing visited words from the set doubles as the visited marker."
+  ],
+  "expected_complexity": {
+    "time": "O(N \u00b7 26 \u00b7 L)",
+    "space": "O(N)"
+  },
+  "tests": [
+    {
+      "input": {
+        "begin": "hit",
+        "end": "cog",
+        "words": [
+          "hot",
+          "dot",
+          "dog",
+          "lot",
+          "log",
+          "cog"
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "begin": "hit",
+        "end": "cog",
+        "words": [
+          "hot",
+          "dot",
+          "dog",
+          "lot",
+          "log"
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "begin": "a",
+        "end": "c",
+        "words": [
+          "a",
+          "b",
+          "c"
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "begin": "bbc",
+        "end": "ccb",
+        "words": [
+          "ccb",
+          "cbc",
+          "caa",
+          "cac",
+          "aca",
+          "ccb"
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "begin": "cab",
+        "end": "acb",
+        "words": [
+          "acb"
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "begin": "cba",
+        "end": "bac",
+        "words": [
+          "cba",
+          "baa",
+          "aba",
+          "baa",
+          "cbb",
+          "cac",
+          "cab",
+          "bac",
+          "ccc"
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "begin": "cbc",
+        "end": "aaa",
+        "words": [
+          "aab",
+          "cbb",
+          "aaa",
+          "cab"
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

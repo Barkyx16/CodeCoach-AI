@@ -13,7 +13,19 @@ export function RecentActivity() {
       {submissions.isPending ? <LoadingState label="Loading recent attempts…" />
         : submissions.isError ? <ErrorState error={submissions.error} onRetry={() => void submissions.refetch()} />
         : submissions.data.items.length === 0 ? <EmptyState title="Your first attempt starts here"><Link to="/problems">Choose a problem</Link></EmptyState>
-        : <ul className="recent-list">{submissions.data.items.map((item) => <li key={item.id}><div><Link to={`/problems/${item.problem_slug}`}>{item.problem_title}</Link><span className="subtle">{timeAgo(item.created_at)}</span></div><StatusBadge status={item.status} /></li>)}</ul>}
+        : <ul className="recent-list">{submissions.data.items.map((item) => (
+            <li key={item.id}>
+              <div>
+                <Link to={`/problems/${item.problem_slug}`}>{item.problem_title}</Link>
+                <span className="subtle">{timeAgo(item.created_at)}</span>
+                {/* How it compares with the one before, linking to that comparison (docs/COMPARING_ATTEMPTS.md). */}
+                {item.outcome_text && (item.outcome_text.startsWith("Not compared")
+                  ? <span className="subtle">{item.outcome_text}</span>
+                  : <Link className="subtle" to={`/history/submissions/${item.id}#comparison`}>{item.outcome_text}</Link>)}
+              </div>
+              <StatusBadge status={item.status} />
+            </li>
+          ))}</ul>}
     </Card>
   );
 }

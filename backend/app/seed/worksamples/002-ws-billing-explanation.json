@@ -1,0 +1,179 @@
+{
+  "id": "ws-billing-explanation",
+  "version": 1,
+  "format": "customer_explanation",
+  "format_label": "Customer explanation",
+  "careers": [
+    "customer-service-representative"
+  ],
+  "title": "A double charge, explained to the customer",
+  "scenario": "You work in customer support at Tidewater Energy, a fictional utility. A customer, Ms Okafor, writes in upset: she was charged twice for her March bill. You've checked the account and the facts below are confirmed. Write your reply.",
+  "audience": "The customer: not an expert, worried about her money, and already annoyed.",
+  "purpose": "Acknowledge the problem, explain what happened in plain words, say exactly what will happen next and when, and give her a way to follow up.",
+  "facts": [
+    {
+      "id": "charge",
+      "text": "Her March bill of $84.20 was taken twice, on 4 April."
+    },
+    {
+      "id": "cause",
+      "text": "A payment retry ran after the first payment had already gone through."
+    },
+    {
+      "id": "refund",
+      "text": "The duplicate $84.20 was refunded on 6 April. Refunds take 3 to 5 business days to appear, depending on the bank."
+    },
+    {
+      "id": "account",
+      "text": "Her account is up to date; nothing else is owed for March."
+    },
+    {
+      "id": "reference",
+      "text": "Her case reference is TW-48213."
+    },
+    {
+      "id": "contact",
+      "text": "She can reply to this email or call 0800 555 0199, Monday to Friday, 8am to 6pm."
+    }
+  ],
+  "required": [
+    {
+      "id": "acknowledge",
+      "label": "Acknowledges the problem",
+      "match": [
+        [
+          "sorry",
+          "apolog",
+          "understand",
+          "frustrat"
+        ]
+      ],
+      "guidance": "Start by acknowledging the double charge and that it's frustrating; an apology for the error is appropriate."
+    },
+    {
+      "id": "what",
+      "label": "Says what happened",
+      "match": [
+        [
+          "twice",
+          "two times",
+          "double",
+          "duplicate",
+          "second payment",
+          "charged again"
+        ]
+      ],
+      "guidance": "Say plainly that the March bill was taken twice; a short reason (a payment retry) is enough."
+    },
+    {
+      "id": "refund",
+      "label": "Says the money is coming back",
+      "match": [
+        [
+          "refund"
+        ],
+        [
+          "84.20"
+        ]
+      ],
+      "guidance": "Say the extra $84.20 has been refunded."
+    },
+    {
+      "id": "when",
+      "label": "Says when she'll see it",
+      "match": [
+        [
+          "3 to 5",
+          "3-5",
+          "three to five",
+          "3–5"
+        ]
+      ],
+      "guidance": "Give the timeline from the brief: 3 to 5 business days, depending on her bank."
+    },
+    {
+      "id": "nothing_owed",
+      "label": "Reassures her nothing else is owed",
+      "match": [
+        [
+          "up to date",
+          "nothing else",
+          "nothing more",
+          "don't owe",
+          "do not owe",
+          "no further",
+          "nothing to pay"
+        ]
+      ],
+      "guidance": "Tell her the account is up to date: it answers the worry behind the complaint."
+    },
+    {
+      "id": "follow_up",
+      "label": "Gives a way to follow up",
+      "match": [
+        [
+          "TW-48213"
+        ],
+        [
+          "0800 555 0199",
+          "reply",
+          "call"
+        ]
+      ],
+      "guidance": "Give the case reference (TW-48213) and how to reach you."
+    }
+  ],
+  "claims_to_avoid": [
+    {
+      "phrases": [
+        "within 24 hours",
+        "immediately",
+        "today",
+        "instantly",
+        "right away"
+      ],
+      "why": "The brief says 3 to 5 business days. Promising sooner sets up a second complaint."
+    },
+    {
+      "phrases": [
+        "compensation",
+        "credit to your account",
+        "discount",
+        "goodwill"
+      ],
+      "why": "The brief doesn't offer compensation; promising it commits the company to something nobody approved."
+    },
+    {
+      "phrases": [
+        "your bank's fault",
+        "your bank made",
+        "you were charged by mistake by your bank"
+      ],
+      "why": "The brief says the retry was ours; don't put the blame elsewhere."
+    }
+  ],
+  "avoid": [
+    {
+      "term": "payment gateway",
+      "why": "Say what happened in her terms: the payment was taken twice."
+    },
+    {
+      "term": "idempotency",
+      "why": "Technical words don't help a customer; leave them out."
+    },
+    {
+      "term": "per our policy",
+      "why": "Policy language reads as defensive to an upset customer."
+    }
+  ],
+  "sections": [],
+  "limits": {
+    "min_words": 60,
+    "max_words": 200
+  },
+  "reference": {
+    "message": "Dear Ms Okafor,\n\nI'm sorry: your March bill of $84.20 was taken twice on 4 April. A payment retry ran after your first payment had already gone through, which shouldn't have happened.\n\nWe refunded the extra $84.20 on 6 April. Depending on your bank, it takes 3 to 5 business days to show in your account. Your account is up to date, and there's nothing else to pay for March.\n\nIf the refund hasn't arrived by then, reply to this email or call us on 0800 555 0199 (Monday to Friday, 8am to 6pm) and quote case TW-48213.\n\nKind regards,"
+  },
+  "review_status": "Fictional practice brief, written and checked for internal consistency; not reviewed by an outside practitioner. Not real company guidance.",
+  "scope_note": "Everything here is made up for practice: the company, the people and the numbers. Don't paste real employer, customer or patient material."
+}

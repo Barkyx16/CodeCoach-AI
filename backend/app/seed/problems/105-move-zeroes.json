@@ -1,0 +1,197 @@
+{
+  "order": 105,
+  "slug": "move-zeroes",
+  "title": "Move Zeroes to the End",
+  "difficulty": "easy",
+  "topics": [
+    "arrays",
+    "two-pointers"
+  ],
+  "summary": "Push every zero to the end while keeping the other values in order.",
+  "statement": "Given `nums`, return an array where all non-zero values keep their original relative order\nand every `0` is moved to the end.",
+  "constraints": [
+    "0 <= nums.length <= 10^4",
+    "-10^9 <= nums[i] <= 10^9"
+  ],
+  "examples": [
+    {
+      "input": "nums = [0, 1, 0, 3, 12]",
+      "output": "[1, 3, 12, 0, 0]"
+    },
+    {
+      "input": "nums = [0]",
+      "output": "[0]"
+    },
+    {
+      "input": "nums = [4, 5]",
+      "output": "[4, 5]"
+    }
+  ],
+  "signature": {
+    "method": "moveZeroes",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] moveZeroes(int[] nums) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Think about where the next non-zero value should go.",
+    "Keep a write index. Copy each non-zero value to that index and advance it; fill the rest with zeroes.",
+    "w = 0\nfor n in nums:\n    if n != 0: nums[w] = n; w += 1\nwhile w < len(nums): nums[w] = 0; w += 1\nreturn nums",
+    "The write pointer never passes the read pointer, so this works in place in one pass: O(n) time, O(1) extra space. Order is kept because values are written in the order they're read."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          0,
+          1,
+          0,
+          3,
+          12
+        ]
+      },
+      "expected_output": [
+        1,
+        3,
+        12,
+        0,
+        0
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0
+        ]
+      },
+      "expected_output": [
+        0
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          5
+        ]
+      },
+      "expected_output": [
+        4,
+        5
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0,
+          1
+        ]
+      },
+      "expected_output": [
+        1,
+        0,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": []
+      },
+      "expected_output": [],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          0,
+          0,
+          1,
+          2,
+          -2,
+          -1,
+          1,
+          1,
+          -1,
+          1
+        ]
+      },
+      "expected_output": [
+        2,
+        1,
+        2,
+        -2,
+        -1,
+        1,
+        1,
+        -1,
+        1,
+        0,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          0,
+          3,
+          3,
+          0
+        ]
+      },
+      "expected_output": [
+        2,
+        3,
+        3,
+        0,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -1,
+          2,
+          -1,
+          -1
+        ]
+      },
+      "expected_output": [
+        -1,
+        2,
+        -1,
+        -1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -2
+        ]
+      },
+      "expected_output": [
+        -2
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

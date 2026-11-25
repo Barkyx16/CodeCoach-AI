@@ -1,0 +1,173 @@
+{
+  "order": 196,
+  "slug": "subarray-sum-multiple",
+  "title": "Subarray Sum Divisible by K",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "hash-maps",
+    "prefix-sums",
+    "math"
+  ],
+  "summary": "Is there a subarray of length 2+ whose sum is a multiple of k?",
+  "statement": "Return `true` if `nums` has a contiguous subarray of **at least two** values whose sum is a\nmultiple of `k` (0 counts as a multiple). Values are non-negative.",
+  "constraints": [
+    "1 <= nums.length <= 10^5",
+    "0 <= nums[i] <= 10^9",
+    "1 <= k <= 2^31 - 1"
+  ],
+  "examples": [
+    {
+      "input": "nums = [23, 2, 4, 6, 7], k = 6",
+      "output": "true"
+    },
+    {
+      "input": "nums = [23, 2, 6, 4, 7], k = 13",
+      "output": "false"
+    },
+    {
+      "input": "nums = [5, 0, 0], k = 3",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "checkSubarraySum",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean checkSubarraySum(int[] nums, int k) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "When do two prefix sums differ by a multiple of k?",
+    "When they have the same remainder mod k. Remember the first index where each remainder appeared.",
+    "first = {0: -1}\ntotal = 0\nfor i, x in enumerate(nums):\n    total = (total + x) % k\n    if total in first:\n        if i - first[total] >= 2: return true\n    else: first[total] = i\nreturn false",
+    "Equal remainders mean the values between them sum to a multiple of k. Keeping only the first index maximizes the length: O(n) time, O(min(n, k)) space. Taking `% k` each step avoids overflow."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(min(n, k))"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          23,
+          2,
+          4,
+          6,
+          7
+        ],
+        "k": 6
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          23,
+          2,
+          6,
+          4,
+          7
+        ],
+        "k": 13
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          0,
+          0
+        ],
+        "k": 3
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          0
+        ],
+        "k": 2
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          0
+        ],
+        "k": 1
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          15,
+          17,
+          11
+        ],
+        "k": 9
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          13,
+          0,
+          0,
+          2,
+          4,
+          3,
+          10
+        ],
+        "k": 4
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          6,
+          15
+        ],
+        "k": 11
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          12,
+          7,
+          5
+        ],
+        "k": 12
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

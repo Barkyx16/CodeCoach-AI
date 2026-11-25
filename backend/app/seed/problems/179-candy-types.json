@@ -1,0 +1,152 @@
+{
+  "order": 179,
+  "slug": "candy-types",
+  "title": "Most Candy Types You Can Keep",
+  "difficulty": "easy",
+  "topics": [
+    "hash-sets",
+    "greedy"
+  ],
+  "summary": "Keep half the candies; maximize how many kinds you get.",
+  "statement": "`candyType[i]` is the type of candy `i`. You may keep exactly half of the candies (`n` is even).\nReturn the maximum number of different types you can keep.",
+  "constraints": [
+    "2 <= n <= 10^4",
+    "n is even"
+  ],
+  "examples": [
+    {
+      "input": "candyType = [1, 1, 2, 2, 3, 3]",
+      "output": "3"
+    },
+    {
+      "input": "candyType = [1, 1, 2, 3]",
+      "output": "2"
+    },
+    {
+      "input": "candyType = [6, 6, 6, 6]",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "distributeCandies",
+    "params": [
+      {
+        "name": "candyType",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int distributeCandies(int[] candyType) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Two limits apply: the number of types that exist, and how many candies you can keep.",
+    "The answer is `min(number of distinct types, n / 2)`.",
+    "return min(len(set(candyType)), len(candyType) // 2)",
+    "Counting distinct types with a set is O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "candyType": [
+          1,
+          1,
+          2,
+          2,
+          3,
+          3
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "candyType": [
+          1,
+          1,
+          2,
+          3
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "candyType": [
+          6,
+          6,
+          6,
+          6
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "candyType": [
+          6,
+          6
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "candyType": [
+          1,
+          5,
+          6,
+          1,
+          1,
+          4,
+          2,
+          5,
+          2,
+          5,
+          2,
+          3
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "candyType": [
+          2,
+          3,
+          4,
+          4,
+          1,
+          4,
+          4,
+          4,
+          2,
+          5,
+          5,
+          1
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "candyType": [
+          3,
+          1
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

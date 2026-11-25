@@ -1,0 +1,146 @@
+{
+  "order": 252,
+  "slug": "surrounded-regions",
+  "title": "Capture Surrounded Regions",
+  "difficulty": "medium",
+  "topics": [
+    "graphs",
+    "matrix"
+  ],
+  "summary": "Flip every 'O' region that doesn't touch the border.",
+  "statement": "`board` rows contain `'X'` and `'O'`. Replace every `'O'` that is not connected (up/down/left/right)\nto an `'O'` on the border with `'X'`. Return the resulting board.",
+  "constraints": [
+    "1 <= rows, cols <= 200"
+  ],
+  "examples": [
+    {
+      "input": "board = [\"XXXX\", \"XOOX\", \"XXOX\", \"XOXX\"]",
+      "output": "[\"XXXX\", \"XXXX\", \"XXXX\", \"XOXX\"]"
+    },
+    {
+      "input": "board = [\"X\"]",
+      "output": "[\"X\"]"
+    },
+    {
+      "input": "board = [\"OOO\", \"OXO\", \"OOO\"]",
+      "output": "[\"OOO\", \"OXO\", \"OOO\"]"
+    }
+  ],
+  "signature": {
+    "method": "solve",
+    "params": [
+      {
+        "name": "board",
+        "type": "String[]"
+      }
+    ],
+    "returns": "String[]"
+  },
+  "starter_code": "class Solution {\n    public String[] solve(String[] board) {\n        // TODO: write your solution here\n        return new String[0];\n    }\n}\n",
+  "hints": [
+    "Which O's survive? Think from the edges inward.",
+    "Flood-fill from every border O to mark the safe ones; everything else becomes X.",
+    "safe = flood fill from all border 'O' cells\nfor each cell: 'O' if in safe else 'X'",
+    "One flood fill over the grid: O(rows \u00d7 cols)."
+  ],
+  "expected_complexity": {
+    "time": "O(m n)",
+    "space": "O(m n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "board": [
+          "XXXX",
+          "XOOX",
+          "XXOX",
+          "XOXX"
+        ]
+      },
+      "expected_output": [
+        "XXXX",
+        "XXXX",
+        "XXXX",
+        "XOXX"
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "board": [
+          "X"
+        ]
+      },
+      "expected_output": [
+        "X"
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "board": [
+          "OOO",
+          "OXO",
+          "OOO"
+        ]
+      },
+      "expected_output": [
+        "OOO",
+        "OXO",
+        "OOO"
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "board": [
+          "OOOXO"
+        ]
+      },
+      "expected_output": [
+        "OOOXO"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "board": [
+          "XXX"
+        ]
+      },
+      "expected_output": [
+        "XXX"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "board": [
+          "XX",
+          "XX",
+          "XX"
+        ]
+      },
+      "expected_output": [
+        "XX",
+        "XX",
+        "XX"
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "board": [
+          "OOXXO",
+          "XXXXO"
+        ]
+      },
+      "expected_output": [
+        "OOXXO",
+        "XXXXO"
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

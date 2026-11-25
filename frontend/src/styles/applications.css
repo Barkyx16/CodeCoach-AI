@@ -1,0 +1,38 @@
+/* Applications: board, list, detail. */
+
+.applications-filters { display: flex; flex-wrap: wrap; align-items: end; gap: var(--space-3); margin: var(--space-4) 0; }
+.applications-filters .field { flex: 1 1 200px; }
+.applications-filters fieldset.segmented { padding: 0; margin: 0; align-self: end; }
+.applications-filters .segmented__option { display: inline-flex; align-items: center; gap: 6px; }
+.applications-filters .segmented__option:has(input:checked) { color: var(--color-text); background: var(--color-primary-soft); }
+
+.app-board { display: grid; grid-template-columns: repeat(6, minmax(180px, 1fr)); gap: var(--space-3); overflow-x: auto; padding-bottom: var(--space-2); list-style: none; }
+@media (max-width: 900px) { .app-board { grid-template-columns: minmax(0, 1fr); overflow-x: visible; } }
+.app-board__column { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 12px; padding: var(--space-3); min-height: 120px; display: flex; flex-direction: column; gap: var(--space-2); }
+.app-board__column--over { border-color: var(--color-primary); background: var(--color-primary-soft); }
+.app-board__hint { font-size: 0.75rem; }
+.app-board__cards { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); }
+.app-card { display: grid; gap: 4px; padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border-strong); border-radius: 10px; background: var(--color-surface-raised); cursor: grab; overflow-wrap: anywhere; }
+.app-card__title { font-weight: 600; }
+.app-card__next { font-size: 0.875rem; }
+.select--sm { padding-top: 4px; padding-bottom: 4px; font-size: 0.875rem; }
+
+.table-scroll { overflow-x: auto; }
+.app-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.app-table th, .app-table td { text-align: left; padding: var(--space-2); border-bottom: 1px solid var(--color-border); vertical-align: top; }
+.app-table th .link-button { font-weight: 600; }
+
+.application-page__layout { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: var(--space-6); align-items: start; }
+@media (max-width: 960px) { .application-page__layout { grid-template-columns: minmax(0, 1fr); } }
+.app-form__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--space-3); }
+.stage-history, .event-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-2); }
+.event-list__item { border-top: 1px solid var(--color-border); padding-top: var(--space-2); overflow-wrap: anywhere; }
+.event-form fieldset { min-width: 0; }
+.draft-composer__text { font-family: inherit; white-space: pre-wrap; }
+
+/* An interview's preparation times and what a reschedule would do to them. */
+.prep-panel { margin-top: var(--space-2); }
+.prep-panel > summary { cursor: pointer; font-size: var(--text-sm); color: var(--color-link); }
+.prep-list { list-style: none; padding: 0; margin: var(--space-2) 0 0; display: grid; gap: var(--space-2); font-size: var(--text-sm); }
+/* Linked preparation's story list (docs/BACKLINKS.md): a group, not a box. */
+.links-card__stories { border: 0; padding: 0; margin: 0; min-width: 0; }

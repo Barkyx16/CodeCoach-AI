@@ -1,0 +1,130 @@
+{
+  "order": 243,
+  "slug": "unique-grid-paths",
+  "title": "Paths Through a Grid",
+  "difficulty": "medium",
+  "topics": [
+    "dynamic-programming",
+    "math"
+  ],
+  "summary": "Count right/down paths from one corner to the other.",
+  "statement": "A robot starts at the top-left of an `m \u00d7 n` grid and can only move right or down. Return the number\nof distinct paths to the bottom-right corner. The answer fits in an int.",
+  "constraints": [
+    "1 <= m, n <= 100",
+    "answer <= 2 * 10^9"
+  ],
+  "examples": [
+    {
+      "input": "m = 3, n = 7",
+      "output": "28"
+    },
+    {
+      "input": "m = 3, n = 2",
+      "output": "3"
+    },
+    {
+      "input": "m = 1, n = 1",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "uniquePaths",
+    "params": [
+      {
+        "name": "m",
+        "type": "int"
+      },
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int uniquePaths(int m, int n) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "How many ways are there to reach a cell, given its top and left neighbors?",
+    "paths(r, c) = paths(r-1, c) + paths(r, c-1), with 1 along the first row and column.",
+    "row = [1]*n\nrepeat m-1 times:\n    for c in 1..n-1: row[c] += row[c-1]\nreturn row[n-1]",
+    "One rolling row: O(m n) time, O(n) space. (It's also the binomial coefficient C(m+n-2, m-1).)"
+  ],
+  "expected_complexity": {
+    "time": "O(m n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "m": 3,
+        "n": 7
+      },
+      "expected_output": 28,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "m": 3,
+        "n": 2
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "m": 1,
+        "n": 1
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "m": 10,
+        "n": 10
+      },
+      "expected_output": 48620,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "m": 17,
+        "n": 17
+      },
+      "expected_output": 601080390,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "m": 6,
+        "n": 6
+      },
+      "expected_output": 252,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "m": 11,
+        "n": 9
+      },
+      "expected_output": 43758,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "m": 7,
+        "n": 7
+      },
+      "expected_output": 924,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "m": 1,
+        "n": 6
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

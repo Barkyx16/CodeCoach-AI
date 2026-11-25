@@ -1,0 +1,194 @@
+{
+  "order": 15,
+  "slug": "search-rotated-array",
+  "title": "Search in a Rotated Sorted Array",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "binary-search"
+  ],
+  "summary": "Find a target in a sorted array that was rotated at an unknown point, in O(log n).",
+  "statement": "An array of **distinct** integers was sorted in ascending order and then rotated at some unknown index, so `[0, 1, 2, 4, 5, 6, 7]` might have become `[4, 5, 6, 7, 0, 1, 2]`.\n\nGiven the rotated array `nums` and an integer `target`, return the index of `target`, or `-1` if it isn't present. Your solution must run in **O(log n)** time.",
+  "constraints": [
+    "1 <= nums.length <= 5000",
+    "-10^4 <= nums[i], target <= 10^4",
+    "All values in nums are distinct",
+    "nums is an ascending array rotated at some index"
+  ],
+  "examples": [
+    {
+      "input": "nums = [4, 5, 6, 7, 0, 1, 2], target = 0",
+      "output": "4"
+    },
+    {
+      "input": "nums = [4, 5, 6, 7, 0, 1, 2], target = 3",
+      "output": "-1"
+    },
+    {
+      "input": "nums = [1], target = 0",
+      "output": "-1"
+    }
+  ],
+  "signature": {
+    "method": "search",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      },
+      {
+        "name": "target",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int search(int[] nums, int target) {\n        // TODO: write your solution here\n        return -1;\n    }\n}\n",
+  "hints": [
+    "Split the array at its middle element. Even though the whole array is rotated, at least one of the two halves is still in perfect ascending order. How can you tell which one, and whether the target could be inside it?",
+    "Modified binary search. Compare nums[lo] with nums[mid]: if nums[lo] <= nums[mid], the left half is sorted; otherwise the right half is. If the target lies within the sorted half's range, search there; otherwise search the other half.",
+    "lo = 0, hi = n - 1\nwhile lo <= hi:\n    mid = lo + (hi - lo) / 2\n    if nums[mid] == target: return mid\n    if nums[lo] <= nums[mid]:            // left half sorted\n        if nums[lo] <= target < nums[mid]: hi = mid - 1\n        else: lo = mid + 1\n    else:                                // right half sorted\n        if nums[mid] < target <= nums[hi]: lo = mid + 1\n        else: hi = mid - 1\nreturn -1",
+    "A linear scan is O(n) and misses the requirement. The rotation creates one 'drop' point, so any split leaves one half fully sorted, and a sorted half lets you decide in O(1) whether the target can be inside it. That keeps the halving property of binary search: O(log n) time, O(1) space. The `<=` in nums[lo] <= nums[mid] matters when lo == mid (a one-element left half), and using lo + (hi - lo) / 2 avoids integer overflow."
+  ],
+  "expected_complexity": {
+    "time": "O(log n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          4,
+          5,
+          6,
+          7,
+          0,
+          1,
+          2
+        ],
+        "target": 0
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          4,
+          5,
+          6,
+          7,
+          0,
+          1,
+          2
+        ],
+        "target": 3
+      },
+      "expected_output": -1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1
+        ],
+        "target": 0
+      },
+      "expected_output": -1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          1
+        ],
+        "target": 1
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          3,
+          1
+        ],
+        "target": 1
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          1,
+          3
+        ],
+        "target": 5
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          6,
+          7,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "target": 6
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          6,
+          7,
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "target": 5
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "target": 4
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          3,
+          4,
+          5,
+          1
+        ],
+        "target": 1
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    }
+  ]
+}

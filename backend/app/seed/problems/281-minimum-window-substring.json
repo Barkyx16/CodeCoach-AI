@@ -1,0 +1,123 @@
+{
+  "order": 281,
+  "slug": "minimum-window-substring",
+  "title": "Minimum Window Substring",
+  "difficulty": "hard",
+  "topics": [
+    "strings",
+    "sliding-window",
+    "hash-maps"
+  ],
+  "summary": "Shortest substring of s containing every character of t.",
+  "statement": "Return the shortest substring of `s` that contains every character of `t` (with multiplicity: if `t`\nhas two `a`s, the window needs two). If several are equally short, return the leftmost. If none exists,\nreturn `\"\"`.",
+  "constraints": [
+    "1 <= s.length, t.length <= 10^5",
+    "English letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"ADOBECODEBANC\", t = \"ABC\"",
+      "output": "\"BANC\""
+    },
+    {
+      "input": "s = \"a\", t = \"a\"",
+      "output": "\"a\""
+    },
+    {
+      "input": "s = \"a\", t = \"aa\"",
+      "output": "\"\""
+    }
+  ],
+  "signature": {
+    "method": "minWindow",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      },
+      {
+        "name": "t",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String minWindow(String s, String t) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Grow a window until it covers t, then shrink it as much as possible.",
+    "Track how many required characters are still missing. Shrink from the left while the window stays valid.",
+    "need = counts(t); missing = len(t)\nleft = 0\nfor right, c in enumerate(s):\n    if need[c] > 0: missing -= 1\n    need[c] -= 1\n    while missing == 0:\n        record window if shorter\n        need[s[left]] += 1\n        if need[s[left]] > 0: missing += 1\n        left += 1\nreturn best",
+    "Each index enters and leaves the window once: O(|s| + |t|). Only replacing on a strictly shorter window keeps the leftmost one."
+  ],
+  "expected_complexity": {
+    "time": "O(n + m)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "ADOBECODEBANC",
+        "t": "ABC"
+      },
+      "expected_output": "BANC",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a",
+        "t": "a"
+      },
+      "expected_output": "a",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a",
+        "t": "aa"
+      },
+      "expected_output": "",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abab",
+        "t": "ab"
+      },
+      "expected_output": "ab",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "acb",
+        "t": "cbb"
+      },
+      "expected_output": "",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "ababacccac",
+        "t": "baa"
+      },
+      "expected_output": "aba",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "abbacbbaab",
+        "t": "cbc"
+      },
+      "expected_output": "",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "acacabb",
+        "t": "a"
+      },
+      "expected_output": "a",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

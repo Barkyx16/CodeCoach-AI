@@ -1,0 +1,182 @@
+{
+  "order": 13,
+  "slug": "product-except-self",
+  "title": "Product of Array Except Self",
+  "difficulty": "medium",
+  "topics": [
+    "arrays",
+    "prefix-sums"
+  ],
+  "summary": "For every index, multiply all the other elements, without using division.",
+  "statement": "Given an integer array `nums`, return an array `answer` where `answer[i]` is the product of every element of `nums` **except** `nums[i]`.\n\nSolve it in linear time **without using division**. (Division would also break as soon as the array contains a zero.)",
+  "constraints": [
+    "2 <= nums.length <= 10^5",
+    "-30 <= nums[i] <= 30",
+    "Every product of a prefix or suffix of nums fits in a 32-bit int"
+  ],
+  "examples": [
+    {
+      "input": "nums = [1, 2, 3, 4]",
+      "output": "[24, 12, 8, 6]",
+      "explanation": "answer[0] = 2 * 3 * 4 = 24, answer[1] = 1 * 3 * 4 = 12, and so on."
+    },
+    {
+      "input": "nums = [-1, 1, 0, -3, 3]",
+      "output": "[0, 0, 9, 0, 0]",
+      "explanation": "Every product that includes the 0 is 0."
+    }
+  ],
+  "signature": {
+    "method": "productExceptSelf",
+    "params": [
+      {
+        "name": "nums",
+        "type": "int[]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] productExceptSelf(int[] nums) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "For index i, the answer is everything to its left multiplied by everything to its right. Could you know both of those without rescanning the array for every single i?",
+    "Prefix and suffix products. One left-to-right pass records the product of everything before i; one right-to-left pass multiplies in the product of everything after i. No division needed, so zeros are handled naturally.",
+    "answer = new array of length n\nleft = 1\nfor i from 0 to n - 1:\n    answer[i] = left        // product of nums[0..i-1]\n    left = left * nums[i]\nright = 1\nfor i from n - 1 down to 0:\n    answer[i] = answer[i] * right   // times product of nums[i+1..n-1]\n    right = right * nums[i]\nreturn answer",
+    "The brute force multiplies n - 1 numbers for each of n positions: O(n^2). Dividing the total product by nums[i] fails on zeros and is disallowed. Instead, answer[i] = (product of the prefix before i) * (product of the suffix after i). The first pass stores prefix products in the output array; the second pass walks from the right with a running suffix product and multiplies it in. Two passes, O(n) time, and O(1) extra space because the output array doesn't count."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "nums": [
+          1,
+          2,
+          3,
+          4
+        ]
+      },
+      "expected_output": [
+        24,
+        12,
+        8,
+        6
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          -1,
+          1,
+          0,
+          -3,
+          3
+        ]
+      },
+      "expected_output": [
+        0,
+        0,
+        9,
+        0,
+        0
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          2,
+          3
+        ]
+      },
+      "expected_output": [
+        3,
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "nums": [
+          0,
+          0
+        ]
+      },
+      "expected_output": [
+        0,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          5,
+          0,
+          2
+        ]
+      },
+      "expected_output": [
+        0,
+        10,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          -2,
+          -3,
+          4,
+          1
+        ]
+      },
+      "expected_output": [
+        -12,
+        -8,
+        6,
+        24
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          1,
+          1,
+          1,
+          1,
+          1
+        ]
+      },
+      "expected_output": [
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "nums": [
+          7,
+          -1,
+          3,
+          2
+        ]
+      },
+      "expected_output": [
+        -6,
+        42,
+        -14,
+        -21
+      ],
+      "visibility": "hidden"
+    }
+  ]
+}

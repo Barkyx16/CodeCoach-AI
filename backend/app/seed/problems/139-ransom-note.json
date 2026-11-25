@@ -1,0 +1,122 @@
+{
+  "order": 139,
+  "slug": "ransom-note",
+  "title": "Ransom Note",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "counting"
+  ],
+  "summary": "Can one string be built from another's letters?",
+  "statement": "Return `true` if `note` can be written using letters cut out of `magazine`, where each letter\nin `magazine` can be used at most once.",
+  "constraints": [
+    "1 <= note.length, magazine.length <= 10^5",
+    "lower-case English letters"
+  ],
+  "examples": [
+    {
+      "input": "note = \"a\", magazine = \"b\"",
+      "output": "false"
+    },
+    {
+      "input": "note = \"aa\", magazine = \"ab\"",
+      "output": "false"
+    },
+    {
+      "input": "note = \"aa\", magazine = \"aab\"",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "canConstruct",
+    "params": [
+      {
+        "name": "note",
+        "type": "String"
+      },
+      {
+        "name": "magazine",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean canConstruct(String note, String magazine) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "What you need is enough copies of each letter.",
+    "Count the magazine's letters, then spend them on the note's letters.",
+    "counts = count letters of magazine\nfor c in note:\n    counts[c] -= 1\n    if counts[c] < 0: return false\nreturn true",
+    "A 26-slot count array makes this O(n + m) time and O(1) space."
+  ],
+  "expected_complexity": {
+    "time": "O(n + m)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "note": "a",
+        "magazine": "b"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "note": "aa",
+        "magazine": "ab"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "note": "aa",
+        "magazine": "aab"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "note": "abc",
+        "magazine": "cba"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "note": "cbaaba",
+        "magazine": "dacbc"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "note": "dbb",
+        "magazine": "bdacac"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "note": "ababda",
+        "magazine": "cdbcbbac"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "note": "cd",
+        "magazine": "cbcabbdbc"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

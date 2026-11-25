@@ -1,0 +1,134 @@
+{
+  "order": 288,
+  "slug": "interleaving-string",
+  "title": "Interleaving Strings",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "strings"
+  ],
+  "summary": "Is s3 a merge of s1 and s2 that keeps each one's order?",
+  "statement": "Return `true` if `s3` can be formed by interleaving `s1` and `s2`: every character of both is used once,\nand each string's characters keep their relative order.",
+  "constraints": [
+    "0 <= s1.length, s2.length <= 100",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s1 = \"aabcc\", s2 = \"dbbca\", s3 = \"aadbbcbcac\"",
+      "output": "true"
+    },
+    {
+      "input": "s1 = \"aabcc\", s2 = \"dbbca\", s3 = \"aadbbbaccc\"",
+      "output": "false"
+    },
+    {
+      "input": "s1 = \"\", s2 = \"\", s3 = \"\"",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "isInterleave",
+    "params": [
+      {
+        "name": "s1",
+        "type": "String"
+      },
+      {
+        "name": "s2",
+        "type": "String"
+      },
+      {
+        "name": "s3",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean isInterleave(String s1, String s2, String s3) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "After using `i` characters of s1 and `j` of s2, the next character of s3 is `s3[i + j]`.",
+    "ok[i][j] = (ok[i-1][j] and s1[i-1] == s3[i+j-1]) or (ok[i][j-1] and s2[j-1] == s3[i+j-1]).",
+    "if len(s1) + len(s2) != len(s3): return false\nok[0][0] = true\nfor i, j: ok[i][j] = (from above and s1 char matches) or (from left and s2 char matches)\nreturn ok[n][m]",
+    "O(n m) time, O(m) with one row. Checking lengths first avoids index errors and quick wrong answers."
+  ],
+  "expected_complexity": {
+    "time": "O(n m)",
+    "space": "O(m)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s1": "aabcc",
+        "s2": "dbbca",
+        "s3": "aadbbcbcac"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s1": "aabcc",
+        "s2": "dbbca",
+        "s3": "aadbbbaccc"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s1": "",
+        "s2": "",
+        "s3": ""
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s1": "a",
+        "s2": "",
+        "s3": "c"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "ab",
+        "s2": "b",
+        "s3": "bab"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "bba",
+        "s2": "b",
+        "s3": "bbba"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "abab",
+        "s2": "",
+        "s3": "abab"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s1": "bbab",
+        "s2": "",
+        "s3": "bbab"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,101 @@
+{
+  "order": 318,
+  "slug": "n-queens-count",
+  "title": "Count N-Queens Solutions",
+  "difficulty": "hard",
+  "topics": [
+    "backtracking"
+  ],
+  "summary": "Ways to place n queens so none attack each other.",
+  "statement": "Return the number of ways to place `n` queens on an `n \u00d7 n` chessboard so that no two share a row, column\nor diagonal.",
+  "constraints": [
+    "1 <= n <= 10"
+  ],
+  "examples": [
+    {
+      "input": "n = 4",
+      "output": "2"
+    },
+    {
+      "input": "n = 1",
+      "output": "1"
+    },
+    {
+      "input": "n = 2",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "totalNQueens",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int totalNQueens(int n) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Each row gets exactly one queen.",
+    "Place queens row by row, tracking used columns and both diagonals (`r - c` and `r + c`).",
+    "def place(r):\n    if r == n: return 1\n    total = 0\n    for c in range(n):\n        if c, r-c, r+c are free: mark; total += place(r + 1); unmark\n    return total\nreturn place(0)",
+    "Backtracking with O(1) conflict checks. Bitmasks for the three sets make it very fast for n \u2264 10."
+  ],
+  "expected_complexity": {
+    "time": "O(n!)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 4
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 1
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 2
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 6
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 8
+      },
+      "expected_output": 92,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 5
+      },
+      "expected_output": 10,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 3
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

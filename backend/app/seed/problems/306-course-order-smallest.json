@@ -1,0 +1,205 @@
+{
+  "order": 306,
+  "slug": "course-order-smallest",
+  "title": "Course Order, Smallest First",
+  "difficulty": "hard",
+  "topics": [
+    "graphs",
+    "topological-sort",
+    "heaps"
+  ],
+  "summary": "A valid course order that always picks the smallest available course.",
+  "statement": "Courses are `0..n-1`; `[a, b]` in `prereqs` means `b` must come before `a`. Return the lexicographically\nsmallest order that takes every course, or an empty array if it's impossible.",
+  "constraints": [
+    "1 <= n <= 2000",
+    "0 <= prereqs.length <= 5000"
+  ],
+  "examples": [
+    {
+      "input": "n = 4, prereqs = [[1, 0], [2, 0], [3, 1], [3, 2]]",
+      "output": "[0, 1, 2, 3]"
+    },
+    {
+      "input": "n = 2, prereqs = [[0, 1], [1, 0]]",
+      "output": "[]"
+    },
+    {
+      "input": "n = 3, prereqs = []",
+      "output": "[0, 1, 2]"
+    }
+  ],
+  "signature": {
+    "method": "findOrder",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      },
+      {
+        "name": "prereqs",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] findOrder(int n, int[][] prereqs) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "Any topological order is valid; you want the one that's smallest at every position.",
+    "Kahn's algorithm with a min-heap instead of a queue: always take the smallest course that's currently available.",
+    "heap = all courses with indegree 0\nwhile heap:\n    c = pop smallest; order.append(c)\n    for nxt in adj[c]: indegree[nxt] -= 1; push nxt when it reaches 0\nreturn order if len(order) == n else []",
+    "Greedily taking the smallest available course gives the smallest order. O((V + E) log V) with the heap."
+  ],
+  "expected_complexity": {
+    "time": "O((V + E) log V)",
+    "space": "O(V + E)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 4,
+        "prereqs": [
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            2
+          ]
+        ]
+      },
+      "expected_output": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 2,
+        "prereqs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      },
+      "expected_output": [],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 3,
+        "prereqs": []
+      },
+      "expected_output": [
+        0,
+        1,
+        2
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 3,
+        "prereqs": [
+          [
+            0,
+            2
+          ]
+        ]
+      },
+      "expected_output": [
+        1,
+        2,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 6,
+        "prereqs": [
+          [
+            0,
+            4
+          ],
+          [
+            0,
+            2
+          ]
+        ]
+      },
+      "expected_output": [
+        1,
+        2,
+        3,
+        4,
+        0,
+        5
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 2,
+        "prereqs": [
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": [
+        1,
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 1,
+        "prereqs": []
+      },
+      "expected_output": [
+        0
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 6,
+        "prereqs": [
+          [
+            5,
+            2
+          ]
+        ]
+      },
+      "expected_output": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -12,12 +12,16 @@
   font-weight: var(--weight-medium);
   cursor: pointer;
   transition: background var(--duration-fast) var(--ease-standard), border-color var(--duration-fast);
-  white-space: nowrap;
+  /* Wraps only when there's no room (narrow screens, large text, zoom) instead of overflowing. */
+  white-space: normal;
+  text-align: center;
+  max-width: 100%;
 }
 .btn--md { padding: var(--space-2) var(--space-4); font-size: var(--text-sm); min-height: 42px; }
 .btn--sm { padding: var(--space-1) var(--space-3); font-size: var(--text-xs); min-height: 34px; }
 .btn:hover:not(:disabled) { border-color: var(--color-link); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn[aria-busy="true"] { cursor: progress; }
 .btn--primary { background: var(--color-primary); border-color: var(--color-link); color: var(--color-text-inverse); }
 .btn--primary:hover:not(:disabled) { background: var(--color-primary-hover); }
 .btn--ghost { background: transparent; border-color: transparent; color: var(--color-text-muted); }
@@ -81,7 +85,7 @@
   justify-content: center;
   gap: var(--space-2);
   text-align: center;
-  padding: var(--space-10) var(--space-6);
+  padding: var(--space-6) var(--space-4);
 }
 .state--loading { flex-direction: row; }
 .state--error strong { color: var(--color-danger); }
@@ -91,7 +95,20 @@
 .field { display: flex; flex-direction: column; gap: var(--space-1); }
 .field__label { font-size: var(--text-sm); font-weight: var(--weight-medium); }
 .field__hint { font-size: var(--text-xs); color: var(--color-text-subtle); }
-.field__error { font-size: var(--text-xs); color: var(--color-danger); }
+/* What's wrong with a field is the most useful text on a refused form: body-sized, not microtext. */
+.field__error { font-size: var(--text-sm); line-height: 1.45; font-weight: 500; color: var(--color-danger); }
+
+/* Where a form's changes are (Volume 9, prompt 8). One line, always reserved, so Save never jumps;
+   each state has its own words, and a small mark: muted for kept on this device, warning for on
+   this page only, success for saved. (The coding workspace's own
+   .save-state is separate.) */
+.form-state { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-2); min-height: 1.5rem; margin: 0; font-size: var(--text-sm); line-height: 1.45; color: var(--color-text-muted); }
+.form-state__mark { width: 0.5rem; height: 0.5rem; border-radius: 50%; flex: none; background: var(--color-text-muted); }
+.form-state--page-only { color: var(--color-warning); }
+.form-state--page-only .form-state__mark { background: var(--color-warning); }
+.form-state--saved { color: var(--color-success); }
+.form-state--saved .form-state__mark { background: var(--color-success); }
+.form-state__action { display: inline-flex; align-items: center; gap: var(--space-1); }
 .input,
 .select {
   width: 100%;
@@ -126,3 +143,42 @@
 .card { box-shadow: var(--shadow-sm); }
 .input::placeholder { color: var(--color-text-subtle); opacity: 1; }
 @media (pointer: coarse) { .btn--sm { min-height: 44px; } }
+
+/* An empty state that is the whole page (404) keeps the empty-state look for its <h1>. */
+.state__title { margin: 0; font-size: var(--text-md); font-weight: var(--weight-semibold); }
+
+/* Password field with a show/hide (eye) button */
+.password-input { position: relative; display: flex; }
+.password-input .input { flex: 1; padding-right: 44px; }
+.password-input__toggle { position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+  width: 36px; height: 36px; display: grid; place-items: center; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--color-text-muted); cursor: pointer; }
+.password-input__toggle:hover { color: var(--color-text); }
+.password-input__toggle:focus-visible { outline: 2px solid transparent; box-shadow: var(--focus-ring); }
+.password-input__toggle[aria-pressed="true"] { color: var(--color-primary); }
+
+/* Live password checklist */
+.password-rules { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; font-size: var(--text-xs); color: var(--color-text-subtle); }
+.password-rules__ok { color: var(--color-success); }
+
+/* Two versions of one record after a refused stale save (components/VersionConflict.tsx). */
+.version-conflict__versions { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); }
+.version-conflict__field { margin-bottom: var(--space-2); }
+.version-conflict__label { font-weight: 600; margin: var(--space-1) 0; }
+.version-conflict__text { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: var(--space-2); max-height: 220px; overflow: auto;
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-sunken); font-family: var(--font-sans); font-size: var(--text-sm); }
+
+/* A failed action, next to its control: the message, then the wait and the way on. */
+.action-error { display: grid; gap: 8px; }
+.action-error__message { margin: 0; }
+.action-error__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.page.page--notice { padding-bottom: 0; }
+
+/* What an archive or a delete will do, before it's done (features/lifecycle/ImpactPreview.tsx). */
+.impact { padding: var(--space-3); border: 1px solid var(--color-border); border-left: 3px solid var(--color-warning, var(--color-border)); border-radius: 8px; }
+.impact p { margin: 0; }
+.impact__title { margin: 0; font-size: var(--text-md); }
+.impact__group { display: grid; gap: var(--space-1); }
+.impact__heading { margin: 0; font-size: var(--text-sm); font-weight: 600; }
+.impact .mini-list { margin: 0; }
+.impact__note { display: block; font-size: var(--text-sm); }

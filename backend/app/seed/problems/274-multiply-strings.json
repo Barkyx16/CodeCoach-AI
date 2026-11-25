@@ -1,0 +1,121 @@
+{
+  "order": 274,
+  "slug": "multiply-strings",
+  "title": "Multiply Two Number Strings",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "math"
+  ],
+  "summary": "Multiply big numbers given as strings, without BigInteger.",
+  "statement": "`a` and `b` are non-negative integers as strings (no leading zeros except `\"0\"`). Return their product as\na string. Don't convert the inputs to built-in big-number types.",
+  "constraints": [
+    "1 <= a.length, b.length <= 200"
+  ],
+  "examples": [
+    {
+      "input": "a = \"2\", b = \"3\"",
+      "output": "\"6\""
+    },
+    {
+      "input": "a = \"123\", b = \"456\"",
+      "output": "\"56088\""
+    },
+    {
+      "input": "a = \"0\", b = \"9999\"",
+      "output": "\"0\""
+    }
+  ],
+  "signature": {
+    "method": "multiply",
+    "params": [
+      {
+        "name": "a",
+        "type": "String"
+      },
+      {
+        "name": "b",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String multiply(String a, String b) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Do long multiplication like on paper.",
+    "Digit `a[i]` times digit `b[j]` lands at positions `i + j` and `i + j + 1` of an array of length n + m.",
+    "res = [0]*(n + m)\nfor i from n-1 down to 0:\n    for j from m-1 down to 0:\n        total = a[i]*b[j] + res[i+j+1]\n        res[i+j+1] = total % 10\n        res[i+j] += total // 10\nstrip leading zeros\nreturn result or '0'",
+    "O(n m) digit products with a position array that handles carries as it goes."
+  ],
+  "expected_complexity": {
+    "time": "O(n m)",
+    "space": "O(n + m)"
+  },
+  "tests": [
+    {
+      "input": {
+        "a": "2",
+        "b": "3"
+      },
+      "expected_output": "6",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": "123",
+        "b": "456"
+      },
+      "expected_output": "56088",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": "0",
+        "b": "9999"
+      },
+      "expected_output": "0",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "a": "99999999999999999999",
+        "b": "99999999999999999999"
+      },
+      "expected_output": "9999999999999999999800000000000000000001",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "2796483093750929141920460",
+        "b": "8507254215102533015986422"
+      },
+      "expected_output": "23790392586775563948526489400015346680018363994120",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "1437560405766075205349209",
+        "b": "4814247728350027786267814"
+      },
+      "expected_output": "6920771917825271743286122615394866648166667059126",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "6638817603495603878948072",
+        "b": "238757802757864009915613"
+      },
+      "expected_output": "1585069503920838828883854214822700903155929048136",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "a": "6880845560658942234643513",
+        "b": "2302043531032587367765849"
+      },
+      "expected_output": "15840006010949214713388985596981621523759770787537",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

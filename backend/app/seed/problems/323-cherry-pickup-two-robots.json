@@ -1,0 +1,236 @@
+{
+  "order": 323,
+  "slug": "cherry-pickup-two-robots",
+  "title": "Two Robots Picking Cherries",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "matrix"
+  ],
+  "summary": "Two robots move down a grid collecting cherries; maximize the total.",
+  "statement": "`grid[i][j]` is the number of cherries in each cell. Robot A starts at the top-left and robot B at the\ntop-right. Each step, both move to the next row, to the column left, same or right of where they are. A\nrobot collects the cherries of each cell it enters; if both are on the same cell, the cherries count once.\nReturn the most cherries they can collect by the bottom row.",
+  "constraints": [
+    "2 <= rows, cols <= 70",
+    "0 <= grid[i][j] <= 100"
+  ],
+  "examples": [
+    {
+      "input": "grid = [[3, 1, 1], [2, 5, 1], [1, 5, 5], [2, 1, 1]]",
+      "output": "24"
+    },
+    {
+      "input": "grid = [[1, 0, 0, 0, 0, 0, 1], [2, 0, 0, 0, 0, 3, 0], [2, 0, 9, 0, 0, 0, 0], [0, 3, 0, 5, 4, 0, 0], [1, 0, 2, 3, 0, 0, 6]]",
+      "output": "28"
+    },
+    {
+      "input": "grid = [[1, 1], [1, 1]]",
+      "output": "4"
+    }
+  ],
+  "signature": {
+    "method": "cherryPickup",
+    "params": [
+      {
+        "name": "grid",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int cherryPickup(int[][] grid) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Both robots are always on the same row, so the state is just their two columns.",
+    "dp over rows with state (colA, colB): try all 9 move combinations from the previous row.",
+    "dp = {(0, n-1): grid[0][0] + grid[0][n-1]}\nfor each next row:\n    for each state and each of 9 move pairs: new value = old + cherries at (a, b) counted once if a == b\n    keep the best per state\nreturn max(dp)",
+    "O(rows \u00d7 cols^2 \u00d7 9) time, O(cols^2) space."
+  ],
+  "expected_complexity": {
+    "time": "O(m n^2)",
+    "space": "O(n^2)"
+  },
+  "tests": [
+    {
+      "input": {
+        "grid": [
+          [
+            3,
+            1,
+            1
+          ],
+          [
+            2,
+            5,
+            1
+          ],
+          [
+            1,
+            5,
+            5
+          ],
+          [
+            2,
+            1,
+            1
+          ]
+        ]
+      },
+      "expected_output": 24,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            1
+          ],
+          [
+            2,
+            0,
+            0,
+            0,
+            0,
+            3,
+            0
+          ],
+          [
+            2,
+            0,
+            9,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            3,
+            0,
+            5,
+            4,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            2,
+            3,
+            0,
+            0,
+            6
+          ]
+        ]
+      },
+      "expected_output": 28,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            1,
+            7
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      },
+      "expected_output": 11,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            3,
+            7,
+            3,
+            0,
+            3
+          ],
+          [
+            4,
+            7,
+            8,
+            8,
+            7
+          ],
+          [
+            5,
+            3,
+            6,
+            2,
+            2
+          ]
+        ]
+      },
+      "expected_output": 32,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            8,
+            2,
+            4,
+            4
+          ],
+          [
+            3,
+            9,
+            3,
+            3
+          ]
+        ]
+      },
+      "expected_output": 24,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          [
+            5,
+            7,
+            2,
+            5
+          ],
+          [
+            7,
+            7,
+            2,
+            0
+          ]
+        ]
+      },
+      "expected_output": 19,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,266 @@
+{
+  "order": 326,
+  "slug": "minimum-height-trees",
+  "title": "Roots of Minimum Height Trees",
+  "difficulty": "hard",
+  "topics": [
+    "graphs",
+    "topological-sort"
+  ],
+  "summary": "Which nodes, as the root, make a tree as short as possible?",
+  "statement": "A tree has nodes `0..n-1` and `n - 1` undirected `edges`. Choosing a root gives a rooted tree with some\nheight. Return all nodes that give the minimum height, in ascending order.",
+  "constraints": [
+    "1 <= n <= 2 * 10^4",
+    "edges form a tree"
+  ],
+  "examples": [
+    {
+      "input": "n = 4, edges = [[1, 0], [1, 2], [1, 3]]",
+      "output": "[1]"
+    },
+    {
+      "input": "n = 6, edges = [[3, 0], [3, 1], [3, 2], [3, 4], [5, 4]]",
+      "output": "[3, 4]"
+    },
+    {
+      "input": "n = 1, edges = []",
+      "output": "[0]"
+    }
+  ],
+  "signature": {
+    "method": "findMinHeightTrees",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      },
+      {
+        "name": "edges",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int[]"
+  },
+  "starter_code": "class Solution {\n    public int[] findMinHeightTrees(int n, int[][] edges) {\n        // TODO: write your solution here\n        return new int[0];\n    }\n}\n",
+  "hints": [
+    "The best roots are in the middle of the tree's longest path.",
+    "Peel leaves layer by layer (like a topological sort from the outside in). The last one or two nodes left are the answer.",
+    "if n == 1: return [0]\nleaves = nodes with degree 1\nremaining = n\nwhile remaining > 2:\n    remaining -= len(leaves)\n    newLeaves = []\n    for leaf: for its neighbor: degree -= 1; if degree == 1: newLeaves.append\n    leaves = newLeaves\nreturn sorted(leaves)",
+    "Each node and edge is removed once: O(n). There are always at most two centers."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 4,
+        "edges": [
+          [
+            1,
+            0
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            3
+          ]
+        ]
+      },
+      "expected_output": [
+        1
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 6,
+        "edges": [
+          [
+            3,
+            0
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            5,
+            4
+          ]
+        ]
+      },
+      "expected_output": [
+        3,
+        4
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 1,
+        "edges": []
+      },
+      "expected_output": [
+        0
+      ],
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 2,
+        "edges": [
+          [
+            0,
+            1
+          ]
+        ]
+      },
+      "expected_output": [
+        0,
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 2,
+        "edges": [
+          [
+            1,
+            0
+          ]
+        ]
+      },
+      "expected_output": [
+        0,
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 7,
+        "edges": [
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            3,
+            1
+          ],
+          [
+            4,
+            2
+          ],
+          [
+            5,
+            0
+          ],
+          [
+            6,
+            2
+          ]
+        ]
+      },
+      "expected_output": [
+        1
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 8,
+        "edges": [
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            1
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            1
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            6,
+            0
+          ],
+          [
+            7,
+            2
+          ]
+        ]
+      },
+      "expected_output": [
+        1,
+        2
+      ],
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 7,
+        "edges": [
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            3,
+            2
+          ],
+          [
+            4,
+            3
+          ],
+          [
+            5,
+            3
+          ],
+          [
+            6,
+            1
+          ]
+        ]
+      },
+      "expected_output": [
+        0,
+        2
+      ],
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

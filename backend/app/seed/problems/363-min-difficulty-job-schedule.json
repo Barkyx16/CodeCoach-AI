@@ -1,0 +1,170 @@
+{
+  "order": 363,
+  "slug": "min-difficulty-job-schedule",
+  "title": "Minimum Difficulty Job Schedule",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming"
+  ],
+  "summary": "Split ordered jobs across d days to minimize the sum of daily maximums.",
+  "statement": "Jobs must be done in order, at least one per day, over exactly `d` days. A day's difficulty is the hardest job\ndone that day. Return the minimum total difficulty, or `-1` if there are fewer jobs than days.",
+  "constraints": [
+    "1 <= jobs.length <= 300",
+    "0 <= jobs[i] <= 1000",
+    "1 <= d <= 10"
+  ],
+  "examples": [
+    {
+      "input": "jobs = [6, 5, 4, 3, 2, 1], d = 2",
+      "output": "7"
+    },
+    {
+      "input": "jobs = [9, 9, 9], d = 4",
+      "output": "-1"
+    },
+    {
+      "input": "jobs = [1, 1, 1], d = 3",
+      "output": "3"
+    }
+  ],
+  "signature": {
+    "method": "minDifficulty",
+    "params": [
+      {
+        "name": "jobs",
+        "type": "int[]"
+      },
+      {
+        "name": "d",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minDifficulty(int[] jobs, int d) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Decide where each day ends.",
+    "dp[k][i] = best total to finish the first i jobs in k days. The last day covers jobs j..i-1, costing their max.",
+    "dp[0][0] = 0\nfor k in 1..d:\n    for i in k..n:\n        hardest = 0\n        for j from i-1 down to k-1:\n            hardest = max(hardest, jobs[j])\n            dp[k][i] = min(dp[k][i], dp[k-1][j] + hardest)\nreturn dp[d][n]",
+    "O(d \u00d7 n^2). Walking `j` backward lets you maintain the day's maximum incrementally."
+  ],
+  "expected_complexity": {
+    "time": "O(d \u00b7 n^2)",
+    "space": "O(d \u00b7 n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "jobs": [
+          6,
+          5,
+          4,
+          3,
+          2,
+          1
+        ],
+        "d": 2
+      },
+      "expected_output": 7,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "jobs": [
+          9,
+          9,
+          9
+        ],
+        "d": 4
+      },
+      "expected_output": -1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "jobs": [
+          1,
+          1,
+          1
+        ],
+        "d": 3
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "jobs": [
+          7,
+          1,
+          7,
+          1,
+          7,
+          1
+        ],
+        "d": 3
+      },
+      "expected_output": 15,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "jobs": [
+          7,
+          4,
+          3,
+          9,
+          0,
+          1
+        ],
+        "d": 2
+      },
+      "expected_output": 10,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "jobs": [
+          9,
+          0,
+          8,
+          3,
+          7
+        ],
+        "d": 2
+      },
+      "expected_output": 16,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "jobs": [
+          9,
+          6,
+          8
+        ],
+        "d": 3
+      },
+      "expected_output": 23,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "jobs": [
+          5,
+          3,
+          9,
+          4,
+          8,
+          0,
+          2,
+          6
+        ],
+        "d": 2
+      },
+      "expected_output": 14,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

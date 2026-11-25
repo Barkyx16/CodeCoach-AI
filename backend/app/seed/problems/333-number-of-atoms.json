@@ -1,0 +1,112 @@
+{
+  "order": 333,
+  "slug": "number-of-atoms",
+  "title": "Count Atoms in a Formula",
+  "difficulty": "hard",
+  "topics": [
+    "stacks",
+    "strings",
+    "hash-maps"
+  ],
+  "summary": "Expand a chemical formula with nested groups into atom counts.",
+  "statement": "A formula like `\"K4(ON(SO3)2)2\"` has element names (an upper-case letter plus optional lower-case letters),\noptional counts after elements and after parenthesized groups. Return each element in alphabetical order\nfollowed by its count (omitted when it's 1): `\"K4N2O14S4\"`.",
+  "constraints": [
+    "1 <= formula.length <= 1000",
+    "formula is valid",
+    "counts fit in an int"
+  ],
+  "examples": [
+    {
+      "input": "formula = \"H2O\"",
+      "output": "\"H2O\""
+    },
+    {
+      "input": "formula = \"Mg(OH)2\"",
+      "output": "\"H2MgO2\""
+    },
+    {
+      "input": "formula = \"K4(ON(SO3)2)2\"",
+      "output": "\"K4N2O14S4\""
+    }
+  ],
+  "signature": {
+    "method": "countOfAtoms",
+    "params": [
+      {
+        "name": "formula",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String countOfAtoms(String formula) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Parentheses multiply everything inside them by the number after the closing bracket.",
+    "Use a stack of count maps: `(` pushes a new map; `)` pops it, multiplies by the following number, and merges into the map below.",
+    "stack = [Counter()]\nwhile i < n:\n    if '(': push Counter()\n    elif ')': inner = pop; read multiplier; add inner * multiplier into stack top\n    else: read element name and count; stack top[name] += count\nreturn ''.join(name + count for name in sorted)",
+    "Each character is read once; merging maps costs at most the number of distinct elements per level."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2) worst case",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "formula": "H2O"
+      },
+      "expected_output": "H2O",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "formula": "Mg(OH)2"
+      },
+      "expected_output": "H2MgO2",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "formula": "K4(ON(SO3)2)2"
+      },
+      "expected_output": "K4N2O14S4",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "formula": "Be32"
+      },
+      "expected_output": "Be32",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "formula": "((N42)24(OB40Li30CHe3O48LiNN26)33(C12Li48N30H13HBe31)21(BHN30Li26BCBe47N40)15(H5)16)14"
+      },
+      "expected_output": "B18900Be18984C4200H5446He1386Li33894N50106O22638",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "formula": "C6H12O6"
+      },
+      "expected_output": "C6H12O6",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "formula": "Ca(OH)2(NO3)1"
+      },
+      "expected_output": "CaH2NO5",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "formula": "Fe2(SO4)3"
+      },
+      "expected_output": "Fe2O12S3",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

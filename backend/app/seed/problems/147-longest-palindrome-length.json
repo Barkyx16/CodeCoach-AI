@@ -1,0 +1,112 @@
+{
+  "order": 147,
+  "slug": "longest-palindrome-length",
+  "title": "Longest Palindrome You Can Build",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "counting",
+    "greedy"
+  ],
+  "summary": "Use letters to build the longest palindrome possible.",
+  "statement": "Return the length of the longest palindrome you can build from the letters of `s` (case-sensitive).\nYou don't have to use every letter.",
+  "constraints": [
+    "1 <= s.length <= 2000",
+    "upper- and lower-case English letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"abccccdd\"",
+      "output": "7",
+      "explanation": "\"dccaccd\" has length 7."
+    },
+    {
+      "input": "s = \"a\"",
+      "output": "1"
+    },
+    {
+      "input": "s = \"Aa\"",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "longestPalindrome",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int longestPalindrome(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "A palindrome is made of pairs, plus at most one single letter in the middle.",
+    "For each letter, use `count / 2 * 2` copies. If any letter has an odd count, add one for the middle.",
+    "length = sum(c // 2 * 2 for c in counts)\nif any(c % 2 for c in counts): length += 1\nreturn length",
+    "Counting then summing pairs is O(n). Only one odd letter can sit in the center, so add 1 at most once."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "abccccdd"
+      },
+      "expected_output": 7,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a"
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "Aa"
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "bb"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "baba"
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bBBabcaaabaAacaBaA"
+      },
+      "expected_output": 17,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "BabaABbba"
+      },
+      "expected_output": 7,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "acbcbaccbaaBcbaaaAA"
+      },
+      "expected_output": 17,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

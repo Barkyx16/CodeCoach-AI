@@ -1,0 +1,117 @@
+{
+  "order": 273,
+  "slug": "integer-to-roman",
+  "title": "Integer to Roman Numerals",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "math",
+    "greedy"
+  ],
+  "summary": "Write a number in Roman numerals.",
+  "statement": "Convert `num` to a Roman numeral using I, V, X, L, C, D, M and the six subtractive forms\n(IV, IX, XL, XC, CD, CM).",
+  "constraints": [
+    "1 <= num <= 3999"
+  ],
+  "examples": [
+    {
+      "input": "num = 3749",
+      "output": "\"MMMDCCXLIX\""
+    },
+    {
+      "input": "num = 58",
+      "output": "\"LVIII\""
+    },
+    {
+      "input": "num = 1994",
+      "output": "\"MCMXCIV\""
+    }
+  ],
+  "signature": {
+    "method": "intToRoman",
+    "params": [
+      {
+        "name": "num",
+        "type": "int"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String intToRoman(int num) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Write the largest symbol that fits, then repeat with what's left.",
+    "Include the subtractive pairs as their own symbols: 1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1.",
+    "for value, symbol in table (largest first):\n    while num >= value: out += symbol; num -= value\nreturn out",
+    "Greedy over 13 symbols: O(1) for numbers below 4000."
+  ],
+  "expected_complexity": {
+    "time": "O(1)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "num": 3749
+      },
+      "expected_output": "MMMDCCXLIX",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "num": 58
+      },
+      "expected_output": "LVIII",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "num": 1994
+      },
+      "expected_output": "MCMXCIV",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "num": 4
+      },
+      "expected_output": "IV",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 3999
+      },
+      "expected_output": "MMMCMXCIX",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 1810
+      },
+      "expected_output": "MDCCCX",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 3322
+      },
+      "expected_output": "MMMCCCXXII",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 3479
+      },
+      "expected_output": "MMMCDLXXIX",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "num": 3217
+      },
+      "expected_output": "MMMCCXVII",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

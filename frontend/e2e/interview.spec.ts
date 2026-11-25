@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { navTo, expect, test } from "./fixtures";
 
 const ANSWERS = [
   "Can the array contain duplicates, and is there always exactly one valid pair?",
@@ -24,10 +24,13 @@ test("mock interview: five phases, real editor, rubric feedback, history", async
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.goto("/");
   await page.getByRole("button", { name: /try it now/i }).click();
+  await page.getByRole("button", { name: "Start this problem" }).click(); // the optional welcome
   await expect(page).toHaveURL(/two-sum/);
 
-  await page.getByRole("link", { name: "Interview" }).click();
-  await page.getByLabel("Problem").selectOption("two-sum");
+  await navTo(page, "Mock interview");
+  // Exactly "Problem": until the new page has rendered, the workspace's "Problem description" is
+  // still on screen, and a partial match would pick it (CI run 280).
+  await page.getByLabel("Problem", { exact: true }).selectOption("two-sum");
   await page.getByText("15 min").click();
   await page.getByRole("button", { name: "Start interview" }).click();
   await expect(page).toHaveURL(/\/interviews\/[0-9a-f-]+$/);
@@ -60,7 +63,7 @@ test("mock interview: five phases, real editor, rubric feedback, history", async
   await expect(rubric.getByText("Complexity analysis")).toBeVisible();
   await page.screenshot({ path: "e2e/screenshots/07-interview-feedback.png", fullPage: true });
 
-  await page.getByRole("link", { name: "History" }).click();
-  await page.getByRole("tab", { name: "Interviews" }).click();
-  await expect(page.getByRole("link", { name: /Two Sum/ })).toBeVisible();
+  await navTo(page, "History");
+  await page.getByRole("search").getByLabel("Activity").selectOption("interview");
+  await expect(page.getByRole("link", { name: /Coding interview: Two Sum/ })).toBeVisible();
 });

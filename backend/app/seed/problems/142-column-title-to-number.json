@@ -1,0 +1,111 @@
+{
+  "order": 142,
+  "slug": "column-title-to-number",
+  "title": "Spreadsheet Column to Number",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "math"
+  ],
+  "summary": "Convert a spreadsheet column label like \"AB\" to its number.",
+  "statement": "Spreadsheet columns are labeled A, B, ..., Z, AA, AB, ..., AZ, BA, ... Return the column number\nfor `title` (A = 1, Z = 26, AA = 27).",
+  "constraints": [
+    "1 <= title.length <= 7",
+    "upper-case letters",
+    "the result fits in an int"
+  ],
+  "examples": [
+    {
+      "input": "title = \"A\"",
+      "output": "1"
+    },
+    {
+      "input": "title = \"AB\"",
+      "output": "28"
+    },
+    {
+      "input": "title = \"ZY\"",
+      "output": "701"
+    }
+  ],
+  "signature": {
+    "method": "titleToNumber",
+    "params": [
+      {
+        "name": "title",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int titleToNumber(String title) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "It's like reading a number in base 26, but the digits run 1 to 26 instead of 0 to 25.",
+    "For each letter: result = result * 26 + (letter - 'A' + 1).",
+    "result = 0\nfor c in title:\n    result = result * 26 + (ord(c) - ord('A') + 1)\nreturn result",
+    "Horner's method over the letters: O(n). The \"+1\" is what makes this bijective base-26."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "title": "A"
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "title": "AB"
+      },
+      "expected_output": 28,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "title": "ZY"
+      },
+      "expected_output": 701,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "title": "FXSHRXW"
+      },
+      "expected_output": 2147483647,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "title": "IIS"
+      },
+      "expected_output": 6337,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "title": "CC"
+      },
+      "expected_output": 81,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "title": "R"
+      },
+      "expected_output": 18,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "title": "VNO"
+      },
+      "expected_output": 15251,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

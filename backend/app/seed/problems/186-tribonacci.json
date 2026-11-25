@@ -1,0 +1,109 @@
+{
+  "order": 186,
+  "slug": "tribonacci",
+  "title": "Tribonacci Number",
+  "difficulty": "easy",
+  "topics": [
+    "dynamic-programming",
+    "math"
+  ],
+  "summary": "Each term is the sum of the three before it.",
+  "statement": "T(0) = 0, T(1) = 1, T(2) = 1, and T(n) = T(n-1) + T(n-2) + T(n-3). Return T(n).",
+  "constraints": [
+    "0 <= n <= 37"
+  ],
+  "examples": [
+    {
+      "input": "n = 4",
+      "output": "4"
+    },
+    {
+      "input": "n = 25",
+      "output": "1389537"
+    },
+    {
+      "input": "n = 0",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "tribonacci",
+    "params": [
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int tribonacci(int n) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "You only need the last three values.",
+    "Slide a window of three values forward n times.",
+    "a, b, c = 0, 1, 1\nrepeat n times: a, b, c = b, c, a + b + c\nreturn a",
+    "O(n) time and O(1) space. T(37) = 2082876103 still fits in an int."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "n": 4
+      },
+      "expected_output": 4,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 25
+      },
+      "expected_output": 1389537,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 0
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "n": 37
+      },
+      "expected_output": 2082876103,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 3
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 27
+      },
+      "expected_output": 4700770,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 6
+      },
+      "expected_output": 13,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "n": 26
+      },
+      "expected_output": 2555757,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

@@ -1,0 +1,110 @@
+{
+  "order": 146,
+  "slug": "reverse-vowels",
+  "title": "Reverse Only the Vowels",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "two-pointers"
+  ],
+  "summary": "Reverse the order of the vowels, leaving other characters in place.",
+  "statement": "Return `s` with only its vowels (`aeiou`, either case) reversed; every other character stays where it is.",
+  "constraints": [
+    "1 <= s.length <= 3 * 10^5",
+    "printable ASCII"
+  ],
+  "examples": [
+    {
+      "input": "s = \"hello\"",
+      "output": "\"holle\""
+    },
+    {
+      "input": "s = \"IceCreAm\"",
+      "output": "\"AceCreIm\""
+    },
+    {
+      "input": "s = \"xyz\"",
+      "output": "\"xyz\""
+    }
+  ],
+  "signature": {
+    "method": "reverseVowels",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "String"
+  },
+  "starter_code": "class Solution {\n    public String reverseVowels(String s) {\n        // TODO: write your solution here\n        return \"\";\n    }\n}\n",
+  "hints": [
+    "Use two pointers moving toward each other.",
+    "Move the left pointer to the next vowel and the right pointer to the previous vowel, then swap.",
+    "i, j = 0, len(s)-1\nwhile i < j:\n    while i < j and s[i] not a vowel: i += 1\n    while i < j and s[j] not a vowel: j -= 1\n    swap s[i], s[j]; i += 1; j -= 1\nreturn s",
+    "Each pointer moves at most n steps in total, so it's O(n) time with a char array to swap in."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "hello"
+      },
+      "expected_output": "holle",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "IceCreAm"
+      },
+      "expected_output": "AceCreIm",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "xyz"
+      },
+      "expected_output": "xyz",
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a"
+      },
+      "expected_output": "a",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "boxea"
+      },
+      "expected_output": "baxeo",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "xeoUUaxxAiayax"
+      },
+      "expected_output": "xaaiAaxxUUoyex",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "eaUiizoa"
+      },
+      "expected_output": "aoiiUzae",
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "oaxbzUyzo"
+      },
+      "expected_output": "oUxbzayzo",
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

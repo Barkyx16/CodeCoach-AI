@@ -1,0 +1,193 @@
+{
+  "order": 296,
+  "slug": "dungeon-game",
+  "title": "Dungeon Game",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "matrix"
+  ],
+  "summary": "Minimum starting health to cross a dungeon alive.",
+  "statement": "A knight starts at the top-left of `dungeon` and must reach the bottom-right, moving only right or down.\nEach cell adds its value to his health (negative values hurt). His health must stay at least 1 at every\nmoment. Return the minimum starting health.",
+  "constraints": [
+    "1 <= rows, cols <= 200",
+    "-1000 <= dungeon[i][j] <= 1000"
+  ],
+  "examples": [
+    {
+      "input": "dungeon = [[-2, -3, 3], [-5, -10, 1], [10, 30, -5]]",
+      "output": "7"
+    },
+    {
+      "input": "dungeon = [[0]]",
+      "output": "1"
+    },
+    {
+      "input": "dungeon = [[100]]",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "calculateMinimumHP",
+    "params": [
+      {
+        "name": "dungeon",
+        "type": "int[][]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int calculateMinimumHP(int[][] dungeon) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Planning forward is hard because you don't know future damage. Plan backwards from the princess.",
+    "need[r][c] = max(1, min(need[r+1][c], need[r][c+1]) - dungeon[r][c]).",
+    "need = grid of inf with need[m][n-1] = need[m-1][n] = 1\nfor r from m-1 down to 0:\n    for c from n-1 down to 0:\n        need[r][c] = max(1, min(need[r+1][c], need[r][c+1]) - dungeon[r][c])\nreturn need[0][0]",
+    "Working backwards turns it into a clean DP: O(m n) time. A forward DP fails because the best path so far may not be the safest later."
+  ],
+  "expected_complexity": {
+    "time": "O(m n)",
+    "space": "O(m n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "dungeon": [
+          [
+            -2,
+            -3,
+            3
+          ],
+          [
+            -5,
+            -10,
+            1
+          ],
+          [
+            10,
+            30,
+            -5
+          ]
+        ]
+      },
+      "expected_output": 7,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "dungeon": [
+          [
+            0
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "dungeon": [
+          [
+            100
+          ]
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "dungeon": [
+          [
+            -3,
+            5
+          ]
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "dungeon": [
+          [
+            -5,
+            6
+          ],
+          [
+            6,
+            -4
+          ]
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "dungeon": [
+          [
+            2,
+            -3,
+            -3
+          ],
+          [
+            -7,
+            -7,
+            4
+          ],
+          [
+            2,
+            -1,
+            -8
+          ],
+          [
+            5,
+            4,
+            -8
+          ]
+        ]
+      },
+      "expected_output": 6,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "dungeon": [
+          [
+            1,
+            2,
+            -5
+          ],
+          [
+            3,
+            -9,
+            2
+          ]
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "dungeon": [
+          [
+            -9,
+            -2
+          ],
+          [
+            2,
+            -1
+          ],
+          [
+            1,
+            1
+          ]
+        ]
+      },
+      "expected_output": 10,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

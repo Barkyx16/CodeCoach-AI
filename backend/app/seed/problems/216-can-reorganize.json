@@ -1,0 +1,118 @@
+{
+  "order": 216,
+  "slug": "can-reorganize",
+  "title": "Rearrange So No Neighbors Match",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "greedy",
+    "counting"
+  ],
+  "summary": "Can letters be arranged so no two adjacent are equal?",
+  "statement": "Return `true` if the letters of `s` can be rearranged so that no two adjacent characters are the same.",
+  "constraints": [
+    "1 <= s.length <= 500",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"aab\"",
+      "output": "true"
+    },
+    {
+      "input": "s = \"aaab\"",
+      "output": "false"
+    },
+    {
+      "input": "s = \"a\"",
+      "output": "true"
+    }
+  ],
+  "signature": {
+    "method": "canReorganize",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean canReorganize(String s) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "Which letter is the hardest to keep apart?",
+    "The most frequent one. It needs a different letter between each of its copies.",
+    "return max(counts) <= (len(s) + 1) // 2",
+    "If the top letter fits in every other slot (0, 2, 4, ...), fill the rest in any order and it works: O(n). Building the actual string uses the same idea with a max-heap."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "aab"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aaab"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "a"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aabb"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aaabb"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "babb"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "aaaabaa"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "baa"
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bb"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

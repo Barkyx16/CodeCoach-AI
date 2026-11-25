@@ -1,0 +1,134 @@
+{
+  "order": 341,
+  "slug": "kth-in-multiplication-table",
+  "title": "K-th Smallest in a Multiplication Table",
+  "difficulty": "hard",
+  "topics": [
+    "binary-search",
+    "math"
+  ],
+  "summary": "The k-th smallest entry of an m \u00d7 n times table.",
+  "statement": "The `m \u00d7 n` multiplication table has `table[i][j] = i * j` (1-indexed). Return the `k`-th smallest number in it\n(counting duplicates).",
+  "constraints": [
+    "1 <= m, n <= 3 * 10^4",
+    "1 <= k <= m * n"
+  ],
+  "examples": [
+    {
+      "input": "m = 3, n = 3, k = 5",
+      "output": "3"
+    },
+    {
+      "input": "m = 2, n = 3, k = 6",
+      "output": "6"
+    },
+    {
+      "input": "m = 1, n = 1, k = 1",
+      "output": "1"
+    }
+  ],
+  "signature": {
+    "method": "findKthNumber",
+    "params": [
+      {
+        "name": "m",
+        "type": "int"
+      },
+      {
+        "name": "n",
+        "type": "int"
+      },
+      {
+        "name": "k",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int findKthNumber(int m, int n, int k) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "How many entries are at most some value x? Each row i contributes `min(x / i, n)`.",
+    "Binary search on x from 1 to m \u00d7 n for the smallest value whose count is at least k.",
+    "lo, hi = 1, m * n\nwhile lo < hi:\n    mid = (lo + hi) // 2\n    count = sum(min(mid // i, n) for i in 1..m)\n    if count >= k: hi = mid\n    else: lo = mid + 1\nreturn lo",
+    "O(m log(m n)). The smallest value with count \u2265 k must itself be in the table."
+  ],
+  "expected_complexity": {
+    "time": "O(m log(m n))",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "m": 3,
+        "n": 3,
+        "k": 5
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "m": 2,
+        "n": 3,
+        "k": 6
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "m": 1,
+        "n": 1,
+        "k": 1
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "m": 45,
+        "n": 12,
+        "k": 471
+      },
+      "expected_output": 312,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "m": 3,
+        "n": 14,
+        "k": 14
+      },
+      "expected_output": 8,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "m": 14,
+        "n": 14,
+        "k": 91
+      },
+      "expected_output": 40,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "m": 10,
+        "n": 10,
+        "k": 44
+      },
+      "expected_output": 20,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "m": 3,
+        "n": 8,
+        "k": 14
+      },
+      "expected_output": 8,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

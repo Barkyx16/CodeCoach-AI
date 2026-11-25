@@ -1,0 +1,109 @@
+{
+  "order": 135,
+  "slug": "count-words",
+  "title": "Count the Words",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "counting"
+  ],
+  "summary": "Count space-separated words, ignoring extra spaces.",
+  "statement": "Return the number of words in `s`. A word is a maximal run of non-space characters; `s` may\ncontain extra spaces anywhere.",
+  "constraints": [
+    "0 <= s.length <= 10^4"
+  ],
+  "examples": [
+    {
+      "input": "s = \"Hello, my name is Ada\"",
+      "output": "5"
+    },
+    {
+      "input": "s = \"   \"",
+      "output": "0"
+    },
+    {
+      "input": "s = \"\"",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "countWords",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int countWords(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "A new word starts where a non-space character follows a space (or the start).",
+    "Count positions `i` where `s[i] != ' '` and (`i == 0` or `s[i-1] == ' '`).",
+    "count = 0\nfor i in range(len(s)):\n    if s[i] != ' ' and (i == 0 or s[i-1] == ' '): count += 1\nreturn count",
+    "Counting word starts is O(n) and needs no extra memory, unlike splitting into an array."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "Hello, my name is Ada"
+      },
+      "expected_output": 5,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "   "
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": ""
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "  two  words "
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": " xx  "
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "ab   abxx  abx    x"
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "      abx  abab"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "xx    x xxxabx"
+      },
+      "expected_output": 3,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

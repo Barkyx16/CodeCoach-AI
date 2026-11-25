@@ -1,0 +1,138 @@
+{
+  "order": 248,
+  "slug": "number-of-islands",
+  "title": "Number of Islands",
+  "difficulty": "medium",
+  "topics": [
+    "graphs",
+    "matrix"
+  ],
+  "summary": "Count groups of connected land cells.",
+  "statement": "`grid` is a list of rows made of `'1'` (land) and `'0'` (water). Land cells connect up, down, left\nand right. Return the number of islands (connected groups of land).",
+  "constraints": [
+    "1 <= rows, cols <= 300"
+  ],
+  "examples": [
+    {
+      "input": "grid = [\"11110\", \"11010\", \"11000\", \"00000\"]",
+      "output": "1"
+    },
+    {
+      "input": "grid = [\"11000\", \"11000\", \"00100\", \"00011\"]",
+      "output": "3"
+    },
+    {
+      "input": "grid = [\"0\"]",
+      "output": "0"
+    }
+  ],
+  "signature": {
+    "method": "numIslands",
+    "params": [
+      {
+        "name": "grid",
+        "type": "String[]"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int numIslands(String[] grid) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Each time you find land you haven't visited, you've found a new island.",
+    "From that cell, flood-fill (DFS or BFS) to mark the whole island as visited.",
+    "count = 0\nfor each cell:\n    if land and not visited:\n        count += 1\n        flood fill from it marking visited\nreturn count",
+    "Every cell is visited a constant number of times: O(rows \u00d7 cols). Use an explicit stack or BFS queue to avoid deep recursion on big grids."
+  ],
+  "expected_complexity": {
+    "time": "O(m n)",
+    "space": "O(m n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "grid": [
+          "11110",
+          "11010",
+          "11000",
+          "00000"
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          "11000",
+          "11000",
+          "00100",
+          "00011"
+        ]
+      },
+      "expected_output": 3,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          "0"
+        ]
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "grid": [
+          "101",
+          "010",
+          "101"
+        ]
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          "110"
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          "10010"
+        ]
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          "0",
+          "1"
+        ]
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "grid": [
+          "010",
+          "000",
+          "101",
+          "100",
+          "101"
+        ]
+      },
+      "expected_output": 4,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

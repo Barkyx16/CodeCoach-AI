@@ -1,0 +1,130 @@
+{
+  "order": 138,
+  "slug": "word-pattern",
+  "title": "Word Pattern",
+  "difficulty": "easy",
+  "topics": [
+    "strings",
+    "hash-maps"
+  ],
+  "summary": "Do the words of a sentence follow a letter pattern?",
+  "statement": "`pattern` is a string of letters and `s` is words separated by single spaces. Return `true`\nif there is a one-to-one match between pattern letters and words, so that replacing each\nletter by its word gives `s`.",
+  "constraints": [
+    "1 <= pattern.length <= 300",
+    "1 <= s.length <= 3000"
+  ],
+  "examples": [
+    {
+      "input": "pattern = \"abba\", s = \"dog cat cat dog\"",
+      "output": "true"
+    },
+    {
+      "input": "pattern = \"abba\", s = \"dog cat cat fish\"",
+      "output": "false"
+    },
+    {
+      "input": "pattern = \"aaaa\", s = \"dog cat cat dog\"",
+      "output": "false"
+    }
+  ],
+  "signature": {
+    "method": "wordPattern",
+    "params": [
+      {
+        "name": "pattern",
+        "type": "String"
+      },
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean wordPattern(String pattern, String s) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "First check that there are as many words as letters.",
+    "Then keep two maps (letter \u2192 word, word \u2192 letter) and check them as you go.",
+    "words = s.split(' ')\nif len(words) != len(pattern): return false\nfor c, w in zip(pattern, words):\n    if map1.get(c, w) != w or map2.get(w, c) != c: return false\n    map1[c] = w; map2[w] = c\nreturn true",
+    "A bijection needs checks in both directions; one map alone would accept `abba` with `dog dog dog dog`. O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(n)"
+  },
+  "tests": [
+    {
+      "input": {
+        "pattern": "abba",
+        "s": "dog cat cat dog"
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "pattern": "abba",
+        "s": "dog cat cat fish"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "pattern": "aaaa",
+        "s": "dog cat cat dog"
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "pattern": "abba",
+        "s": "dog dog dog dog"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "pattern": "ab",
+        "s": "x y z"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "pattern": "babb",
+        "s": "dog dog dog dog"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "pattern": "abab",
+        "s": "owl dog owl cat"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "pattern": "baab",
+        "s": "cat dog owl dog"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "pattern": "baabba",
+        "s": "owl owl owl owl cat dog"
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

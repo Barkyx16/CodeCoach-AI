@@ -1,0 +1,132 @@
+{
+  "order": 230,
+  "slug": "task-scheduler",
+  "title": "CPU Task Scheduler",
+  "difficulty": "medium",
+  "topics": [
+    "greedy",
+    "counting",
+    "heaps"
+  ],
+  "summary": "Fewest time units to run tasks with a cooldown between repeats.",
+  "statement": "Each letter in `tasks` is a task that takes one unit of time. Two runs of the same task must be at\nleast `n` units apart; the CPU can idle. Return the minimum total time to run every task.",
+  "constraints": [
+    "1 <= tasks.length <= 10^4",
+    "0 <= n <= 100",
+    "upper-case letters"
+  ],
+  "examples": [
+    {
+      "input": "tasks = \"AAABBB\", n = 2",
+      "output": "8"
+    },
+    {
+      "input": "tasks = \"ACABDB\", n = 1",
+      "output": "6"
+    },
+    {
+      "input": "tasks = \"AAABBB\", n = 3",
+      "output": "10"
+    }
+  ],
+  "signature": {
+    "method": "leastInterval",
+    "params": [
+      {
+        "name": "tasks",
+        "type": "String"
+      },
+      {
+        "name": "n",
+        "type": "int"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int leastInterval(String tasks, int n) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "The most frequent task sets the skeleton of the schedule.",
+    "With top count `m` shared by `k` tasks: `(m - 1) * (n + 1) + k` slots, but never fewer than the number of tasks.",
+    "counts = count letters\nm = max(counts)\nk = number of letters with count m\nreturn max(len(tasks), (m - 1) * (n + 1) + k)",
+    "Arrange the most frequent tasks into `m - 1` frames of length `n + 1` plus a final partial frame; other tasks fill the gaps. If they overflow the gaps, no idling is needed and the answer is just the task count. O(n)."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "tasks": "AAABBB",
+        "n": 2
+      },
+      "expected_output": 8,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "tasks": "ACABDB",
+        "n": 1
+      },
+      "expected_output": 6,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "tasks": "AAABBB",
+        "n": 3
+      },
+      "expected_output": 10,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "tasks": "A",
+        "n": 5
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "tasks": "AAAAAABCDEFG",
+        "n": 2
+      },
+      "expected_output": 16,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "tasks": "DB",
+        "n": 0
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "tasks": "BACAB",
+        "n": 0
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "tasks": "BB",
+        "n": 0
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "tasks": "ADBDB",
+        "n": 2
+      },
+      "expected_output": 5,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

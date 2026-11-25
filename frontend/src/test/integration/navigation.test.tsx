@@ -6,7 +6,7 @@ import { API, server } from "../server";
 
 it("moves focus to the content and updates the title after route navigation", async () => {
   const { user } = renderApp("/", { signedIn: true });
-  await user.click(screen.getByRole("link", { name: "Analytics" }));
+  await user.click(await screen.findByRole("link", { name: "Analytics" })); // after the session restores
   expect(await screen.findByRole("heading", { name: "Analytics" })).toBeInTheDocument();
   expect(document.getElementById("main")).toHaveFocus();
   expect(document.title).toBe("Analytics | CodeCoach AI");
@@ -29,7 +29,7 @@ it("supports arrow, Home and End navigation through the product tour", async () 
 
 it("dismisses navigation with Escape and returns focus to its toggle", async () => {
   const { user } = renderApp("/", { signedIn: true });
-  const toggle = screen.getByRole("button", { name: "Open navigation" });
+  const toggle = screen.getByRole("button", { name: "Menu" });
   await user.click(toggle);
   expect(toggle).toHaveAttribute("aria-expanded", "true");
   await user.keyboard("{Escape}");
@@ -41,7 +41,9 @@ it("reports a failed guest session instead of leaving an unhandled rejection", a
   server.use(http.post(`${API}/api/v1/auth/guest`, () => HttpResponse.error()));
   const { user, router } = renderApp("/login");
   await user.click(screen.getByRole("button", { name: "Continue as guest" }));
-  expect(await screen.findByRole("alert")).toHaveTextContent("Can't reach the CodeCoach server");
+  // No reply, even after one quiet retry: the guest may have been made, so the page doesn't claim
+  // the server couldn't be reached (Volume 8, prompt 6).
+  expect(await screen.findByRole("alert")).toHaveTextContent(/We couldn't confirm your guest session was created\. It may have been/);
   expect(router.state.location.pathname).toBe("/login");
   expect(screen.getByRole("button", { name: "Continue as guest" })).toBeEnabled();
 });

@@ -58,6 +58,7 @@ backend/
       ai/
         base.py          Provider-neutral interface (CoachProvider protocol)
         offline.py       Curated hint ladder + static analysis (no key, deterministic)
+        failure_offline.py  Rule-based "explain my failure" (javac messages, exceptions, wrong answers)
         interviewer_offline.py  Rule-based interviewer + explainable rubric scorer
         anthropic_provider.py  Claude via the official SDK, structured outputs
         static_analysis.py     Explainable checks on Java source
@@ -74,10 +75,11 @@ runner/                  SEPARATE SERVICE: isolated execution (deploy on its own
   sandbox-image/         JDK image + trusted entrypoint that receives code over stdin
   tests/                 unit tests + 16 threat-model checks in the real sandbox
     db/                  Engine/session factory, seed loader
-    seed/problems/*.json Curated problem library (version-controlled content)
+    seed/problems/*.json Problem library: 22 hand-written + 278 generated (version-controlled content)
     seed/reference/*.java Trusted reference solutions (CI proves the tests are right)
   migrations/            Alembic migrations
-  scripts/               verify_reference_solutions.py
+  scripts/               verify_reference_solutions.py (all 300 in one JVM)
+    problembank/         Problem specs (Python model + Java reference + test generator) → seed JSON
   tests/                 pytest suite (runs on SQLite and PostgreSQL)
 ```
 
@@ -181,8 +183,10 @@ client polls GET /submissions/{id} every 1.5 s until is_terminal
 | Concern | How it's handled |
 |---|---|
 | Vendor lock-in | `CoachProvider` protocol; offline and Anthropic implementations are interchangeable. |
-| Consistent output | Pydantic models (`HintContent`, `CodeReview`) are the API contract **and** the structured-output schema sent to Claude (`messages.parse(output_format=...)`). |
-| Grounding | Every prompt carries the instructor-written hint for that level, the expected complexity, static-analysis findings and the judge verdict. |
+| Consistent output | Pydantic models (`HintContent`, `CodeReview`, `FailureExplanation`) are the API contract **and** the structured-output schema sent to Claude (`messages.parse(output_format=...)`). |
+| Grounding | Every prompt carries the instructor-written hint for that level, the expected complexity, static-analysis findings and the judge verdict. Failure explanations are grounded in the first failing **public** test, the exception's line in the learner's code, and the redacted compiler output, and must quote that evidence. |
+| Hidden tests | The explainer is built from `public_result_view`, the same public-only view the submissions API returns, so the AI can't see (or leak) hidden inputs. |
+| Repeat requests | One explanation per submission; asking again returns the saved one without spending budget. |
 | Spoilers | Progressive disclosure is enforced **server-side** (409 for skipped levels), not just hidden in the UI. Below level 4 the model is told never to write a full solution. |
 | Prompt injection | System prompt defines the tutor role; problem, code and analysis are fenced in tags and declared untrusted; model output is never executed; output is schema-validated. |
 | Cost | Per-user daily budget enforced from the database; `effort=low`; input length cap; the offline provider is the default. |
@@ -200,14 +204,14 @@ or API key.
 | FastAPI + Pydantic v2 | Django REST, Flask | Typed request/response models produce OpenAPI automatically; async-ready. |
 | PostgreSQL (JSONB) + SQLAlchemy 2 + Alembic | MongoDB | Relational data (users ↔ submissions ↔ problems) with real constraints; JSONB for flexible content like examples and signatures. |
 | Tests run on SQLite and Postgres | Postgres only | Fast feedback locally; CI proves Postgres parity. A `UTCDateTime` type keeps timestamps identical on both. |
-| JWT + `token_version` revocation | Server-side sessions, refresh tokens | Stateless verification with real logout/"log out everywhere" for one integer column. Refresh tokens are a future step. |
+| JWT + `token_version` revocation, rotating refresh cookie | Server-side sessions | Stateless 15-minute access tokens; an HttpOnly refresh cookie that rotates with reuse detection; "log out everywhere" for one integer column. `SECRET_KEY_PREVIOUS` allows key rotation. |
 | Argon2id | bcrypt | Current OWASP first choice; memory-hard. |
 | Problems seeded from JSON in Git | Admin UI | Content changes are code-reviewed, diffable, and verified in CI against reference solutions. |
 | gVisor sandbox in a separate runner service | Plain Docker on the API host; hosted judge; Firecracker | Docker alone shares the host kernel. gVisor gives a user-space kernel at low cost; a separate runner with no DB credentials limits the blast radius. Firecracker is stronger but much more infrastructure. |
 | Postgres as the job queue (SKIP LOCKED) | Redis, RabbitMQ | One less service to run. The queue is transactional with the data, and SKIP LOCKED lets several workers share it safely. Revisit at very high volume. |
 | Code sent over stdin, no bind mounts | Bind-mount a temp dir | Nothing from the host filesystem is ever visible in the sandbox, and it works even when the runner itself is containerized. |
 | Comparison outside the sandbox | Compare inside the JVM | Hidden expected outputs never reach untrusted code. |
-| In-memory auth rate limiter | Redis | Correct for a single instance; documented upgrade path. AI budgets already use the database, so they're exact across instances. |
+| Database-backed rate limits (sliding-window counters, atomic upsert) | Redis | Shared by every replica and survives restarts without another service; counters expire and housekeeping purges them. AI budgets use the database too, exact under concurrency (per-user advisory lock). |
 
 ## 7. Observability
 
@@ -228,4 +232,4 @@ or API key.
 | 2. Frontend vertical slice | ✅ done | React + TS app: library, workspace (Monaco), coach panel, dashboard, history, e2e tests |
 | 3. Mock interviews | ✅ done | Interview state machine, server-side clock, AI interviewer (offline/Claude), rubric evaluation, history, UI, e2e test |
 | 4. Isolated runner | ✅ done | gVisor runner service, judge worker, threat-model tests, judge e2e, CI sandbox job |
-| 5. Production | planned | Deployment, managed Postgres, Redis rate limits, refresh tokens, AI eval suite |
+| 5. Production | in progress | Done: refresh tokens, shared rate limits, row-level security, response caching, a durable email outbox, pre-launch load tests ([HARDENING.md](HARDENING.md)). Planned: deployment, managed Postgres, an edge rate limit |

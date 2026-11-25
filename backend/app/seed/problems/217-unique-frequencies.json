@@ -1,0 +1,111 @@
+{
+  "order": 217,
+  "slug": "unique-frequencies",
+  "title": "Fewest Deletions for Unique Frequencies",
+  "difficulty": "medium",
+  "topics": [
+    "strings",
+    "greedy",
+    "hash-sets"
+  ],
+  "summary": "Delete letters until no two letters share a count.",
+  "statement": "A string is good if no two different letters appear the same number of times. Return the minimum\nnumber of characters to delete from `s` to make it good (a letter deleted entirely has count 0, which\ndoesn't count as a frequency).",
+  "constraints": [
+    "1 <= s.length <= 10^5",
+    "lower-case letters"
+  ],
+  "examples": [
+    {
+      "input": "s = \"aab\"",
+      "output": "0"
+    },
+    {
+      "input": "s = \"aaabbbcc\"",
+      "output": "2"
+    },
+    {
+      "input": "s = \"ceabaacb\"",
+      "output": "2"
+    }
+  ],
+  "signature": {
+    "method": "minDeletions",
+    "params": [
+      {
+        "name": "s",
+        "type": "String"
+      }
+    ],
+    "returns": "int"
+  },
+  "starter_code": "class Solution {\n    public int minDeletions(String s) {\n        // TODO: write your solution here\n        return 0;\n    }\n}\n",
+  "hints": [
+    "Only the counts matter, not the letters.",
+    "Process counts from largest to smallest; if a count is taken, lower it until it's free or zero.",
+    "used = set()\ndeletions = 0\nfor c in counts:\n    while c > 0 and c in used: c -= 1; deletions += 1\n    used.add(c)\nreturn deletions",
+    "Lowering a clashing count to the nearest free value is always optimal. With 26 letters this is fast: O(n + 26^2) at worst."
+  ],
+  "expected_complexity": {
+    "time": "O(n)",
+    "space": "O(1)"
+  },
+  "tests": [
+    {
+      "input": {
+        "s": "aab"
+      },
+      "expected_output": 0,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "aaabbbcc"
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "ceabaacb"
+      },
+      "expected_output": 2,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "s": "abc"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "d"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "acdaacdbbbbdcbca"
+      },
+      "expected_output": 2,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "babbdbbccccdcdddbab"
+      },
+      "expected_output": 1,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "s": "bbbabbab"
+      },
+      "expected_output": 0,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}

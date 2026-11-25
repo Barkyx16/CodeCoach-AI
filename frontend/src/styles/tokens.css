@@ -1,73 +1,88 @@
 /*
  * Design tokens: the single source of truth for the visual system.
- * The design pass (docs/FRONTEND_HANDOFF.md) should change values HERE, not in components.
- * Direction from the blueprint: deep navy workspace, high-contrast text, restrained
- * cyan/blue actions, semantic success/error colors, crisp type, generous spacing.
+ * Direction (the 2026-11 redesign): a calm, editorial workspace. Warm paper surfaces in light, warm
+ * charcoal in dark; ink-dark text; a gold-bronze accent for actions and the current place; a
+ * serif (Newsreader) for titles and headings and a clean sans (Inter) for everything else; soft
+ * shadows, hairline borders, generous space. Change values HERE, not in components; every
+ * text/background pair is re-checked by src/test/contrast.test.ts.
  */
 :root {
-  /* Surfaces */
-  --color-bg: #080d18;
-  --color-surface: #101a2b;
-  --color-surface-raised: #17243a;
-  --color-surface-sunken: #0b1220;
-  --color-border: #25344b;
-  --color-border-strong: #3c5272;
+  /* Surfaces (dark: warm charcoal) */
+  --color-bg: #121110;
+  --color-surface: #1a1917;
+  --color-surface-raised: #23211e;
+  --color-surface-sunken: #0e0d0c;
+  --color-border: #2f2c27;
+  --color-border-strong: #4a453d;
+  --color-sidebar-bg: #161513;
+  /* Form fields: the outline is >= 3:1 against the field and the page (WCAG 1.4.11). */
+  --color-input-bg: #0e0d0c;
+  --color-input-border: #6f675b;
 
   /* Text */
-  --color-text: #f3f6fc;
-  --color-text-muted: #a8b7ce;
-  --color-text-subtle: #99aac4;
+  --color-text: #f3efe6;
+  --color-text-muted: #c2b9aa;
+  --color-text-subtle: #b0a798;
   --color-text-inverse: #ffffff;
 
-  /* Brand / actions */
-  --color-primary: #2f6feb;
-  --color-primary-hover: #2864d6;
-  --color-primary-soft: rgba(47, 111, 235, 0.12);
-  --color-link: #8cb8ff;
-  --color-accent: #8cb8ff;
+  /* Brand / actions: gold-bronze */
+  --color-primary: #8a6424;
+  --color-primary-hover: #74531a;
+  --color-primary-soft: rgba(214, 170, 90, 0.16);
+  --color-link: #e2c07a;
+  --color-accent: #e2c07a;
 
   /* Semantic */
-  --color-success: #34d399;
-  --color-success-soft: rgba(52, 211, 153, 0.12);
-  --color-warning: #fbbf24;
-  --color-warning-soft: rgba(251, 191, 36, 0.12);
-  --color-danger: #f08086;
-  --color-danger-soft: rgba(248, 113, 113, 0.12);
-  --color-info: #60a5fa;
-  --color-info-soft: rgba(96, 165, 250, 0.12);
+  --color-success: #7fd39b;
+  --color-success-soft: rgba(127, 211, 155, 0.12);
+  --color-warning: #f0c164;
+  --color-warning-soft: rgba(240, 193, 100, 0.12);
+  --color-danger: #f2958c;
+  --color-danger-soft: rgba(242, 149, 140, 0.12);
+  --color-info: #93b8f2;
+  --color-info-soft: rgba(147, 184, 242, 0.12);
+
+  /* Four accents for cards that need telling apart (blue, red, amber, green), as hairline tops
+     and icon tiles; text never takes them. */
+  --accent-blue: #7ea6ec;
+  --accent-red: #ea8a80;
+  --accent-amber: #e6b65c;
+  --accent-green: #72c690;
 
   /* Difficulty */
   --color-easy: var(--color-success);
   --color-medium: var(--color-warning);
   --color-hard: var(--color-danger);
 
-  /* Data visualization: validated with the dataviz skill's palette checker against
-     --color-surface (#101a2b). Ordinal blue ramp; change values here, re-run the validator. */
-  --viz-solved: #8cb8ff;      /* ordinal step 400 */
-  --viz-attempted: #3266a8;   /* ordinal step 600, clears 2:1 vs surface */
-  --viz-track: #15223b;       /* unfilled track: one step off the surface */
-  --viz-heat-0: #15223b;      /* zero activity: recedes toward the surface (sequential rule) */
-  --viz-heat-1: #3266a8;
-  --viz-heat-2: #5388ca;
-  --viz-heat-3: #8cb8ff;
-  --viz-heat-4: #c8dcff;
+  /* Data visualization: one bronze ordinal ramp, validated with the dataviz skill's palette checker
+     (--ordinal) against --color-surface (#1a1917; light: #ffffff). Change values here, re-run it. */
+  --viz-solved: #c9a058;
+  --viz-attempted: #6b5226;   /* clears 2:1 vs the surface */
+  --viz-track: #26231f;       /* unfilled track: one step off the surface */
+  --viz-heat-0: #26231f;      /* zero activity: recedes toward the surface (sequential rule) */
+  --viz-heat-1: #6b5226;
+  --viz-heat-2: #97743a;
+  --viz-heat-3: #c9a058;
+  --viz-heat-4: #ecd39e;
 
-  /* Typography */
+  /* Typography: Inter for the interface, Newsreader for titles (both self-hosted: base.css, public/fonts). */
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Newsreader", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-md: 1rem;
   --text-lg: 1.125rem;
   --text-xl: 1.375rem;
-  --text-2xl: 1.75rem;
-  --text-3xl: 2.5rem;
-  --leading-tight: 1.2;
+  --text-2xl: 1.875rem;
+  --text-3xl: 2.625rem;
+  --leading-tight: 1.15;
   --leading-normal: 1.55;
   --weight-regular: 400;
   --weight-medium: 500;
   --weight-semibold: 600;
   --weight-bold: 700;
+  --tracking-eyebrow: 0.12em;
 
   /* Spacing (4px scale) */
   --space-1: 0.25rem;
@@ -82,13 +97,14 @@
   --space-16: 4rem;
 
   /* Shape & depth */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
   --radius-full: 999px;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
-  --focus-ring: 0 0 0 3px #a9caff;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px -8px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px -12px rgba(0, 0, 0, 0.45);
+  --focus-ring: 0 0 0 3px #e2c07a;
 
   /* Motion */
   --duration-fast: 120ms;
@@ -96,13 +112,192 @@
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 
   /* Layout */
-  --header-height: 72px;
-  --content-max-width: 1240px;
+  --header-height: 3.75rem; /* 60px at default text size; grows with the text-size preference */
+  --sidebar-width: 17rem;
+  --content-max-width: 1180px;
+
+  /* Tints: decorative washes and hairlines, themed like everything else */
+  --color-header-bg: rgba(22, 21, 19, 0.92);
+  --tint-panel: #23211e99;
+  --tint-hover: #23211e;
+  --tint-link-border: #e2c07a40;
+  --tint-link-faint: #e2c07a0d;
+  --tint-success-border: #7fd39b40;
+  --tint-warning-border: #f0c16440;
+  --tint-info-border: #93b8f240;
+  --tint-danger-border: rgba(242, 149, 140, 0.4);
+  --tint-hairline: #ffffff0a;
+  /* Gold: the accent sweep (decorative) and the button sweep, where white text stays >= 4.5:1 on
+     every stop. */
+  --gradient-brand: linear-gradient(100deg, #e8cf95 0%, #c9a058 55%, #9c7430 100%);
+  --gradient-button: linear-gradient(180deg, #906d2b 0%, #74531a 100%);
+  --gradient-button-hover: linear-gradient(180deg, #7d5c22 0%, #5f4313 100%);
+  --color-primary-border: rgba(226, 192, 122, 0.35);
+  --color-panel-bg: #1a1917;
+  --glow-brand: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 6px 18px -8px rgba(201, 160, 88, 0.55);
+  --gradient-text: linear-gradient(100deg, #f1dcab 0%, #e2c07a 60%, #d6ad62 100%); /* >= 7:1 on --color-bg */
+  --page-glow: radial-gradient(1000px 480px at 85% -10%, rgba(201, 160, 88, 0.07), transparent 60%);
+  color-scheme: dark;
+}
+
+/*
+ * Light theme: warm paper. Every text/background pair used in the app was checked (WCAG 2.x
+ * relative luminance): text, muted, subtle, link and semantic colors are >= 4.5:1 on bg, surface
+ * and raised; white on primary is >= 4.5:1. src/test/contrast.test.ts re-checks these values.
+ */
+:root[data-theme="light"] {
+  --color-bg: #f4f1ea;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f8f5ef;
+  --color-surface-sunken: #efebe3;
+  --color-border: #e6e0d5;
+  --color-border-strong: #c8bdab;
+  --color-sidebar-bg: #faf8f4;
+  --color-input-bg: #ffffff;
+  --color-input-border: #958771;
+  --color-text: #1d1a15;
+  --color-text-muted: #575045;
+  --color-text-subtle: #665e51;
+  --color-text-inverse: #ffffff;
+  --color-primary: #8a6424;
+  --color-primary-hover: #74531a;
+  --color-primary-soft: rgba(176, 132, 52, 0.14);
+  --color-link: #7a5617;
+  --color-accent: #7a5617;
+  --color-success: #2b6a3c;
+  --color-success-soft: rgba(43, 106, 60, 0.1);
+  --color-warning: #80530a;
+  --color-warning-soft: rgba(176, 116, 0, 0.12);
+  --color-danger: #a3302a;
+  --color-danger-soft: rgba(163, 48, 42, 0.08);
+  --color-info: #2a5597;
+  --color-info-soft: rgba(42, 85, 151, 0.1);
+  --accent-blue: #5b8fe8;
+  --accent-red: #e0695d;
+  --accent-amber: #e3a63c;
+  --accent-green: #4fae73;
+  --viz-solved: #8d6524;
+  --viz-attempted: #d1a861;
+  --viz-track: #f1ebe0;
+  --viz-heat-0: #f1ebe0;
+  --viz-heat-1: #d1a861;
+  --viz-heat-2: #b68638;
+  --viz-heat-3: #8d6524;
+  --viz-heat-4: #5f4313;
+  --shadow-sm: 0 1px 2px rgba(60, 45, 20, 0.06);
+  --shadow-md: 0 1px 2px rgba(60, 45, 20, 0.05), 0 12px 32px -8px rgba(60, 45, 20, 0.14);
+  --shadow-card: 0 1px 2px rgba(60, 45, 20, 0.05), 0 6px 20px -10px rgba(60, 45, 20, 0.12);
+  --focus-ring: 0 0 0 3px #7a5617;
+  --color-header-bg: rgba(250, 248, 244, 0.94);
+  --tint-panel: #f8f5ef;
+  --tint-hover: #f3efe7;
+  --tint-link-border: #7a561740;
+  --tint-link-faint: #7a56170d;
+  --tint-success-border: #2b6a3c40;
+  --tint-warning-border: #80530a40;
+  --tint-info-border: #2a559740;
+  --tint-danger-border: rgba(163, 48, 42, 0.35);
+  --tint-hairline: #1d1a150f;
+  color-scheme: light;
+  --gradient-brand: linear-gradient(100deg, #c9a058 0%, #a47b34 55%, #7a5617 100%);
+  --color-primary-border: rgba(138, 100, 36, 0.3);
+  --color-panel-bg: #ffffff;
+  --glow-brand: 0 1px 0 rgba(255, 255, 255, 0.25) inset, 0 6px 16px -8px rgba(138, 100, 36, 0.55);
+  --page-glow: radial-gradient(1000px 480px at 85% -10%, rgba(201, 160, 88, 0.08), transparent 60%);
+  --gradient-text: linear-gradient(100deg, #8a6424 0%, #7a5617 60%, #6b4b12 100%); /* >= 4.5:1 on white */
+}
+
+/* Higher contrast (dark): text >= 7:1 on every surface, stronger borders, no faint washes. */
+:root[data-contrast="high"] {
+  --color-bg: #000000;
+  --color-surface: #0b0a09;
+  --color-surface-raised: #171512;
+  --color-surface-sunken: #050404;
+  --color-border: #7d8ca3;
+  --color-border-strong: #c3cede;
+  --color-text: #ffffff;
+  --color-text-muted: #e9e4f7;
+  --color-text-subtle: #ddd6f0;
+  --color-primary: #5c4215;
+  --color-primary-hover: #4f3810;
+  --color-link: #f0d79e;
+  --color-accent: #f0d79e;
+  --color-success: #5ef0b4;
+  --color-warning: #ffd34d;
+  --color-danger: #ffa3a8;
+  --color-info: #9cc8ff;
+  --focus-ring: 0 0 0 3px #ffffff;
+  --tint-panel: transparent;
+  --tint-hover: #171512;
+  --tint-link-border: #f0d79e;
+  --tint-hairline: #ffffff33;
+  --gradient-button: linear-gradient(180deg, #5c4215 0%, #4f3810 100%);
+  --gradient-button-hover: linear-gradient(180deg, #4f3810 0%, #3d2b0b 100%);
+  --page-glow: none;
+  --gradient-text: linear-gradient(var(--color-link), var(--color-link));
+}
+
+/* Higher contrast (light) */
+:root[data-theme="light"][data-contrast="high"] {
+  --color-bg: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f6f2ea;
+  --color-surface-sunken: #f7f8fa;
+  --color-border: #4b5563;
+  --color-border-strong: #1f2937;
+  --color-text: #000000;
+  --color-text-muted: #1f1a2e;
+  --color-text-subtle: #2a2340;
+  --color-primary: #4f3810;
+  --color-primary-hover: #3d2b0b;
+  --color-link: #4f3608;
+  --color-accent: #4f3608;
+  --color-success: #064d31;
+  --color-warning: #5c3b00;
+  --color-danger: #7f1520;
+  --color-info: #0b3f88;
+  --focus-ring: 0 0 0 3px #000000;
+  --tint-panel: transparent;
+  --tint-hover: #f2f4f8;
+  --tint-link-border: #4f3608;
+  --tint-hairline: #00000033;
+  --gradient-button: linear-gradient(180deg, #4f3810 0%, #3d2b0b 100%);
+  --gradient-button-hover: linear-gradient(180deg, #3d2b0b 0%, #2c1f07 100%);
+  --page-glow: none;
+  --gradient-text: linear-gradient(var(--color-link), var(--color-link));
+}
+
+/* Reading preferences: bounded text size (the code editor keeps its own font size). */
+:root[data-text="large"] { font-size: 112.5%; }
+:root[data-text="larger"] { font-size: 125%; }
+
+/* A more spacious reading layout: more line height and room between paragraphs and list items. */
+:root[data-spacing="spacious"] { --leading-normal: 1.8; }
+:root[data-spacing="spacious"] #main p,
+:root[data-spacing="spacious"] #main li { line-height: 1.8; letter-spacing: 0.01em; }
+:root[data-spacing="spacious"] #main p + p { margin-top: var(--space-4); }
+:root[data-spacing="spacious"] #main li + li { margin-top: var(--space-2); }
+
+/* Reduced motion, chosen in Settings (the device setting is honored below either way). */
+:root[data-motion="reduce"] { --duration-fast: 0ms; --duration-normal: 0ms; }
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] *::before,
+:root[data-motion="reduce"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
   :root {
     --duration-fast: 0ms;
     --duration-normal: 0ms;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

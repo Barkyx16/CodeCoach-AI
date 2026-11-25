@@ -1,0 +1,162 @@
+{
+  "order": 372,
+  "slug": "frog-jump",
+  "title": "Frog Crossing the River",
+  "difficulty": "hard",
+  "topics": [
+    "dynamic-programming",
+    "hash-maps"
+  ],
+  "summary": "Can a frog cross on stones if each jump is k-1, k or k+1 units?",
+  "statement": "`stones` gives sorted stone positions, starting with `0`. The frog starts on the first stone and its first jump\nmust be 1 unit. If its last jump was `k` units, the next must be `k - 1`, `k` or `k + 1` (and forward). Return\n`true` if it can reach the last stone.",
+  "constraints": [
+    "2 <= stones.length <= 2000",
+    "stones[0] == 0, strictly increasing"
+  ],
+  "examples": [
+    {
+      "input": "stones = [0, 1, 3, 5, 6, 8, 12, 17]",
+      "output": "true"
+    },
+    {
+      "input": "stones = [0, 1, 2, 3, 4, 8, 9, 11]",
+      "output": "false"
+    },
+    {
+      "input": "stones = [0, 2]",
+      "output": "false"
+    }
+  ],
+  "signature": {
+    "method": "canCross",
+    "params": [
+      {
+        "name": "stones",
+        "type": "int[]"
+      }
+    ],
+    "returns": "boolean"
+  },
+  "starter_code": "class Solution {\n    public boolean canCross(int[] stones) {\n        // TODO: write your solution here\n        return false;\n    }\n}\n",
+  "hints": [
+    "The state is (stone, last jump length).",
+    "For each stone keep the set of jump lengths that can land on it, and push each forward with k-1, k, k+1.",
+    "jumps = {stone: set() for stone in stones}; jumps[0] = {0}\nfor s in stones:\n    for k in jumps[s]:\n        for step in (k - 1, k, k + 1):\n            if step > 0 and s + step in jumps: jumps[s + step].add(step)\nreturn len(jumps[last]) > 0",
+    "At most n jump sizes per stone: O(n^2) time and space. Starting with jump size 0 makes the first jump 1."
+  ],
+  "expected_complexity": {
+    "time": "O(n^2)",
+    "space": "O(n^2)"
+  },
+  "tests": [
+    {
+      "input": {
+        "stones": [
+          0,
+          1,
+          3,
+          5,
+          6,
+          8,
+          12,
+          17
+        ]
+      },
+      "expected_output": true,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "stones": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          8,
+          9,
+          11
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "stones": [
+          0,
+          2
+        ]
+      },
+      "expected_output": false,
+      "visibility": "public"
+    },
+    {
+      "input": {
+        "stones": [
+          0,
+          1
+        ]
+      },
+      "expected_output": true,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "stones": [
+          0,
+          1,
+          3,
+          5,
+          11,
+          12,
+          16,
+          17
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "stones": [
+          0,
+          1,
+          7,
+          8,
+          11,
+          12,
+          13,
+          18,
+          19
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "stones": [
+          0,
+          8,
+          14,
+          15
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    },
+    {
+      "input": {
+        "stones": [
+          0,
+          10,
+          17
+        ]
+      },
+      "expected_output": false,
+      "visibility": "hidden"
+    }
+  ],
+  "bank": true
+}
